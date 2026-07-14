@@ -53,6 +53,13 @@ const fade: Variants = {
   }),
 };
 
+/** Open external (http) links in a new tab; leave in-page anchors as-is. */
+function externalProps(href: string) {
+  return href.startsWith("http")
+    ? ({ target: "_blank", rel: "noopener noreferrer" } as const)
+    : {};
+}
+
 export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
   const { open: openContact } = useContactForm();
 
@@ -137,6 +144,7 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
           {/* Transparent, accessible hotspots over the baked neon buttons */}
           <a
             href={content.primaryCta.href}
+            {...externalProps(content.primaryCta.href)}
             aria-label={content.primaryCta.label}
             className="absolute rounded-full transition hover:bg-white/[0.04] focus-visible:bg-white/[0.06]"
             style={{
@@ -148,6 +156,7 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
           />
           <a
             href={content.secondaryCta.href}
+            {...externalProps(content.secondaryCta.href)}
             aria-label={content.secondaryCta.label}
             className="absolute rounded-full transition hover:bg-white/[0.04] focus-visible:bg-white/[0.06]"
             style={{
@@ -226,11 +235,19 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
             custom={2}
             className="mt-2 flex w-full max-w-xs flex-col gap-4"
           >
-            <a href={content.primaryCta.href} className="btn-neon">
+            <a
+              href={content.primaryCta.href}
+              {...externalProps(content.primaryCta.href)}
+              className="btn-neon"
+            >
               {content.primaryCta.label}
               <ArrowRight className="size-4" aria-hidden />
             </a>
-            <a href={content.secondaryCta.href} className="btn-neon btn-neon--amber">
+            <a
+              href={content.secondaryCta.href}
+              {...externalProps(content.secondaryCta.href)}
+              className="btn-neon btn-neon--amber"
+            >
               <Download className="size-4" aria-hidden />
               {content.secondaryCta.label}
             </a>
