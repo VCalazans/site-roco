@@ -58,7 +58,10 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
 
   return (
     <section className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#05070b]">
-      {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay ================= */}
+      {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay =================
+          The whole render is shown undistorted so the live overlays (nav, headline, paragraph,
+          CTA hotspots) stay aligned to the baked art. On screens whose ratio differs from the
+          art (~1.87:1) there are thin dark margins — the trade-off for never cropping content. */}
       <div className="hidden md:flex md:h-[100svh] md:w-full md:items-center md:justify-center">
         <div
           className="relative aspect-[3224/1724] w-full"
@@ -171,7 +174,7 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/60 via-[#05070b]/40 to-[#05070b]" />
 
         {/* Top bar */}
-        <nav className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5">
+        <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5">
           <Image
             src={WORDMARK}
             alt={content.brand}
