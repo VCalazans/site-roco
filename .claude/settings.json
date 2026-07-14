@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm run dev *)",
+      "Bash(npm run build *)",
+      "Bash(npm run lint *)",
+      "Bash(npm run start *)",
+      "Bash(npx tsc *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '\\n💾 Sessão encerrada. Rode /update-memory para salvar o contexto no memory-bank.'"
+          }
+        ]
+      }
+    ]
+  }
+}

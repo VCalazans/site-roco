@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+
+  /* Base */
+  --background: #05070b;
+  --foreground: #f5f7fa;
+
+  /* ROCO neon brand tokens (derived from the reference render) */
+  --neon-cyan: #3ec6f0;
+  --neon-cyan-bright: #35d9ff;
+  --neon-amber: #f5a33c;
+  --neon-amber-bright: #ffb454;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-cyan-bright: var(--neon-cyan-bright);
+  --color-neon-amber: var(--neon-amber);
+  --color-neon-amber-bright: var(--neon-amber-bright);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+::selection {
+  background: rgba(53, 217, 255, 0.35);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--neon-cyan-bright);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- Neon utilities ---- */
+.text-glow-cyan {
+  text-shadow: 0 0 12px rgba(53, 217, 255, 0.55), 0 0 32px rgba(53, 217, 255, 0.3);
+}
+
+.text-glow-soft {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Neon pill button (used on the mobile / no-render fallback layout) */
+.btn-neon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--neon-cyan);
+  padding: 0.85rem 1.6rem;
+  font-weight: 600;
+  color: #eaf9ff;
+  background: rgba(9, 18, 26, 0.55);
+  box-shadow: 0 0 0 1px rgba(53, 217, 255, 0.15) inset,
+    0 0 18px rgba(53, 217, 255, 0.35), 0 0 42px rgba(53, 217, 255, 0.18);
+  transition: box-shadow 0.25s ease, transform 0.15s ease, background 0.25s ease;
+}
+
+.btn-neon:hover {
+  background: rgba(53, 217, 255, 0.12);
+  box-shadow: 0 0 0 1px rgba(53, 217, 255, 0.3) inset,
+    0 0 26px rgba(53, 217, 255, 0.6), 0 0 60px rgba(53, 217, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-neon--amber {
+  border-color: var(--neon-amber);
+  color: #fff2e0;
+  box-shadow: 0 0 0 1px rgba(245, 163, 60, 0.15) inset,
+    0 0 18px rgba(245, 163, 60, 0.35), 0 0 42px rgba(245, 163, 60, 0.18);
+}
+
+.btn-neon--amber:hover {
+  background: rgba(245, 163, 60, 0.12);
+  box-shadow: 0 0 0 1px rgba(245, 163, 60, 0.3) inset,
+    0 0 26px rgba(245, 163, 60, 0.6), 0 0 60px rgba(245, 163, 60, 0.3);
+}
+
+/* ---- Mautic embedded form (styled to match the dark/neon theme) ---- */
+.mautic-form-wrap {
+  color: #e8eef4;
+}
+
+.mautic-form-wrap .mauticform-row,
+.mautic-form-wrap .mauticform-field {
+  margin-bottom: 1rem;
+}
+
+.mautic-form-wrap label,
+.mautic-form-wrap .mauticform-label {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #cdd8e2;
+}
+
+.mautic-form-wrap input[type="text"],
+.mautic-form-wrap input[type="email"],
+.mautic-form-wrap input[type="tel"],
+.mautic-form-wrap input[type="url"],
+.mautic-form-wrap input[type="number"],
+.mautic-form-wrap input[type="password"],
+.mautic-form-wrap textarea,
+.mautic-form-wrap select,
+.mautic-form-wrap .mauticform-input,
+.mautic-form-wrap .mauticform-selectbox,
+.mautic-form-wrap textarea.mauticform-textarea {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #f5f7fa;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.6rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mautic-form-wrap input::placeholder,
+.mautic-form-wrap textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.mautic-form-wrap input:focus,
+.mautic-form-wrap textarea:focus,
+.mautic-form-wrap select:focus,
+.mautic-form-wrap .mauticform-input:focus {
+  outline: 0;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 3px rgba(53, 217, 255, 0.18);
+}
+
+.mautic-form-wrap textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.mautic-form-wrap button,
+.mautic-form-wrap input[type="submit"],
+.mautic-form-wrap .mauticform-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.5rem;
+  padding: 0.75rem 1.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #04121a;
+  background: var(--neon-cyan-bright);
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(53, 217, 255, 0.4);
+  transition: filter 0.15s ease, box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.mautic-form-wrap button:hover,
+.mautic-form-wrap input[type="submit"]:hover,
+.mautic-form-wrap .mauticform-button:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 0 28px rgba(53, 217, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+.mautic-form-wrap .mauticform-required {
+  color: var(--neon-amber);
+}
+
+.mautic-form-wrap .mauticform-errormsg {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: #ff9a9a;
+}
+
+.mautic-form-wrap .mauticform-message,
+.mautic-form-wrap .mauticform-successmessage {
+  padding: 0.75rem 1rem;
+  border-radius: 0.6rem;
+  background: rgba(53, 217, 255, 0.1);
+  color: var(--neon-cyan-bright);
+}
+
+.mautic-form-wrap .mauticform-checkboxgrp-row,
+.mautic-form-wrap .mauticform-radiogrp-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}

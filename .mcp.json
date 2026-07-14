@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "archicode-whatsapp": {
+      "type": "sse",
+      "url": "https://work.archicode.com.br/mcp-test/5b4500a6-d4ff-48d2-938f-ceb0bdbd010e"
+    }
+  }
+}

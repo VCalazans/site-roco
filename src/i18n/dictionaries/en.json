@@ -1,0 +1,40 @@
+{
+  "seo": {
+    "title": "ROCO — Something new is coming!",
+    "description": "We are preparing a new website, designed to stay ever more connected with you. In the meantime, keep browsing our products and catalog."
+  },
+  "navigation": {
+    "brand": "ROCO",
+    "links": [
+      { "label": "Home", "href": "/" },
+      { "label": "Get in touch", "href": "#contato" }
+    ]
+  },
+  "comingSoon": {
+    "brand": "ROCO",
+    "headline": "Something new is coming!",
+    "description": "We are preparing a new website, designed to stay ever more connected with you. In the meantime, keep browsing our products and catalog using the links below.",
+    "primaryCta": {
+      "label": "Explore our Products",
+      "href": "#produtos"
+    },
+    "secondaryCta": {
+      "label": "Download Catalog",
+      "href": "#catalogo"
+    },
+    "sceneAlt": "Futuristic ROCO environment with neon lighting"
+  },
+  "contact": {
+    "title": "Get in touch",
+    "description": "Leave your details in the form below and we'll get back to you as soon as possible.",
+    "close": "Close",
+    "loading": "Loading form…",
+    "noscript": "Enable JavaScript in your browser to view the form."
+  },
+  "footer": {
+    "rights": "© 2026 ROCO. All rights reserved."
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  }
+}

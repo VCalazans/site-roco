@@ -1,0 +1,47 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# claude local overrides (machine-specific)
+.claude/settings.local.json
+
+# large design source (PSD ~95MB) — kept local; use Git LFS if it must be versioned
+/docs/documento
