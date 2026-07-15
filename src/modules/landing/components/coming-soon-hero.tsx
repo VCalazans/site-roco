@@ -35,7 +35,7 @@ const WORDMARK = "/images/hero/roco-logo-white.png";
  */
 const POS = {
   nav: { top: "5.0%", right: "6.6%" },
-  copy: { left: "29.1%", top: "51.5%", width: "42%" },
+  copy: { left: "29.1%", top: "54.5%", width: "42%" },
   btnPrimary: { left: "34.8%", top: "79.2%", width: "17.6%", height: "8.8%" },
   btnSecondary: { left: "53.0%", top: "79.2%", width: "12.4%", height: "8.8%" },
 } as const;
@@ -116,7 +116,7 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
               left: POS.copy.left,
               top: POS.copy.top,
               width: POS.copy.width,
-              gap: "1.4cqw",
+              gap: "0.9cqw",
             }}
           >
             <motion.h1
@@ -124,8 +124,8 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
               initial="hidden"
               animate="show"
               custom={0}
-              className="text-glow-soft font-display font-bold leading-[1.03] text-white"
-              style={{ fontSize: "3.4cqw" }}
+              className="text-glow-soft whitespace-nowrap font-display font-bold leading-[1.03] text-white"
+              style={{ fontSize: "2.85cqw" }}
             >
               {content.headline}
             </motion.h1>
@@ -135,7 +135,7 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
               animate="show"
               custom={1}
               className="text-glow-soft font-medium text-white/85"
-              style={{ fontSize: "1.4cqw", lineHeight: 1.5 }}
+              style={{ fontSize: "1.2cqw", lineHeight: 1.45 }}
             >
               {content.description}
             </motion.p>
