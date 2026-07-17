@@ -12,4 +12,9 @@ export const siteLinks = {
   catalog:
     process.env.NEXT_PUBLIC_CATALOG_URL ||
     "https://catalogo.roco.com.br/catalogo-roco",
+  /**
+   * WhatsApp de contato (somente dígitos, com DDI). Usado pelo botão flutuante.
+   * Padrão: (47) 3335-2012 → 55 (Brasil) + 47 (DDD) + número.
+   */
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "554733352012",
 } as const;

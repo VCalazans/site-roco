@@ -31,6 +31,10 @@
     "loading": "Loading form…",
     "noscript": "Enable JavaScript in your browser to view the form."
   },
+  "whatsapp": {
+    "label": "Chat with us on WhatsApp",
+    "message": "Hi! I came from the ROCO website and would like more information."
+  },
   "footer": {
     "rights": "© 2026 ROCO. All rights reserved."
   },

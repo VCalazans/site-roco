@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { ContactFormProvider } from "@/shared/components/contact-form";
+import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -24,6 +25,7 @@ export default async function LocaleLayout({
   return (
     <ContactFormProvider content={dictionary.contact}>
       {children}
+      <WhatsAppFloat content={dictionary.whatsapp} />
     </ContactFormProvider>
   );
 }
