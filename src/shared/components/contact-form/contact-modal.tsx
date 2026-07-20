@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { useMauticEnhancements } from "./use-mautic-enhancements";
 
 export type ContactModalContent = {
   title: string;
@@ -10,6 +11,9 @@ export type ContactModalContent = {
   close: string;
   loading: string;
   noscript: string;
+  cnpjInvalid: string;
+  cnpjPlaceholder: string;
+  phonePlaceholder: string;
 };
 
 type ContactModalProps = {
@@ -29,6 +33,13 @@ const MAUTIC_FORM_SRC = "https://mautic.roco.com.br/form/generate.js?id=1";
 export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
   const formRef = useRef<HTMLDivElement>(null);
   const injected = useRef(false);
+
+  // Mask + CNPJ validation layered onto the runtime-injected Mautic form.
+  useMauticEnhancements(formRef, isOpen, {
+    cnpjInvalid: content.cnpjInvalid,
+    cnpjPlaceholder: content.cnpjPlaceholder,
+    phonePlaceholder: content.phonePlaceholder,
+  });
 
   // Lazy-inject the Mautic form script the first time the modal opens.
   useEffect(() => {

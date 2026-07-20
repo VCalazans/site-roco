@@ -65,6 +65,16 @@ a {
   text-shadow: 0 0 12px rgba(53, 217, 255, 0.55), 0 0 32px rgba(53, 217, 255, 0.3);
 }
 
+/* Amber/orange neon glow (nav items + icons on the "warm" right side).
+   Color taken from the design outer-glow (#c35300, docs/Novos ícones_OK.psd). */
+.text-glow-amber {
+  text-shadow: 0 0 12px rgba(195, 83, 0, 0.6), 0 0 32px rgba(195, 83, 0, 0.32);
+}
+
+.icon-glow-amber {
+  filter: drop-shadow(0 0 6px rgba(195, 83, 0, 0.65));
+}
+
 .text-glow-soft {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }
@@ -162,6 +172,12 @@ a {
   outline: 0;
   border-color: var(--neon-cyan);
   box-shadow: 0 0 0 3px rgba(53, 217, 255, 0.18);
+}
+
+/* Invalid field (e.g. failed CNPJ validation) — toggled via aria-invalid. */
+.mautic-form-wrap input[aria-invalid="true"] {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 90, 90, 0.18);
 }
 
 .mautic-form-wrap textarea {

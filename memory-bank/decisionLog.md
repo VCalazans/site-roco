@@ -56,3 +56,35 @@ Mautic hardcoded em `contact-modal.tsx` (`MAUTIC_FORM_SRC`) — parametrizar via
 **Alternativas**: Geist (referências) — menos alinhado ao visual industrial da ROCO.
 **Justificativa**: Poppins (geométrica) aproxima a headline do `.psd`; Inter para leitura.
 **Impacto**: Variáveis `--font-inter`/`--font-poppins` consumidas pelo `@theme`.
+
+## 2026-07-19 — Refatoração da landing + nova barra de nav do PSD + resolução centralizada de destinos
+**Decisão**: (1) Quebrar monolito `coming-soon-hero.tsx` (~259 linhas) em componentes modulares:
+`hero-layout.ts` (constantes/tipos), `nav-items.tsx` (renderizador de itens), `cta-hotspot.tsx`
+(hotspot transparente), `mobile-menu.tsx` (hambúrguer); (2) Integrar nova barra de nav do PSD
+`docs/Novos ícones_OK.psd` (4 itens: Home, Ligamos pra você, Solicite um orçamento, Entre em
+contato) com ícones lucide-react (PhoneCall, Headset); (3) Centralizar resolução de destino via
+`resolveDestination(href)` em `src/core/config/site.ts` (mapeia `#produtos`/`#catalogo` para env).
+**Alternativas**: Manter monolito (menos manutenível); hardcodar ícones; resolver destino em N componentes.
+**Justificativa**: Modularização facilita reuso e testes futuros; ícones lucide garantem fidelidade
+ao PSD sem assets adicionais; centralização evita duplicação de lógica.
+**Impacto**: Componentes menores e focados; nav escalável (container-query desktop + mobile
+hambúrguer); destinos mapeáveis via env sem tocar código. **Premissas em aberto**: Os 3 itens de
+contato abrem o MESMO modal Mautic (id=1) — confirmar se "Ligamos pra você" vai para WhatsApp.
+Copy EN provisório; labels desktop em 1 linha (PSD mostra 2) — afinar.
+
+## 2026-07-19 — Validação de CNPJ + enhancement client-side do formulário Mautic
+**Decisão**: Criar camada de "enhancement" client-side para o form Mautic (injetado em runtime).
+Arquivos novos em `src/shared/components/contact-form/`: `cnpj.ts` (funções puras de validação/
+formatação com suporte alfanumérico desde jul/2026 — base de 12 chars com A–Z/0–9 + 2 DV numéricos)
+e `use-mautic-enhancements.ts` (hook + função DOM pura que aplica máscara de CNPJ/telefone,
+validação inline via `aria-invalid`, e **bloqueia submit de CNPJ inválido** usando listener na fase
+de CAPTURA do evento submit no container — antes do AJAX/POST do Mautic).
+**Alternativas**: (a) deixar validação só no servidor Mautic (sem feedback imediato); (b) reescrever
+form em React (perde manutenibilidade); (c) validar mas não bloquear (menos UX).
+**Justificativa**: Mautic injeta HTML em runtime (não é React); enhancement via DOM oferece máscara,
+feedback visual e bloqueio de submit inválido **antes** de atingir Mautic. Rejeita comprimento
+errado, sequências repetidas. Usa `MutationObserver` para achar campos assincronamente.
+**Impacto**: (1) Campos inválidos não disparam AJAX/POST — previne rejeição no Mautic. (2) Validação
+só se preenchido — obrigatoriedade é responsabilidade do Mautic. (3) Integração em `contact-modal.tsx`
+via hook. (4) Novo CSS em `globals.css` (`input[aria-invalid="true"]`). (5) Dicionários ampliados.
+Verificação manual: unit CNPJ 10/10 + simulação DOM 9/9 (happy-dom). Débito: test runner formal.

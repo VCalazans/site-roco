@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ComingSoonHero } from "@/modules/landing/components/coming-soon-hero";
-import { siteLinks } from "@/core/config/site";
+import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -39,22 +39,31 @@ export default async function LandingPage({ params }: PageProps) {
   }
 
   const dictionary = await getDictionary(locale);
+  const { comingSoon, navigation } = dictionary;
 
-  // CTA destinations come from env/config; dictionary hrefs are copy-only fallbacks.
-  const { comingSoon } = dictionary;
+  // Destinations come from env/config; dictionary hrefs are copy-only fallbacks.
+  const navLinks = navigation.links.map((link) => ({
+    ...link,
+    href: resolveDestination(link.href),
+  }));
+
   const content = {
     ...comingSoon,
     primaryCta: {
       ...comingSoon.primaryCta,
-      href: siteLinks.products || comingSoon.primaryCta.href,
+      href: resolveDestination(comingSoon.primaryCta.href),
     },
     secondaryCta: {
       ...comingSoon.secondaryCta,
-      href: siteLinks.catalog || comingSoon.secondaryCta.href,
+      href: resolveDestination(comingSoon.secondaryCta.href),
     },
   };
 
   return (
-    <ComingSoonHero content={content} navLinks={dictionary.navigation.links} />
+    <ComingSoonHero
+      content={content}
+      navLinks={navLinks}
+      menuLabels={{ open: navigation.menu, close: navigation.close }}
+    />
   );
 }

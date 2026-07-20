@@ -18,3 +18,21 @@ export const siteLinks = {
    */
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "554733352012",
 } as const;
+
+/**
+ * Resolve a dictionary href to its real destination. Copy in the dictionaries
+ * uses stable placeholder anchors (`#produtos`, `#catalogo`); here we swap them
+ * for the configured external URLs, keeping the anchor as a harmless fallback
+ * until a URL is defined. In-page anchors (`#contato`) and routes (`/`) pass
+ * through untouched so the contact modal and internal links keep working.
+ */
+export function resolveDestination(href: string): string {
+  switch (href) {
+    case "#produtos":
+      return siteLinks.products || href;
+    case "#catalogo":
+      return siteLinks.catalog || href;
+    default:
+      return href;
+  }
+}

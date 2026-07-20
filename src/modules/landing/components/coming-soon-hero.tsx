@@ -1,11 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, Download } from "lucide-react";
 import { useContactForm } from "@/shared/components/contact-form";
-
-type Cta = { label: string; href: string };
+import { NavItems } from "@/modules/landing/components/nav-items";
+import { CtaHotspot } from "@/modules/landing/components/cta-hotspot";
+import { MobileMenu } from "@/modules/landing/components/mobile-menu";
+import {
+  POS,
+  fade,
+  externalProps,
+  type Cta,
+  type NavLink,
+} from "@/modules/landing/lib/hero-layout";
 
 type ComingSoonContent = {
   brand: string;
@@ -16,51 +24,20 @@ type ComingSoonContent = {
   sceneAlt: string;
 };
 
-type NavLink = { label: string; href: string };
-
 type ComingSoonHeroProps = {
   content: ComingSoonContent;
   navLinks: NavLink[];
+  menuLabels: { open: string; close: string };
 };
 
 const SCENE = "/images/hero/hero-scene.jpg";
 const WORDMARK = "/images/hero/roco-logo-white.png";
 
-/**
- * Coordinates measured from the source .psd (canvas 3224 x 1724), expressed as
- * percentages so the live overlay stays aligned with the baked render at every
- * width. The render already contains the ROCO wordmark, nav pill and both neon
- * buttons; only the translatable text (nav labels, headline, paragraph) and the
- * clickable CTA hotspots are layered on top.
- */
-const POS = {
-  nav: { top: "5.0%", right: "6.6%" },
-  copy: { left: "29.1%", top: "54.5%", width: "42%" },
-  btnPrimary: { left: "34.8%", top: "79.2%", width: "17.6%", height: "8.8%" },
-  btnSecondary: { left: "53.0%", top: "79.2%", width: "12.4%", height: "8.8%" },
-} as const;
-
-const fade: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.7,
-      delay: 0.15 * i,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  }),
-};
-
-/** Open external (http) links in a new tab; leave in-page anchors as-is. */
-function externalProps(href: string) {
-  return href.startsWith("http")
-    ? ({ target: "_blank", rel: "noopener noreferrer" } as const)
-    : {};
-}
-
-export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
+export function ComingSoonHero({
+  content,
+  navLinks,
+  menuLabels,
+}: ComingSoonHeroProps) {
   const { open: openContact } = useContactForm();
 
   return (
@@ -86,27 +63,21 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
             className="object-cover"
           />
 
-          {/* Live nav labels over the baked pill */}
+          {/* Live nav labels over the baked glass bar */}
           <nav
             className="absolute flex items-center"
             style={{ top: POS.nav.top, right: POS.nav.right, gap: "2.2cqw" }}
           >
-            {navLinks.map((link, i) => {
-              const cls =
-                i === 0
-                  ? "text-glow-cyan font-medium text-neon-cyan-bright transition hover:opacity-90"
-                  : "font-medium text-white/85 transition hover:text-white";
-              const style = { fontSize: "1.05cqw" };
-              return link.href.startsWith("#contato") ? (
-                <button key={link.label} type="button" onClick={openContact} className={cls} style={style}>
-                  {link.label}
-                </button>
-              ) : (
-                <a key={link.label} href={link.href} className={cls} style={style}>
-                  {link.label}
-                </a>
-              );
-            })}
+            <NavItems
+              links={navLinks}
+              onContact={openContact}
+              itemClassName={(index) =>
+                index === 0
+                  ? "text-glow-cyan whitespace-nowrap font-medium text-neon-cyan-bright transition hover:opacity-90"
+                  : "text-glow-amber whitespace-nowrap font-medium text-white/90 transition hover:text-white"
+              }
+              itemStyle={() => ({ fontSize: "1.05cqw" })}
+            />
           </nav>
 
           {/* Headline + paragraph (translatable, selectable, indexable) */}
@@ -142,30 +113,8 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
           </div>
 
           {/* Transparent, accessible hotspots over the baked neon buttons */}
-          <a
-            href={content.primaryCta.href}
-            {...externalProps(content.primaryCta.href)}
-            aria-label={content.primaryCta.label}
-            className="absolute rounded-full transition hover:bg-white/[0.04] focus-visible:bg-white/[0.06]"
-            style={{
-              left: POS.btnPrimary.left,
-              top: POS.btnPrimary.top,
-              width: POS.btnPrimary.width,
-              height: POS.btnPrimary.height,
-            }}
-          />
-          <a
-            href={content.secondaryCta.href}
-            {...externalProps(content.secondaryCta.href)}
-            aria-label={content.secondaryCta.label}
-            className="absolute rounded-full transition hover:bg-white/[0.04] focus-visible:bg-white/[0.06]"
-            style={{
-              left: POS.btnSecondary.left,
-              top: POS.btnSecondary.top,
-              width: POS.btnSecondary.width,
-              height: POS.btnSecondary.height,
-            }}
-          />
+          <CtaHotspot cta={content.primaryCta} style={{ ...POS.btnPrimary }} />
+          <CtaHotspot cta={content.secondaryCta} style={{ ...POS.btnSecondary }} />
         </div>
       </div>
 
@@ -192,20 +141,11 @@ export function ComingSoonHero({ content, navLinks }: ComingSoonHeroProps) {
             className="h-7 w-auto"
             priority
           />
-          <div className="flex items-center gap-4 text-sm">
-            {navLinks.map((link, i) => {
-              const cls = i === 0 ? "font-medium text-neon-cyan-bright" : "text-white/80";
-              return link.href.startsWith("#contato") ? (
-                <button key={link.label} type="button" onClick={openContact} className={cls}>
-                  {link.label}
-                </button>
-              ) : (
-                <a key={link.label} href={link.href} className={cls}>
-                  {link.label}
-                </a>
-              );
-            })}
-          </div>
+          <MobileMenu
+            links={navLinks}
+            onContact={openContact}
+            labels={menuLabels}
+          />
         </nav>
 
         {/* Content */}

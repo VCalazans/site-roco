@@ -5,9 +5,13 @@
   },
   "navigation": {
     "brand": "ROCO",
+    "menu": "Menu",
+    "close": "Fechar",
     "links": [
-      { "label": "Home", "href": "/" },
-      { "label": "Entre em contato", "href": "#contato" }
+      { "label": "Home", "href": "/", "icon": "" },
+      { "label": "Ligamos pra você", "href": "#contato", "icon": "call" },
+      { "label": "Solicite um orçamento", "href": "#contato", "icon": "headset" },
+      { "label": "Entre em contato", "href": "#contato", "icon": "" }
     ]
   },
   "comingSoon": {
@@ -29,7 +33,10 @@
     "description": "Deixe seu contato no formulário abaixo que retornaremos assim que possível.",
     "close": "Fechar",
     "loading": "Carregando formulário…",
-    "noscript": "Ative o JavaScript no seu navegador para visualizar o formulário."
+    "noscript": "Ative o JavaScript no seu navegador para visualizar o formulário.",
+    "cnpjInvalid": "CNPJ inválido. Confira os números digitados.",
+    "cnpjPlaceholder": "00.000.000/0000-00",
+    "phonePlaceholder": "(00) 00000-0000"
   },
   "whatsapp": {
     "label": "Fale conosco no WhatsApp",

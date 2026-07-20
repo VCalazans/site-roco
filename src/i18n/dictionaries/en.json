@@ -5,9 +5,13 @@
   },
   "navigation": {
     "brand": "ROCO",
+    "menu": "Menu",
+    "close": "Close",
     "links": [
-      { "label": "Home", "href": "/" },
-      { "label": "Get in touch", "href": "#contato" }
+      { "label": "Home", "href": "/", "icon": "" },
+      { "label": "We'll call you", "href": "#contato", "icon": "call" },
+      { "label": "Request a quote", "href": "#contato", "icon": "headset" },
+      { "label": "Get in touch", "href": "#contato", "icon": "" }
     ]
   },
   "comingSoon": {
@@ -29,7 +33,10 @@
     "description": "Leave your details in the form below and we'll get back to you as soon as possible.",
     "close": "Close",
     "loading": "Loading form…",
-    "noscript": "Enable JavaScript in your browser to view the form."
+    "noscript": "Enable JavaScript in your browser to view the form.",
+    "cnpjInvalid": "Invalid CNPJ. Please check the digits you entered.",
+    "cnpjPlaceholder": "00.000.000/0000-00",
+    "phonePlaceholder": "(00) 00000-0000"
   },
   "whatsapp": {
     "label": "Chat with us on WhatsApp",
