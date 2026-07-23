@@ -33,6 +33,7 @@
     "description": "Deixe seu contato no formulário abaixo que retornaremos assim que possível.",
     "close": "Fechar",
     "loading": "Carregando formulário…",
+    "unavailable": "Nosso formulário está temporariamente indisponível para manutenção. Fale com a gente pelo WhatsApp ou por e-mail que retornamos assim que possível.",
     "noscript": "Ative o JavaScript no seu navegador para visualizar o formulário.",
     "cnpjInvalid": "CNPJ inválido. Confira os números digitados.",
     "cnpjPlaceholder": "00.000.000/0000-00",
