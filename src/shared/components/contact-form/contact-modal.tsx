@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
-import { useMauticEnhancements } from "./use-mautic-enhancements";
 
 export type ContactModalContent = {
   title: string;
   description: string;
   close: string;
   loading: string;
+  unavailable: string;
   noscript: string;
   cnpjInvalid: string;
   cnpjPlaceholder: string;
@@ -23,35 +23,19 @@ type ContactModalProps = {
 };
 
 /**
- * Mautic form embed. `generate.js?id=1` injects the form markup at the location
- * of its own <script> tag, so we append the script into the container ref. The
- * script loads lazily on first open and the injected form is kept mounted across
- * open/close (the panel is never unmounted) so the embed runs only once.
+ * TEMPORARIAMENTE DESATIVADO (incidente de segurança — 2026-07-23):
+ * O embed do Mautic (`https://mautic.roco.com.br/form/generate.js?id=1`) foi
+ * removido porque o servidor Mautic estava servindo JS malicioso (golpe ClickFix
+ * "Win + R"). Enquanto o servidor não for limpo, o modal exibe uma mensagem de
+ * indisponibilidade em vez de injetar o script remoto.
+ *
+ * Para reativar após o servidor estar seguro: restaurar a injeção do script e o
+ * hook `useMauticEnhancements` (ver git história deste arquivo) e, de preferência,
+ * adicionar uma CSP (`script-src`) em next.config.ts antes.
  */
-const MAUTIC_FORM_SRC = "https://mautic.roco.com.br/form/generate.js?id=1";
+// const MAUTIC_FORM_SRC = "https://mautic.roco.com.br/form/generate.js?id=1";
 
 export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
-  const formRef = useRef<HTMLDivElement>(null);
-  const injected = useRef(false);
-
-  // Mask + CNPJ validation layered onto the runtime-injected Mautic form.
-  useMauticEnhancements(formRef, isOpen, {
-    cnpjInvalid: content.cnpjInvalid,
-    cnpjPlaceholder: content.cnpjPlaceholder,
-    phonePlaceholder: content.phonePlaceholder,
-  });
-
-  // Lazy-inject the Mautic form script the first time the modal opens.
-  useEffect(() => {
-    if (!isOpen || injected.current || !formRef.current) return;
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = MAUTIC_FORM_SRC;
-    script.async = true;
-    formRef.current.appendChild(script);
-    injected.current = true;
-  }, [isOpen]);
-
   // Escape to close + lock body scroll while open.
   useEffect(() => {
     if (!isOpen) return;
@@ -109,10 +93,9 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
           </button>
         </div>
 
-        {/* Mautic injects the form here */}
-        <div ref={formRef} className="mautic-form-wrap">
-          <p className="text-sm text-white/40">{content.loading}</p>
-          <noscript>{content.noscript}</noscript>
+        {/* Embed do Mautic temporariamente desativado (ver comentário acima). */}
+        <div className="mautic-form-wrap">
+          <p className="text-sm text-white/70">{content.unavailable}</p>
         </div>
       </motion.div>
     </div>
