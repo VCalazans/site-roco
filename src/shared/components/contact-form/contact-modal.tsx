@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { MauticEmbed, type MauticFormCopy } from "./mautic-embed";
 
 export type ContactModalContent = {
   title: string;
@@ -14,6 +15,7 @@ export type ContactModalContent = {
   cnpjInvalid: string;
   cnpjPlaceholder: string;
   phonePlaceholder: string;
+  form: MauticFormCopy;
 };
 
 type ContactModalProps = {
@@ -23,17 +25,17 @@ type ContactModalProps = {
 };
 
 /**
- * TEMPORARIAMENTE DESATIVADO (incidente de segurança — 2026-07-23):
- * O embed do Mautic (`https://mautic.roco.com.br/form/generate.js?id=1`) foi
- * removido porque o servidor Mautic estava servindo JS malicioso (golpe ClickFix
- * "Win + R"). Enquanto o servidor não for limpo, o modal exibe uma mensagem de
- * indisponibilidade em vez de injetar o script remoto.
+ * Embed do formulário Mautic — versão ENDURECIDA pós-incidente ClickFix (2026-07):
+ * HTML estático + SDK self-hosted (ver `mautic-embed.tsx`), protegido por CSP.
  *
- * Para reativar após o servidor estar seguro: restaurar a injeção do script e o
- * hook `useMauticEnhancements` (ver git história deste arquivo) e, de preferência,
- * adicionar uma CSP (`script-src`) em next.config.ts antes.
+ * Toggle sem editar código: `NEXT_PUBLIC_CONTACT_FORM_ENABLED`.
+ *   - ausente ou !== "false"  → formulário habilitado (padrão)
+ *   - "false"                 → modal mostra `content.unavailable`
+ * (NEXT_PUBLIC_* é embutido no build, então mudar o valor exige rebuild.)
+ *
+ * Rollback para o embed remoto original: `docs/ROLLBACK-mautic-embed.md`.
  */
-// const MAUTIC_FORM_SRC = "https://mautic.roco.com.br/form/generate.js?id=1";
+const FORM_ENABLED = process.env.NEXT_PUBLIC_CONTACT_FORM_ENABLED !== "false";
 
 export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
   // Escape to close + lock body scroll while open.
@@ -93,10 +95,21 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
           </button>
         </div>
 
-        {/* Embed do Mautic temporariamente desativado (ver comentário acima). */}
-        <div className="mautic-form-wrap">
-          <p className="text-sm text-white/70">{content.unavailable}</p>
-        </div>
+        {FORM_ENABLED ? (
+          <MauticEmbed
+            isOpen={isOpen}
+            content={content.form}
+            enhancement={{
+              cnpjInvalid: content.cnpjInvalid,
+              cnpjPlaceholder: content.cnpjPlaceholder,
+              phonePlaceholder: content.phonePlaceholder,
+            }}
+          />
+        ) : (
+          <div className="mautic-form-wrap">
+            <p className="text-sm text-white/70">{content.unavailable}</p>
+          </div>
+        )}
       </motion.div>
     </div>
   );

@@ -34,10 +34,47 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "origin-when-cross-origin" },
+          { key: "Content-Security-Policy", value: contentSecurityPolicy() },
         ],
       },
     ];
   },
 };
+
+/**
+ * Content-Security-Policy.
+ *
+ * Defesa central pós-incidente ClickFix (2026-07): `script-src 'self'` (sem o
+ * domínio do Mautic) impede que qualquer script seja CARREGADO de fora do
+ * próprio site. O formulário Mautic passa a rodar de uma cópia self-hosted
+ * (`/vendor/mautic-form.js`) e só o POST de envio vai para o Mautic — coberto
+ * por `connect-src`/`form-action`. Assim, mesmo que o servidor Mautic seja
+ * reinfectado, o navegador bloqueia scripts de terceiros neste site.
+ *
+ * `'unsafe-inline'` em script-src é necessário para os scripts inline de
+ * hidratação do Next.js (sem nonce). Como o HTML do site é estático (sem ponto
+ * de injeção), o risco residual é baixo; um endurecimento futuro seria migrar
+ * para CSP baseada em nonce via middleware.
+ *
+ * Em desenvolvimento, libera `'unsafe-eval'` e `ws:`/localhost para o HMR do
+ * Turbopack — em produção a política é restrita.
+ */
+function contentSecurityPolicy(): string {
+  const isDev = process.env.NODE_ENV !== "production";
+  const mautic = "https://mautic.roco.com.br";
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self'",
+    `connect-src 'self' ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
+    `form-action 'self' ${mautic}`,
+  ].join("; ");
+}
 
 export default nextConfig;

@@ -37,7 +37,30 @@
     "noscript": "Enable JavaScript in your browser to view the form.",
     "cnpjInvalid": "Invalid CNPJ. Please check the digits you entered.",
     "cnpjPlaceholder": "00.000.000/0000-00",
-    "phonePlaceholder": "(00) 00000-0000"
+    "phonePlaceholder": "(00) 00000-0000",
+    "form": {
+      "nome": "First name",
+      "sobrenome": "Last name",
+      "telefone": "Phone",
+      "email": "Email",
+      "cnpj": "CNPJ",
+      "cidade": "City",
+      "estado": "State",
+      "mensagem": "Message",
+      "captcha": "How much is 27 + 15?",
+      "submit": "Send",
+      "submitting": "Please wait...",
+      "errors": {
+        "nome": "Please enter your first name",
+        "sobrenome": "Please enter your last name",
+        "telefone": "Please enter a phone number we can reach you at",
+        "email": "This is required.",
+        "cnpj": "Please fill in your CNPJ",
+        "cidade": "This is required.",
+        "estado": "This is required.",
+        "captcha": "This is required."
+      }
+    }
   },
   "whatsapp": {
     "label": "Chat with us on WhatsApp",
