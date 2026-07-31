@@ -124,16 +124,16 @@ export function enhanceMauticForm(
   };
 }
 
-/** React binding: enhances the form while the modal is open. */
+/** React binding: enhances the form while it is active (mounted and visible). */
 export function useMauticEnhancements(
   containerRef: RefObject<HTMLDivElement | null>,
-  isOpen: boolean,
+  active: boolean,
   copy: EnhancementCopy,
 ): void {
   const { cnpjInvalid, cnpjPlaceholder, phonePlaceholder } = copy;
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!active) return;
     const container = containerRef.current;
     if (!container) return;
     return enhanceMauticForm(container, {
@@ -141,5 +141,5 @@ export function useMauticEnhancements(
       cnpjPlaceholder,
       phonePlaceholder,
     });
-  }, [isOpen, containerRef, cnpjInvalid, cnpjPlaceholder, phonePlaceholder]);
+  }, [active, containerRef, cnpjInvalid, cnpjPlaceholder, phonePlaceholder]);
 }

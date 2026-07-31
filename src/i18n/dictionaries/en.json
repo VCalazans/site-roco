@@ -11,6 +11,7 @@
       { "label": "Home", "href": "/", "icon": "" },
       { "label": "We'll call you", "href": "#contato", "icon": "call" },
       { "label": "Request a quote", "href": "#contato", "icon": "headset" },
+      { "label": "Sales Force", "href": "#contato", "icon": "sales" },
       { "label": "Get in touch", "href": "#contato", "icon": "" }
     ]
   },
@@ -27,6 +28,24 @@
       "href": "#catalogo"
     },
     "sceneAlt": "Futuristic ROCO environment with neon lighting"
+  },
+  "catalog": {
+    "seo": {
+      "title": "ROCO Product Catalog — download the PDF",
+      "description": "Explore the full ROCO range: MVS, repair kits for valves and taps, gas installations, coupled cistern mechanisms, filter adapters and garden watering accessories. Fill in your details and download the catalog."
+    },
+    "headline": "Explore our full product line",
+    "description": "Discover a wide range of products — from MVS to repair kits for valves and taps, gas installations, coupled cistern mechanisms, filter adapters and garden watering accessories — all designed to meet your customers' needs. Download our exclusive catalog now and offer quality products.",
+    "sceneAlt": "Printed ROCO product catalog on a surface with neon lighting",
+    "formTitle": "Fill in your details to receive the catalog",
+    "submit": "Download Catalog",
+    "privacyNotice": "By submitting my details, I acknowledge the terms of the",
+    "privacyLabel": "Privacy Policy",
+    "success": {
+      "title": "All set!",
+      "description": "Your download has started automatically. If it doesn't, use the button below.",
+      "action": "Download catalog as PDF"
+    }
   },
   "contact": {
     "title": "Get in touch",

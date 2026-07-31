@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { MauticEmbed, type MauticFormCopy } from "./mautic-embed";
@@ -38,6 +38,16 @@ type ContactModalProps = {
 const FORM_ENABLED = process.env.NEXT_PUBLIC_CONTACT_FORM_ENABLED !== "false";
 
 export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
+  // O embed do Mautic só entra no DOM depois da primeira abertura. Além de
+  // economizar markup, isso garante que os ids `mauticform_<alias>…` sejam
+  // únicos em páginas que já embutem o mesmo formulário inline (catálogo) —
+  // ids duplicados fariam o SDK operar no form errado. Uma vez montado, o form
+  // permanece no DOM para preservar o que o usuário digitou entre abre/fecha.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    if (isOpen) setMounted(true);
+  }, [isOpen]);
+
   // Escape to close + lock body scroll while open.
   useEffect(() => {
     if (!isOpen) return;
@@ -95,9 +105,13 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
           </button>
         </div>
 
-        {FORM_ENABLED ? (
+        {!FORM_ENABLED ? (
+          <div className="mautic-form-wrap">
+            <p className="text-sm text-white/70">{content.unavailable}</p>
+          </div>
+        ) : mounted ? (
           <MauticEmbed
-            isOpen={isOpen}
+            active={isOpen}
             content={content.form}
             enhancement={{
               cnpjInvalid: content.cnpjInvalid,
@@ -105,11 +119,7 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
               phonePlaceholder: content.phonePlaceholder,
             }}
           />
-        ) : (
-          <div className="mautic-form-wrap">
-            <p className="text-sm text-white/70">{content.unavailable}</p>
-          </div>
-        )}
+        ) : null}
       </motion.div>
     </div>
   );

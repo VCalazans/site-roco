@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { useMauticEnhancements, type EnhancementCopy } from "./use-mautic-enhancements";
 
 /**
@@ -47,10 +47,26 @@ export type MauticFormCopy = {
 };
 
 type MauticEmbedProps = {
-  isOpen: boolean;
+  /** Quando `true`, carrega o SDK e liga as máscaras/validações dos campos. */
+  active: boolean;
   content: MauticFormCopy;
   enhancement: EnhancementCopy;
+  /** Ref opcional para o container — usado por quem precisa observar o form. */
+  containerRef?: RefObject<HTMLDivElement | null>;
 };
+
+/**
+ * Alias (nome) do formulário no Mautic. O SDK usa esse valor como chave para os
+ * ids do DOM (`mauticform_<alias>…`, escritos literalmente no JSX abaixo), para
+ * `window.MauticFormValidations` e para casar a resposta do postMessage
+ * (`response.formName`) com o validador certo.
+ *
+ * Consequência importante: **só pode existir UM embed deste formulário por
+ * página** — dois instanciariam ids duplicados e o SDK acharia o form errado.
+ * Por isso o modal de contato só monta o embed depois de aberto (ver
+ * `contact-modal.tsx`) e a página de catálogo não expõe gatilho para o modal.
+ */
+export const MAUTIC_FORM_ALIAS = "formulariodosite";
 
 // Domínio do Mautic — usado pelo SDK para o AJAX de submit e pela `action` do form.
 // Apenas o POST de dados vai para cá; nenhum script executável é carregado dele.
@@ -67,16 +83,22 @@ type MauticGlobal = Window & {
 
 const hidden = { display: "none" } as const;
 
-export function MauticEmbed({ isOpen, content, enhancement }: MauticEmbedProps) {
-  const formRef = useRef<HTMLDivElement>(null);
+export function MauticEmbed({
+  active,
+  content,
+  enhancement,
+  containerRef,
+}: MauticEmbedProps) {
+  const localRef = useRef<HTMLDivElement>(null);
+  const formRef = containerRef ?? localRef;
   const loaded = useRef(false);
 
   // Máscara + validação de CNPJ (mesma lógica do embed original).
-  useMauticEnhancements(formRef, isOpen, enhancement);
+  useMauticEnhancements(formRef, active, enhancement);
 
-  // Carrega o SDK self-hosted na primeira vez que o modal abre e inicializa o form.
+  // Carrega o SDK self-hosted na primeira vez que o form fica ativo.
   useEffect(() => {
-    if (!isOpen || loaded.current) return;
+    if (!active || loaded.current) return;
     loaded.current = true;
 
     const w = window as MauticGlobal;
@@ -94,7 +116,7 @@ export function MauticEmbed({ isOpen, content, enhancement }: MauticEmbedProps) 
     script.async = true;
     script.onload = () => (window as MauticGlobal).MauticSDK?.onLoad();
     document.head.appendChild(script);
-  }, [isOpen, content.submitting]);
+  }, [active, content.submitting]);
 
   const e = content.errors;
 

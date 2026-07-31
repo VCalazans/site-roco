@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { externalProps, type Cta } from "@/modules/landing/lib/hero-layout";
+import { externalProps, type Cta } from "@/shared/lib/nav";
 
 type CtaHotspotProps = {
   cta: Cta;

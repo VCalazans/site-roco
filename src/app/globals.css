@@ -79,6 +79,52 @@ a {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }
 
+/* ---- Glass nav bar ----
+   Live CSS rebuild of the bar baked into the renders, for pages that are not
+   aspect-locked to the 3224x1724 board (see shared/components/nav/site-header).
+   Stops sampled from "Agrupar 1" in docs/Layout pag catalogo_ok.psd: dark slate
+   at the top, a lighter band through the middle, and a cool→warm wash along the
+   bottom edge (cyan side left, amber side right). */
+.nav-glass {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(38, 42, 54, 0.92) 0%,
+    rgba(56, 57, 68, 0.9) 42%,
+    rgba(74, 78, 92, 0.86) 68%,
+    rgba(92, 104, 126, 0.82) 100%
+  );
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.nav-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(72, 124, 180, 0.55) 0%,
+    rgba(72, 124, 180, 0.45) 48%,
+    rgba(120, 112, 120, 0.25) 58%,
+    rgba(180, 116, 72, 0.5) 74%,
+    rgba(190, 124, 80, 0.55) 100%
+  );
+  mask-image: linear-gradient(180deg, transparent 45%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 45%, #000 100%);
+}
+
+.nav-glass > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Neon pill button (used on the mobile / no-render fallback layout) */
 .btn-neon {
   position: relative;

@@ -74,6 +74,12 @@ function contentSecurityPolicy(): string {
     "font-src 'self'",
     `connect-src 'self' ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
     `form-action 'self' ${mautic}`,
+    // O SDK do Mautic posta o formulário num iframe oculto e lê a resposta JSON
+    // via postMessage — sem esta diretiva o iframe é bloqueado por `default-src`
+    // e a página nunca sabe se o envio deu certo (a página de catálogo depende
+    // disso para liberar o PDF). Permitir *enquadrar* o Mautic não dá a ele
+    // nenhum acesso a este documento nem permite executar script na nossa origem.
+    `frame-src 'self' ${mautic}`,
   ].join("; ");
 }
 

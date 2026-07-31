@@ -1,10 +1,5 @@
 import type { Variants } from "framer-motion";
 
-/** A labelled destination — shared by nav links and the hero CTAs. */
-export type Cta = { label: string; href: string };
-/** `icon` is a key into the nav icon registry ("" / undefined = no icon). */
-export type NavLink = { label: string; href: string; icon?: string };
-
 /**
  * Coordinates measured from the source .psd (canvas 3224 x 1724), expressed as
  * percentages so the live overlay stays aligned with the baked render at every
@@ -33,15 +28,3 @@ export const fade: Variants = {
     },
   }),
 };
-
-/** Open external (http) links in a new tab; leave in-page anchors as-is. */
-export function externalProps(href: string) {
-  return href.startsWith("http")
-    ? ({ target: "_blank", rel: "noopener noreferrer" } as const)
-    : {};
-}
-
-/** A link whose href targets the contact anchor opens the contact modal. */
-export function isContactLink(href: string) {
-  return href.startsWith("#contato");
-}

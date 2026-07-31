@@ -4,16 +4,10 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Download } from "lucide-react";
 import { useContactForm } from "@/shared/components/contact-form";
-import { NavItems } from "@/modules/landing/components/nav-items";
+import { MobileMenu, NavItems } from "@/shared/components/nav";
 import { CtaHotspot } from "@/modules/landing/components/cta-hotspot";
-import { MobileMenu } from "@/modules/landing/components/mobile-menu";
-import {
-  POS,
-  fade,
-  externalProps,
-  type Cta,
-  type NavLink,
-} from "@/modules/landing/lib/hero-layout";
+import { POS, fade } from "@/modules/landing/lib/hero-layout";
+import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
 
 type ComingSoonContent = {
   brand: string;

@@ -11,6 +11,7 @@
       { "label": "Home", "href": "/", "icon": "" },
       { "label": "Ligamos pra você", "href": "#contato", "icon": "call" },
       { "label": "Solicite um orçamento", "href": "#contato", "icon": "headset" },
+      { "label": "Força de Vendas", "href": "#contato", "icon": "sales" },
       { "label": "Entre em contato", "href": "#contato", "icon": "" }
     ]
   },
@@ -27,6 +28,24 @@
       "href": "#catalogo"
     },
     "sceneAlt": "Ambiente futurista da ROCO com iluminação neon"
+  },
+  "catalog": {
+    "seo": {
+      "title": "Catálogo de Produtos ROCO — baixe o PDF",
+      "description": "Conheça toda a linha ROCO: MVS, reparos para registros e torneiras, instalações a gás, mecanismos para caixas acopladas, adaptadores de filtro e acessórios para hidrojardim. Preencha os dados e baixe o catálogo."
+    },
+    "headline": "Conheça toda a nossa linha de produtos",
+    "description": "Descubra uma ampla variedade de produtos, desde MVS a reparos para registros e torneiras, instalações a gás, mecanismos para caixas acopladas, adaptadores de filtro e acessórios para hidrojardim, tudo projetado para atender às necessidades dos seus clientes. Baixe agora nosso catálogo exclusivo e ofereça produtos de qualidade.",
+    "sceneAlt": "Catálogo de produtos ROCO impresso sobre uma superfície com iluminação neon",
+    "formTitle": "Preencha os dados para receber o catálogo",
+    "submit": "Baixar Catálogo",
+    "privacyNotice": "Ao informar meus dados, estou ciente das diretrizes da",
+    "privacyLabel": "Política de Privacidade",
+    "success": {
+      "title": "Tudo certo!",
+      "description": "Seu download começou automaticamente. Se não iniciar, use o botão abaixo.",
+      "action": "Baixar catálogo em PDF"
+    }
   },
   "contact": {
     "title": "Entre em contato",

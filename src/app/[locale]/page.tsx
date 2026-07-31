@@ -44,18 +44,18 @@ export default async function LandingPage({ params }: PageProps) {
   // Destinations come from env/config; dictionary hrefs are copy-only fallbacks.
   const navLinks = navigation.links.map((link) => ({
     ...link,
-    href: resolveDestination(link.href),
+    href: resolveDestination(link.href, locale),
   }));
 
   const content = {
     ...comingSoon,
     primaryCta: {
       ...comingSoon.primaryCta,
-      href: resolveDestination(comingSoon.primaryCta.href),
+      href: resolveDestination(comingSoon.primaryCta.href, locale),
     },
     secondaryCta: {
       ...comingSoon.secondaryCta,
-      href: resolveDestination(comingSoon.secondaryCta.href),
+      href: resolveDestination(comingSoon.secondaryCta.href, locale),
     },
   };
 
