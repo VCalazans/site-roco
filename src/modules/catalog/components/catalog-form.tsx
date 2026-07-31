@@ -57,30 +57,30 @@ export function CatalogForm({
   });
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-[#05070b]/75 p-6 shadow-[0_0_60px_rgba(53,217,255,0.10)] backdrop-blur-md sm:p-8">
-      <h2 className="mb-5 text-center font-display text-xl font-bold leading-snug text-white sm:text-2xl">
+    <div className="rounded-2xl border border-white/10 bg-[#05070b]/70 p-4 shadow-[0_0_60px_rgba(53,217,255,0.10)] backdrop-blur-md sm:p-5">
+      <h2 className="mb-3 text-center font-display text-base font-bold leading-snug text-white lg:text-lg">
         {content.title}
       </h2>
 
       {succeeded && (
         <div
           role="status"
-          className="mb-5 rounded-2xl border border-neon-cyan/40 bg-neon-cyan/10 p-4 text-center"
+          className="mb-3 rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 p-3 text-center"
         >
           <CheckCircle2
-            className="mx-auto mb-2 size-7 text-neon-cyan-bright"
+            className="mx-auto mb-1.5 size-6 text-neon-cyan-bright"
             aria-hidden
           />
-          <p className="font-display text-base font-semibold text-white">
+          <p className="font-display text-sm font-semibold text-white">
             {content.success.title}
           </p>
-          <p className="mt-1 text-sm text-white/75">
+          <p className="mt-0.5 text-xs text-white/75">
             {content.success.description}
           </p>
           <button
             type="button"
             onClick={download}
-            className="btn-neon mt-4 w-full text-sm"
+            className="btn-neon mt-3 w-full text-sm"
           >
             <Download className="size-4" aria-hidden />
             {content.success.action}
@@ -90,12 +90,13 @@ export function CatalogForm({
 
       <MauticEmbed
         active
+        variant="compact"
         containerRef={containerRef}
         content={content.form}
         enhancement={content.enhancement}
       />
 
-      <p className="mt-4 text-xs leading-relaxed text-white/55">
+      <p className="mt-2.5 text-[0.6875rem] leading-snug text-white/55">
         {content.privacyNotice}{" "}
         {privacyUrl ? (
           <a

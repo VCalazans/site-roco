@@ -182,6 +182,14 @@ a {
   color: #cdd8e2;
 }
 
+/* Mautic ships these status slots empty on first paint; without :empty they
+   render as a stray padded/coloured bar above the first field. */
+.mautic-form-wrap .mauticform-message:empty,
+.mautic-form-wrap .mauticform-error:empty,
+.mautic-form-wrap .mauticform-errormsg:empty {
+  display: none;
+}
+
 .mautic-form-wrap input[type="text"],
 .mautic-form-wrap input[type="email"],
 .mautic-form-wrap input[type="tel"],
@@ -281,4 +289,75 @@ a {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
+}
+
+/* ---- Compact variant --------------------------------------------------
+   Used by the catalog lead gate, where the whole page must fit one screen
+   with no scrolling. Pairs the seven short text fields into two columns and
+   tightens the vertical rhythm; the message and submit rows span full width.
+   Field order in the markup is already nome, sobrenome, telefone, email,
+   cnpj, cidade, estado, captcha, mensagem, submit, so plain grid auto-flow
+   produces the intended rows — no CSS `order`, so tab order still matches
+   what is on screen. Collapses back to one column below 40rem.
+   ---------------------------------------------------------------------- */
+/* auto-fit rather than a fixed breakpoint: the pair-up happens whenever two
+   columns of at least 8.25rem fit the card, so it survives on ~390px phones
+   and still degrades to a single column on very narrow ones. */
+.mautic-form-wrap--compact .mauticform-page-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.25rem, 1fr));
+  gap: 0.5rem 0.65rem;
+}
+
+/* Grid gap owns the spacing now. */
+.mautic-form-wrap--compact .mauticform-row,
+.mautic-form-wrap--compact .mauticform-field {
+  margin-bottom: 0;
+}
+
+/* Message (field-8) and submit take the full row; the seven short fields and
+   the captcha pair up two-by-two above them. */
+.mautic-form-wrap--compact .mauticform-field-8,
+.mautic-form-wrap--compact .mauticform-button-wrapper {
+  grid-column: 1 / -1;
+}
+
+.mautic-form-wrap--compact label,
+.mautic-form-wrap--compact .mauticform-label {
+  margin-bottom: 0.2rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+}
+
+.mautic-form-wrap--compact input[type="text"],
+.mautic-form-wrap--compact input[type="email"],
+.mautic-form-wrap--compact input[type="tel"],
+.mautic-form-wrap--compact textarea,
+.mautic-form-wrap--compact select,
+.mautic-form-wrap--compact .mauticform-input,
+.mautic-form-wrap--compact textarea.mauticform-textarea {
+  padding: 0.45rem 0.7rem;
+  margin-bottom: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  border-radius: 0.5rem;
+}
+
+.mautic-form-wrap--compact textarea,
+.mautic-form-wrap--compact textarea.mauticform-textarea {
+  min-height: 3.75rem;
+  resize: none;
+}
+
+.mautic-form-wrap--compact button,
+.mautic-form-wrap--compact input[type="submit"],
+.mautic-form-wrap--compact .mauticform-button {
+  width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.mautic-form-wrap--compact .mauticform-errormsg {
+  font-size: 0.7rem;
 }

@@ -63,9 +63,12 @@ export function CatalogHero({
           sizes="100vw"
           className="object-cover object-center"
         />
-        {/* Readability wash: heavy on phones (content sits over the render),
-            light on desktop (the left third of the render is already dark). */}
-        <div className="absolute inset-0 bg-[#05070b]/70 md:bg-gradient-to-r md:from-[#05070b]/90 md:via-[#05070b]/55 md:to-transparent" />
+        {/* Readability wash. The artwork is already near-black across its left
+            half, so on desktop the gradient only needs to steady the copy area
+            and must die out before ~62% — where the catalog render begins — or
+            it dulls the very artwork the page is showing off. Phones still get
+            a flat wash, since the stacked content sits directly over it. */}
+        <div className="absolute inset-0 bg-[#05070b]/60 md:bg-gradient-to-r md:from-[#05070b]/75 md:via-[#05070b]/25 md:via-42% md:to-transparent md:to-62%" />
       </div>
 
       <SiteHeader
@@ -74,7 +77,7 @@ export function CatalogHero({
         menuLabels={menuLabels}
       />
 
-      <main className="relative z-10 mx-auto grid w-full max-w-[100rem] grid-cols-1 items-center gap-10 px-6 pt-28 pb-16 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,26rem)_minmax(0,1.1fr)] lg:gap-12 lg:px-[4vw] lg:pb-24">
+      <main className="relative z-10 mx-auto grid min-h-[100svh] w-full max-w-[100rem] grid-cols-1 items-center gap-4 px-5 pt-20 pb-6 sm:px-6 md:pt-28 lg:grid-cols-[minmax(0,1fr)_minmax(19rem,24rem)_minmax(0,0.9fr)] lg:gap-10 lg:px-[4vw] lg:pb-12">
         <motion.div
           variants={fade}
           initial="hidden"
@@ -82,10 +85,10 @@ export function CatalogHero({
           custom={0}
           className="max-w-xl"
         >
-          <h1 className="text-glow-soft font-display text-3xl font-bold leading-[1.1] text-white sm:text-4xl lg:text-5xl">
+          <h1 className="text-glow-soft font-display text-[clamp(1.75rem,3.1vw,3rem)] font-bold leading-[1.08] text-white">
             {content.headline}
           </h1>
-          <p className="mt-5 text-base leading-relaxed text-white/80 lg:mt-7 lg:text-lg">
+          <p className="mt-3 text-[clamp(0.875rem,1.05vw,1.0625rem)] leading-snug text-white/80 lg:mt-4 lg:leading-relaxed">
             {content.description}
           </p>
         </motion.div>
@@ -96,7 +99,7 @@ export function CatalogHero({
           initial="hidden"
           animate="show"
           custom={1}
-          className="w-full scroll-mt-28"
+          className="w-full scroll-mt-24"
         >
           <CatalogForm
             content={content.form}

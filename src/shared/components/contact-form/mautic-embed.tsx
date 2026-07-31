@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+import { cn } from "@/core/lib/utils";
 import { useMauticEnhancements, type EnhancementCopy } from "./use-mautic-enhancements";
 
 /**
@@ -53,6 +54,13 @@ type MauticEmbedProps = {
   enhancement: EnhancementCopy;
   /** Ref opcional para o container — usado por quem precisa observar o form. */
   containerRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * `"default"` empilha um campo por linha (usado no modal de contato).
+   * `"compact"` pareia os campos curtos em duas colunas e reduz o ritmo
+   * vertical — necessário na página de catálogo, que cabe em uma tela.
+   * Ver `.mautic-form-wrap--compact` em `globals.css`.
+   */
+  variant?: "default" | "compact";
 };
 
 /**
@@ -88,6 +96,7 @@ export function MauticEmbed({
   content,
   enhancement,
   containerRef,
+  variant = "default",
 }: MauticEmbedProps) {
   const localRef = useRef<HTMLDivElement>(null);
   const formRef = containerRef ?? localRef;
@@ -121,7 +130,13 @@ export function MauticEmbed({
   const e = content.errors;
 
   return (
-    <div ref={formRef} className="mautic-form-wrap">
+    <div
+      ref={formRef}
+      className={cn(
+        "mautic-form-wrap",
+        variant === "compact" && "mautic-form-wrap--compact"
+      )}
+    >
       <div id="mauticform_wrapper_formulariodosite" className="mauticform_wrapper">
         <form
           autoComplete="off"
@@ -277,21 +292,10 @@ export function MauticEmbed({
                 </span>
               </div>
 
-              <div
-                id="mauticform_formulariodosite_mensagem"
-                className="mauticform-row mauticform-text mauticform-field-8"
-              >
-                <label htmlFor="mauticform_input_formulariodosite_mensagem" className="mauticform-label">
-                  {content.mensagem}
-                </label>
-                <textarea
-                  id="mauticform_input_formulariodosite_mensagem"
-                  name="mauticform[mensagem]"
-                  className="mauticform-textarea"
-                />
-                <span className="mauticform-errormsg" style={hidden} />
-              </div>
-
+              {/* Captcha sits before the message so the compact two-column
+                  layout can pair it with "estado" and keep the message on a
+                  full-width row. Mautic keys fields by name, not by position,
+                  so the swap does not affect the submitted payload. */}
               <div
                 id="mauticform_formulariodosite_quanto_e_27__25"
                 data-validate="quanto_e_27__25"
@@ -310,6 +314,22 @@ export function MauticEmbed({
                 <span className="mauticform-errormsg" style={hidden}>
                   {e.captcha}
                 </span>
+              </div>
+
+              <div
+                id="mauticform_formulariodosite_mensagem"
+                className="mauticform-row mauticform-text mauticform-field-8"
+              >
+                <label htmlFor="mauticform_input_formulariodosite_mensagem" className="mauticform-label">
+                  {content.mensagem}
+                </label>
+                <textarea
+                  id="mauticform_input_formulariodosite_mensagem"
+                  name="mauticform[mensagem]"
+                  className="mauticform-textarea"
+                  rows={2}
+                />
+                <span className="mauticform-errormsg" style={hidden} />
               </div>
 
               <div

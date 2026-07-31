@@ -88,11 +88,11 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
         aria-label={content.title}
         animate={{ opacity: isOpen ? 1 : 0, y: isOpen ? 0 : 16, scale: isOpen ? 1 : 0.98 }}
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0f16] p-6 shadow-[0_0_60px_rgba(53,217,255,0.12)] sm:p-8"
+        className="relative z-10 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0a0f16] p-5 shadow-[0_0_60px_rgba(53,217,255,0.12)] sm:p-6"
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-2xl font-bold text-white">{content.title}</h2>
+            <h2 className="font-display text-xl font-bold text-white">{content.title}</h2>
             <p className="mt-1 text-sm text-white/70">{content.description}</p>
           </div>
           <button
@@ -112,6 +112,7 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
         ) : mounted ? (
           <MauticEmbed
             active={isOpen}
+            variant="compact"
             content={content.form}
             enhancement={{
               cnpjInvalid: content.cnpjInvalid,
