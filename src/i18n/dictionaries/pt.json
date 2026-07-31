@@ -11,7 +11,7 @@
       { "label": "Home", "href": "/", "icon": "" },
       { "label": "Ligamos pra você", "href": "#contato", "icon": "call" },
       { "label": "Solicite um orçamento", "href": "#contato", "icon": "headset" },
-      { "label": "Força de Vendas", "href": "#contato", "icon": "sales" },
+      { "label": "Força de Vendas", "href": "#contato", "icon": "sales", "hidden": true },
       { "label": "Entre em contato", "href": "#contato", "icon": "" }
     ]
   },

@@ -11,6 +11,7 @@ import {
 } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { visibleNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -54,7 +55,7 @@ export default async function CatalogPage({ params }: PageProps) {
    * the SDK). So the nav's contact links scroll to that form instead of opening
    * the contact modal — which also reads better here.
    */
-  const navLinks = navigation.links.map((link) => ({
+  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
     ...link,
     href:
       link.href === "#contato"

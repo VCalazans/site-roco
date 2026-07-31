@@ -4,6 +4,7 @@ import { ComingSoonHero } from "@/modules/landing/components/coming-soon-hero";
 import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { visibleNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -42,7 +43,7 @@ export default async function LandingPage({ params }: PageProps) {
   const { comingSoon, navigation } = dictionary;
 
   // Destinations come from env/config; dictionary hrefs are copy-only fallbacks.
-  const navLinks = navigation.links.map((link) => ({
+  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
     ...link,
     href: resolveDestination(link.href, locale),
   }));
