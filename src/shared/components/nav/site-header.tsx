@@ -51,17 +51,23 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
           />
         </a>
 
-        {/* Desktop: labels inline, right-aligned like the render */}
-        <nav className="hidden items-center gap-5 md:flex lg:gap-8 xl:gap-10">
-          <NavItems
-            links={links}
-            onContact={openContact}
-            itemClassName={(index) => navLabelClass(index, "bar")}
-          />
+        {/* Lista horizontal em LINHA ÚNICA, no padrão da barra da Archicode.
+            O corte é em `lg`, não `md`: entre 768 e 1023px os quatro rótulos
+            desta nav (mais longos que os de lá) ficam espremidos contra o
+            logotipo, e espremer é pior que colapsar. */}
+        <nav aria-label={brand} className="hidden lg:block">
+          <ul className="flex items-center gap-6 xl:gap-9">
+            <NavItems
+              links={links}
+              onContact={openContact}
+              itemClassName={(index) => navLabelClass(index, "bar")}
+              wrapItem={(node, key) => <li key={key}>{node}</li>}
+            />
+          </ul>
         </nav>
 
-        {/* Mobile: collapsed behind the hamburger */}
-        <div className="md:hidden">
+        {/* Abaixo de `lg`: colapsa no hambúrguer */}
+        <div className="lg:hidden">
           <MobileMenu
             links={links}
             onContact={openContact}

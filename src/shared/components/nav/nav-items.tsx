@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Headset, Package, PhoneCall } from "lucide-react";
 import { externalProps, isContactLink, type NavLink } from "@/shared/lib/nav";
 
@@ -27,6 +27,12 @@ type NavItemsProps = {
   itemStyle?: (index: number) => CSSProperties | undefined;
   /** Fired on any item activation — used by the mobile menu to close itself. */
   onSelect?: () => void;
+  /**
+   * Envelopa cada item. A barra horizontal usa `<li>` (a lista é `<ul>`, como
+   * na referência da Archicode); o dropdown mobile renderiza os itens soltos.
+   * Recebe a `key` porque quem envelopa passa a ser o elemento de topo.
+   */
+  wrapItem?: (node: ReactNode, key: string) => ReactNode;
 };
 
 /**
@@ -42,7 +48,10 @@ export function NavItems({
   itemClassName,
   itemStyle,
   onSelect,
+  wrapItem,
 }: NavItemsProps) {
+  const wrap = wrapItem ?? ((node: ReactNode) => node);
+
   return (
     <>
       {links.map((link, index) => {
@@ -64,7 +73,7 @@ export function NavItems({
         );
 
         if (isContactLink(link.href)) {
-          return (
+          return wrap(
             <button
               key={link.label}
               type="button"
@@ -76,11 +85,12 @@ export function NavItems({
               style={style}
             >
               {content}
-            </button>
+            </button>,
+            link.label
           );
         }
 
-        return (
+        return wrap(
           <a
             key={link.label}
             href={link.href}
@@ -90,7 +100,8 @@ export function NavItems({
             {...externalProps(link.href)}
           >
             {content}
-          </a>
+          </a>,
+          link.label
         );
       })}
     </>

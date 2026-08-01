@@ -45,24 +45,28 @@ export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
  * `index === 0` é o item "Home", em ciano; os demais em âmbar — o mesmo
  * pareamento dual-tone da marca que aparece no render.
  *
- * @param variant `"bar"` centraliza e quebra em 2 linhas (como o .psd mostra);
+ * LINHA ÚNICA sempre. O .psd desenha os rótulos em duas linhas, mas isso é
+ * composição de pôster, não padrão de navegação web: rótulo quebrado dobra a
+ * altura da linha, desalinha os itens entre si (uns com uma linha, outros com
+ * duas) e piora a leitura. A referência aqui é a barra do site da Archicode —
+ * lista horizontal, um rótulo por linha, espaçamento constante. Quando não
+ * couber, o menu colapsa no hambúrguer (abaixo de `lg`) em vez de quebrar.
+ *
+ * @param variant `"bar"` é o item da barra horizontal;
  *                `"menu"` alinha à esquerda e ocupa a largura toda (dropdown).
  */
 export function navLabelClass(
   index: number,
   variant: "bar" | "menu" = "bar"
 ): string {
-  const base = "text-nav transition";
-  const shape =
-    variant === "bar"
-      ? "max-w-[7em] text-center text-balance"
-      : "w-full text-left";
+  const base = "text-nav whitespace-nowrap transition";
+  const shape = variant === "bar" ? "" : "w-full text-left";
   const tone =
     index === 0
       ? "text-glow-cyan text-neon-cyan-bright hover:opacity-90"
       : "text-glow-amber text-white/90 hover:text-white";
 
-  return `${base} ${shape} ${tone}`;
+  return [base, shape, tone].filter(Boolean).join(" ");
 }
 
 /** Open external (http) links in a new tab; leave internal links as-is. */
