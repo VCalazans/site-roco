@@ -61,6 +61,17 @@ type MauticEmbedProps = {
    * Ver `.mautic-form-wrap--compact` em `globals.css`.
    */
   variant?: "default" | "compact";
+  /**
+   * Estilo do botão de envio. `"solid"` é a pílula ciano preenchida padrão;
+   * `"neon"` é a pílula vazada dual-tone do PSD (`.btn-neon-grad`), no mesmo
+   * modelo dos botões da home.
+   *
+   * Deliberadamente separado de `variant`: layout do formulário e aparência do
+   * botão são decisões independentes — o modal de contato usa o layout compacto
+   * mas mantém o botão sólido, porque ali o fundo é um painel opaco e uma
+   * pílula vazada não teria o que revelar.
+   */
+  submitStyle?: "solid" | "neon";
 };
 
 /**
@@ -97,6 +108,7 @@ export function MauticEmbed({
   enhancement,
   containerRef,
   variant = "default",
+  submitStyle = "solid",
 }: MauticEmbedProps) {
   const localRef = useRef<HTMLDivElement>(null);
   const formRef = containerRef ?? localRef;
@@ -336,12 +348,18 @@ export function MauticEmbed({
                 id="mauticform_formulariodosite_submit"
                 className="mauticform-row mauticform-button-wrapper mauticform-field-10"
               >
+                {/* Precisa continuar sendo <button>: `.btn-neon-grad` desenha o
+                    tubo de neon em ::before/::after, e elementos substituídos
+                    (<input type="submit">) não renderizam pseudo-elementos. */}
                 <button
                   type="submit"
                   name="mauticform[submit]"
                   id="mauticform_input_formulariodosite_submit"
                   value=""
-                  className="mauticform-button btn btn-default"
+                  className={cn(
+                    "mauticform-button btn btn-default",
+                    submitStyle === "neon" && "btn-neon-grad"
+                  )}
                 >
                   {content.submit}
                 </button>

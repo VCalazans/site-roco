@@ -91,6 +91,7 @@ export function CatalogForm({
       <MauticEmbed
         active
         variant="compact"
+        submitStyle="neon"
         containerRef={containerRef}
         content={content.form}
         enhancement={content.enhancement}

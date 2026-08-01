@@ -6,7 +6,16 @@ import { MobileMenu } from "@/shared/components/nav/mobile-menu";
 import { NavItems } from "@/shared/components/nav/nav-items";
 import type { NavLink } from "@/shared/lib/nav";
 
-const LOGO = "/images/hero/roco-logo-white.png";
+/**
+ * Logotipo 2D limpo — fundo transparente de verdade.
+ *
+ * Substitui `roco-logo-white.png`, que carregava uma névoa branca diagonal
+ * (bleed da extração do render: as letras ficam em alfa 255, mas ~37% da
+ * imagem era branco semitransparente). Este asset foi gerado limpando o canal
+ * alfa e recortando a bbox real das letras. Deve ser o ÚNICO logo usado no
+ * site — ver também `coming-soon-hero.tsx` e `app/layout.tsx`.
+ */
+const LOGO = "/images/hero/roco-logo.png";
 
 type SiteHeaderProps = {
   brand: string;

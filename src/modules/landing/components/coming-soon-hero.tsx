@@ -25,7 +25,7 @@ type ComingSoonHeroProps = {
 };
 
 const SCENE = "/images/hero/hero-scene.jpg";
-const WORDMARK = "/images/hero/roco-logo-white.png";
+const WORDMARK = "/images/hero/roco-logo.png";
 
 export function ComingSoonHero({
   content,

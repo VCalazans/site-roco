@@ -21,7 +21,11 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   ...defaultMetadata,
   icons: {
-    icon: [{ url: "/images/hero/roco-logo-white.png", type: "image/png" }],
+    // Mesmo logo limpo (fundo transparente) usado no header das páginas.
+    // Nota: é um logotipo BRANCO — em abas de tema claro ele fica pouco
+    // visível. Um favicon dedicado, com a marca em cor sólida ou sobre fundo
+    // da marca, resolveria; depende de a ROCO fornecer a versão apropriada.
+    icon: [{ url: "/images/hero/roco-logo.png", type: "image/png" }],
   },
 };
 

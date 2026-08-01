@@ -258,9 +258,17 @@ a {
   transition: filter 0.15s ease, box-shadow 0.25s ease, transform 0.15s ease;
 }
 
-.mautic-form-wrap button:hover,
-.mautic-form-wrap input[type="submit"]:hover,
-.mautic-form-wrap .mauticform-button:hover {
+/* `:not(.btn-neon-grad)` não é cosmético — sem ele, duas coisas quebram no botão
+   neon do catálogo:
+   1. `filter: brightness()` incidiria sobre o botão E sobre seus pseudo-elementos
+      MASCARADOS, justamente a combinação que `.btn-neon-grad` evita de propósito
+      (filter + mask tem histórico de bug de rasterização no WebKit).
+   2. O `box-shadow` ciano abaixo é (0,3,0) e EMPATA com a regra base do neon —
+      o halo dual-tone só venceria por ordem no arquivo, o que quebraria em
+      silêncio se este bloco fosse movido. */
+.mautic-form-wrap button:not(.btn-neon-grad):hover,
+.mautic-form-wrap input[type="submit"]:not(.btn-neon-grad):hover,
+.mautic-form-wrap .mauticform-button:not(.btn-neon-grad):hover {
   filter: brightness(1.05);
   box-shadow: 0 0 28px rgba(53, 217, 255, 0.6);
   transform: translateY(-1px);
@@ -360,4 +368,372 @@ a {
 
 .mautic-form-wrap--compact .mauticform-errormsg {
   font-size: 0.7rem;
+}
+
+/* Botão de envio no estilo do PSD — ver `.btn-neon-grad` no fim do arquivo. */
+
+
+/* ============================================================================
+   .btn-neon-grad — pílula "tubo de neon" dual-tone, VAZADA (miolo transparente)
+   Fonte: docs/Layout pag catalogo_ok.psd (canvas 3224x1724; tubo 554x105 px;
+   espessura ~3px no canvas => ~1.5px em tela).
+
+   ONDE COLAR: em src/app/globals.css, no FINAL do arquivo (depois do bloco
+   `.mautic-form-wrap--compact`, hoje linha ~363). A posição não é crítica
+   porque os seletores abaixo já vencem por especificidade, mas o final do
+   arquivo mantém o componente novo separado do CSS legado do Mautic.
+
+   ---------------------------------------------------------------------------
+   POR QUE NÃO É O TRUQUE CLÁSSICO DE GRADIENT-BORDER (restrição 2, de frente):
+
+     background: linear-gradient(fill) padding-box,
+                 linear-gradient(90deg, ciano, âmbar) border-box;
+
+   `background-clip` RECORTA uma camada; nunca SUBTRAI dela. A camada
+   border-box é pintada por baixo de TODA a área de padding — ela só "vira
+   anel" porque o preenchimento padding-box OPACO a encobre. Com fill de alpha
+   `a`, o miolo exibe (1 - a) do gradiente por cima da arte 3D. Não há valor de
+   background-clip, background-origin, background-blend-mode ou ordem de
+   camadas que resolva: o problema é de COMPOSIÇÃO (alpha), não de RECORTE.
+
+   COMO ESTA VERSÃO RESOLVE:
+   o gradiente é pintado num pseudo-elemento e o miolo é REMOVIDO por máscara —
+   duas camadas de máscara no MESMO elemento, `mask-clip: content-box` e
+   `mask-clip: border-box`, compostas com `exclude` (padrão) / `xor` (WebKit).
+   Sobra exatamente o anel. O miolo do botão nunca recebe tinta em camada
+   nenhuma, então a arte de fundo aparece de verdade e o `background-color`
+   translúcido do hover é 100% nosso.
+
+   REQUER UM <button> (não `<input type="submit">`): elementos substituídos não
+   renderizam ::before/::after. O alvo atual é `<button class="mauticform-button
+   btn btn-default">` em mautic-embed.tsx:339-347. Se o Mautic um dia voltar a
+   emitir <input>, o botão cai silenciosamente no fallback ciano (seguro).
+
+   CASCATA (o risco nº1, verificado no arquivo):
+     globals.css:242-244  `.mautic-form-wrap button`            (0,1,1)
+     globals.css:244      `.mautic-form-wrap .mauticform-button` (0,2,0)
+   declaram `background: var(--neon-cyan-bright)` + `color: #04121a` — pill
+   CIANO SÓLIDO. Uma classe `.btn-neon-grad` sozinha é (0,1,0) e PERDE, sem
+   nenhum erro de console. Por isso cada regra abaixo repete a variante
+   `.mautic-form-wrap .mauticform-button.btn-neon-grad` (0,3,0): ela vence
+   independentemente da ordem no arquivo E sem exigir edição do CSS legado.
+   (Limpeza opcional, se preferir: acrescentar `:not(.btn-neon-grad)` aos
+   seletores das linhas 242-244 e 261-263 e usar só a classe simples. Não é
+   necessário — e se for feito, este bloco continua funcionando igual.)
+
+   RELAÇÃO COM `.mautic-form-wrap--compact .mauticform-button`:
+   `width: 100%` e `margin-top: .15rem` vêm de lá e passam sem disputa. Mas
+   `padding` e `font-size` CONFLITAM: aquela regra é (0,2,0) e esta é (0,3,0),
+   então os valores daqui VENCEM — de propósito. O botão do PSD é bem mais alto
+   que o ritmo apertado da variante compacta, e a fidelidade ganha aqui; o custo
+   (~9px) foi medido e a página continua cabendo em uma tela de 414x896 para
+   cima. Quem for reapertar a página não deve procurar o culpado no `--compact`:
+   o padding efetivo do botão está logo abaixo, nesta regra.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1) CAMADA BASE = FALLBACK SEGURO (vale em TODO navegador)
+   Pílula vazada de UMA cor só — visualmente a `.btn-neon` que já existe na
+   home (globals.css:129), monocromática em vez de dual-tone. Nenhuma cor
+   OPACA de fundo é declarada em caminho nenhum, então o pior caso possível é
+   um contorno ciano com rótulo legível — nunca um retângulo sólido sobre o
+   texto (restrição 4).
+   ------------------------------------------------------------------------ */
+.btn-neon-grad,
+.mautic-form-wrap .mauticform-button.btn-neon-grad {
+  /* --- rampa do tubo: as 9 paradas amostradas do PSD, sem simplificação ---
+     Escopada no componente (NÃO em :root) de propósito: se esta var vazasse
+     para o escopo global, alguém poderia usá-la como `background` sem máscara
+     e produzir justamente o bloco sólido colorido que queremos impedir. */
+  --tube-gradient: linear-gradient(
+    90deg,
+    #72dbfd 2%,
+    #46cff7 12%,
+    #62d2f7 25%,
+    #aae4ef 40%,
+    #dff0e6 50%,
+    #ffebc3 60%,
+    #fedc9e 75%,
+    #fed894 88%,
+    #f8dc99 98%
+  );
+  /* Mesma rampa, +luminância — usada só pelo anel de hover (::after). */
+  --tube-gradient-hi: linear-gradient(
+    90deg,
+    #a6e9ff 2%,
+    #7ee0ff 12%,
+    #92e2ff 25%,
+    #cdf2fa 40%,
+    #f4fdf8 50%,
+    #fff5dc 60%,
+    #ffeac2 75%,
+    #ffe7b9 88%,
+    #ffe9bd 98%
+  );
+
+  /* 3px no canvas de 3224 => ~1.3-1.6px em tela. 1.5px é o alvo; em telas 1x
+     com DPR fracionário (Windows a 125%/150%) o antialiasing pode deixar um
+     lado ~0.5px mais macio. Se incomodar, subir para 2px — nada mais muda. */
+  --tube-w: 1.5px;
+
+  /* Alfas dos halos externos, em vars para que hover/focus/disabled troquem a
+     "paleta de luz" inteira numa linha só. Calibrados contra o bloom do PSD
+     (docs/Layout pag catalogo_ok.psd, camada "box"), que é bem mais forte que
+     um contorno neon discreto — o brilho é parte da identidade do botão. */
+  --halo-cyan: 0.72;
+  --halo-amber: 0.66;
+  --halo-soft: 0.3;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  /* O PSD desenha o tubo em 554x105 (~5.3:1). Aqui o botão é `width: 100%`
+     num card estreito, então copiar a razão exata daria uma pílula pesada
+     demais; este padding aproxima a proporção (~6.5:1) sem custar a regra de
+     "uma tela sem rolagem" que a página inteira precisa respeitar. */
+  padding: 0.85rem 1.5rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2; /* trava a altura: o rótulo não muda a caixa entre estados */
+  letter-spacing: 0.01em;
+
+  /* A borda EXISTE e ocupa espaço nos dois caminhos (com e sem máscara); no
+     caminho enriquecido ela apenas deixa de pintar. Assim a caixa e a altura
+     são idênticas em qualquer navegador — zero divergência de layout. */
+  border: var(--tube-w) solid var(--neon-cyan);
+  border-radius: 9999px;
+
+  /* Interior realmente vazado. */
+  background-color: transparent;
+
+  color: #eef7ff;
+  text-shadow: 0 0 12px rgba(200, 235, 255, 0.22), 0 1px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Halo difuso das duas pontas (ciano à esquerda, âmbar à direita).
+     box-shadow NÃO-inset é recortada para FORA do border-box pela spec, então
+     não invade o miolo transparente.
+     Quatro camadas: duas deslocadas para dar a cor de cada ponta (ciano à
+     esquerda, âmbar à direita) e duas centradas, sem deslocamento, que
+     preenchem o meio — sem elas o bloom "abre" nas laterais e some no centro,
+     ao contrário do PSD, onde o halo acompanha o tubo inteiro. */
+  box-shadow: -8px 0 26px -4px rgba(53, 217, 255, var(--halo-cyan)),
+    8px 0 26px -4px rgba(254, 216, 148, var(--halo-amber)),
+    0 0 16px -2px rgba(190, 225, 245, var(--halo-soft)),
+    0 0 40px -6px rgba(255, 255, 255, calc(var(--halo-soft) * 0.6));
+
+  /* Só propriedades de composição — nenhuma afeta layout. */
+  transition: box-shadow 0.25s ease, background-color 0.25s ease,
+    color 0.2s ease, transform 0.15s ease;
+}
+
+/* ---------------------------------------------------------------------------
+   2) CAMADA ENRIQUECIDA — o tubo dual-tone.
+   O gate cobre os dois dialetos porque as KEYWORDS SÃO DIFERENTES:
+   `-webkit-mask-composite` usa Porter-Duff (`xor`) e o padrão CSS Masking L1
+   usa (`exclude`). `xor` == `exclude`. Escrever `exclude` na propriedade
+   prefixada é declaração INVÁLIDA: o WebKit descarta, as duas camadas viram
+   `source-over` (união) e a pílula fica CHEIA de gradiente por cima do
+   rótulo — exatamente o modo de falha proibido pela restrição 4. Não trocar.
+   A ordem também importa: prefixada ANTES, padrão DEPOIS (para o padrão
+   vencer em Chrome 120+/Safari 15.4+). E NUNCA usar os shorthands `mask:` /
+   `-webkit-mask:` depois do composite — o shorthand reseta `mask-composite`
+   para `add` e apaga o furo. Só longhands aqui.
+   ------------------------------------------------------------------------ */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
+  .btn-neon-grad,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad {
+    /* A borda continua ocupando o mesmo espaço — só para de pintar. */
+    border-color: transparent;
+  }
+
+  /* Os dois anéis compartilham geometria e máscara. ::before é o tubo em
+     repouso; ::after é o mesmo tubo mais claro, revelado por OPACIDADE no
+     hover/foco. Cross-fade de opacidade em vez de transicionar `padding`
+     (que re-rasteriza a máscara a cada frame e faz a espessura pular em
+     subpixel) e em vez de `filter` sobre elemento mascarado (combinação com
+     histórico de bug de rasterização no Safari). */
+  .btn-neon-grad::before,
+  .btn-neon-grad::after,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::before,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::after {
+    content: "";
+    position: absolute;
+    /* `inset: 0` seria o padding-box do botão; o negativo estende o pseudo
+       até o border-box. Como a borda mede --tube-w, o border-box do pseudo
+       coincide com o border-box do botão e o content-box do pseudo coincide
+       com o padding-box do botão => o anel tem exatamente --tube-w. */
+    inset: calc(var(--tube-w) * -1);
+    padding: var(--tube-w); /* ESPESSURA do tubo */
+    border-radius: inherit; /* 9999px: pílula perfeita, raio interno incluso */
+    pointer-events: none;
+
+    /* Duas camadas idênticas; o recorte é que difere. Forma de dois stops
+       (não a sintaxe de dupla posição) para não estreitar o suporte. */
+    -webkit-mask-image: linear-gradient(#000, #000),
+      linear-gradient(#000, #000);
+    -webkit-mask-clip: content-box, border-box;
+    -webkit-mask-repeat: no-repeat, no-repeat;
+    -webkit-mask-composite: xor; /* keyword do conjunto WebKit */
+
+    mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+    mask-clip: content-box, border-box;
+    mask-repeat: no-repeat, no-repeat;
+    mask-composite: exclude; /* keyword do conjunto CSS Masking L1 */
+  }
+
+  .btn-neon-grad::before,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::before {
+    background-image: var(--tube-gradient);
+  }
+
+  .btn-neon-grad::after,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::after {
+    background-image: var(--tube-gradient-hi);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   3) ESTADOS — nenhum toca em width/height/padding/border/font-size.
+   ------------------------------------------------------------------------ */
+.btn-neon-grad:hover:not(:disabled),
+.mautic-form-wrap .mauticform-button.btn-neon-grad:hover:not(:disabled) {
+  --halo-cyan: 0.72;
+  --halo-amber: 0.62;
+  --halo-soft: 0.2;
+  color: #ffffff;
+  /* Véu translúcido de 5%: a arte de fundo continua visível. Seguro porque
+     não existe camada de gradiente por baixo dele (é o ponto da técnica). */
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px); /* compositor-only: não gera layout shift */
+}
+
+.btn-neon-grad:hover:not(:disabled)::after,
+.btn-neon-grad:focus-visible::after,
+.mautic-form-wrap .mauticform-button.btn-neon-grad:hover:not(:disabled)::after,
+.mautic-form-wrap .mauticform-button.btn-neon-grad:focus-visible::after {
+  opacity: 1;
+}
+
+.btn-neon-grad:active:not(:disabled),
+.mautic-form-wrap .mauticform-button.btn-neon-grad:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* OBRIGATÓRIO: a regra global `:focus-visible` (globals.css:57-61) declara
+   `border-radius: 4px` e quadraria a pílula ao focar por teclado. Reafirmamos
+   o raio aqui — não remover por "parecer redundante". */
+.btn-neon-grad:focus-visible,
+.mautic-form-wrap .mauticform-button.btn-neon-grad:focus-visible {
+  --halo-cyan: 0.6;
+  --halo-amber: 0.55;
+  border-radius: 9999px;
+  outline: 2px solid var(--neon-cyan-bright);
+  outline-offset: 3px; /* outline não participa do layout: zero shift */
+}
+
+/* Disabled: opacidade uniforme (anel + rótulo + halos). NÃO mexe em
+   `border-color` de propósito — se mexesse, o caminho com máscara ganharia um
+   contorno duplo por cima do anel, e o gate @supports deixaria de ser o único
+   lugar que decide se a borda-fallback pinta. */
+.btn-neon-grad:disabled,
+.btn-neon-grad[aria-disabled="true"],
+.mautic-form-wrap .mauticform-button.btn-neon-grad:disabled,
+.mautic-form-wrap .mauticform-button.btn-neon-grad[aria-disabled="true"] {
+  --halo-cyan: 0.08;
+  --halo-amber: 0.06;
+  --halo-soft: 0;
+  cursor: not-allowed;
+  opacity: 0.45;
+  background-color: transparent;
+  transform: none;
+}
+
+/* ---------------------------------------------------------------------------
+   4) GUARDAS — todos DEPOIS do @supports, para vencerem `border-color:
+      transparent` por ordem de origem (mesma especificidade).
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .btn-neon-grad,
+  .btn-neon-grad::before,
+  .btn-neon-grad::after,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::before,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::after {
+    transition: none;
+  }
+  .btn-neon-grad:hover:not(:disabled),
+  .mautic-form-wrap .mauticform-button.btn-neon-grad:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* Windows High Contrast: background-image e máscara são descartados e o anel
+   sumiria, deixando o botão sem contorno algum. Devolve a borda de sistema. */
+@media (forced-colors: active) {
+  .btn-neon-grad,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad {
+    border-color: ButtonBorder;
+    color: ButtonText;
+    background-color: ButtonFace;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+  .btn-neon-grad::before,
+  .btn-neon-grad::after,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::before,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::after {
+    display: none;
+  }
+
+  /* Repetir os estados aqui é OBRIGATÓRIO: `@media` não adiciona especificidade,
+     e as regras de estado da seção 3 são mais específicas que a regra acima —
+     o hover qualificado é (0,5,0) contra (0,3,0). Sem estas linhas, `color:
+     #ffffff` e o véu translúcido venceriam, e o `forced-color-adjust: none`
+     acima impediria o navegador de corrigir: em Windows High Contrast de tema
+     claro, passar o mouse faria o rótulo do único CTA do formulário sumir. */
+  .btn-neon-grad:hover:not(:disabled),
+  .mautic-form-wrap .mauticform-button.btn-neon-grad:hover:not(:disabled) {
+    color: ButtonText;
+    background-color: ButtonFace;
+  }
+
+  .btn-neon-grad:disabled,
+  .btn-neon-grad[aria-disabled="true"],
+  .mautic-form-wrap .mauticform-button.btn-neon-grad:disabled,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad[aria-disabled="true"] {
+    color: GrayText;
+    border-color: GrayText;
+    background-color: ButtonFace;
+  }
+
+  .btn-neon-grad:focus-visible,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* Impressão: máscaras e backgrounds costumam ser descartados. */
+@media print {
+  .btn-neon-grad,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad {
+    border-color: #46cff7;
+    color: #04121a;
+    box-shadow: none;
+  }
+  .btn-neon-grad::before,
+  .btn-neon-grad::after,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::before,
+  .mautic-form-wrap .mauticform-button.btn-neon-grad::after {
+    display: none;
+  }
 }
