@@ -38,10 +38,17 @@ export default async function RootLayout({
   const locale = cookieStore.get("NEXT_LOCALE")?.value ?? defaultLocale;
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${poppins.variable} antialiased bg-background text-foreground`}
-      >
+    // As variáveis do next/font ficam no <html>, não no <body>: `globals.css`
+    // compõe as stacks em `:root` (`--type-font-sans: var(--font-inter), …`), e
+    // `:root` É o <html>. Declaradas no <body> elas não existiriam no escopo em
+    // que são consumidas, a declaração viraria inválida e a tipografia cairia
+    // silenciosamente no fallback ui-sans-serif do Tailwind.
+    <html
+      lang={locale}
+      className={`${inter.variable} ${poppins.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="antialiased bg-background text-foreground">
         {children}
       </body>
     </html>

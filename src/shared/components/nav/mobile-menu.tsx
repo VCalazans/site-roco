@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { NavItems } from "@/shared/components/nav/nav-items";
-import type { NavLink } from "@/shared/lib/nav";
+import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
 type MobileMenuProps = {
   links: NavLink[];
@@ -74,10 +74,8 @@ export function MobileMenu({ links, onContact, labels }: MobileMenuProps) {
               onSelect={close}
               itemClassName={(index) =>
                 cn(
-                  "rounded-xl px-4 py-2.5 text-left text-sm font-medium transition hover:bg-white/5",
-                  index === 0
-                    ? "text-neon-cyan-bright"
-                    : "text-glow-amber text-white/90 hover:text-white",
+                  "rounded-xl px-4 py-2.5 hover:bg-white/5",
+                  navLabelClass(index, "menu"),
                 )
               }
             />

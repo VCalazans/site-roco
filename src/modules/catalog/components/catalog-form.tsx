@@ -58,7 +58,7 @@ export function CatalogForm({
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#05070b]/70 p-4 shadow-[0_0_60px_rgba(53,217,255,0.10)] backdrop-blur-md sm:p-5">
-      <h2 className="mb-3 text-center font-display text-base font-bold leading-snug text-white lg:text-lg">
+      <h2 className="mb-3 text-center font-display text-h2 text-white">
         {content.title}
       </h2>
 
@@ -71,16 +71,16 @@ export function CatalogForm({
             className="mx-auto mb-1.5 size-6 text-neon-cyan-bright"
             aria-hidden
           />
-          <p className="font-display text-sm font-semibold text-white">
+          <p className="font-display text-meta font-semibold text-white">
             {content.success.title}
           </p>
-          <p className="mt-0.5 text-xs text-white/75">
+          <p className="mt-0.5 text-micro text-white/75">
             {content.success.description}
           </p>
           <button
             type="button"
             onClick={download}
-            className="btn-neon mt-3 w-full text-sm"
+            className="btn-neon mt-3 w-full"
           >
             <Download className="size-4" aria-hidden />
             {content.success.action}
@@ -97,7 +97,9 @@ export function CatalogForm({
         enhancement={content.enhancement}
       />
 
-      <p className="mt-2.5 text-[0.6875rem] leading-snug text-white/55">
+      {/* text-micro (12px) é o piso da escala. Antes eram 11px — o menor texto
+          da página era justamente o aviso de consentimento LGPD. */}
+      <p className="mt-2.5 text-micro text-white/55">
         {content.privacyNotice}{" "}
         {privacyUrl ? (
           <a

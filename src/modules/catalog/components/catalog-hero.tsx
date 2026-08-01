@@ -85,10 +85,10 @@ export function CatalogHero({
           custom={0}
           className="max-w-xl"
         >
-          <h1 className="text-glow-soft font-display text-[clamp(1.75rem,3.1vw,3rem)] font-bold leading-[1.08] text-white">
+          <h1 className="text-glow-soft font-display text-h1 text-white">
             {content.headline}
           </h1>
-          <p className="mt-3 text-[clamp(0.875rem,1.05vw,1.0625rem)] leading-snug text-white/80 lg:mt-4 lg:leading-relaxed">
+          <p className="mt-3 text-lede text-white/80 lg:mt-4">
             {content.description}
           </p>
         </motion.div>

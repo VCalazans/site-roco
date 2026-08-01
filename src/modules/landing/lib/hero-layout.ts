@@ -9,7 +9,14 @@ import type { Variants } from "framer-motion";
  * right side of the baked glass bar, so extra links extend leftwards into it.
  */
 export const POS = {
-  nav: { top: "5.0%", right: "6.6%" },
+  /**
+   * CENTRO vertical do bloco de rótulos (o <nav> usa `-translate-y-1/2`), não
+   * o topo. Medido no render: centro do primeiro item ÷ altura do board deu
+   * 6.749% / 6.755% / 6.784% / 6.725% em 1920x1080, 1920x800, 1440x900 e
+   * 2560x1440 — daí os 6.75%. Ancorar pelo centro é o que permite mudar o
+   * tamanho da fonte do menu sem deslocar os rótulos dentro do vidro pintado.
+   */
+  nav: { top: "6.75%", right: "6.6%" },
   copy: { left: "29.1%", top: "54.5%", width: "42%" },
   btnPrimary: { left: "34.8%", top: "79.2%", width: "17.6%", height: "8.8%" },
   btnSecondary: { left: "53.0%", top: "79.2%", width: "12.4%", height: "8.8%" },

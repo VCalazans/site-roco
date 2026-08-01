@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useContactForm } from "@/shared/components/contact-form";
 import { MobileMenu } from "@/shared/components/nav/mobile-menu";
 import { NavItems } from "@/shared/components/nav/nav-items";
-import type { NavLink } from "@/shared/lib/nav";
+import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
 /**
  * Logotipo 2D limpo — fundo transparente de verdade.
@@ -56,11 +56,7 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
           <NavItems
             links={links}
             onContact={openContact}
-            itemClassName={(index) =>
-              index === 0
-                ? "text-glow-cyan max-w-[7em] text-center text-sm font-medium leading-tight text-neon-cyan-bright transition hover:opacity-90 lg:text-base"
-                : "text-glow-amber max-w-[7em] text-center text-sm font-medium leading-tight text-white/90 transition hover:text-white lg:text-base"
-            }
+            itemClassName={(index) => navLabelClass(index, "bar")}
           />
         </nav>
 

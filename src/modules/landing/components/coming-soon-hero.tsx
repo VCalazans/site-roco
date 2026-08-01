@@ -7,7 +7,12 @@ import { useContactForm } from "@/shared/components/contact-form";
 import { MobileMenu, NavItems } from "@/shared/components/nav";
 import { CtaHotspot } from "@/modules/landing/components/cta-hotspot";
 import { POS, fade } from "@/modules/landing/lib/hero-layout";
-import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
+import {
+  externalProps,
+  navLabelClass,
+  type Cta,
+  type NavLink,
+} from "@/shared/lib/nav";
 
 type ComingSoonContent = {
   brand: string;
@@ -42,11 +47,8 @@ export function ComingSoonHero({
           art (~1.87:1) there are thin dark margins — the trade-off for never cropping content. */}
       <div className="hidden md:flex md:h-[100svh] md:w-full md:items-center md:justify-center">
         <div
-          className="relative aspect-[3224/1724] w-full"
-          style={{
-            maxWidth: "min(100vw, calc(100svh * 3224 / 1724))",
-            containerType: "inline-size",
-          }}
+          className="hero-board relative aspect-[3224/1724] w-full"
+          style={{ maxWidth: "min(100vw, calc(100svh * 3224 / 1724))" }}
         >
           <Image
             src={SCENE}
@@ -57,20 +59,21 @@ export function ComingSoonHero({
             className="object-cover"
           />
 
-          {/* Live nav labels over the baked glass bar */}
+          {/* Live nav labels over the baked glass bar.
+              Ancorado pelo CENTRO (`POS.nav.top` + `-translate-y-1/2`): assim o
+              bloco cresce e encolhe simetricamente em torno da linha média do
+              vidro pintado, e mudar o tamanho da fonte deixa de empurrar os
+              rótulos para baixo dentro da arte. Os 6.75% foram MEDIDOS do
+              render atual (centro do primeiro item / altura do board), estáveis
+              em 1920x1080, 1920x800, 1440x900 e 2560x1440. */}
           <nav
-            className="absolute flex items-center"
+            className="absolute flex -translate-y-1/2 items-center"
             style={{ top: POS.nav.top, right: POS.nav.right, gap: "2.2cqw" }}
           >
             <NavItems
               links={navLinks}
               onContact={openContact}
-              itemClassName={(index) =>
-                index === 0
-                  ? "text-glow-cyan whitespace-nowrap font-medium text-neon-cyan-bright transition hover:opacity-90"
-                  : "text-glow-amber whitespace-nowrap font-medium text-white/90 transition hover:text-white"
-              }
-              itemStyle={() => ({ fontSize: "1.05cqw" })}
+              itemClassName={(index) => navLabelClass(index, "bar")}
             />
           </nav>
 
@@ -89,8 +92,7 @@ export function ComingSoonHero({
               initial="hidden"
               animate="show"
               custom={0}
-              className="text-glow-soft whitespace-nowrap font-display font-bold leading-[1.03] text-white"
-              style={{ fontSize: "2.85cqw" }}
+              className="text-glow-soft whitespace-nowrap font-display text-h1 text-white"
             >
               {content.headline}
             </motion.h1>
@@ -99,8 +101,7 @@ export function ComingSoonHero({
               initial="hidden"
               animate="show"
               custom={1}
-              className="text-glow-soft font-medium text-white/85"
-              style={{ fontSize: "1.2cqw", lineHeight: 1.45 }}
+              className="text-glow-soft text-lede text-white/85"
             >
               {content.description}
             </motion.p>
@@ -149,7 +150,7 @@ export function ComingSoonHero({
             initial="hidden"
             animate="show"
             custom={0}
-            className="text-glow-cyan font-display text-3xl font-bold leading-tight text-white sm:text-4xl"
+            className="text-glow-cyan font-display text-h1 text-white"
           >
             {content.headline}
           </motion.h1>
@@ -158,7 +159,7 @@ export function ComingSoonHero({
             initial="hidden"
             animate="show"
             custom={1}
-            className="max-w-md text-base leading-relaxed text-white/80"
+            className="max-w-md text-body text-white/80"
           >
             {content.description}
           </motion.p>

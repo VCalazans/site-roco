@@ -12,6 +12,58 @@
   --neon-cyan-bright: #35d9ff;
   --neon-amber: #f5a33c;
   --neon-amber-bright: #ffb454;
+
+  /* ---------------------------------------------------------------------
+     ESCALA TIPOGRÁFICA — fonte única de verdade
+     Estrutura inspirada no design system do site da Archicode (rampa fluida
+     via clamp, tracking negativo no display, zero degraus sm:/md:/lg:), com
+     as famílias da ROCO (Inter corpo / Poppins display).
+
+     Cada papel carrega os QUATRO eixos (tamanho, leading, tracking, peso).
+     No `@theme inline` abaixo eles viram utilitários `text-<papel>`, então
+     não existe como aplicar o tamanho sem levar o resto junto — é o que
+     impede a escala de se partir de novo em valores soltos pelos className.
+
+     Os quatro primeiros são fluidos entre 414px e ~1600px de viewport; os
+     quatro últimos são fixos (UI não deve escalar com a tela).
+     --------------------------------------------------------------------- */
+  --type-font-sans: var(--font-inter), system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --type-font-display: var(--font-poppins), var(--type-font-sans);
+
+  --type-h1: clamp(1.75rem, 1.35rem + 1.65vw, 3rem); /* 28 → 48 */
+  --type-h2: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem); /* 17 → 20 */
+  --type-lede: clamp(0.875rem, 0.815rem + 0.25vw, 1.0625rem); /* 14 → 17 */
+  --type-nav: clamp(0.875rem, 0.82rem + 0.24vw, 1.0625rem); /* 14 → 17 */
+  --type-body: 1rem; /* 16 */
+  --type-ui: 0.9375rem; /* 15 */
+  --type-meta: 0.875rem; /* 14 */
+  --type-micro: 0.75rem; /* 12 — PISO absoluto do sistema */
+
+  --type-h1-leading: 1.06;
+  --type-h1-tracking: -0.02em;
+  --type-h1-weight: 700;
+  --type-h2-leading: 1.2;
+  --type-h2-tracking: -0.01em;
+  --type-h2-weight: 600;
+  --type-lede-leading: 1.4;
+  --type-lede-tracking: 0em;
+  --type-lede-weight: 500;
+  --type-nav-leading: 1.25;
+  --type-nav-tracking: 0em;
+  --type-nav-weight: 500;
+  --type-body-leading: 1.5;
+  --type-body-tracking: 0em;
+  --type-body-weight: 400;
+  --type-ui-leading: 1.2;
+  --type-ui-tracking: 0.01em;
+  --type-ui-weight: 600;
+  --type-meta-leading: 1.4;
+  --type-meta-tracking: 0em;
+  --type-meta-weight: 400;
+  --type-micro-leading: 1.35;
+  --type-micro-tracking: 0.01em;
+  --type-micro-weight: 400;
 }
 
 @theme inline {
@@ -22,8 +74,52 @@
   --color-neon-amber: var(--neon-amber);
   --color-neon-amber-bright: var(--neon-amber-bright);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-poppins);
+  --font-sans: var(--type-font-sans);
+  --font-display: var(--type-font-display);
+
+  /* Utilitários da escala. `@theme inline` faz o utilitário referenciar
+     `var(--type-*)` em vez de colar o literal — é justamente isso que
+     permite ao `.hero-board` redefinir a base de medida para `cqw` sem
+     duplicar a escala (ver `.hero-board` mais abaixo). */
+  --text-h1: var(--type-h1);
+  --text-h1--line-height: var(--type-h1-leading);
+  --text-h1--letter-spacing: var(--type-h1-tracking);
+  --text-h1--font-weight: var(--type-h1-weight);
+
+  --text-h2: var(--type-h2);
+  --text-h2--line-height: var(--type-h2-leading);
+  --text-h2--letter-spacing: var(--type-h2-tracking);
+  --text-h2--font-weight: var(--type-h2-weight);
+
+  --text-lede: var(--type-lede);
+  --text-lede--line-height: var(--type-lede-leading);
+  --text-lede--letter-spacing: var(--type-lede-tracking);
+  --text-lede--font-weight: var(--type-lede-weight);
+
+  --text-nav: var(--type-nav);
+  --text-nav--line-height: var(--type-nav-leading);
+  --text-nav--letter-spacing: var(--type-nav-tracking);
+  --text-nav--font-weight: var(--type-nav-weight);
+
+  --text-body: var(--type-body);
+  --text-body--line-height: var(--type-body-leading);
+  --text-body--letter-spacing: var(--type-body-tracking);
+  --text-body--font-weight: var(--type-body-weight);
+
+  --text-ui: var(--type-ui);
+  --text-ui--line-height: var(--type-ui-leading);
+  --text-ui--letter-spacing: var(--type-ui-tracking);
+  --text-ui--font-weight: var(--type-ui-weight);
+
+  --text-meta: var(--type-meta);
+  --text-meta--line-height: var(--type-meta-leading);
+  --text-meta--letter-spacing: var(--type-meta-tracking);
+  --text-meta--font-weight: var(--type-meta-weight);
+
+  --text-micro: var(--type-micro);
+  --text-micro--line-height: var(--type-micro-leading);
+  --text-micro--letter-spacing: var(--type-micro-tracking);
+  --text-micro--font-weight: var(--type-micro-weight);
 }
 
 * {
@@ -38,10 +134,36 @@ body {
   min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  /* Mesma stack que o token `--font-sans` do @theme — antes esta linha
+     duplicava a lista à mão e o token nunca era usado. */
+  font-family: var(--type-font-sans);
+  font-size: var(--type-body);
+  line-height: var(--type-body-leading);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/**
+ * Hero desktop da landing: a caixa travada em 3224/1724 sobre a qual os
+ * overlays vivos são alinhados à arte assada em `hero-scene.jpg`.
+ *
+ * Aqui a ESCALA é a mesma do resto do site — o que muda é só a BASE DE
+ * MEDIDA: headline e parágrafo passam a medir em `cqw` para acompanhar o
+ * render em qualquer largura, como as coordenadas extraídas do .psd exigem.
+ * Família, peso, leading e tracking continuam vindo dos mesmos tokens.
+ *
+ * `--type-nav` NÃO é sobrescrito de propósito: os rótulos do menu precisam
+ * medir igual aos do catálogo, e é justamente o `cqw` que os fazia divergir
+ * (medido: 20.16px aqui contra 16px no catálogo a 1920x1080, e o inverso a
+ * 1920x800, porque `cqw` depende também da ALTURA da janela).
+ *
+ * Precisa ficar FORA de `@layer` — como `.nav-glass` e `.btn-neon` — para
+ * vencer o `:root` que o Tailwind emite em `@layer theme`.
+ */
+.hero-board {
+  container-type: inline-size;
+  --type-h1: 2.85cqw;
+  --type-lede: 1.2cqw;
 }
 
 a {
@@ -135,7 +257,12 @@ a {
   border-radius: 9999px;
   border: 1.5px solid var(--neon-cyan);
   padding: 0.85rem 1.6rem;
-  font-weight: 600;
+  /* Antes esta regra não declarava font-size nenhum: a pílula herdava o
+     contexto e saía 16px na home mas 14px no catálogo, para o mesmo botão. */
+  font-size: var(--type-ui);
+  line-height: var(--type-ui-leading);
+  letter-spacing: var(--type-ui-tracking);
+  font-weight: var(--type-ui-weight);
   color: #eaf9ff;
   background: rgba(9, 18, 26, 0.55);
   box-shadow: 0 0 0 1px rgba(53, 217, 255, 0.15) inset,
@@ -177,7 +304,7 @@ a {
 .mautic-form-wrap .mauticform-label {
   display: inline-block;
   margin-bottom: 0.4rem;
-  font-size: 0.9rem;
+  font-size: var(--type-meta);
   font-weight: 500;
   color: #cdd8e2;
 }
@@ -205,7 +332,7 @@ a {
   width: 100%;
   padding: 0.7rem 0.9rem;
   margin-bottom: 0.25rem;
-  font-size: 1rem;
+  font-size: var(--type-meta);
   line-height: 1.5;
   color: #f5f7fa;
   background-color: rgba(255, 255, 255, 0.04);
@@ -247,7 +374,7 @@ a {
   justify-content: center;
   margin-top: 0.5rem;
   padding: 0.75rem 1.8rem;
-  font-size: 1rem;
+  font-size: var(--type-ui);
   font-weight: 600;
   color: #04121a;
   background: var(--neon-cyan-bright);
@@ -280,7 +407,7 @@ a {
 
 .mautic-form-wrap .mauticform-errormsg {
   margin-top: 0.15rem;
-  font-size: 0.85rem;
+  font-size: var(--type-micro);
   color: #ff9a9a;
 }
 
@@ -333,7 +460,7 @@ a {
 .mautic-form-wrap--compact label,
 .mautic-form-wrap--compact .mauticform-label {
   margin-bottom: 0.2rem;
-  font-size: 0.75rem;
+  font-size: var(--type-micro);
   letter-spacing: 0.01em;
 }
 
@@ -346,7 +473,7 @@ a {
 .mautic-form-wrap--compact textarea.mauticform-textarea {
   padding: 0.45rem 0.7rem;
   margin-bottom: 0;
-  font-size: 0.875rem;
+  font-size: var(--type-meta);
   line-height: 1.4;
   border-radius: 0.5rem;
 }
@@ -363,11 +490,11 @@ a {
   width: 100%;
   margin-top: 0.15rem;
   padding: 0.6rem 1.5rem;
-  font-size: 0.9375rem;
+  font-size: var(--type-ui);
 }
 
 .mautic-form-wrap--compact .mauticform-errormsg {
-  font-size: 0.7rem;
+  font-size: var(--type-micro);
 }
 
 /* Botão de envio no estilo do PSD — ver `.btn-neon-grad` no fim do arquivo. */
@@ -496,7 +623,7 @@ a {
      "uma tela sem rolagem" que a página inteira precisa respeitar. */
   padding: 0.85rem 1.5rem;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: var(--type-ui);
   font-weight: 600;
   line-height: 1.2; /* trava a altura: o rótulo não muda a caixa entre estados */
   letter-spacing: 0.01em;

@@ -32,6 +32,39 @@ export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
   return links.filter((link) => !link.hidden);
 }
 
+/**
+ * Tipografia dos rótulos de menu — ÚNICA fonte de verdade, usada pelos três
+ * caminhos que renderizam nav no site: o overlay do hero da landing, a barra
+ * de vidro do catálogo (`SiteHeader`) e o dropdown mobile.
+ *
+ * Antes cada caminho escrevia o seu: a landing media em `cqw` (que depende da
+ * altura da janela) e o catálogo em `rem`, então o mesmo menu saía 20.16px na
+ * home e 16px no catálogo a 1920x1080 — e o inverso a 1920x800. `text-nav`
+ * depende só da largura da viewport, então os três passam a medir igual.
+ *
+ * `index === 0` é o item "Home", em ciano; os demais em âmbar — o mesmo
+ * pareamento dual-tone da marca que aparece no render.
+ *
+ * @param variant `"bar"` centraliza e quebra em 2 linhas (como o .psd mostra);
+ *                `"menu"` alinha à esquerda e ocupa a largura toda (dropdown).
+ */
+export function navLabelClass(
+  index: number,
+  variant: "bar" | "menu" = "bar"
+): string {
+  const base = "text-nav transition";
+  const shape =
+    variant === "bar"
+      ? "max-w-[7em] text-center text-balance"
+      : "w-full text-left";
+  const tone =
+    index === 0
+      ? "text-glow-cyan text-neon-cyan-bright hover:opacity-90"
+      : "text-glow-amber text-white/90 hover:text-white";
+
+  return `${base} ${shape} ${tone}`;
+}
+
 /** Open external (http) links in a new tab; leave internal links as-is. */
 export function externalProps(href: string) {
   return href.startsWith("http")

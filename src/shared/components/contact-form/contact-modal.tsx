@@ -92,8 +92,8 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl font-bold text-white">{content.title}</h2>
-            <p className="mt-1 text-sm text-white/70">{content.description}</p>
+            <h2 className="font-display text-h2 text-white">{content.title}</h2>
+            <p className="mt-1 text-meta text-white/70">{content.description}</p>
           </div>
           <button
             type="button"
@@ -107,7 +107,7 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
 
         {!FORM_ENABLED ? (
           <div className="mautic-form-wrap">
-            <p className="text-sm text-white/70">{content.unavailable}</p>
+            <p className="text-meta text-white/70">{content.unavailable}</p>
           </div>
         ) : mounted ? (
           <MauticEmbed
