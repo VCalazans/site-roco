@@ -41,15 +41,28 @@ export function ComingSoonHero({
 }: ComingSoonHeroProps) {
   return (
     <section className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#05070b]">
+      {/* Uma única barra, ancorada à VIEWPORT — não ao board.
+          O board é centralizado verticalmente e sobra tarja quando a tela não
+          é 2.17:1; ancorar a barra nele fazia o header "pular" ao navegar
+          entre home e catálogo (medido a 1920x1080: 125px aqui contra 26.9px
+          no catálogo). Presa à viewport, a barra fica no mesmo lugar nas duas
+          páginas em qualquer janela.
+          Instância única também no mobile: o SiteHeader já colapsa sozinho no
+          hambúrguer abaixo de `md`. */}
+      <SiteHeader
+        brand={content.brand}
+        links={navLinks}
+        menuLabels={menuLabels}
+      />
       {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay =================
           The whole render is shown undistorted so the live overlays (headline, paragraph, CTA
           hotspots) stay aligned to the baked art. On screens whose ratio differs from the art
           (~2.17:1) there are dark margins — the trade-off for never cropping content.
 
           A barra de nav NÃO faz mais parte da arte: o render foi recortado em y=240 (ver
-          `hero-layout.ts`) e o `SiteHeader` — o mesmo componente do catálogo — flutua sobre a
-          cena. É o que faz as duas páginas usarem exatamente a mesma barra, mesmo logo e mesmas
-          proporções, em vez de uma pintada e outra viva. */}
+          `hero-layout.ts`) e o `SiteHeader` — o mesmo componente do catálogo — é renderizado
+          uma vez no nível da section, acima. É o que faz as duas páginas usarem exatamente a
+          mesma barra, mesmo logo e mesma posição, em vez de uma pintada e outra viva. */}
       <div className="hidden md:flex md:h-[100svh] md:w-full md:items-center md:justify-center">
         <div
           className="hero-board relative aspect-[3224/1484] w-full"
@@ -62,15 +75,6 @@ export function ComingSoonHero({
             priority
             sizes="100vw"
             className="object-cover"
-          />
-
-          {/* Ancorado ao board (que é `relative`), não à viewport: assim a barra
-              acompanha a largura da arte quando a tela é mais alta que 2.17:1 e
-              o board deixa de ocupar a largura inteira. */}
-          <SiteHeader
-            brand={content.brand}
-            links={navLinks}
-            menuLabels={menuLabels}
           />
 
           {/* Headline + paragraph (translatable, selectable, indexable) */}
@@ -121,14 +125,6 @@ export function ComingSoonHero({
           className="object-cover object-center opacity-45"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/60 via-[#05070b]/40 to-[#05070b]" />
-
-        {/* Mesma barra do desktop e do catálogo — o SiteHeader já colapsa
-            sozinho no hambúrguer abaixo de `md`. */}
-        <SiteHeader
-          brand={content.brand}
-          links={navLinks}
-          menuLabels={menuLabels}
-        />
 
         {/* Content */}
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 pt-24 pb-16 text-center">
