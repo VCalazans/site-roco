@@ -21,9 +21,11 @@ export const defaultMetadata: Metadata = {
       "Estamos preparando um novo site, pensado para estar cada vez mais conectado com você.",
     images: [
       {
-        url: "/images/hero/hero-scene.jpg",
-        width: 1200,
-        height: 630,
+        // Dimensões declaradas como as reais do arquivo: o antigo 1200x630 não
+        // batia com a imagem e algumas redes recortam pelo valor anunciado.
+        url: "/images/hero/hero-stage.jpg",
+        width: 3224,
+        height: 1484,
         alt: "ROCO",
       },
     ],

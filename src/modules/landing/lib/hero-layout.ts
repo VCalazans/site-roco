@@ -1,25 +1,36 @@
 import type { Variants } from "framer-motion";
 
 /**
- * Coordinates measured from the source .psd (canvas 3224 x 1724), expressed as
- * percentages so the live overlay stays aligned with the baked render at every
- * width. The render already contains the ROCO wordmark, the top nav bar and both
- * neon buttons; only the translatable text (nav labels, headline, paragraph) and
- * the clickable CTA hotspots are layered on top. The nav sits over the empty
- * right side of the baked glass bar, so extra links extend leftwards into it.
+ * Coordinates measured from the source .psd, expressed as percentages so the
+ * live overlay stays aligned with the baked render at every width.
+ *
+ * BOARD 3224 x 1484 (ratio 2.1725).
+ *
+ * O board original era 3224x1724 e trazia a barra de nav e o logotipo PINTADOS
+ * no topo do render. Como as duas páginas precisavam da mesma barra e a do
+ * catálogo é HTML vivo (`SiteHeader`), a arte foi recortada em y=240 — logo
+ * abaixo do filete neon que fecha a barra assada — e a barra viva passou a
+ * flutuar sobre a cena, exatamente como no catálogo. O `hero-scene.jpg`
+ * anterior, com a barra, continua recuperável no histórico do git.
+ *
+ * As coordenadas em Y foram reconvertidas por
+ *     novo% = (antigo% × 1724 − 240) ÷ 1484
+ * e as ALTURAS por
+ *     nova% = antiga% × 1724 ÷ 1484
+ * (X não muda: o recorte foi só vertical.)
+ *
+ * Não há mais entrada `nav`: o menu deixou de ser overlay posicionado e passou
+ * a ser o `SiteHeader` compartilhado.
  */
 export const POS = {
-  /**
-   * CENTRO vertical do bloco de rótulos (o <nav> usa `-translate-y-1/2`), não
-   * o topo. Medido no render: centro do primeiro item ÷ altura do board deu
-   * 6.749% / 6.755% / 6.784% / 6.725% em 1920x1080, 1920x800, 1440x900 e
-   * 2560x1440 — daí os 6.75%. Ancorar pelo centro é o que permite mudar o
-   * tamanho da fonte do menu sem deslocar os rótulos dentro do vidro pintado.
-   */
-  nav: { top: "6.75%", right: "6.6%" },
-  copy: { left: "29.1%", top: "54.5%", width: "42%" },
-  btnPrimary: { left: "34.8%", top: "79.2%", width: "17.6%", height: "8.8%" },
-  btnSecondary: { left: "53.0%", top: "79.2%", width: "12.4%", height: "8.8%" },
+  copy: { left: "29.1%", top: "47.14%", width: "42%" },
+  btnPrimary: { left: "34.8%", top: "75.84%", width: "17.6%", height: "10.22%" },
+  btnSecondary: {
+    left: "53.0%",
+    top: "75.84%",
+    width: "12.4%",
+    height: "10.22%",
+  },
 } as const;
 
 /** Staggered fade-up used by the headline, paragraph and mobile CTAs. */

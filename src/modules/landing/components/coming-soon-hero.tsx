@@ -3,16 +3,10 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Download } from "lucide-react";
-import { useContactForm } from "@/shared/components/contact-form";
-import { MobileMenu, NavItems } from "@/shared/components/nav";
+import { SiteHeader } from "@/shared/components/nav";
 import { CtaHotspot } from "@/modules/landing/components/cta-hotspot";
 import { POS, fade } from "@/modules/landing/lib/hero-layout";
-import {
-  externalProps,
-  navLabelClass,
-  type Cta,
-  type NavLink,
-} from "@/shared/lib/nav";
+import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
 
 type ComingSoonContent = {
   brand: string;
@@ -29,26 +23,37 @@ type ComingSoonHeroProps = {
   menuLabels: { open: string; close: string };
 };
 
-const SCENE = "/images/hero/hero-scene.jpg";
-const WORDMARK = "/images/hero/roco-logo.png";
+/**
+ * Cena do hero SEM a barra de navegação.
+ *
+ * Derivada do antigo `hero-scene.jpg` (3224x1724), que trazia a barra e o
+ * logotipo pintados no topo, recortando em y=240 — logo abaixo do filete neon
+ * que fechava a barra. Nome novo de propósito: além de deixar a mudança
+ * explícita, troca a URL e evita que o otimizador de imagens do Next (e
+ * qualquer CDN) sirva a arte antiga de cache. O original segue no histórico.
+ */
+const SCENE = "/images/hero/hero-stage.jpg";
 
 export function ComingSoonHero({
   content,
   navLinks,
   menuLabels,
 }: ComingSoonHeroProps) {
-  const { open: openContact } = useContactForm();
-
   return (
     <section className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#05070b]">
       {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay =================
-          The whole render is shown undistorted so the live overlays (nav, headline, paragraph,
-          CTA hotspots) stay aligned to the baked art. On screens whose ratio differs from the
-          art (~1.87:1) there are thin dark margins — the trade-off for never cropping content. */}
+          The whole render is shown undistorted so the live overlays (headline, paragraph, CTA
+          hotspots) stay aligned to the baked art. On screens whose ratio differs from the art
+          (~2.17:1) there are dark margins — the trade-off for never cropping content.
+
+          A barra de nav NÃO faz mais parte da arte: o render foi recortado em y=240 (ver
+          `hero-layout.ts`) e o `SiteHeader` — o mesmo componente do catálogo — flutua sobre a
+          cena. É o que faz as duas páginas usarem exatamente a mesma barra, mesmo logo e mesmas
+          proporções, em vez de uma pintada e outra viva. */}
       <div className="hidden md:flex md:h-[100svh] md:w-full md:items-center md:justify-center">
         <div
-          className="hero-board relative aspect-[3224/1724] w-full"
-          style={{ maxWidth: "min(100vw, calc(100svh * 3224 / 1724))" }}
+          className="hero-board relative aspect-[3224/1484] w-full"
+          style={{ maxWidth: "min(100vw, calc(100svh * 3224 / 1484))" }}
         >
           <Image
             src={SCENE}
@@ -59,23 +64,14 @@ export function ComingSoonHero({
             className="object-cover"
           />
 
-          {/* Live nav labels over the baked glass bar.
-              Ancorado pelo CENTRO (`POS.nav.top` + `-translate-y-1/2`): assim o
-              bloco cresce e encolhe simetricamente em torno da linha média do
-              vidro pintado, e mudar o tamanho da fonte deixa de empurrar os
-              rótulos para baixo dentro da arte. Os 6.75% foram MEDIDOS do
-              render atual (centro do primeiro item / altura do board), estáveis
-              em 1920x1080, 1920x800, 1440x900 e 2560x1440. */}
-          <nav
-            className="absolute flex -translate-y-1/2 items-center"
-            style={{ top: POS.nav.top, right: POS.nav.right, gap: "2.2cqw" }}
-          >
-            <NavItems
-              links={navLinks}
-              onContact={openContact}
-              itemClassName={(index) => navLabelClass(index, "bar")}
-            />
-          </nav>
+          {/* Ancorado ao board (que é `relative`), não à viewport: assim a barra
+              acompanha a largura da arte quando a tela é mais alta que 2.17:1 e
+              o board deixa de ocupar a largura inteira. */}
+          <SiteHeader
+            brand={content.brand}
+            links={navLinks}
+            menuLabels={menuLabels}
+          />
 
           {/* Headline + paragraph (translatable, selectable, indexable) */}
           <div
@@ -126,22 +122,13 @@ export function ComingSoonHero({
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/60 via-[#05070b]/40 to-[#05070b]" />
 
-        {/* Top bar */}
-        <nav className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5">
-          <Image
-            src={WORDMARK}
-            alt={content.brand}
-            width={110}
-            height={45}
-            className="h-7 w-auto"
-            priority
-          />
-          <MobileMenu
-            links={navLinks}
-            onContact={openContact}
-            labels={menuLabels}
-          />
-        </nav>
+        {/* Mesma barra do desktop e do catálogo — o SiteHeader já colapsa
+            sozinho no hambúrguer abaixo de `md`. */}
+        <SiteHeader
+          brand={content.brand}
+          links={navLinks}
+          menuLabels={menuLabels}
+        />
 
         {/* Content */}
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 pt-24 pb-16 text-center">
