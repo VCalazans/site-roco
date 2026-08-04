@@ -1,0 +1,7 @@
+# Cópias verificadas de scripts de terceiros (ver public/vendor/README.md).
+#
+# `-text` desliga a conversão de quebras de linha: os bytes no disco passam a ser
+# idênticos aos do blob no git em qualquer plataforma. Sem isso, `core.autocrlf`
+# converte na saída e o `sha256sum` do arquivo NÃO bate com o valor documentado
+# no README — justamente o mecanismo que garante que a cópia não foi adulterada.
+public/vendor/*.js -text

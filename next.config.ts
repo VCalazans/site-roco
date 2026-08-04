@@ -51,6 +51,10 @@ const nextConfig: NextConfig = {
  * por `connect-src`/`form-action`. Assim, mesmo que o servidor Mautic seja
  * reinfectado, o navegador bloqueia scripts de terceiros neste site.
  *
+ * O tracking de visitantes segue a mesma regra: cópia verificada do `mtc.js` em
+ * `/vendor/mautic-tracking.js` (ver `src/shared/components/analytics/`), com os
+ * hits saindo por `connect-src` (`/mtc/event`) ou `img-src` (`mtracking.gif`).
+ *
  * `'unsafe-inline'` em script-src é necessário para os scripts inline de
  * hidratação do Next.js (sem nonce). Como o HTML do site é estático (sem ponto
  * de injeção), o risco residual é baixo; um endurecimento futuro seria migrar
@@ -70,7 +74,10 @@ function contentSecurityPolicy(): string {
     "frame-ancestors 'self'",
     `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    // O domínio do Mautic entra aqui por causa do pixel de tracking
+    // (`mtracking.gif`): o `mtc.js` tenta primeiro um POST em `/mtc/event`
+    // (coberto por `connect-src`) e, se o CORS falhar, recorre a uma <img>.
+    `img-src 'self' data: blob: ${mautic}`,
     "font-src 'self'",
     `connect-src 'self' ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
     `form-action 'self' ${mautic}`,

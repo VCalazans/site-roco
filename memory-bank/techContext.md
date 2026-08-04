@@ -28,6 +28,7 @@ npm run dev        # http://localhost:3000
 | NEXT_PUBLIC_WHATSAPP_NUMBER  | não    | WhatsApp de contato (fase futura)          |
 | NEXT_PUBLIC_PRODUCTS_URL     | não    | Destino do CTA "Conheça nossos Produtos"   |
 | NEXT_PUBLIC_CATALOG_URL      | não    | Destino do CTA "Baixar Catálogo" (PDF)     |
+| NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED | não | Tracking de visitantes (prod: on salvo `"false"`; dev: off salvo `"true"`) |
 | WHATSAPP_MCP_URL             | não    | Endpoint do MCP WhatsApp (automações)      |
 
 ## Comandos do Projeto
@@ -45,6 +46,15 @@ npm run dev        # http://localhost:3000
   - `roco-logo-white.png` — logotipo ROCO 2D (branco, transparente).
   - `roco-wordmark-white.png` — wordmark central 3D (branco, transparente).
 - Reextração: os scripts usam `ag-psd` + `@napi-rs/canvas` (Node). Ver decisionLog.
+
+## Scripts de Terceiros (self-hosted)
+`public/vendor/` — cópias **verificadas** servidas do próprio domínio, para manter a CSP
+`script-src 'self'` após o incidente ClickFix (jul/2026):
+- `mautic-form.js` — SDK do formulário Mautic.
+- `mautic-tracking.js` — `mtc.js`, tracking de visitantes.
+
+Procedência, SHA-256, resultado da inspeção e passos de reextração: `public/vendor/README.md`.
+**Nunca** atualize essas cópias a partir de um servidor Mautic não verificado.
 
 ## Infraestrutura de Deploy
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.

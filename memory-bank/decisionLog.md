@@ -88,3 +88,41 @@ errado, sequências repetidas. Usa `MutationObserver` para achar campos assincro
 só se preenchido — obrigatoriedade é responsabilidade do Mautic. (3) Integração em `contact-modal.tsx`
 via hook. (4) Novo CSS em `globals.css` (`input[aria-invalid="true"]`). (5) Dicionários ampliados.
 Verificação manual: unit CNPJ 10/10 + simulação DOM 9/9 (happy-dom). Débito: test runner formal.
+
+## 2026-08-04 — Tracking de visitantes: Mautic `mtc.js` self-hosted + pageview por rota
+**Decisão**: Adotar o tracking do **Mautic** (`mtc.js`) como analytics do site, mas **sem carregar o
+script do servidor Mautic**: cópia verificada e self-hosted em `public/vendor/mautic-tracking.js`,
+consumida por `src/shared/components/analytics/mautic-tracking.tsx` (client component montado em
+`app/[locale]/layout.tsx`). A CSP mantém `script-src 'self'`; foi adicionado apenas o domínio do
+Mautic ao `img-src`. Flag `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED` (produção: ligado salvo `"false"`;
+desenvolvimento: desligado salvo `"true"`).
+**Alternativas**: (a) snippet oficial carregando `https://mautic.roco.com.br/mtc.js` — exigiria
+devolver o domínio do Mautic ao `script-src`, reabrindo exatamente o vetor fechado após o ClickFix;
+(b) GA4/GTM — mais relatórios, mas cookies de terceiros, banner de consentimento e ainda assim
+liberação de CSP para domínios Google; (c) analytics cookieless (Umami/Plausible) — melhor para LGPD,
+porém não amarra a visita ao lead que já existe no Mautic.
+**Justificativa**: O funil da ROCO (catálogo e contato) já vive no Mautic; o pixel liga visita ↔ lead
+sem ferramenta nova. Self-hosting preserva a garantia pós-ClickFix: mesmo com o servidor Mautic
+reinfectado, nenhum script de fora executa nesta origem — só *dados* do hit saem.
+**Auditoria da cópia** (2026-08-04, SHA-256 `d4378644…d6d4dc7f000`, 100.654 bytes): zero indicadores
+de ClickFix/ofuscação (`clipboard.writeText`, `execCommand`, `powershell`, `mshta`, `eval(`,
+`new Function`, `atob`, `fromCharCode`, `unescape`, `document.write`). Os dois caminhos que
+injetariam script remoto são inertes aqui: `initGatedVideo()` aborta sem `<video>` na página, e o
+loader de `mautic-form.js` só roda ao renderizar slot de *Dynamic Web Content* — o site não tem
+nenhum dos dois. Detalhes em `public/vendor/README.md`.
+**Impacto**: (1) O hit sai por `POST /mtc/event` (caminho principal) **ou** pelo pixel
+`mtracking.gif` (fallback). O `mtc.js` manda `X-Requested-With` + `withCredentials=true`, então o
+navegador exige preflight; o Mautic responde corretamente (`Access-Control-Allow-Credentials: true`
++ eco da origem), **mas sua allowlist de CORS contém somente `https://roco.com.br`** — `www` e
+qualquer outro host recebem preflight sem headers. Como hoje `roco.com.br` **e** `www.roco.com.br`
+servem o site (nenhum canonicaliza), visitantes em `www` caem no pixel: o hit é registrado, porém
+`setTrackedContact` não roda e os cookies `mtc_id`/`mtc_sid` não são gravados no cliente — a visita
+não é amarrada ao contato. Por isso o `img-src` é load-bearing, não enfeite. **Correção a fazer:**
+adicionar `https://www.roco.com.br` às "CORS Valid Domains" do Mautic, ou canonicalizar o site em um
+único host por redirect. (2) SPA: o hit automático do
+`mtc.js` cobre só a primeira view, então o componente emite um pageview por `pathname` novo,
+deduplicado por variável de MÓDULO (`lastTrackedPath`) — sobrevive à remontagem do layout na troca
+de locale e absorve a dupla invocação de efeitos do StrictMode. (3) **LGPD em aberto**: o `mtc.js`
+grava cookies de primeira parte (`mtc_id`, `mtc_sid`, `mautic_device_id`) + `localStorage` e
+identifica o visitante, e **não há banner de consentimento** — decisão de opt-in ficou pendente com
+o stakeholder; a flag desliga tudo sem editar código se o jurídico exigir.

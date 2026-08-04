@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { MauticTracking } from "@/shared/components/analytics";
 import { ContactFormProvider } from "@/shared/components/contact-form";
 import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { locales, type Locale } from "@/i18n/config";
@@ -26,6 +27,10 @@ export default async function LocaleLayout({
     <ContactFormProvider content={dictionary.contact}>
       {children}
       <WhatsAppFloat content={dictionary.whatsapp} />
+      {/* Tracking de visitantes (Mautic). Vive aqui, e não no layout raiz, para
+          cobrir todas as rotas localizadas — que são todas as páginas reais do
+          site — mantendo o layout raiz livre de client components. */}
+      <MauticTracking />
     </ContactFormProvider>
   );
 }
