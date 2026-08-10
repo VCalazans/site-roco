@@ -1,7 +1,6 @@
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { alpha } from "@mui/material/styles";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type WelcomeClosingProps = {
@@ -14,11 +13,13 @@ export function WelcomeClosing({ content }: WelcomeClosingProps) {
   return (
     <Paper
       variant="outlined"
-      sx={(theme) => ({
+      sx={{
         p: { xs: 3, sm: 4 },
         mt: 4,
-        bgcolor: alpha(theme.palette.primary.main, 0.06),
-      })}
+        // Server Component: `sx` precisa ser objeto serializável (sem callback
+        // de tema) — o canal RGB via CSS var acompanha o color scheme.
+        bgcolor: "rgba(var(--mui-palette-primary-mainChannel) / 0.06)",
+      }}
     >
       <Stack spacing={2}>
         <Typography variant="h6" component="p" sx={{ fontWeight: 600 }}>

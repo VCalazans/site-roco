@@ -2,7 +2,6 @@ import Image from "next/image";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { alpha } from "@mui/material/styles";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type WelcomeHeroProps = {
@@ -23,14 +22,19 @@ type WelcomeHeroProps = {
 export function WelcomeHero({ content, logoAlt }: WelcomeHeroProps) {
   return (
     <Box
-      sx={(theme) => ({
+      sx={{
         borderRadius: 3,
         p: { xs: 3, sm: 5 },
         mb: 4,
-        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)}, ${alpha(theme.palette.secondary.main, 0.14)})`,
+        // `sx` como FUNÇÃO não pode cruzar a fronteira server → client
+        // (este componente é Server Component). Com `cssVariables: true` no
+        // tema, os canais RGB ficam disponíveis como CSS vars — o gradiente
+        // continua acompanhando o color scheme sem callback de tema.
+        background:
+          "linear-gradient(135deg, rgba(var(--mui-palette-primary-mainChannel) / 0.16), rgba(var(--mui-palette-secondary-mainChannel) / 0.14))",
         border: "1px solid",
         borderColor: "divider",
-      })}
+      }}
     >
       <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
         {/* Mesmo tratamento do logo branco em `login-card.tsx`: fundo escuro
