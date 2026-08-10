@@ -1,16 +1,17 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { MauticTracking } from "@/shared/components/analytics";
-import { ContactFormProvider } from "@/shared/components/contact-form";
-import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { locales, type Locale } from "@/i18n/config";
-import { getDictionary } from "@/i18n/get-dictionary";
 
 type LocaleLayoutProps = {
   children: ReactNode;
   params: Promise<{ locale: string }>;
 };
 
+/**
+ * Valida o locale para TODA rota localizada e nada mais. Os providers de cada
+ * mundo vivem nos route groups: `(site)` (marketing — WhatsApp, Mautic) e
+ * `(internal)` (portal — MUI). Não adicione client components aqui.
+ */
 export default async function LocaleLayout({
   children,
   params,
@@ -21,16 +22,5 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  const dictionary = await getDictionary(locale as Locale);
-
-  return (
-    <ContactFormProvider content={dictionary.contact}>
-      {children}
-      <WhatsAppFloat content={dictionary.whatsapp} />
-      {/* Tracking de visitantes (Mautic). Vive aqui, e não no layout raiz, para
-          cobrir todas as rotas localizadas — que são todas as páginas reais do
-          site — mantendo o layout raiz livre de client components. */}
-      <MauticTracking />
-    </ContactFormProvider>
-  );
+  return children;
 }

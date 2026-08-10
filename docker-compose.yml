@@ -12,4 +12,46 @@ services:
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     env_file:
       - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+
+  # Banco do Portal/CRM (Auth.js, RBAC, catálogo, representantes). Ver
+  # memory-bank/decisionLog.md 2026-08-09 ("Persistência: PostgreSQL + Drizzle ORM").
+  postgres:
+    image: postgres:17-alpine
+    container_name: site-roco-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-roco}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-roco}
+      - POSTGRES_DB=${POSTGRES_DB:-roco_portal}
+    volumes:
+      - roco_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roco} -d ${POSTGRES_DB:-roco_portal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Fila BullMQ (sync ERP) e cache de sessão. Ver decisionLog 2026-08-09
+  # ("Sync ERP: fila assíncrona BullMQ + Redis, worker in-process").
+  redis:
+    image: redis:8-alpine
+    container_name: site-roco-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  roco_postgres_data:

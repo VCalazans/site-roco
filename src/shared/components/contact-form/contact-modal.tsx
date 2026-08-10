@@ -44,9 +44,7 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
   // ids duplicados fariam o SDK operar no form errado. Uma vez montado, o form
   // permanece no DOM para preservar o que o usuário digitou entre abre/fecha.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    if (isOpen) setMounted(true);
-  }, [isOpen]);
+  if (isOpen && !mounted) setMounted(true);
 
   // Escape to close + lock body scroll while open.
   useEffect(() => {

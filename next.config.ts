@@ -67,6 +67,17 @@ function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
   const mautic = "https://mautic.roco.com.br";
 
+  // Cloudflare R2 (portal interno): o upload de imagens de produto e documentos
+  // de representante é um PUT presignado feito DIRETO do navegador para o
+  // endpoint da conta R2 (`connect-src`); as imagens públicas do catálogo são
+  // servidas do bucket público (`img-src`). Nada disso toca `script-src`.
+  const r2Endpoint = process.env.R2_ACCOUNT_ID
+    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+    : "";
+  const r2Public = process.env.R2_PUBLIC_URL
+    ? new URL(process.env.R2_PUBLIC_URL).origin
+    : "";
+
   return [
     "default-src 'self'",
     "base-uri 'self'",
@@ -77,9 +88,9 @@ function contentSecurityPolicy(): string {
     // O domínio do Mautic entra aqui por causa do pixel de tracking
     // (`mtracking.gif`): o `mtc.js` tenta primeiro um POST em `/mtc/event`
     // (coberto por `connect-src`) e, se o CORS falhar, recorre a uma <img>.
-    `img-src 'self' data: blob: ${mautic}`,
+    `img-src 'self' data: blob: ${mautic}${r2Public ? ` ${r2Public}` : ""}`,
     "font-src 'self'",
-    `connect-src 'self' ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
+    `connect-src 'self' ${mautic}${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
     `form-action 'self' ${mautic}`,
     // O SDK do Mautic posta o formulário num iframe oculto e lê a resposta JSON
     // via postMessage — sem esta diretiva o iframe é bloqueado por `default-src`

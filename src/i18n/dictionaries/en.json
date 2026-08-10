@@ -90,5 +90,230 @@
   },
   "languageSwitcher": {
     "label": "Language"
+  },
+  "portal": {
+    "login": {
+      "title": "Access your workspace",
+      "subtitle": "Product and contact manager for ROCO",
+      "googleButton": "Sign in with Google",
+      "disclaimer": "Restricted access for commercial representatives and ROCO staff."
+    },
+    "shell": {
+      "appName": "ROCO Portal",
+      "nav": {
+        "dashboard": "Dashboard",
+        "onboarding": "Onboarding",
+        "products": "Products",
+        "representatives": "Representatives"
+      },
+      "comingSoon": "Coming soon",
+      "userMenu": {
+        "profile": "My Profile",
+        "logout": "Sign out"
+      },
+      "themeToggle": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "welcome": "Welcome, {name}!",
+      "emptyState": "No data to display at the moment."
+    },
+    "admin": {
+      "title": "Administration",
+      "underConstruction": "This section is under development."
+    },
+    "onboarding": {
+      "title": "Complete your profile",
+      "subtitle": "A few steps and you'll be ready to access all features.",
+      "steps": {
+        "personal": {
+          "title": "Personal Information",
+          "description": "Start by providing your contact details."
+        },
+        "company": {
+          "title": "Company Information",
+          "description": "Provide details about your company."
+        },
+        "territory": {
+          "title": "Sales Territory",
+          "description": "Define your sales region and coverage area."
+        },
+        "documents": {
+          "title": "Documents",
+          "description": "Upload required documents for verification."
+        },
+        "review": {
+          "title": "Review",
+          "description": "Review your information before submitting."
+        }
+      },
+      "fields": {
+        "fullName": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "companyName": "Company legal name",
+        "cnpj": "CNPJ (Brazilian company ID)",
+        "region": "Sales region",
+        "notes": "Additional notes"
+      },
+      "upload": {
+        "dropzone": "Drag files here or click to select",
+        "maxSize": "Maximum size: 5 MB",
+        "accepted": "Accepted formats: PDF, JPG, PNG",
+        "remove": "Remove file"
+      },
+      "actions": {
+        "next": "Next",
+        "back": "Back",
+        "saveDraft": "Save as draft",
+        "submit": "Submit"
+      },
+      "status": {
+        "draft": "Draft",
+        "submitted": "Submitted",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "submitted": {
+        "title": "Registration submitted successfully!",
+        "message": "Thank you for registering. Our team will review your details shortly."
+      },
+      "validation": {
+        "required": "This field is required.",
+        "invalidCnpj": "Invalid CNPJ. Please check the digits you entered.",
+        "invalidPhone": "Invalid phone number. Use format (XX) 9XXXX-XXXX.",
+        "fileTooLarge": "File too large. Maximum 5 MB."
+      }
+    },
+    "products": {
+      "title": "Products",
+      "subtitle": "ROCO catalog manager — 769 items",
+      "searchPlaceholder": "Search by SKU, name, or category...",
+      "table": {
+        "sku": "SKU",
+        "name": "Name",
+        "category": "Category",
+        "packaging": "Packaging",
+        "badges": "Badges",
+        "status": "Status",
+        "updatedAt": "Updated",
+        "actions": "Actions"
+      },
+      "status": {
+        "published": "Published",
+        "unpublished": "Unpublished",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "badges": {
+        "nacional": "NACIONAL (National)",
+        "universal": "UNIVERSAL",
+        "top": "TOP",
+        "tresEmUm": "3 EM 1 (3-in-1)",
+        "seguro": "SEGURO (Safety)"
+      },
+      "form": {
+        "createTitle": "New Product",
+        "editTitle": "Edit Product",
+        "fields": {
+          "sku": "SKU",
+          "erpCode": "ERP Code",
+          "name": "Name (Portuguese)",
+          "nameEn": "Name (English)",
+          "description": "Description (Portuguese)",
+          "descriptionEn": "Description (English)",
+          "category": "Category",
+          "ncm": "NCM (Tax Classification)",
+          "barcode": "Barcode",
+          "packagingType": "Packaging Type",
+          "unitsPerPack": "Units per Package",
+          "published": "Published on website"
+        },
+        "packagingTypes": {
+          "peca": "Unit",
+          "blister": "Blister",
+          "caixa": "Box",
+          "sacoPlastico": "Plastic Bag"
+        },
+        "images": {
+          "title": "Product Images",
+          "dropzone": "Drag photos here or click to upload",
+          "altText": "Alt text (image description)",
+          "cover": "Catalog cover",
+          "remove": "Remove image",
+          "uploadError": "Upload error. Please try again."
+        },
+        "actions": {
+          "save": "Save Product",
+          "cancel": "Cancel",
+          "delete": "Delete Product",
+          "publish": "Publish",
+          "unpublish": "Unpublish"
+        }
+      },
+      "sync": {
+        "title": "ERP Synchronization",
+        "triggerButton": "Sync Now",
+        "lastRun": "Last synchronized",
+        "statusIdle": "Waiting for sync",
+        "statusRunning": "Syncing...",
+        "statusError": "Sync error",
+        "successMessage": "Synchronization completed successfully.",
+        "errorMessage": "An error occurred during synchronization. Please try again."
+      },
+      "empty": {
+        "title": "No products found",
+        "description": "Create the first product or adjust your search."
+      },
+      "deleteConfirm": {
+        "title": "Delete Product",
+        "message": "Are you sure? This action cannot be undone.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      }
+    },
+    "representatives": {
+      "title": "Representatives",
+      "subtitle": "Manage commercial representatives in onboarding",
+      "table": {
+        "name": "Name",
+        "company": "Company",
+        "region": "Region",
+        "status": "Status",
+        "submittedAt": "Submitted",
+        "actions": "Actions"
+      },
+      "review": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "viewDocuments": "View Documents",
+        "notesLabel": "Reviewer notes"
+      },
+      "empty": {
+        "title": "No representatives awaiting review",
+        "description": "New registrations will appear here for analysis."
+      }
+    },
+    "errors": {
+      "unauthorized": "You do not have permission to access this resource.",
+      "forbidden": "Access denied.",
+      "notFound": "Page not found.",
+      "generic": "Something went wrong. Please try again.",
+      "sessionExpired": "Your session has expired. Please sign in again."
+    },
+    "common": {
+      "loading": "Loading...",
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "search": "Search",
+      "filter": "Filter",
+      "clear": "Clear",
+      "backToSite": "Back to public website"
+    }
   }
 }

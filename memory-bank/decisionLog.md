@@ -126,3 +126,114 @@ de locale e absorve a dupla invocação de efeitos do StrictMode. (3) **LGPD em 
 grava cookies de primeira parte (`mtc_id`, `mtc_sid`, `mautic_device_id`) + `localStorage` e
 identifica o visitante, e **não há banner de consentimento** — decisão de opt-in ficou pendente com
 o stakeholder; a flag desliga tudo sem editar código se o jurídico exigir.
+
+## 2026-08-09 — Portal interno/CRM como monolito Next.js (mesmo app do site)
+**Decisão**: O portal interno (início da estrutura de CRM) vive DENTRO do mesmo app Next.js 16 do
+site institucional — rotas `/portal/*` (representantes + time interno) e `/admin/*`, mesmo deploy,
+1 Dockerfile, 1 domínio.
+**Alternativas**: (a) monorepo Nx estilo Valora (apps/web Next.js + apps/api NestJS + worker
+separado) — projeto de referência usa esse padrão; (b) híbrido com worker NestJS separado só para
+sync ERP.
+**Justificativa**: Consistência com o briefing, operação mais simples (1 container), o time é
+pequeno e o escopo MVP não justifica infra de microserviços; o padrão modular do repo
+(src/modules/<feature>) comporta o portal como módulos.
+**Impacto**: Novas rotas em src/app/[locale]/(portal) e (admin); Route Handlers e tRPC no mesmo
+deploy; escalar depois para API separada se o CRM crescer.
+
+## 2026-08-09 — Autenticação: Auth.js v5 (NextAuth) + Google SSO
+**Decisão**: Auth.js v5 com provider Google (SSO) como método primário de login do portal;
+sessões via Drizzle Adapter no Postgres; middleware protege /portal/* e /admin/*.
+**Alternativas**: Lucia v3 (mais controle, mais boilerplate), Clerk (SaaS, vendor lock-in, custo
+por MAU), Supabase Auth (acopla vendor).
+**Justificativa**: Stack oficial do ecossistema Next, SSO Google nativo, integração com RBAC em
+callbacks de sessão, sem custo por usuário.
+**Impacto**: Novas env vars (AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET); tabelas de auth no
+schema Drizzle; rota /api/auth/[...nextauth].
+
+## 2026-08-09 — Persistência: PostgreSQL + Drizzle ORM
+**Decisão**: PostgreSQL como banco do portal/CRM, Drizzle ORM (type-safe, migrations via
+drizzle-kit).
+**Alternativas**: Prisma (mais maduro, porém runtime maior — e o Valora usa Prisma), SQLite (só
+dev), Supabase.
+**Justificativa**: Type-safety end-to-end com TS strict, leve em serverless/standalone, adapter
+oficial do Auth.js.
+**Impacto**: Pasta src/db (schema, migrations), serviço Postgres no docker-compose, env
+DATABASE_URL.
+
+## 2026-08-09 — RBAC granular (resource + action) desde a concepção
+**Decisão**: Modelo de permissões granular — Role → RolePermission → Permission(resource, action)
+— com roles seed (admin, sales_manager, representative, viewer) e helper requirePermission();
+audit log de mutações sensíveis.
+**Alternativas**: Role única por usuário hardcoded (estilo Valora: 'admin' | 'appraiser'); CASL.
+**Justificativa**: Requisito explícito do stakeholder ("alto controle de granularidade de
+acessos"); o portal recebe públicos distintos (representantes em onboarding vs time interno
+gerindo produtos).
+**Impacto**: Tabelas roles/permissions/user_roles/audit_logs; checagem em tRPC procedures e
+Server Actions; sessão carrega permissões.
+
+## 2026-08-09 — Imagens de produto: Cloudflare R2 com presigned URLs
+**Decisão**: Upload direto do browser para R2 via presigned PUT (fluxo 2-step: presign → upload
+→ confirm com validação HEAD antes do INSERT), keys namespaced por produto.
+**Alternativas**: AWS S3 (egress pago), upload proxy pelo servidor (banda/latência).
+**Justificativa**: Requisito do stakeholder (bucket Cloudflare); R2 sem egress fee; padrão
+presigned já validado no projeto Valora (modules/storage).
+**Impacto**: Env vars S3_ENDPOINT/S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY; CSP img-src ganha
+domínio do R2; tabela product_images.
+
+## 2026-08-09 — Sync ERP: fila assíncrona BullMQ + Redis, worker in-process
+**Decisão**: Sincronização de produtos do ERP via BullMQ sobre Redis, com idempotência por
+externalId, retry exponencial e DLQ; worker roda in-process no app Next (registrado via
+instrumentation), com trigger por webhook do ERP + botão "Sincronizar agora" no admin.
+**Alternativas**: Polling HTTP; webhook sem fila; sync manual + cron; pg-boss (fila no Postgres).
+**Justificativa**: Resiliência (ERP fora do nosso controle), observabilidade de jobs, sem processo
+extra para operar no MVP.
+**Impacto**: Redis no docker-compose; env REDIS_URL; endpoint /api/webhooks/erp + /api/admin/sync.
+
+## 2026-08-09 — API de produtos: tRPC interno + REST público, cache por revalidateTag
+**Decisão**: Portal consome tRPC v11 (type-safe, mesmo repo); o site público consome os dados de
+produto via Route Handlers REST no MESMO app (mesma origem, sem CORS), com unstable_cache +
+revalidateTag("products") invalidado nas mutações e no sync ERP.
+**Alternativas**: REST puro com OpenAPI; API NestJS dedicada; GraphQL; PostgREST.
+**Justificativa**: Type-safety no portal sem boilerplate; site público mantém SSG/ISR com
+invalidação sob demanda; requisito novo do stakeholder: "o site vai precisar ter comunicação
+direta com as APIs para listagem de produtos".
+**Impacto**: src/server/trpc (routers), src/app/api/products (REST público read-only); páginas de
+catálogo passam a poder listar produtos do banco.
+
+## 2026-08-09 — UI do portal: MUI com tema centralizado dark/light
+**Decisão**: Portal usa Material UI (CSS variables theme, colorSchemes dark/light, toggle
+persistido) com tokens da marca ROCO (neon cyan #3ec6f0 / amber #f5a33c) centralizados em um
+único theme; convive com Tailwind v4 (site público permanece Tailwind/dark-only).
+**Alternativas**: shadcn/ui + Tailwind (mais coeso com o site, menos componentes prontos de
+data-grid/forms); Archicode Design System puro (dark-only, referência Valora).
+**Justificativa**: Requisito explícito do stakeholder ("Use MUI para componentes, e conceba o
+projeto com tema centralizado já com Darkmode/Light já na concepção"); MUI DataGrid acelera o
+CRUD de produtos.
+**Impacto**: Deps @mui/material + @mui/material-nextjs + @emotion; src/core/theme com o theme
+único; portal isolado do CSS do site institucional.
+
+## 2026-08-09 — Sessão JWT com revalidação de staleness (5min) e maxAge 8h
+**Decisão**: Sessões Auth.js usam JWT com estratégia de revalidação: `maxAge` 8h, `UPDATE`
+trigger a cada 5 min; usuário desativado derruba a sessão em ≤5min sem esperar expiração.
+**Alternativas**: (a) database strategy (custo de query por request); (b) JWT 30d default
+sem revalidação (sem revogação efetiva).
+**Justificativa**: Pós-security-scan, garantir que acesso revogado (desativação, mudança de
+role) valide e derrube a sessão rapidamente — essencial para representantes em onboarding.
+**Impacto**: Callback `jwt()` valida `user.active` a cada 5min; `session` carrega roles/
+permissions atualizados; tablela `users.active` booleano. Verifica staleness vs timestamp.
+
+## 2026-08-09 — Next.js 16.0.3 → 16.3.0 (CVE RCE + middleware bypass)
+**Decisão**: Atualizar Next.js de 16.0.3 para 16.3.0 por vulnerabilidades críticas: RCE de
+código arbitrário + bypasses de middleware descobertos e patchados em versão posterior.
+**Alternativas**: Pinnar 16.0.3 e monitorar CVE (risco operacional).
+**Justificativa**: Segurança de produção; `npm audit --omit=dev` chegou a 0 vulns após atualização.
+**Impacto**: Build continua passando; nenhuma breaking change API; docker-compose usa node:22-alpine.
+
+## 2026-08-09 — Testes: Vitest 4 como runner oficial
+**Decisão**: Vitest 4 como test runner padrão do projeto (substitui Jest/manual); 208 testes
+configurados, 100% de cobertura da lógica pura (rbac, cnpj, slugify, job-id, db-error,
+permissions, phone).
+**Alternativas**: Jest (mais maduro, ecossistema; overhead de config), descentralizado (manual).
+**Justificativa**: ESM/TypeScript nativo, rápido (Vite), setup mínimo; débito do MVP resolvido.
+**Impacto**: Vitest 4 em devDependencies; scripts `npm run test`, `test:watch`, `test:coverage`;
+alias `@/*` vivo em testes via stub de `server-only`.

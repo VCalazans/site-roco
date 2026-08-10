@@ -2,12 +2,59 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-04
+2026-08-09
 
 ## Fase Atual
-MVP evolução — landing + catálogo no ar; tracking de visitantes recém-instalado.
+MVP evolução — landing + catálogo + portal interno/CRM pronto (implementação em 3 ondas concluída).
 
-## O Que Foi Feito (esta sessão)
+## O Que Foi Feito (esta sessão — 2026-08-09)
+### Onda 1: Database + Auth + Schema
+- **Schema Drizzle**: 18 tabelas (users, roles, role_permissions, permissions, products,
+  product_categories, product_images, product_variants, sync_runs, audit_logs, etc.) + 4 enums
+  (SyncStatus, AuditAction, ApprovalStatus, SyncType); migrations 0000 + 0001 em `./drizzle`.
+- **Auth.js v5 (next-auth 5.0.0-beta.32)**: Google SSO, JWT strategy com roles/permissions
+  embutidos no JWT, DrizzleAdapter, sessão 8h com revalidação staleness a cada 5min
+  (`src/core/auth/{index.ts,rbac.ts,types.d.ts}`).
+- **proxy.ts (renomeado de middleware.ts)**: Node runtime (Next 16), preserva locale, guardas de
+  sessão/role para /portal/* e /admin/*.
+- **Seed idempotente**: `npm run db:seed` cria roles (admin, sales_manager, representative,
+  viewer) com permissões resource:action (ex.: `products:read`, `representatives:approve`).
+- **Vitest 4 configurado**: 208 testes (rbac, cnpj, slug, job-id, db-error, permissions, phone),
+  100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+
+### Onda 2: Portal UI + Workflows
+- **Portal UI (MUI v9)**: tema dark/light centralizado em `src/core/theme` com tokens ROCO
+  (cyan #3ec6f0, amber #f5a33c), InitColorSchemeScript sem FOUC, convive com Tailwind v4 via
+  `@layer`.
+- **Login Google**: redirect `/api/auth/signin`, callback validação de callbackUrl (anti-CSRF).
+- **Shell (AppBar + Drawer)**: nav condicional por permissão, representantes vs admin.
+- **Onboarding wizard** (5 passos): autosave em localStorage, upload de documentos presigned.
+- **Review de representantes**: aprovar/rejeitar com guarda anti-auto-aprovação (audit log).
+- **Route groups**: (site) = site público com WhatsApp/Mautic; (internal) = portal SEM tracking.
+
+### Onda 3: API + Sincronização + Upload
+- **tRPC v11**: routers products/representatives/sync, type-safe portal-side.
+- **REST público**: `/api/products` + `/api/products/[slug]` (unstable_cache com revalidateTag).
+- **Cloudflare R2**: presigned PUT (5min, validação contentType/size), confirm com headObject,
+  prefixo key validado (anti-path-traversal); imagens públicas (R2_PUBLIC_URL), documentos
+  privados (presigned GET).
+- **BullMQ 6 + Redis**: fila erp-sync in-process (instrumentation.ts singleton), worker retry 3x
+  backoff, DLQ; webhook `/api/webhooks/erp` (secret timing-safe, 202 + fila).
+- **Importador catálogo**: `src/db/import/import-catalog.ts` (SheetJS via CDN tarball), lê
+  docs/Dados Catalogo ROCO site_2026.xls (769 produtos Sheet1 + variantes), normalizações
+  (EAN trim, NCM padStart, categorias, badges @3EM1→tres_em_um), idempotente, published=false.
+- **CRUD produtos**: busca/filtros/cursor pagination, form embalagens múltiplas/badges/categorias,
+  upload imagens presigned, integração R2.
+- **Segurança (OWASP scan + fixes)**: Next 16.3.0 (CVE RCE+bypass middleware), CSP: R2 em
+  connect-src/img-src sem afrouxar script-src 'self', JWT staleness resolvido, anti-auto-aprovação,
+  audit log uploads, validação callbackUrl, npm audit --omit=dev = 0 vulns.
+
+### Resoluções de Débitos
+- **ESLint**: config flat nativo (eslint-config-next), sem FlatCompat; 3 erros legados corrigidos.
+- **Test runner**: configurado (era débito de MVP).
+- **i18n Portal**: namespace `portal` (~156 chaves) pt.json/en.json (árvores idênticas).
+
+## Sessão Anterior (2026-08-04)
 - **Tracking de visitantes via Mautic (`mtc.js`)**, no padrão de segurança já usado no formulário:
   - `public/vendor/mautic-tracking.js` — cópia verificada e self-hosted do `mtc.js`
     (SHA-256 `d4378644…`, 100.654 bytes; zero indicadores de ClickFix/ofuscação).
@@ -24,7 +71,7 @@ MVP evolução — landing + catálogo no ar; tracking de visitantes recém-inst
   cai no pixel — o hit conta, mas os cookies `mtc_id`/`mtc_sid` não são gravados e a visita não é
   amarrada ao contato. Corrigir no Mautic (CORS Valid Domains) ou canonicalizar o host.
 
-## Próximos Passos Imediatos
+### Próximos Passos da Sessão Anterior (2026-08-04)
 1. [ ] **Smoke test no navegador** (não executado — extensão do Chrome não conectada nesta sessão):
        abrir `/pt`, DevTools → Network filtrar `mtracking` (1 hit), navegar para `/pt/catalogo`
        (2º hit), Console sem violações de CSP, Application → Cookies com `mtc_id`/`mtc_sid`.
@@ -37,10 +84,25 @@ MVP evolução — landing + catálogo no ar; tracking de visitantes recém-inst
 6. [ ] Corrigir config ESLint (circular structure).
 7. [ ] Confirmar destino real de Produtos (`NEXT_PUBLIC_PRODUCTS_URL` vazio).
 
-## Bloqueadores
-- Definição de fluxo das opções de contato (Mautic vs. WhatsApp vs. híbrido).
-- Política de consentimento (LGPD) para o tracking.
+## Próximos Passos Prioritários
+1. [ ] **Rate limiting** (ALTO): webhook `/api/webhooks/erp`, presign uploads, `/api/products`,
+       login — implementar via @upstash/ratelimit sobre Redis existente.
+2. [ ] **Provisionar infra**: Postgres + Redis (docker-compose pronto); credenciais Google OAuth;
+       bucket R2 + env S3_*; AUTH_SECRET; aplicar migrations + seed + import-catalog em prod.
+3. [ ] **Confirmar assunções de negócio com stakeholder**:
+       - Produto pode ter N categorias (modelado N:N isPrimary)?
+       - Preço fora do site ou sincronizado do ERP?
+       - Importar universo completo ERP (1.254) ou só catálogo (769)?
+       - Selos têm significado comercial oficial (badges)?
+4. [ ] **Contrato do full-sync ERP**: worker trata webhook; full sync = not_implemented.
+5. [ ] **Política LGPD**: tracking Mautic sem banner ainda (flag permite desligar).
+6. [ ] **Liberar `https://www.roco.com.br` no CORS do Mautic** ou canonicalizar host (herdado 2026-08-04).
 
-## Decisões Pendentes
-- Três itens de contato devem convergir para o mesmo modal, ou ter caminhos distintos?
-- Banner de consentimento antes do tracking?
+## Bloqueadores
+- Credenciais Postgres + Redis (docker-compose pronto, faltam envs).
+- Google OAuth credentials (AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET).
+- Confirmação de assunções de negócio (itens 3-4 acima).
+
+## Decisões Pendentes (sessões anteriores)
+- [ ] Três itens de contato (nav landing) → mesmo modal Mautic id=1 ou rotas distintas?
+- [ ] "Ligamos pra você" → WhatsApp ou Mautic form?

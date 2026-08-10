@@ -90,5 +90,230 @@
   },
   "languageSwitcher": {
     "label": "Idioma"
+  },
+  "portal": {
+    "login": {
+      "title": "Acesse sua área de trabalho",
+      "subtitle": "Gerenciador de produtos e contatos da ROCO",
+      "googleButton": "Entrar com Google",
+      "disclaimer": "Acesso restrito a representantes comerciais e time ROCO."
+    },
+    "shell": {
+      "appName": "ROCO Portal",
+      "nav": {
+        "dashboard": "Painel",
+        "onboarding": "Cadastro",
+        "products": "Produtos",
+        "representatives": "Representantes"
+      },
+      "comingSoon": "Em desenvolvimento",
+      "userMenu": {
+        "profile": "Meu Perfil",
+        "logout": "Sair"
+      },
+      "themeToggle": {
+        "light": "Claro",
+        "dark": "Escuro",
+        "system": "Sistema"
+      }
+    },
+    "dashboard": {
+      "title": "Painel de Controle",
+      "welcome": "Bem-vindo, {name}!",
+      "emptyState": "Nenhum dado para exibir no momento."
+    },
+    "admin": {
+      "title": "Administração",
+      "underConstruction": "Esta seção está em desenvolvimento."
+    },
+    "onboarding": {
+      "title": "Complete seu cadastro",
+      "subtitle": "Alguns passos e você estará pronto para acessar todos os recursos.",
+      "steps": {
+        "personal": {
+          "title": "Dados Pessoais",
+          "description": "Comece informando seus dados de contato."
+        },
+        "company": {
+          "title": "Dados da Empresa",
+          "description": "Informe os detalhes da sua empresa."
+        },
+        "territory": {
+          "title": "Território de Atuação",
+          "description": "Defina sua região de vendas e cobertura."
+        },
+        "documents": {
+          "title": "Documentos",
+          "description": "Envie os documentos necessários para validação."
+        },
+        "review": {
+          "title": "Revisão",
+          "description": "Revise os dados antes de submeter."
+        }
+      },
+      "fields": {
+        "fullName": "Nome completo",
+        "email": "Email",
+        "phone": "Telefone",
+        "companyName": "Razão social da empresa",
+        "cnpj": "CNPJ (Cadastro Nacional da Pessoa Jurídica)",
+        "region": "Região de atuação",
+        "notes": "Observações adicionais"
+      },
+      "upload": {
+        "dropzone": "Arraste arquivos aqui ou clique para selecionar",
+        "maxSize": "Tamanho máximo: 5 MB",
+        "accepted": "Formatos aceitos: PDF, JPG, PNG",
+        "remove": "Remover arquivo"
+      },
+      "actions": {
+        "next": "Próximo",
+        "back": "Voltar",
+        "saveDraft": "Salvar como rascunho",
+        "submit": "Enviar cadastro"
+      },
+      "status": {
+        "draft": "Rascunho",
+        "submitted": "Enviado",
+        "approved": "Aprovado",
+        "rejected": "Rejeitado"
+      },
+      "submitted": {
+        "title": "Cadastro enviado com sucesso!",
+        "message": "Obrigado por se cadastrar. Nossa equipe irá revisar os dados em breve."
+      },
+      "validation": {
+        "required": "Este campo é obrigatório.",
+        "invalidCnpj": "CNPJ inválido. Confira os números digitados.",
+        "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
+        "fileTooLarge": "Arquivo muito grande. Máximo 5 MB."
+      }
+    },
+    "products": {
+      "title": "Produtos",
+      "subtitle": "Gerenciador de catálogo ROCO — 769 itens",
+      "searchPlaceholder": "Buscar por SKU, nome ou categoria...",
+      "table": {
+        "sku": "SKU",
+        "name": "Nome",
+        "category": "Categoria",
+        "packaging": "Embalagem",
+        "badges": "Selos",
+        "status": "Status",
+        "updatedAt": "Atualizado em",
+        "actions": "Ações"
+      },
+      "status": {
+        "published": "Publicado",
+        "unpublished": "Não publicado",
+        "active": "Ativo",
+        "inactive": "Inativo"
+      },
+      "badges": {
+        "nacional": "NACIONAL",
+        "universal": "UNIVERSAL",
+        "top": "TOP",
+        "tresEmUm": "3 EM 1",
+        "seguro": "SEGURO"
+      },
+      "form": {
+        "createTitle": "Novo Produto",
+        "editTitle": "Editar Produto",
+        "fields": {
+          "sku": "SKU",
+          "erpCode": "Código ERP",
+          "name": "Nome (Português)",
+          "nameEn": "Nome (English)",
+          "description": "Descrição (Português)",
+          "descriptionEn": "Descrição (English)",
+          "category": "Categoria",
+          "ncm": "NCM (Classificação Fiscal)",
+          "barcode": "Código de Barras",
+          "packagingType": "Tipo de Embalagem",
+          "unitsPerPack": "Unidades por Embalagem",
+          "published": "Publicado no site"
+        },
+        "packagingTypes": {
+          "peca": "Peça",
+          "blister": "Blister",
+          "caixa": "Caixa",
+          "sacoPlastico": "Saco Plástico"
+        },
+        "images": {
+          "title": "Imagens do Produto",
+          "dropzone": "Arraste fotos aqui ou clique para fazer upload",
+          "altText": "Texto alternativo (descrição da imagem)",
+          "cover": "Capa do catálogo",
+          "remove": "Remover imagem",
+          "uploadError": "Erro ao fazer upload. Tente novamente."
+        },
+        "actions": {
+          "save": "Salvar Produto",
+          "cancel": "Cancelar",
+          "delete": "Deletar Produto",
+          "publish": "Publicar",
+          "unpublish": "Despublicar"
+        }
+      },
+      "sync": {
+        "title": "Sincronização com ERP",
+        "triggerButton": "Sincronizar Agora",
+        "lastRun": "Última sincronização",
+        "statusIdle": "Aguardando sincronização",
+        "statusRunning": "Sincronizando...",
+        "statusError": "Erro na sincronização",
+        "successMessage": "Sincronização concluída com sucesso.",
+        "errorMessage": "Houve um erro durante a sincronização. Tente novamente."
+      },
+      "empty": {
+        "title": "Nenhum produto encontrado",
+        "description": "Crie o primeiro produto ou ajuste sua busca."
+      },
+      "deleteConfirm": {
+        "title": "Deletar Produto",
+        "message": "Tem certeza? Esta ação não pode ser desfeita.",
+        "confirm": "Sim, deletar",
+        "cancel": "Cancelar"
+      }
+    },
+    "representatives": {
+      "title": "Representantes",
+      "subtitle": "Gerencie representantes comerciais em onboarding",
+      "table": {
+        "name": "Nome",
+        "company": "Empresa",
+        "region": "Região",
+        "status": "Status",
+        "submittedAt": "Enviado em",
+        "actions": "Ações"
+      },
+      "review": {
+        "approve": "Aprovar",
+        "reject": "Rejeitar",
+        "viewDocuments": "Ver Documentos",
+        "notesLabel": "Anotações do revisor"
+      },
+      "empty": {
+        "title": "Nenhum representante aguardando revisão",
+        "description": "Novos cadastros aparecerão aqui para análise."
+      }
+    },
+    "errors": {
+      "unauthorized": "Você não tem autorização para acessar este recurso.",
+      "forbidden": "Acesso negado.",
+      "notFound": "Página não encontrada.",
+      "generic": "Algo deu errado. Tente novamente.",
+      "sessionExpired": "Sua sessão expirou. Faça login novamente."
+    },
+    "common": {
+      "loading": "Carregando...",
+      "save": "Salvar",
+      "cancel": "Cancelar",
+      "confirm": "Confirmar",
+      "search": "Buscar",
+      "filter": "Filtrar",
+      "clear": "Limpar",
+      "backToSite": "Voltar para o site público"
+    }
   }
 }

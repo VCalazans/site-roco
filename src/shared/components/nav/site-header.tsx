@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useContactForm } from "@/shared/components/contact-form";
 import { MobileMenu } from "@/shared/components/nav/mobile-menu";
 import { NavItems } from "@/shared/components/nav/nav-items";
@@ -40,7 +41,7 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
   return (
     <header className="absolute inset-x-0 top-0 z-30 px-[1.3vw] pt-[1.4vw] max-md:px-3 max-md:pt-3">
       <div className="nav-glass flex items-center justify-between gap-4 px-5 py-3 md:px-8 lg:px-10">
-        <a href="/" aria-label={brand} className="flex-shrink-0">
+        <Link href="/" aria-label={brand} className="flex-shrink-0">
           <Image
             src={LOGO}
             alt={brand}
@@ -49,7 +50,7 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
             priority
             className="h-8 w-auto md:h-10 lg:h-12"
           />
-        </a>
+        </Link>
 
         {/* Lista horizontal em LINHA ÚNICA, no padrão da barra da Archicode.
             O corte é em `lg`, não `md`: entre 768 e 1023px os quatro rótulos

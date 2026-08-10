@@ -1,0 +1,153 @@
+import "server-only";
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { db } from "@/db";
+import { accounts, permissions, rolePermissions, roles, sessions, userRoles, users, verificationTokens } from "@/db/schema";
+
+/** Role com acesso irrestrito — bypassa a checagem granular (ver `rbac.ts`). */
+export const ADMIN_ROLE_SLUG = "admin";
+
+/** Papel padrão para e-mails de domínio interno (`PORTAL_INTERNAL_EMAIL_DOMAIN`). */
+const INTERNAL_DEFAULT_ROLE = "viewer";
+/** Papel padrão para todos os demais e-mails (representantes externos). */
+const EXTERNAL_DEFAULT_ROLE = "representative";
+
+/**
+ * Janela máxima de staleness do JWT: roles/permissions/`active` são recarregados
+ * do banco quando o token está mais velho que isto. Sem esta revalidação, uma
+ * desativação (`active=false`) ou mudança de papel só teria efeito no fim da
+ * sessão (30 dias por padrão) — inaceitável num portal com RBAC.
+ */
+const AUTHORIZATION_MAX_AGE_MS = 5 * 60 * 1000;
+
+/** Sessão do portal: 8h absolutas — janela B2B, não os 30 dias default. */
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+
+async function loadUserAuthorization(userId: string) {
+  const [account] = await db
+    .select({ active: users.active })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  // Usuário removido ou desativado: sinaliza para o callback derrubar a sessão.
+  if (!account || account.active === false) {
+    return null;
+  }
+
+  const assignedRoles = await db
+    .select({ slug: roles.slug })
+    .from(userRoles)
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(eq(userRoles.userId, userId));
+
+  const roleSlugs = assignedRoles.map((role) => role.slug);
+
+  if (roleSlugs.length === 0) {
+    return { roles: [] as string[], permissions: [] as string[] };
+  }
+
+  const rows = await db
+    .select({ resource: permissions.resource, action: permissions.action })
+    .from(userRoles)
+    .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+    .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+    .where(eq(userRoles.userId, userId));
+
+  const permissionSlugs = Array.from(
+    new Set(rows.map((row) => `${row.resource}:${row.action}`))
+  );
+
+  return { roles: roleSlugs, permissions: permissionSlugs };
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: DrizzleAdapter(db, {
+    usersTable: users,
+    accountsTable: accounts,
+    sessionsTable: sessions,
+    verificationTokensTable: verificationTokens,
+  }),
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
+  providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
+  ],
+  callbacks: {
+    async signIn({ user }) {
+      // `user` aqui já é o registro persistido (adapter roda antes deste
+      // callback), então a coluna extra `active` está presente em runtime
+      // mesmo não fazendo parte do tipo `User`/`AdapterUser` do Auth.js.
+      const record = user as { active?: boolean };
+      if (record.active === false) {
+        return false;
+      }
+      return true;
+    },
+    async jwt({ token, user, trigger }) {
+      const userId = user?.id ?? token.sub;
+      if (!userId) {
+        return token;
+      }
+
+      const refreshedAt = typeof token.authzRefreshedAt === "number" ? token.authzRefreshedAt : 0;
+      const isStale = Date.now() - refreshedAt > AUTHORIZATION_MAX_AGE_MS;
+      const shouldReload =
+        trigger === "update" || Boolean(user) || !("roles" in token) || isStale;
+
+      if (shouldReload) {
+        const authorization = await loadUserAuthorization(userId);
+        // `null` = usuário desativado/removido → invalida a sessão inteira.
+        if (authorization === null) {
+          return null;
+        }
+        token.roles = authorization.roles;
+        token.permissions = authorization.permissions;
+        token.authzRefreshedAt = Date.now();
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub ?? "";
+        session.user.roles = token.roles ?? [];
+        session.user.permissions = token.permissions ?? [];
+      }
+      return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      if (!user.id || !user.email) {
+        return;
+      }
+
+      const internalDomain = process.env.PORTAL_INTERNAL_EMAIL_DOMAIN?.toLowerCase();
+      const isInternalEmail =
+        Boolean(internalDomain) && user.email.toLowerCase().endsWith(`@${internalDomain}`);
+      const defaultRoleSlug = isInternalEmail ? INTERNAL_DEFAULT_ROLE : EXTERNAL_DEFAULT_ROLE;
+
+      const [defaultRole] = await db
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.slug, defaultRoleSlug))
+        .limit(1);
+
+      // Sem o seed (`npm run db:seed`) a role ainda não existe — o usuário
+      // fica sem papel até uma atribuição manual, sem quebrar o login.
+      if (!defaultRole) {
+        return;
+      }
+
+      await db
+        .insert(userRoles)
+        .values({ userId: user.id, roleId: defaultRole.id })
+        .onConflictDoNothing();
+    },
+  },
+});
