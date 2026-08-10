@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import Box from "@mui/material/Box";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { PortalProviders } from "@/core/theme/portal-providers";
 import { TRPCReactProvider } from "@/core/trpc-client";
@@ -44,7 +45,22 @@ export default async function InternalLayout({
     <>
       <InitColorSchemeScript attribute="class" />
       <TRPCReactProvider>
-        <PortalProviders locale={locale as Locale}>{children}</PortalProviders>
+        <PortalProviders locale={locale as Locale}>
+          {/* Superfície de fundo do PORTAL, pintada explicitamente: o `body`
+              herda o fundo escuro do site público (globals.css, fora de
+              @layer de propósito — o CssBaseline em @layer mui não o vence),
+              então sem este Box o light mode do portal ficaria com o miolo
+              preto atrás de qualquer área transparente. */}
+          <Box
+            sx={{
+              minHeight: "100dvh",
+              bgcolor: "background.default",
+              color: "text.primary",
+            }}
+          >
+            {children}
+          </Box>
+        </PortalProviders>
       </TRPCReactProvider>
     </>
   );

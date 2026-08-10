@@ -38,12 +38,25 @@ const MAX_PER_PAGE = 100;
 /** Compartilhado com `products.presignImageUpload` — mesmo balde por usuário. */
 const PRESIGN_RATE_LIMIT = { windowSeconds: 5 * 60, max: 30 };
 
+/**
+ * Campo opcional do rascunho: o wizard autosalva o form INTEIRO a cada
+ * "Avançar", incluindo campos ainda vazios — string vazia (ou só espaços)
+ * vale como "não preenchido" (`undefined`), nunca como erro de validação.
+ * A obrigatoriedade real é checada só no `submitOnboarding`.
+ */
+function draftField(max: number) {
+  return z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().max(max).optional()
+  );
+}
+
 const onboardingDataSchema = z.object({
-  companyName: z.string().trim().min(1).max(200).optional(),
-  cnpj: z.string().trim().max(18).optional(),
-  phone: z.string().trim().min(1).max(30).optional(),
-  region: z.string().trim().min(1).max(120).optional(),
-  notes: z.string().trim().max(2000).optional(),
+  companyName: draftField(200),
+  cnpj: draftField(18),
+  phone: draftField(30),
+  region: draftField(120),
+  notes: draftField(2000),
 });
 
 type Database = typeof dbClient;

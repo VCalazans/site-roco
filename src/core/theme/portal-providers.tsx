@@ -18,13 +18,18 @@ type PortalProvidersProps = {
 /**
  * Providers do Portal Interno — isolados do site público, que não usa MUI.
  *
- * `enableCssLayer: true` faz o Emotion emitir o CSS do MUI dentro de
- * `@layer mui`. O Tailwind (via `@import "tailwindcss"` em `globals.css`)
- * gera suas utilities fora de qualquer `@layer` nomeada — que sempre vence
- * uma layer nomeada por regra de cascata do CSS — então a convivência é
- * previsível nos dois sentidos: nada do MUI vaza para a landing/catálogo
- * (módulos diferentes, nunca importam isto) e nada do Tailwind é sobrescrito
- * por engano pelo MUI dentro do portal.
+ * SEM `enableCssLayer` — deliberado. Com a layer ligada, o CSS do MUI ia
+ * para `@layer mui`, cuja POSIÇÃO na ordem de cascata dependia da ordem de
+ * carregamento dos <style>/<link> no head: o <style> do Emotion vinha antes
+ * do CSS compilado do Tailwind, `mui` virava a PRIMEIRA layer declarada e
+ * perdia para todas as outras — o preflight do Tailwind v4 (`@layer base`,
+ * que zera padding/borda de `input`) sobrescrevia as métricas do MUI e os
+ * campos do portal encolhiam com o label do outlined fora do lugar (bug real
+ * observado; o Tailwind ainda consome qualquer statement `@layer` manual no
+ * `globals.css`, então não dá para fixar a ordem por lá). Sem layer, o CSS
+ * do MUI é UNLAYERED e vence qualquer layer por regra de cascata. A
+ * convivência segue segura: site e portal nunca compartilham componentes
+ * (route groups `(site)`/`(internal)`), então não há conflito a arbitrar.
  *
  * `defaultMode="system"` + `CssBaseline enableColorScheme` fazem o portal
  * respeitar o tema do SO no primeiro acesso; o toggle (`theme-toggle.tsx`)
@@ -34,7 +39,7 @@ export function PortalProviders({ locale, children }: PortalProvidersProps) {
   const theme = useMemo(() => createPortalTheme(locale), [locale]);
 
   return (
-    <AppRouterCacheProvider options={{ key: "mui", enableCssLayer: true }}>
+    <AppRouterCacheProvider options={{ key: "mui" }}>
       <ThemeProvider theme={theme} defaultMode="system">
         <CssBaseline enableColorScheme />
         {children}
