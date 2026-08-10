@@ -58,7 +58,7 @@ export function WelcomeSectionCard({
       {ctaLabel}
     </Button>
   ) : (
-    <Button variant="outlined" startIcon={ctaIcon} disabled sx={{ alignSelf: "flex-start" }}>
+    <Button variant="outlined" startIcon={ctaIcon} disabled>
       {ctaLabel}
     </Button>
   );
@@ -77,12 +77,18 @@ export function WelcomeSectionCard({
             </Typography>
           </Stack>
           {/* Tooltip em disabled: `Button` desabilitado não dispara eventos de
-              ponteiro — o `span` "pega" o hover para o Tooltip funcionar. */}
+              ponteiro — o wrapper "pega" o hover para o Tooltip funcionar.
+              O filho clonado pelo Tooltip NÃO pode ter `style` inline: o merge
+              do clone diverge entre SSR e cliente (hydration mismatch real
+              observado) — por isso `Box component="span"` com `sx` (classe
+              Emotion, nada inline). */}
           {!button ? null : isAvailable ? (
             button
           ) : (
             <Tooltip title={comingSoonLabel}>
-              <span style={{ alignSelf: "flex-start" }}>{button}</span>
+              <Box component="span" sx={{ alignSelf: "flex-start", display: "inline-flex" }}>
+                {button}
+              </Box>
             </Tooltip>
           )}
         </Stack>

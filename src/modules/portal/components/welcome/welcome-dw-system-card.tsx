@@ -64,12 +64,14 @@ export function WelcomeDwSystemCard({
             {content.outro}
           </Typography>
 
+          {/* Sem `style` inline no filho clonado pelo Tooltip — ver comentário
+              em `welcome-section-card.tsx` (hydration mismatch no SSR). */}
           <Tooltip title={comingSoonLabel}>
-            <span style={{ alignSelf: "flex-start" }}>
-              <Button variant="outlined" startIcon={ctaIcon} disabled sx={{ alignSelf: "flex-start" }}>
+            <Box component="span" sx={{ alignSelf: "flex-start", display: "inline-flex" }}>
+              <Button variant="outlined" startIcon={ctaIcon} disabled>
                 {content.cta}
               </Button>
-            </span>
+            </Box>
           </Tooltip>
         </Stack>
       </CardContent>

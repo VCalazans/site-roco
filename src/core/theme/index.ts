@@ -168,29 +168,13 @@ const themeOptions = {
         fullWidth: true,
       },
     },
-    MuiInputLabel: {
-      defaultProps: {
-        size: "medium",
-      },
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        // Altura confortável mesmo em `size="medium"` (o default do MUI já é
-        // maior que `small`, mas o feedback foi literal sobre "robustez" —
-        // um pouco mais de respiro vertical no texto do input). Só no
-        // `medium`: os `size="small"` deliberados (filtros, linhas de
-        // embalagem — ver "Regra de densidade" acima) precisam continuar
-        // compactos, senão o padding extra os deixaria do mesmo tamanho do
-        // `medium` e a distinção de densidade perderia o sentido.
-        input: ({ ownerState }: { ownerState: { size?: "small" | "medium" } }) =>
-          ownerState.size === "small"
-            ? {}
-            : {
-                paddingTop: 14.5,
-                paddingBottom: 14.5,
-              },
-      },
-    },
+    // NÃO sobrescrever o padding do `MuiOutlinedInput` nem o `size` do
+    // `MuiInputLabel`: o label não-flutuante do variant outlined é posicionado
+    // por um transform calibrado para as métricas PADRÃO do input — padding
+    // custom desloca o label para fora do campo (bug real observado: "labels
+    // quebrados, campo se sobresaindo ao input"; o `InputLabel` tampouco
+    // aceita `size="medium"` — só `small`/`normal`). A altura confortável vem
+    // do `size="medium"` default acima, cujas métricas o MUI garante.
   },
 } as const;
 
