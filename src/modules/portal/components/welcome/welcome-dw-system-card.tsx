@@ -8,9 +8,9 @@ import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type WelcomeDwSystemCardProps = {
@@ -64,15 +64,14 @@ export function WelcomeDwSystemCard({
             {content.outro}
           </Typography>
 
-          {/* Sem `style` inline no filho clonado pelo Tooltip — ver comentário
-              em `welcome-section-card.tsx` (hydration mismatch no SSR). */}
-          <Tooltip title={comingSoonLabel}>
-            <Box component="span" sx={{ alignSelf: "flex-start", display: "inline-flex" }}>
-              <Button variant="outlined" startIcon={ctaIcon} disabled>
-                {content.cta}
-              </Button>
-            </Box>
-          </Tooltip>
+          {/* Rótulo "Em breve" visível (Chip), não Tooltip — ver comentário em
+              `welcome-section-card.tsx` (hydration + acessibilidade touch). */}
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <Button variant="outlined" startIcon={ctaIcon} disabled>
+              {content.cta}
+            </Button>
+            <Chip label={comingSoonLabel} size="small" variant="outlined" />
+          </Stack>
         </Stack>
       </CardContent>
     </Card>

@@ -86,25 +86,30 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
   const [activeStep, setActiveStep] = useState(0);
   const [form, setForm] = useState<OnboardingFormState>(EMPTY_ONBOARDING_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
-  // Hidrata o form/step a partir de `meQuery.data` UMA vez, no render (não em
-  // `useEffect`) — padrão "adjusting state when a prop changes" da doc do
-  // React: guardado por comparação de referência (`hydratedFrom`), então só
-  // dispara de novo se a query for refeita com um objeto novo (nunca em loop).
-  // `react-hooks/set-state-in-effect` proíbe o equivalente feito num efeito.
-  const [hydratedFrom, setHydratedFrom] = useState<typeof meQuery.data>(undefined);
-  if (meQuery.data && meQuery.data !== hydratedFrom) {
+  // Hidrata o form/step a partir do rascunho salvo UMA ÚNICA VEZ, no primeiro
+  // render em que a query resolve (padrão "adjusting state during render" da
+  // doc do React — `react-hooks/set-state-in-effect` proíbe o equivalente em
+  // efeito). O guard é um booleano deliberadamente: comparar por REFERÊNCIA de
+  // `meQuery.data` re-hidratava a cada refetch (autosave invalida a query;
+  // foco na janela refaz a busca) e SOBRESCREVIA o que o usuário estava
+  // digitando, além de devolvê-lo ao passo salvo — o form local é a fonte de
+  // verdade depois da primeira carga.
+  const [hasHydrated, setHasHydrated] = useState(false);
+  if (!meQuery.isPending && !hasHydrated) {
+    setHasHydrated(true);
     const representative = meQuery.data;
-    setHydratedFrom(representative);
-    setForm({
-      phone: representative.phone ?? "",
-      companyName: representative.companyName ?? "",
-      cnpj: representative.cnpj ?? "",
-      region: representative.region ?? "",
-      notes: representative.notes ?? "",
-    });
-    setActiveStep(
-      Math.min(representative.onboardingStep ?? 0, ONBOARDING_STEP_KEYS.length - 1)
-    );
+    if (representative) {
+      setForm({
+        phone: representative.phone ?? "",
+        companyName: representative.companyName ?? "",
+        cnpj: representative.cnpj ?? "",
+        region: representative.region ?? "",
+        notes: representative.notes ?? "",
+      });
+      setActiveStep(
+        Math.min(representative.onboardingStep ?? 0, ONBOARDING_STEP_KEYS.length - 1)
+      );
+    }
   }
 
   const saveMutation = useMutation(
@@ -166,7 +171,9 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
     }
 
     if (stepKey !== "documents" && stepKey !== "review") {
-      await saveMutation.mutateAsync({ step: activeStep, data: form });
+      // Salva o passo de DESTINO (não o atual): se o usuário sair e voltar,
+      // o rascunho reabre onde ele parou, não um passo antes.
+      await saveMutation.mutateAsync({ step: activeStep + 1, data: form });
     }
     setActiveStep((step) => Math.min(step + 1, ONBOARDING_STEP_KEYS.length - 1));
   }

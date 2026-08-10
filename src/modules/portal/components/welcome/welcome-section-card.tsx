@@ -3,8 +3,8 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 type WelcomeSectionCardProps = {
@@ -76,20 +76,18 @@ export function WelcomeSectionCard({
               {body}
             </Typography>
           </Stack>
-          {/* Tooltip em disabled: `Button` desabilitado não dispara eventos de
-              ponteiro — o wrapper "pega" o hover para o Tooltip funcionar.
-              O filho clonado pelo Tooltip NÃO pode ter `style` inline: o merge
-              do clone diverge entre SSR e cliente (hydration mismatch real
-              observado) — por isso `Box component="span"` com `sx` (classe
-              Emotion, nada inline). */}
+          {/* Material indisponível: rótulo "Em breve" VISÍVEL (Chip), não
+              Tooltip — Tooltip sobre botão `disabled` exige clonar o filho e o
+              clone divergia entre SSR e cliente (hydration mismatch recorrente
+              aqui); a label visível também funciona no touch, onde hover não
+              existe. */}
           {!button ? null : isAvailable ? (
             button
           ) : (
-            <Tooltip title={comingSoonLabel}>
-              <Box component="span" sx={{ alignSelf: "flex-start", display: "inline-flex" }}>
-                {button}
-              </Box>
-            </Tooltip>
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+              {button}
+              <Chip label={comingSoonLabel} size="small" variant="outlined" />
+            </Stack>
           )}
         </Stack>
       </CardContent>
