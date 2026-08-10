@@ -8,11 +8,32 @@
     "menu": "Menu",
     "close": "Fechar",
     "links": [
-      { "label": "Home", "href": "/", "icon": "" },
-      { "label": "Ligamos pra você", "href": "#contato", "icon": "call" },
-      { "label": "Solicite um orçamento", "href": "#contato", "icon": "headset" },
-      { "label": "Força de Vendas", "href": "#contato", "icon": "sales", "hidden": true },
-      { "label": "Entre em contato", "href": "#contato", "icon": "" }
+      {
+        "label": "Home",
+        "href": "/",
+        "icon": ""
+      },
+      {
+        "label": "Ligamos pra você",
+        "href": "#contato",
+        "icon": "call"
+      },
+      {
+        "label": "Solicite um orçamento",
+        "href": "#contato",
+        "icon": "headset"
+      },
+      {
+        "label": "Força de Vendas",
+        "href": "#contato",
+        "icon": "sales",
+        "hidden": true
+      },
+      {
+        "label": "Entre em contato",
+        "href": "#contato",
+        "icon": ""
+      }
     ]
   },
   "comingSoon": {
@@ -96,7 +117,12 @@
       "title": "Acesse sua área de trabalho",
       "subtitle": "Gerenciador de produtos e contatos da ROCO",
       "googleButton": "Entrar com Google",
-      "disclaimer": "Acesso restrito a representantes comerciais e time ROCO."
+      "disclaimer": "Acesso restrito a representantes comerciais e time ROCO.",
+      "emailLabel": "E-mail",
+      "passwordLabel": "Senha",
+      "signInButton": "Entrar",
+      "orDivider": "ou",
+      "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente."
     },
     "shell": {
       "appName": "ROCO Portal",

@@ -25,6 +25,12 @@ export const users = pgTable("user", {
   image: text("image"),
   /** Desliga o acesso do usuário sem apagar histórico (RBAC/auditoria). */
   active: boolean("active").notNull().default(true),
+  /**
+   * Login tradicional (Credentials provider): hash bcrypt da senha. `null`
+   * para contas que só usam Google SSO — o provider de credenciais rejeita
+   * usuários sem hash, então os dois modos convivem sem conflito.
+   */
+  passwordHash: text("passwordHash"),
 });
 
 export const accounts = pgTable(

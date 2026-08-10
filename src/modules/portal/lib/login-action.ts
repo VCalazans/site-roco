@@ -1,5 +1,7 @@
 "use server";
 
+import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
 import { signIn } from "@/core/auth";
 
 /**
@@ -18,13 +20,43 @@ import { signIn } from "@/core/auth";
  * função com menos parâmetros onde uma com mais é esperada (o argumento
  * extra é simplesmente ignorado em runtime, como em qualquer função JS).
  */
-export async function loginWithGoogle(callbackUrl?: string): Promise<void> {
+function toSafeCallback(callbackUrl?: string): string {
   // Defesa em profundidade contra open redirect: o `redirect` default do
   // Auth.js já neutraliza URLs absolutas, mas aqui garantimos que só um path
-  // interno (começando com "/" e não "//") chega ao fluxo OAuth.
-  const safeCallback =
-    callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
-      ? callbackUrl
-      : "/portal";
-  await signIn("google", { redirectTo: safeCallback });
+  // interno (começando com "/" e não "//") chega ao fluxo de login.
+  return callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+    ? callbackUrl
+    : "/portal";
+}
+
+export async function loginWithGoogle(callbackUrl?: string): Promise<void> {
+  await signIn("google", { redirectTo: toSafeCallback(callbackUrl) });
+}
+
+/**
+ * Login tradicional (Credentials). Em caso de falha o Auth.js lança
+ * `AuthError` — devolvemos o usuário à tela de login com `?error=credentials`
+ * (mensagem genérica do dicionário; nunca dizemos se foi e-mail ou senha).
+ * O `redirect()` do Next lança internamente — precisa ficar FORA do try/catch
+ * para não ser engolido como se fosse erro de autenticação.
+ */
+export async function loginWithCredentials(
+  loginPath: string,
+  callbackUrl: string | undefined,
+  formData: FormData
+): Promise<void> {
+  const safeLoginPath =
+    loginPath.startsWith("/") && !loginPath.startsWith("//") ? loginPath : "/pt/portal/login";
+  try {
+    await signIn("credentials", {
+      email: formData.get("email"),
+      password: formData.get("password"),
+      redirectTo: toSafeCallback(callbackUrl),
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect(`${safeLoginPath}?error=credentials`);
+    }
+    throw error;
+  }
 }

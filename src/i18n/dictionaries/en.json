@@ -8,11 +8,32 @@
     "menu": "Menu",
     "close": "Close",
     "links": [
-      { "label": "Home", "href": "/", "icon": "" },
-      { "label": "We'll call you", "href": "#contato", "icon": "call" },
-      { "label": "Request a quote", "href": "#contato", "icon": "headset" },
-      { "label": "Sales Force", "href": "#contato", "icon": "sales", "hidden": true },
-      { "label": "Get in touch", "href": "#contato", "icon": "" }
+      {
+        "label": "Home",
+        "href": "/",
+        "icon": ""
+      },
+      {
+        "label": "We'll call you",
+        "href": "#contato",
+        "icon": "call"
+      },
+      {
+        "label": "Request a quote",
+        "href": "#contato",
+        "icon": "headset"
+      },
+      {
+        "label": "Sales Force",
+        "href": "#contato",
+        "icon": "sales",
+        "hidden": true
+      },
+      {
+        "label": "Get in touch",
+        "href": "#contato",
+        "icon": ""
+      }
     ]
   },
   "comingSoon": {
@@ -96,7 +117,12 @@
       "title": "Access your workspace",
       "subtitle": "Product and contact manager for ROCO",
       "googleButton": "Sign in with Google",
-      "disclaimer": "Restricted access for commercial representatives and ROCO staff."
+      "disclaimer": "Restricted access for commercial representatives and ROCO staff.",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "signInButton": "Sign in",
+      "orDivider": "or",
+      "invalidCredentials": "Incorrect email or password. Please check and try again."
     },
     "shell": {
       "appName": "ROCO Portal",

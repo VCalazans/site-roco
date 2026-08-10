@@ -1,7 +1,9 @@
 import "server-only";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "@/db";
 import { accounts, permissions, rolePermissions, roles, sessions, userRoles, users, verificationTokens } from "@/db/schema";
@@ -75,6 +77,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
+    Credentials({
+      credentials: {
+        email: {},
+        password: {},
+      },
+      async authorize(credentials) {
+        const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
+        const password = typeof credentials?.password === "string" ? credentials.password : "";
+        if (!email || !password) {
+          return null;
+        }
+
+        const [user] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            image: users.image,
+            active: users.active,
+            passwordHash: users.passwordHash,
+          })
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        // Conta inexistente, só-SSO (sem hash) ou desativada: mesma resposta
+        // genérica — nunca revelar qual dos casos ocorreu.
+        if (!user?.passwordHash || user.active === false) {
+          return null;
+        }
+
+        const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+        if (!passwordMatches) {
+          return null;
+        }
+
+        return { id: user.id, name: user.name, email: user.email, image: user.image };
+      },
     }),
   ],
   callbacks: {

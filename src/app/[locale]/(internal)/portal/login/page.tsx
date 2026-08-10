@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import { LoginCard } from "@/modules/portal/components/login-card";
-import { loginWithGoogle } from "@/modules/portal/lib/login-action";
+import { loginWithCredentials, loginWithGoogle } from "@/modules/portal/lib/login-action";
 import { getPortalDictionary } from "@/modules/portal/lib/types";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 };
 
 export const dynamicParams = false;
@@ -47,14 +47,20 @@ export default async function PortalLoginPage({
     notFound();
   }
 
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, error } = await searchParams;
   const dictionary = await getDictionary(locale);
   const portal = getPortalDictionary(dictionary);
 
-  // Server Action com o primeiro argumento fixado — ver comentário em
-  // `login-action.ts` sobre por que a assinatura recebe `FormData` como
-  // segundo (e último, na chamada real) parâmetro.
-  const action = loginWithGoogle.bind(null, callbackUrl ?? `/${locale}/portal`);
+  // Server Actions com argumentos fixados via `.bind` — ver comentário em
+  // `login-action.ts` sobre a assinatura (o `FormData` do form chega como
+  // último parâmetro na chamada real).
+  const safeCallback = callbackUrl ?? `/${locale}/portal`;
+  const googleAction = loginWithGoogle.bind(null, safeCallback);
+  const credentialsAction = loginWithCredentials.bind(
+    null,
+    `/${locale}/portal/login`,
+    safeCallback
+  );
 
   return (
     <Box
@@ -75,7 +81,13 @@ export default async function PortalLoginPage({
           subtitle={portal.login.subtitle}
           googleButtonLabel={portal.login.googleButton}
           disclaimer={portal.login.disclaimer}
-          action={action}
+          emailLabel={portal.login.emailLabel}
+          passwordLabel={portal.login.passwordLabel}
+          signInButtonLabel={portal.login.signInButton}
+          orDividerLabel={portal.login.orDivider}
+          errorMessage={error === "credentials" ? portal.login.invalidCredentials : undefined}
+          googleAction={googleAction}
+          credentialsAction={credentialsAction}
         />
       </Container>
     </Box>

@@ -15,6 +15,13 @@
       "when": 1786319053340,
       "tag": "0001_mixed_mephisto",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786324328887,
+      "tag": "0002_fixed_vulture",
+      "breakpoints": true
     }
   ]
 }

@@ -68,3 +68,13 @@ docs/documento               # .psd de referência do design (NÃO editar)
 - Fonte de verdade do design: `docs/documento` (`.psd`, 3224×1724) — **nunca editar**.
 - Ponto de entrada de conteúdo: `src/i18n/dictionaries/pt.json`.
 - Ordem de leitura de contexto: ver `CLAUDE.md` → seção Memory Bank.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

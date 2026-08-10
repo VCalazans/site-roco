@@ -14,9 +14,12 @@
  * Dockerfile). Em Node < 22 local, use uma ferramenta de execução de TS
  * (ex.: `tsx`) — não instalada neste projeto por padrão.
  */
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { permissions, roles, rolePermissions } from "./schema/rbac";
+import { users } from "./schema/auth";
+import { permissions, roles, rolePermissions, userRoles } from "./schema/rbac";
 
 type PermissionSeed = { resource: string; action: string };
 
@@ -142,6 +145,50 @@ async function main() {
           .values({ roleId: role.id, permissionId: permission.id })
           .onConflictDoNothing();
       }
+    }
+
+    // Usuário admin padrão para o login tradicional (Credentials) — só é
+    // criado quando as DUAS envs estão definidas (nunca há senha padrão
+    // embutida no código). Idempotente: se o e-mail já existe, apenas garante
+    // o hash da senha e a role admin.
+    const adminEmail = process.env.PORTAL_ADMIN_EMAIL?.trim().toLowerCase();
+    const adminPassword = process.env.PORTAL_ADMIN_PASSWORD;
+    if (adminEmail && adminPassword) {
+      if (adminPassword.length < 12) {
+        throw new Error("PORTAL_ADMIN_PASSWORD deve ter pelo menos 12 caracteres.");
+      }
+      console.log(`[seed] Garantindo usuário admin ${adminEmail}...`);
+      const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, adminEmail))
+        .limit(1);
+
+      let adminUserId: string;
+      if (existing) {
+        adminUserId = existing.id;
+        await db.update(users).set({ passwordHash, active: true }).where(eq(users.id, existing.id));
+      } else {
+        const [created] = await db
+          .insert(users)
+          .values({ email: adminEmail, name: "Administrador ROCO", passwordHash })
+          .returning({ id: users.id });
+        adminUserId = created.id;
+      }
+
+      const adminRole = allRoles.find((role) => role.slug === "admin");
+      if (adminRole) {
+        await db
+          .insert(userRoles)
+          .values({ userId: adminUserId, roleId: adminRole.id })
+          .onConflictDoNothing();
+      }
+    } else {
+      console.log(
+        "[seed] PORTAL_ADMIN_EMAIL/PORTAL_ADMIN_PASSWORD ausentes — nenhum usuário admin criado."
+      );
     }
 
     console.log("[seed] Concluído.");

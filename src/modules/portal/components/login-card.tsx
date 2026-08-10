@@ -3,12 +3,15 @@
 import { useFormStatus } from "react-dom";
 import Image from "next/image";
 import GoogleIcon from "@mui/icons-material/Google";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 type LoginCardProps = {
@@ -19,12 +22,27 @@ type LoginCardProps = {
   subtitle: string;
   googleButtonLabel: string;
   disclaimer: string;
-  /** Server Action já com `callbackUrl` fixado via `.bind` (ver
+  emailLabel: string;
+  passwordLabel: string;
+  signInButtonLabel: string;
+  orDividerLabel: string;
+  /** Mensagem genérica de credencial inválida (via `?error=credentials`). */
+  errorMessage?: string;
+  /** Server Actions já com argumentos fixados via `.bind` (ver
    *  `login-action.ts` e `(internal)/portal/login/page.tsx`). */
-  action: (formData: FormData) => void | Promise<void>;
+  googleAction: (formData: FormData) => void | Promise<void>;
+  credentialsAction: (formData: FormData) => void | Promise<void>;
 };
 
-function GoogleSubmitButton({ label }: { label: string }) {
+function PendingButton({
+  label,
+  icon,
+  variant,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  variant: "contained" | "outlined";
+}) {
   // useFormStatus só funciona dentro do <form> que usa `action` — é a razão
   // deste subcomponente existir separado de LoginCard.
   const { pending } = useFormStatus();
@@ -32,17 +50,11 @@ function GoogleSubmitButton({ label }: { label: string }) {
   return (
     <Button
       type="submit"
-      variant="contained"
+      variant={variant}
       size="large"
       fullWidth
       disabled={pending}
-      startIcon={
-        pending ? (
-          <CircularProgress size={18} color="inherit" />
-        ) : (
-          <GoogleIcon />
-        )
-      }
+      startIcon={pending ? <CircularProgress size={18} color="inherit" /> : icon}
     >
       {label}
     </Button>
@@ -55,7 +67,13 @@ export function LoginCard({
   subtitle,
   googleButtonLabel,
   disclaimer,
-  action,
+  emailLabel,
+  passwordLabel,
+  signInButtonLabel,
+  orDividerLabel,
+  errorMessage,
+  googleAction,
+  credentialsAction,
 }: LoginCardProps) {
   return (
     <Card variant="outlined" sx={{ width: "100%" }}>
@@ -89,8 +107,48 @@ export function LoginCard({
             </Typography>
           </Stack>
 
-          <Box component="form" action={action} sx={{ width: "100%" }}>
-            <GoogleSubmitButton label={googleButtonLabel} />
+          {errorMessage ? (
+            <Alert severity="error" sx={{ width: "100%", textAlign: "left" }}>
+              {errorMessage}
+            </Alert>
+          ) : null}
+
+          <Box component="form" action={credentialsAction} sx={{ width: "100%" }}>
+            <Stack spacing={2}>
+              <TextField
+                name="email"
+                type="email"
+                label={emailLabel}
+                autoComplete="email"
+                required
+                fullWidth
+                size="small"
+              />
+              <TextField
+                name="password"
+                type="password"
+                label={passwordLabel}
+                autoComplete="current-password"
+                required
+                fullWidth
+                size="small"
+              />
+              <PendingButton label={signInButtonLabel} variant="contained" />
+            </Stack>
+          </Box>
+
+          <Divider sx={{ width: "100%" }}>
+            <Typography variant="caption" color="text.secondary">
+              {orDividerLabel}
+            </Typography>
+          </Divider>
+
+          <Box component="form" action={googleAction} sx={{ width: "100%" }}>
+            <PendingButton
+              label={googleButtonLabel}
+              icon={<GoogleIcon />}
+              variant="outlined"
+            />
           </Box>
 
           <Typography variant="caption" color="text.secondary">

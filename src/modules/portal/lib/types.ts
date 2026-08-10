@@ -13,6 +13,11 @@ export type PortalDictionary = {
     subtitle: string;
     googleButton: string;
     disclaimer: string;
+    emailLabel: string;
+    passwordLabel: string;
+    signInButton: string;
+    orDivider: string;
+    invalidCredentials: string;
   };
   shell: {
     appName: string;
