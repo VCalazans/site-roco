@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPublicProductList } from "@/server/lib/public-products";
+import { checkRateLimit, getClientIp } from "@/server/lib/rate-limit";
 
 const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=60";
+
+/** Compartilhado com `/api/products/[slug]` — um único "balde" por IP para a REST pública. */
+const PUBLIC_PRODUCTS_RATE_LIMIT = { windowSeconds: 60, max: 120 };
 
 /**
  * Catálogo público de produtos. Dados de leitura pública — sem autenticação.
@@ -9,6 +13,15 @@ const CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=60";
  */
 export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await checkRateLimit(`products:ip:${ip}`, PUBLIC_PRODUCTS_RATE_LIMIT);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      );
+    }
+
     const { searchParams } = request.nextUrl;
 
     const category = searchParams.get("category")?.trim() || undefined;

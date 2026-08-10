@@ -44,7 +44,7 @@ export default async function InternalLayout({
     <>
       <InitColorSchemeScript attribute="class" />
       <TRPCReactProvider>
-        <PortalProviders>{children}</PortalProviders>
+        <PortalProviders locale={locale as Locale}>{children}</PortalProviders>
       </TRPCReactProvider>
     </>
   );

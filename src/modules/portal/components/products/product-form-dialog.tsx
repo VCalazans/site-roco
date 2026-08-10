@@ -381,9 +381,13 @@ export function ProductFormDialog({
 
             {form.packagings.map((packaging, index) => (
               <Stack key={packaging.id ?? index} direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                {/* `size="small"` + `fullWidth={false}` deliberados: linha
+                    densa dentro de uma lista já editável em loco — ver "Regra
+                    de densidade de campos" em `src/core/theme/index.ts`. */}
                 <TextField
                   select
                   size="small"
+                  fullWidth={false}
                   label={dictionary.form.fields.packagingType}
                   value={packaging.packagingType}
                   onChange={(event) =>
@@ -399,6 +403,7 @@ export function ProductFormDialog({
                 </TextField>
                 <TextField
                   size="small"
+                  fullWidth={false}
                   type="number"
                   label={dictionary.form.fields.unitsPerPack}
                   value={packaging.unitsPerPack}

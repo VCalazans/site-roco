@@ -42,6 +42,12 @@
       callbackUrl validation, npm audit 0 vulns
 - [x] ESLint: flat config nativo, 3 erros legados corrigidos
 - [x] i18n Portal: namespace `portal` (~156 chaves) pt/en idênticas
+- [x] Login tradicional (Credentials + bcrypt) ao lado Google SSO: Auth.js v5 Credentials provider,
+      hash bcryptjs (custo 12) em users.passwordHash (nullable), erro genérico anti-enumeration
+- [x] Admin bootstrap via seed: `npm run db:seed` lê PORTAL_ADMIN_EMAIL/PORTAL_ADMIN_PASSWORD (mín. 12 chars),
+      idempotente, sem padrão hardcoded; migration drizzle/0002 (passwordHash)
+- [x] UI login: card e-mail/senha + Google SSO; dicionários portal.login.* pt/en
+- [x] Scripts db:seed/db:import-catalog migrados para tsx (devDependency)
 
 ### Qualidade
 - [x] `npm run build` verde
@@ -85,8 +91,9 @@
 - Logs auditoria na tabela `audit_logs` — avaliar export/retention policy.
 
 ## 🔐 Riscos de Segurança
-- **Rate limiting ausente** (ALTO): webhook `/api/webhooks/erp`, presign uploads, `/api/products`,
-  login — recomendação: @upstash/ratelimit sobre Redis existente.
+- **Rate limiting ausente** (CRÍTICO com Credentials): webhook `/api/webhooks/erp`, presign uploads,
+  `/api/products`, **endpoint `/api/auth/signin` (brute force de Credentials)** — recomendação:
+  @upstash/ratelimit sobre Redis existente.
 - **LGPD Portal**: CNPJ/telefone/documentos de representantes (dados pessoais). Minimização ok,
   mas política retenção não definida. Audit log implementado.
 - **Tracking Mautic sem consentimento**: `mtc.js` grava `mtc_id`/`mtc_sid`/`mautic_device_id`,

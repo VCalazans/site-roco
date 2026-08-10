@@ -1,12 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import { theme } from "@/core/theme";
+import { createPortalTheme } from "@/core/theme";
+import type { Locale } from "@/i18n/config";
 
 type PortalProvidersProps = {
+  /** Locale da rota atual — resolve o pacote de tradução interno do MUI
+   *  (`TablePagination`, etc.) via `createPortalTheme`. Ver comentário em
+   *  `src/core/theme/index.ts` ("Locale dos textos internos do MUI"). */
+  locale: Locale;
   children: ReactNode;
 };
 
@@ -25,7 +30,9 @@ type PortalProvidersProps = {
  * respeitar o tema do SO no primeiro acesso; o toggle (`theme-toggle.tsx`)
  * grava a preferência explícita em localStorage a partir daí.
  */
-export function PortalProviders({ children }: PortalProvidersProps) {
+export function PortalProviders({ locale, children }: PortalProvidersProps) {
+  const theme = useMemo(() => createPortalTheme(locale), [locale]);
+
   return (
     <AppRouterCacheProvider options={{ key: "mui", enableCssLayer: true }}>
       <ThemeProvider theme={theme} defaultMode="system">

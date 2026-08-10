@@ -130,7 +130,8 @@
         "dashboard": "Dashboard",
         "onboarding": "Onboarding",
         "products": "Products",
-        "representatives": "Representatives"
+        "representatives": "Representatives",
+        "welcome": "Welcome"
       },
       "comingSoon": "Coming soon",
       "userMenu": {
@@ -323,6 +324,60 @@
         "title": "No representatives awaiting review",
         "description": "New registrations will appear here for analysis."
       }
+    },
+    "welcome": {
+      "hero": {
+        "title": "Welcome to ROCO",
+        "subtitle": "We are a Brazilian hydraulics and gas solutions industry, in constant growth, recognized for our quality, innovation and commitment to our partners.",
+        "description": "Here you will find all the necessary materials to complement and support your daily work as a ROCO representative."
+      },
+      "about": {
+        "title": "Meet ROCO",
+        "body": "ROCO is an industry specialized in developing hydraulic and gas installation solutions, serving the entire national territory and other countries as well. We focus on innovation, efficiency and quality in every detail of our products and processes."
+      },
+      "catalog": {
+        "title": "Download our catalog",
+        "body": "In the ROCO catalog you will find our entire product portfolio, with technical specifications, applications and differentials that help you serve your customers.",
+        "cta": "Download ROCO Catalog"
+      },
+      "contacts": {
+        "title": "ROCO key contacts",
+        "body": "To facilitate your daily communication, we provide a complete list of the most relevant ROCO contacts, including strategic departments for commercial support, logistics, marketing and administrative services.",
+        "cta": "Download ROCO Contacts"
+      },
+      "commercialPolicy": {
+        "title": "ROCO Commercial Policy",
+        "body": "Here you will find ROCO's commercial policy, with all guidelines, rules and conditions that guide our market performance. Reading it is essential to ensure alignment and transparency in negotiations.",
+        "cta": "Download Commercial Policy"
+      },
+      "logistics": {
+        "title": "Logistics Organizational Rules",
+        "body": "This section brings together all rules and guidelines related to logistics, including deadlines, billing, shipping and operational processes. This information ensures greater efficiency and predictability in customer service.",
+        "cta": "Download Logistics Rules"
+      },
+      "dwSystem": {
+        "title": "DW System",
+        "subtitle": "Everything you need to know",
+        "intro": "The DW System is the primary support tool for ROCO representatives. With it you can:",
+        "features": [
+          "Register prospects and customers",
+          "Generate quotes",
+          "Issue orders",
+          "Browse the complete product portfolio"
+        ],
+        "outro": "Watch the video below for a complete step-by-step guide on how to use the system.",
+        "cta": "Watch the video"
+      },
+      "library": {
+        "title": "Technical Videos and Support Materials",
+        "body": "Whenever you need, check out our portfolio of technical videos, training materials and support content. These materials were developed to ease your daily work and strengthen your sales arguments.",
+        "cta": "Access Content Library"
+      },
+      "closing": {
+        "paragraph1": "This page brings together everything you need to start your journey as a ROCO representative with confidence and clarity. Whenever a question or need arises, come back here.",
+        "paragraph2": "More than products, we believe in relationships, partnership and constant evolution. Welcome to the team."
+      },
+      "comingSoon": "Coming soon to portal"
     },
     "errors": {
       "unauthorized": "You do not have permission to access this resource.",

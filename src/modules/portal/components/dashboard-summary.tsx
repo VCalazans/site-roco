@@ -55,9 +55,10 @@ function SummaryCard({
 }
 
 /**
- * Cards de resumo do dashboard: contagem de produtos publicados e
- * representantes pendentes de revisão via tRPC, condicionados à mesma
- * permissão que dá acesso às respectivas páginas (`products:read` /
+ * Cards de resumo do dashboard: contagens reais via `products.stats()` /
+ * `representatives.stats()` (agregações no servidor — `{total, published,
+ * active}` / `{total, draft, submitted, approved, rejected}`), condicionadas
+ * à mesma permissão que dá acesso às respectivas páginas (`products:read` /
  * `representatives:read`). Se o usuário não tem NENHuma das duas
  * permissões nem a role `representative` (não é o público destas listagens),
  * cai no `emptyState` estático do dicionário.
@@ -68,21 +69,12 @@ export function DashboardSummary({ portal, user }: DashboardSummaryProps) {
   const canReadProducts = can(user, "products", "read");
   const canReadRepresentatives = can(user, "representatives", "read");
 
-  // `products.list` não expõe contagem total (só `items`/`nextCursor` — ver
-  // contrato); `limit: 50` + sufixo "+" quando `nextCursor` existir é a
-  // aproximação mais simples sem introduzir um endpoint de contagem novo.
-  const productsQuery = useQuery(
-    trpc.products.list.queryOptions(
-      { limit: 50 },
-      { enabled: canReadProducts }
-    )
+  const productsStatsQuery = useQuery(
+    trpc.products.stats.queryOptions(undefined, { enabled: canReadProducts })
   );
 
-  const representativesQuery = useQuery(
-    trpc.representatives.list.queryOptions(
-      { status: "submitted" },
-      { enabled: canReadRepresentatives }
-    )
+  const representativesStatsQuery = useQuery(
+    trpc.representatives.stats.queryOptions(undefined, { enabled: canReadRepresentatives })
   );
 
   if (!canReadProducts && !canReadRepresentatives) {
@@ -99,20 +91,16 @@ export function DashboardSummary({ portal, user }: DashboardSummaryProps) {
         <SummaryCard
           icon={<Inventory2Icon />}
           label={portal.shell.nav.products}
-          value={
-            productsQuery.data
-              ? `${productsQuery.data.items.length}${productsQuery.data.nextCursor ? "+" : ""}`
-              : 0
-          }
-          loading={productsQuery.isLoading}
+          value={productsStatsQuery.data?.total ?? 0}
+          loading={productsStatsQuery.isLoading}
         />
       ) : null}
       {canReadRepresentatives ? (
         <SummaryCard
           icon={<PeopleIcon />}
           label={portal.onboarding.status.submitted}
-          value={representativesQuery.data?.length ?? 0}
-          loading={representativesQuery.isLoading}
+          value={representativesStatsQuery.data?.submitted ?? 0}
+          loading={representativesStatsQuery.isLoading}
         />
       ) : null}
     </Stack>

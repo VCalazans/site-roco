@@ -49,6 +49,17 @@ MVP evolução — landing + catálogo + portal interno/CRM pronto (implementaç
   connect-src/img-src sem afrouxar script-src 'self', JWT staleness resolvido, anti-auto-aprovação,
   audit log uploads, validação callbackUrl, npm audit --omit=dev = 0 vulns.
 
+### Onda 4: Login Tradicional + Admin Bootstrap (2026-08-09, complemento)
+- **Credentials provider (Credentials + bcrypt)**: e-mail + senha via Auth.js v5; hash bcryptjs
+  (custo 12) em coluna nullable `users.passwordHash` (Google-only contas não têm senha).
+- **Admin bootstrap**: `npm run db:seed` lê `PORTAL_ADMIN_EMAIL` + `PORTAL_ADMIN_PASSWORD` (mín. 12 chars),
+  cria/atualiza hash idempotentemente; sem padrão hardcoded (segurança).
+- **UI login**: card com campos e-mail/senha, divisor "ou", botão Google; erro genérico
+  `?error=credentials` sem revelar existência de e-mail (anti-enumeration).
+- **Migration drizzle/0002**: coluna `users.passwordHash` nullable.
+- **Dicionários**: `portal.login.{emailLabel,passwordLabel,signInButton,orDivider,invalidCredentials}` pt/en.
+- **Scripts**: `db:seed` + `db:import-catalog` migraram para `tsx` (devDependency).
+
 ### Resoluções de Débitos
 - **ESLint**: config flat nativo (eslint-config-next), sem FlatCompat; 3 erros legados corrigidos.
 - **Test runner**: configurado (era débito de MVP).
@@ -85,8 +96,9 @@ MVP evolução — landing + catálogo + portal interno/CRM pronto (implementaç
 7. [ ] Confirmar destino real de Produtos (`NEXT_PUBLIC_PRODUCTS_URL` vazio).
 
 ## Próximos Passos Prioritários
-1. [ ] **Rate limiting** (ALTO): webhook `/api/webhooks/erp`, presign uploads, `/api/products`,
-       login — implementar via @upstash/ratelimit sobre Redis existente.
+1. [ ] **Rate limiting** (CRÍTICO com Credentials login): webhook `/api/webhooks/erp`, presign uploads,
+       `/api/products`, **endpoint `/api/auth/signin` (Credentials brute force)** — implementar via
+       @upstash/ratelimit sobre Redis existente.
 2. [ ] **Provisionar infra**: Postgres + Redis (docker-compose pronto); credenciais Google OAuth;
        bucket R2 + env S3_*; AUTH_SECRET; aplicar migrations + seed + import-catalog em prod.
 3. [ ] **Confirmar assunções de negócio com stakeholder**:

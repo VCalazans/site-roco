@@ -18,6 +18,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
+import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
@@ -26,6 +27,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
 import {
+  DEFAULT_REPRESENTATIVES_PER_PAGE,
   REPRESENTATIVE_STATUS_TABS,
   type RepresentativeListItem,
 } from "@/modules/portal/lib/representative-types";
@@ -57,10 +59,17 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const queryClient = useQueryClient();
 
   const [status, setStatus] = useState<RepresentativeStatus>("submitted");
+  // `TablePagination` é 0-based; o contrato tRPC (`page`/`perPage`) é
+  // 1-based — a conversão fica só nos dois pontos abaixo (`onPageChange` e no
+  // input da query).
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(DEFAULT_REPRESENTATIVES_PER_PAGE);
   const [reviewTarget, setReviewTarget] = useState<RepresentativeListItem | null>(null);
   const [decision, setDecision] = useState<"approved" | "rejected" | null>(null);
 
-  const listQuery = useQuery(trpc.representatives.list.queryOptions({ status }));
+  const listQuery = useQuery(
+    trpc.representatives.list.queryOptions({ status, page: page + 1, perPage })
+  );
 
   const reviewMutation = useMutation(
     trpc.representatives.review.mutationOptions({
@@ -76,7 +85,13 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   // `src/server/trpc/routers/representatives.ts` — único par resource:action
   // que a mutation `review` exige (não há um "representatives:update" genérico).
   const canReview = can(user, "representatives", "review");
-  const items: RepresentativeListItem[] = listQuery.data ?? [];
+  const items: RepresentativeListItem[] = listQuery.data?.items ?? [];
+  const total = listQuery.data?.total ?? 0;
+
+  function handleStatusChange(nextStatus: RepresentativeStatus) {
+    setStatus(nextStatus);
+    setPage(0);
+  }
 
   return (
     <Box>
@@ -89,7 +104,7 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
 
       <Tabs
         value={status}
-        onChange={(_event, value: RepresentativeStatus) => setStatus(value)}
+        onChange={(_event, value: RepresentativeStatus) => handleStatusChange(value)}
         sx={{ mb: 2 }}
       >
         {REPRESENTATIVE_STATUS_TABS.map((tabStatus) => (
@@ -109,94 +124,112 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
           <Typography color="text.secondary">{dictionary.empty.description}</Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>{dictionary.table.name}</TableCell>
-                <TableCell>{dictionary.table.company}</TableCell>
-                <TableCell>{dictionary.table.region}</TableCell>
-                <TableCell>{dictionary.table.status}</TableCell>
-                <TableCell>{dictionary.table.submittedAt}</TableCell>
-                <TableCell align="right">{dictionary.table.actions}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {listQuery.isLoading
-                ? Array.from({ length: 4 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell colSpan={6}>
-                        <Skeleton variant="text" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : items.map((representative) => (
-                    <TableRow key={representative.id} hover>
-                      <TableCell>{representative.user.name ?? representative.user.email}</TableCell>
-                      <TableCell>{representative.companyName ?? "—"}</TableCell>
-                      <TableCell>{representative.region ?? "—"}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={portal.onboarding.status[representative.status]}
-                          color={STATUS_COLOR[representative.status]}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {representative.submittedAt
-                          ? new Date(representative.submittedAt).toLocaleDateString()
-                          : "—"}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                          {representative.documents.map((document) => (
-                            <Tooltip key={document.id} title={dictionary.review.viewDocuments}>
-                              <IconButton
-                                size="small"
-                                component={Link}
-                                href={document.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <DescriptionIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          ))}
-                          {canReview && representative.status === "submitted" ? (
-                            <>
-                              <Tooltip title={dictionary.review.approve}>
+        <Paper variant="outlined">
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>{dictionary.table.name}</TableCell>
+                  <TableCell>{dictionary.table.company}</TableCell>
+                  <TableCell>{dictionary.table.region}</TableCell>
+                  <TableCell>{dictionary.table.status}</TableCell>
+                  <TableCell>{dictionary.table.submittedAt}</TableCell>
+                  <TableCell align="right">{dictionary.table.actions}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {listQuery.isLoading
+                  ? Array.from({ length: 4 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell colSpan={6}>
+                          <Skeleton variant="text" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : items.map((representative) => (
+                      <TableRow key={representative.id} hover>
+                        <TableCell>{representative.user.name ?? representative.user.email}</TableCell>
+                        <TableCell>{representative.companyName ?? "—"}</TableCell>
+                        <TableCell>{representative.region ?? "—"}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={portal.onboarding.status[representative.status]}
+                            color={STATUS_COLOR[representative.status]}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {representative.submittedAt
+                            ? new Date(representative.submittedAt).toLocaleDateString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
+                            {representative.documents.map((document) => (
+                              <Tooltip key={document.id} title={dictionary.review.viewDocuments}>
                                 <IconButton
                                   size="small"
-                                  color="success"
-                                  onClick={() => {
-                                    setReviewTarget(representative);
-                                    setDecision("approved");
-                                  }}
+                                  component={Link}
+                                  href={document.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                 >
-                                  <CheckIcon fontSize="small" />
+                                  <DescriptionIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title={dictionary.review.reject}>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    setReviewTarget(representative);
-                                    setDecision("rejected");
-                                  }}
-                                >
-                                  <CloseIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </>
-                          ) : null}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                            ))}
+                            {canReview && representative.status === "submitted" ? (
+                              <>
+                                <Tooltip title={dictionary.review.approve}>
+                                  <IconButton
+                                    size="small"
+                                    color="success"
+                                    onClick={() => {
+                                      setReviewTarget(representative);
+                                      setDecision("approved");
+                                    }}
+                                  >
+                                    <CheckIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title={dictionary.review.reject}>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => {
+                                      setReviewTarget(representative);
+                                      setDecision("rejected");
+                                    }}
+                                  >
+                                    <CloseIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            ) : null}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          {/* Sem `labelRowsPerPage`/`labelDisplayedRows` explícitos: o texto
+              default do `TablePagination` já sai traduzido pelo locale MUI
+              aplicado em `createPortalTheme` (ver `src/core/theme/index.ts`)
+              — não há chave equivalente em `portal.common.*` para reaproveitar
+              sem afirmar um texto errado. */}
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_event, nextPage) => setPage(nextPage)}
+            rowsPerPage={perPage}
+            onRowsPerPageChange={(event) => {
+              setPerPage(Number(event.target.value));
+              setPage(0);
+            }}
+          />
+        </Paper>
       )}
 
       <ReviewDialog

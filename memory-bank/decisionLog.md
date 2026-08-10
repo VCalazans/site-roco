@@ -237,3 +237,21 @@ permissions, phone).
 **Justificativa**: ESM/TypeScript nativo, rápido (Vite), setup mínimo; débito do MVP resolvido.
 **Impacto**: Vitest 4 em devDependencies; scripts `npm run test`, `test:watch`, `test:coverage`;
 alias `@/*` vivo em testes via stub de `server-only`.
+
+## 2026-08-09 — Login tradicional (Credentials + bcrypt) ao lado do Google SSO
+**Decisão**: Adicionar **método tradicional de login** (e-mail + senha) em paralelo ao Google SSO,
+usando Auth.js v5 Credentials provider com hash bcrypt (bcryptjs 3, custo 12) armazenado em coluna
+`users.passwordHash` (nullable — contas só-SSO não têm senha). Bootstrap de admin via `npm run db:seed`
+usando env vars `PORTAL_ADMIN_EMAIL` e `PORTAL_ADMIN_PASSWORD` (mínimo 12 chars, sem padrão hardcoded).
+**Alternativas**: (a) Só SSO (Google Workspace); (b) Magic link por e-mail; (c) Oauth terceiro (Microsoft/GitHub).
+**Justificativa**: Acesso de usuários que não usam Google Workspace (ex.: parceiros); bootstrap de
+admin sem depender de OAuth pré-configurado no GCP; bcryptjs puro JS evita binário nativo (argon2)
+em alpine (docker); estratégia existing/non-existing genérica (sem revelar se e-mail existe).
+**Impacto**: (1) Migration drizzle/0002: coluna `users.passwordHash` nullable. (2) UI nova em
+`/portal/login`: card com campos e-mail/senha + divisor "ou" + botão Google; erro genérico
+`?error=credentials` sem revelar se e-mail/senha inválidos. (3) Dicionários: `portal.login.{emailLabel,
+passwordLabel,signInButton,orDivider,invalidCredentials}` pt/en. (4) `npm run db:seed` idempotente:
+cria/atualiza hash de admin se envs definidas (segurança: rejeita senha <12 chars). (5) Scripts
+`db:seed` e `db:import-catalog` migraram para `tsx` (devDependency) — Node 20 local sem `--experimental-strip-types`.
+**Risco**: Com login por senha, rate limiting no endpoint de credenciais ficou URGENTE (brute force) —
+já estava no backlog de segurança; recomendação: `@upstash/ratelimit` sobre Redis existente no login.

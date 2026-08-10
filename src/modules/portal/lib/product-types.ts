@@ -52,6 +52,25 @@ export type ProductListItem = {
   } | null;
 };
 
+/**
+ * `products.list` pagina por cursor (`nextCursor`, não `page`/`perPage` como
+ * `representatives.list`) mas agora também expõe `total` — a contagem cheia
+ * do filtro aplicado, não só da página carregada (usada em "X produtos" na
+ * página de listagem, não para paginar).
+ */
+export type ProductListResult = {
+  items: ProductListItem[];
+  nextCursor?: string;
+  total: number;
+};
+
+/** Espelho de `products.stats()` — usado nos cards do dashboard. */
+export type ProductStats = {
+  total: number;
+  published: number;
+  active: number;
+};
+
 export type ProductPackagingInput = {
   id?: string;
   packagingType: PackagingType;

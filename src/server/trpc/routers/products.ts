@@ -17,8 +17,12 @@ import {
 } from "@/db/schema";
 import { writeAuditLog } from "@/server/lib/audit";
 import { translateDbError } from "@/server/lib/db-error";
+import { checkRateLimit } from "@/server/lib/rate-limit";
 import { slugify } from "@/server/lib/slugify";
 import { permissionProcedure, router } from "../init";
+
+/** Compartilhado com `representatives.presignDocumentUpload` — mesmo balde por usuário. */
+const PRESIGN_RATE_LIMIT = { windowSeconds: 5 * 60, max: 30 };
 
 type Database = typeof dbClient;
 type PackagingTypeSlug = (typeof packagingTypeEnum.enumValues)[number];
@@ -233,16 +237,18 @@ export const productsRouter = router({
     .query(async ({ ctx, input }) => {
       const { search, categoryId, published, cursor, limit } = input;
 
-      const conditions = [];
+      // Filtros do input (sem o cursor) — reaproveitados no COUNT, que reflete
+      // o total de resultados do filtro, não da página atual.
+      const filterConditions = [];
       if (published !== undefined) {
-        conditions.push(eq(products.published, published));
+        filterConditions.push(eq(products.published, published));
       }
       if (search) {
         const term = `%${search}%`;
-        conditions.push(or(ilike(products.sku, term), ilike(products.namePt, term)));
+        filterConditions.push(or(ilike(products.sku, term), ilike(products.namePt, term)));
       }
       if (categoryId) {
-        conditions.push(
+        filterConditions.push(
           exists(
             ctx.db
               .select({ one: sql`1` })
@@ -256,6 +262,8 @@ export const productsRouter = router({
           )
         );
       }
+
+      const pageConditions = [...filterConditions];
       if (cursor) {
         const [cursorProduct] = await ctx.db
           .select({ sku: products.sku })
@@ -263,16 +271,22 @@ export const productsRouter = router({
           .where(eq(products.id, cursor))
           .limit(1);
         if (cursorProduct) {
-          conditions.push(gt(products.sku, cursorProduct.sku));
+          pageConditions.push(gt(products.sku, cursorProduct.sku));
         }
       }
 
-      const rows = await ctx.db
-        .select()
-        .from(products)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(asc(products.sku))
-        .limit(limit + 1);
+      const [rows, [countRow]] = await Promise.all([
+        ctx.db
+          .select()
+          .from(products)
+          .where(pageConditions.length > 0 ? and(...pageConditions) : undefined)
+          .orderBy(asc(products.sku))
+          .limit(limit + 1),
+        ctx.db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(products)
+          .where(filterConditions.length > 0 ? and(...filterConditions) : undefined),
+      ]);
 
       const hasMore = rows.length > limit;
       const page = hasMore ? rows.slice(0, limit) : rows;
@@ -294,8 +308,22 @@ export const productsRouter = router({
       return {
         items,
         nextCursor: hasMore ? page[page.length - 1]?.id : undefined,
+        total: countRow?.total ?? 0,
       };
     }),
+
+  /** Uma query agregada (FILTER) para os cards do dashboard. */
+  stats: permissionProcedure("products", "read").query(async ({ ctx }) => {
+    const [row] = await ctx.db
+      .select({
+        total: sql<number>`count(*)::int`,
+        published: sql<number>`count(*) filter (where ${products.published} = true)::int`,
+        active: sql<number>`count(*) filter (where ${products.active} = true)::int`,
+      })
+      .from(products);
+
+    return row ?? { total: 0, published: 0, active: 0 };
+  }),
 
   byId: permissionProcedure("products", "read")
     .input(z.object({ id: z.string().uuid() }))
@@ -460,6 +488,14 @@ export const productsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateLimit = await checkRateLimit(`presign:user:${ctx.session.user.id}`, PRESIGN_RATE_LIMIT);
+      if (!rateLimit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Muitas solicitações de upload. Tente novamente em instantes.",
+        });
+      }
+
       const [product] = await ctx.db
         .select({ sku: products.sku })
         .from(products)

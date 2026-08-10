@@ -55,6 +55,11 @@ function PendingButton({
       fullWidth
       disabled={pending}
       startIcon={pending ? <CircularProgress size={18} color="inherit" /> : icon}
+      // `py` explícito: `size="large"` sozinho fica mais baixo que os campos
+      // `medium` acima (que ganharam padding extra no tema — ver
+      // `MuiOutlinedInput` em `src/core/theme/index.ts`); este ajuste alinha
+      // a altura do botão de submit à altura confortável dos inputs.
+      sx={{ py: 1.6 }}
     >
       {label}
     </Button>
@@ -113,8 +118,12 @@ export function LoginCard({
             </Alert>
           ) : null}
 
+          {/* Campos em `size="medium"` (default global do tema — ver "Regra
+              de densidade de campos" em `src/core/theme/index.ts`) com
+              espaçamento generoso: o login é a porta de entrada do portal,
+              nunca um formulário denso. */}
           <Box component="form" action={credentialsAction} sx={{ width: "100%" }}>
-            <Stack spacing={2}>
+            <Stack spacing={2.5}>
               <TextField
                 name="email"
                 type="email"
@@ -122,7 +131,6 @@ export function LoginCard({
                 autoComplete="email"
                 required
                 fullWidth
-                size="small"
               />
               <TextField
                 name="password"
@@ -131,7 +139,6 @@ export function LoginCard({
                 autoComplete="current-password"
                 required
                 fullWidth
-                size="small"
               />
               <PendingButton label={signInButtonLabel} variant="contained" />
             </Stack>

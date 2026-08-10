@@ -8,6 +8,16 @@
  */
 export const ADMIN_ROLE_SLUG = "admin";
 
+/** Única role que passa pelo fluxo de onboarding (ver seed em `src/db/seed.ts`
+ *  — time interno nunca recebe esta role). Espelhado aqui (fonte única) e
+ *  reexportado para `nav-items.ts`, o dashboard e a página de boas-vindas. */
+export const REPRESENTATIVE_ROLE_SLUG = "representative";
+
+/** Roles do time interno (`src/db/seed.ts`) — quem tem qualquer uma destas
+ *  NÃO é tratado como "representante puro" (ver `isRepresentativeOnly`),
+ *  mesmo que também tenha `representative` acumulada. */
+export const STAFF_ROLE_SLUGS = ["admin", "sales_manager", "viewer"];
+
 export type PortalPermissionUser =
   | {
       roles?: string[] | null;
@@ -34,4 +44,19 @@ export function can(
     return true;
   }
   return user.permissions?.includes(`${resource}:${action}`) ?? false;
+}
+
+/**
+ * `true` quando a sessão tem a role `representative` e NENHUMA role de time
+ * interno (`STAFF_ROLE_SLUGS`) — usado para decidir se `/portal` (dashboard)
+ * redireciona para `/portal/boas-vindas` (a "home" do representante) e para
+ * a visibilidade do item de nav `welcome`. Propositalmente NÃO usa `can()`
+ * (permissão granular) — a régua aqui é a role em si, não uma permissão
+ * derivada dela.
+ */
+export function isRepresentativeOnly(user: PortalPermissionUser): boolean {
+  if (!user?.roles?.includes(REPRESENTATIVE_ROLE_SLUG)) {
+    return false;
+  }
+  return !user.roles.some((role) => STAFF_ROLE_SLUGS.includes(role));
 }

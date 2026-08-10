@@ -130,7 +130,8 @@
         "dashboard": "Painel",
         "onboarding": "Cadastro",
         "products": "Produtos",
-        "representatives": "Representantes"
+        "representatives": "Representantes",
+        "welcome": "Boas-vindas"
       },
       "comingSoon": "Em desenvolvimento",
       "userMenu": {
@@ -323,6 +324,60 @@
         "title": "Nenhum representante aguardando revisão",
         "description": "Novos cadastros aparecerão aqui para análise."
       }
+    },
+    "welcome": {
+      "hero": {
+        "title": "Seja muito bem-vindo(a) à ROCO",
+        "subtitle": "Somos uma indústria brasileira de soluções hidráulicas e a gás, em constante crescimento, reconhecida pela qualidade, inovação e compromisso com nossos parceiros.",
+        "description": "Aqui você encontra todo o material necessário para complementar e auxiliar o seu trabalho no dia a dia como representante ROCO."
+      },
+      "about": {
+        "title": "Conheça a ROCO",
+        "body": "A ROCO é uma indústria especializada no desenvolvimento de soluções para instalações hidráulicas e a gás, atendendo todo o território nacional e também outros países. Atuamos com foco em inovação, eficiência e qualidade em cada detalhe dos nossos produtos e processos."
+      },
+      "catalog": {
+        "title": "Baixe nosso catálogo",
+        "body": "No catálogo ROCO você encontra todo o nosso portfólio de produtos, com especificações técnicas, aplicações e diferenciais que auxiliam no atendimento aos seus clientes.",
+        "cta": "Baixar Catálogo ROCO"
+      },
+      "contacts": {
+        "title": "Contatos relevantes da ROCO",
+        "body": "Para facilitar sua comunicação no dia a dia, disponibilizamos uma lista completa com os contatos mais relevantes da ROCO, incluindo setores estratégicos para suporte comercial, logística, marketing e administrativo.",
+        "cta": "Baixar Contatos da ROCO"
+      },
+      "commercialPolicy": {
+        "title": "Política Comercial da ROCO",
+        "body": "Aqui você encontra a política comercial da ROCO, com todas as diretrizes, regras e condições que norteiam nossa atuação no mercado. É fundamental a leitura para garantir alinhamento e transparência nas negociações.",
+        "cta": "Baixar Política Comercial"
+      },
+      "logistics": {
+        "title": "Regras Organizacionais de Logística",
+        "body": "Nesta seção estão reunidas todas as regras e orientações relacionadas à logística, incluindo prazos, faturamento, expedição e processos operacionais. Essas informações garantem mais eficiência e previsibilidade no atendimento aos clientes.",
+        "cta": "Baixar Regras de Logística"
+      },
+      "dwSystem": {
+        "title": "Sistema DW",
+        "subtitle": "Tudo o que você precisa saber",
+        "intro": "O Sistema DW é a principal ferramenta de apoio ao representante ROCO. Nele você poderá:",
+        "features": [
+          "Cadastrar prospects e clientes",
+          "Gerar orçamentos",
+          "Emitir pedidos",
+          "Consultar o portfólio completo de produtos"
+        ],
+        "outro": "Confira no vídeo a seguir o passo a passo completo de utilização do sistema.",
+        "cta": "Assistir ao vídeo"
+      },
+      "library": {
+        "title": "Vídeos Técnicos e Conteúdos de Apoio",
+        "body": "Sempre que precisar, consulte nosso portfólio de vídeos técnicos, treinamentos e conteúdos de apoio. Esses materiais foram desenvolvidos para facilitar seu dia a dia e fortalecer suas argumentações comerciais.",
+        "cta": "Acessar Biblioteca de Conteúdos"
+      },
+      "closing": {
+        "paragraph1": "Esta página reúne tudo o que você precisa para iniciar sua jornada como representante ROCO com segurança e clareza. Sempre que surgir uma dúvida ou necessidade, volte aqui.",
+        "paragraph2": "Mais do que produtos, acreditamos em relacionamento, parceria e evolução constante. Seja bem-vindo(a) ao time."
+      },
+      "comingSoon": "Em breve no portal"
     },
     "errors": {
       "unauthorized": "Você não tem autorização para acessar este recurso.",

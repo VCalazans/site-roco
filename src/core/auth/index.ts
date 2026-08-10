@@ -7,6 +7,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "@/db";
 import { accounts, permissions, rolePermissions, roles, sessions, userRoles, users, verificationTokens } from "@/db/schema";
+import { checkRateLimit, normalizeRateLimitKeyPart } from "@/server/lib/rate-limit";
 
 /** Role com acesso irrestrito — bypassa a checagem granular (ver `rbac.ts`). */
 export const ADMIN_ROLE_SLUG = "admin";
@@ -26,6 +27,18 @@ const AUTHORIZATION_MAX_AGE_MS = 5 * 60 * 1000;
 
 /** Sessão do portal: 8h absolutas — janela B2B, não os 30 dias default. */
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+
+/**
+ * Rate limit de login por credenciais (brute force). Duas chaves checadas em
+ * paralelo: por e-mail alvo (impede tentar senhas contra UMA conta) e uma
+ * global (impede rotacionar e-mails para escapar do limite por conta — janela
+ * e teto maiores, pensados para não bloquear login legítimo em picos de uso
+ * simultâneo do portal). Nenhuma das duas reseta em caso de sucesso — é
+ * janela fixa (ver `checkRateLimit`), então mesmo um login válido conta.
+ */
+const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 5 * 60;
+const LOGIN_RATE_LIMIT_MAX_PER_EMAIL = 5;
+const LOGIN_RATE_LIMIT_MAX_GLOBAL = 30;
 
 async function loadUserAuthorization(userId: string) {
   const [account] = await db
@@ -87,6 +100,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) {
+          return null;
+        }
+
+        const [emailRateLimit, globalRateLimit] = await Promise.all([
+          checkRateLimit(`login:email:${normalizeRateLimitKeyPart(email)}`, {
+            windowSeconds: LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+            max: LOGIN_RATE_LIMIT_MAX_PER_EMAIL,
+          }),
+          checkRateLimit("login:global", {
+            windowSeconds: LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+            max: LOGIN_RATE_LIMIT_MAX_GLOBAL,
+          }),
+        ]);
+        // Mesma resposta genérica de credenciais inválidas — nunca revela que
+        // o bloqueio foi por rate limit (evitaria vazar timing/enumeração).
+        if (!emailRateLimit.allowed || !globalRateLimit.allowed) {
           return null;
         }
 

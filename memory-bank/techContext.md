@@ -14,7 +14,7 @@
 - Fontes: `next/font/google` — Inter (corpo) e Poppins (display)
 
 ### Portal / Backend
-- **next-auth** 5.0.0-beta.32 (Google SSO, JWT strategy, DrizzleAdapter)
+- **next-auth** 5.0.0-beta.32 (Google SSO + Credentials provider, JWT strategy, DrizzleAdapter)
 - **drizzle-orm** 0.45.2 (type-safe ORM, migrations via drizzle-kit)
 - **pg** (driver PostgreSQL)
 - **trpc** 11.18 (type-safe RPC)
@@ -24,9 +24,11 @@
 - **@emotion/react** + **@emotion/styled** (CSS-in-JS para MUI)
 - **bullmq** 6 (job queue) + **redis** (client)
 - **@aws-sdk/client-s3** (Cloudflare R2, compatível S3)
+- **bcryptjs** 3 (hash seguro senhas; custo 12; puro JS para alpine)
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
 - **vitest** 4 (test runner, 208 testes)
 - **happy-dom** (DOM simulation para testes)
+- **tsx** (devDependency; scripts db:seed + db:import-catalog — Node 20 local sem `--experimental-strip-types`)
 
 ## Setup do Ambiente
 ```bash
@@ -55,6 +57,8 @@ npm run dev        # http://localhost:3000
 | AUTH_SECRET                  | sim    | Segredo para JWT (min. 32 chars)            |
 | AUTH_GOOGLE_ID               | sim    | Google OAuth: client ID                    |
 | AUTH_GOOGLE_SECRET           | sim    | Google OAuth: client secret                |
+| PORTAL_ADMIN_EMAIL           | não    | E-mail do admin bootstrap (seed: cria/atualiza se definido) |
+| PORTAL_ADMIN_PASSWORD        | não    | Senha do admin bootstrap (mín. 12 chars; seed: idempotente, rejeita <12) |
 | PORTAL_INTERNAL_EMAIL_DOMAIN | não    | Domínio interno (ex.: `@roco.com.br`); usuários deste domínio recebem role `viewer` automaticamente |
 
 ### Redis / Fila ERP

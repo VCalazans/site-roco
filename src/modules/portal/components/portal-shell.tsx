@@ -12,6 +12,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import PeopleIcon from "@mui/icons-material/People";
 import PersonIcon from "@mui/icons-material/Person";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import WavingHandIcon from "@mui/icons-material/WavingHand";
 import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
@@ -35,7 +36,8 @@ export type PortalNavKey =
   | "dashboard"
   | "onboarding"
   | "products"
-  | "representatives";
+  | "representatives"
+  | "welcome";
 
 export type PortalNavItem = {
   key: PortalNavKey;
@@ -75,6 +77,7 @@ const NAV_ICONS: Record<PortalNavKey, ComponentType<{ fontSize?: "small" }>> = {
   onboarding: RocketLaunchIcon,
   products: Inventory2Icon,
   representatives: PeopleIcon,
+  welcome: WavingHandIcon,
 };
 
 function DrawerHeader({

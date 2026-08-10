@@ -5,6 +5,7 @@ import AddIcon from "@mui/icons-material/Add";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
@@ -80,6 +81,10 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
     [listQuery.data]
   );
 
+  // `total` é o mesmo valor em todas as páginas (contagem do filtro aplicado,
+  // não da página carregada) — a primeira página já basta.
+  const total = listQuery.data?.pages[0]?.total ?? 0;
+
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   // Incrementado a cada abertura do dialog e usado como `key` — força o
@@ -149,9 +154,22 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
         }}
       >
         <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {dictionary.title}
-          </Typography>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "baseline" }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              {dictionary.title}
+            </Typography>
+            {/* Contagem real do filtro aplicado (`products.list.total`), sem
+                chave de dicionário dedicada para "X produtos": reaproveita
+                `dictionary.title` ("Produtos"/"Products", já plural nos dois
+                locales) como rótulo do número — ver relatório final. */}
+            {!listQuery.isLoading ? (
+              <Chip
+                label={`${total} ${dictionary.title}`}
+                size="small"
+                variant="outlined"
+              />
+            ) : null}
+          </Stack>
           <Typography variant="body1" color="text.secondary">
             {dictionary.subtitle}
           </Typography>
@@ -175,7 +193,14 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
             fullWidth
             size="small"
           />
-          <FormControl size="small" sx={{ minWidth: 220 }}>
+          {/* `size="small"` + `fullWidth={false}` deliberados: filtro compacto
+              ao lado da busca (que ocupa o espaço restante) — ver "Regra de
+              densidade de campos" em `src/core/theme/index.ts`. Sem
+              `fullWidth={false}` aqui, o default global (`MuiFormControl`)
+              esticaria os dois filtros para dividir a barra igualmente com a
+              busca, achatando o layout pretendido (busca larga + filtros
+              estreitos). */}
+          <FormControl size="small" fullWidth={false} sx={{ minWidth: 220 }}>
             <InputLabel id="products-category-filter">{dictionary.table.category}</InputLabel>
             <Select
               labelId="products-category-filter"
@@ -191,7 +216,7 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
               ))}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
+          <FormControl size="small" fullWidth={false} sx={{ minWidth: 180 }}>
             <InputLabel id="products-published-filter">{dictionary.table.status}</InputLabel>
             <Select
               labelId="products-published-filter"

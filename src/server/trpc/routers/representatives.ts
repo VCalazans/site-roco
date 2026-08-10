@@ -1,6 +1,6 @@
 import "server-only";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getPresignedDownloadUrl, getPresignedUploadUrl, headObject } from "@/core/storage/r2";
 import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 import { writeAuditLog } from "@/server/lib/audit";
 import { translateDbError } from "@/server/lib/db-error";
+import { checkRateLimit } from "@/server/lib/rate-limit";
 import { permissionProcedure, protectedProcedure, router } from "../init";
 
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -29,6 +30,13 @@ const REPRESENTATIVE_ROLE_SLUG = "representative";
 
 /** Rascunho/pendente: ainda editável pelo próprio representante. */
 const EDITABLE_STATUSES = new Set(["draft", "rejected"]);
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_PER_PAGE = 20;
+const MAX_PER_PAGE = 100;
+
+/** Compartilhado com `products.presignImageUpload` — mesmo balde por usuário. */
+const PRESIGN_RATE_LIMIT = { windowSeconds: 5 * 60, max: 30 };
 
 const onboardingDataSchema = z.object({
   companyName: z.string().trim().min(1).max(200).optional(),
@@ -163,6 +171,14 @@ export const representativesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const rateLimit = await checkRateLimit(`presign:user:${ctx.session.user.id}`, PRESIGN_RATE_LIMIT);
+      if (!rateLimit.allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Muitas solicitações de upload. Tente novamente em instantes.",
+        });
+      }
+
       const existing = await getOwnRepresentative(ctx.db, ctx.session.user.id);
       if (!existing || !EDITABLE_STATUSES.has(existing.status)) {
         throw new TRPCError({
@@ -244,27 +260,44 @@ export const representativesRouter = router({
     }),
 
   list: permissionProcedure("representatives", "read")
-    .input(z.object({ status: z.enum(representativeStatusEnum.enumValues).optional() }))
+    .input(
+      z.object({
+        status: z.enum(representativeStatusEnum.enumValues).optional(),
+        page: z.number().int().min(1).default(DEFAULT_PAGE),
+        perPage: z.number().int().min(1).max(MAX_PER_PAGE).default(DEFAULT_PER_PAGE),
+      })
+    )
     .query(async ({ ctx, input }) => {
-      const conditions = input.status ? [eq(representatives.status, input.status)] : [];
+      const { status, page, perPage } = input;
+      const conditions = status ? [eq(representatives.status, status)] : [];
+      const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-      const rows = await ctx.db
-        .select({
-          id: representatives.id,
-          status: representatives.status,
-          companyName: representatives.companyName,
-          region: representatives.region,
-          submittedAt: representatives.submittedAt,
-          createdAt: representatives.createdAt,
-          userName: users.name,
-          userEmail: users.email,
-        })
-        .from(representatives)
-        .innerJoin(users, eq(users.id, representatives.userId))
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(representatives.updatedAt));
+      const [rows, [countRow]] = await Promise.all([
+        ctx.db
+          .select({
+            id: representatives.id,
+            status: representatives.status,
+            companyName: representatives.companyName,
+            region: representatives.region,
+            submittedAt: representatives.submittedAt,
+            createdAt: representatives.createdAt,
+            userName: users.name,
+            userEmail: users.email,
+          })
+          .from(representatives)
+          .innerJoin(users, eq(users.id, representatives.userId))
+          .where(whereClause)
+          .orderBy(desc(representatives.updatedAt))
+          .limit(perPage)
+          .offset((page - 1) * perPage),
+        ctx.db.select({ total: sql<number>`count(*)::int` }).from(representatives).where(whereClause),
+      ]);
 
-      if (rows.length === 0) return [];
+      const total = countRow?.total ?? 0;
+
+      if (rows.length === 0) {
+        return { items: [], total, page, perPage };
+      }
 
       const documentRows = await ctx.db
         .select()
@@ -283,7 +316,7 @@ export const representativesRouter = router({
         documentsByRepresentative.set(document.representativeId, list);
       }
 
-      return Promise.all(
+      const items = await Promise.all(
         rows.map(async ({ userName, userEmail, ...row }) => ({
           ...row,
           user: { name: userName, email: userEmail },
@@ -296,7 +329,24 @@ export const representativesRouter = router({
           ),
         }))
       );
+
+      return { items, total, page, perPage };
     }),
+
+  /** Uma query agregada (FILTER por status) para os cards do dashboard. */
+  stats: permissionProcedure("representatives", "read").query(async ({ ctx }) => {
+    const [row] = await ctx.db
+      .select({
+        total: sql<number>`count(*)::int`,
+        draft: sql<number>`count(*) filter (where ${representatives.status} = 'draft')::int`,
+        submitted: sql<number>`count(*) filter (where ${representatives.status} = 'submitted')::int`,
+        approved: sql<number>`count(*) filter (where ${representatives.status} = 'approved')::int`,
+        rejected: sql<number>`count(*) filter (where ${representatives.status} = 'rejected')::int`,
+      })
+      .from(representatives);
+
+    return row ?? { total: 0, draft: 0, submitted: 0, approved: 0, rejected: 0 };
+  }),
 
   review: permissionProcedure("representatives", "review")
     .input(

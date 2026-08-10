@@ -26,6 +26,7 @@ export type PortalDictionary = {
       onboarding: string;
       products: string;
       representatives: string;
+      welcome: string;
     };
     comingSoon: string;
     userMenu: {
@@ -203,6 +204,25 @@ export type PortalDictionary = {
       title: string;
       description: string;
     };
+  };
+  welcome: {
+    hero: { title: string; subtitle: string; description: string };
+    about: { title: string; body: string };
+    catalog: { title: string; body: string; cta: string };
+    contacts: { title: string; body: string; cta: string };
+    commercialPolicy: { title: string; body: string; cta: string };
+    logistics: { title: string; body: string; cta: string };
+    dwSystem: {
+      title: string;
+      subtitle: string;
+      intro: string;
+      features: string[];
+      outro: string;
+      cta: string;
+    };
+    library: { title: string; body: string; cta: string };
+    closing: { paragraph1: string; paragraph2: string };
+    comingSoon: string;
   };
   errors: {
     unauthorized: string;

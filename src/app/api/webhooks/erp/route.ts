@@ -3,11 +3,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getErpSyncQueue } from "@/core/queue/erp-sync-queue";
 import { erpSyncJobId } from "@/core/queue/job-id";
+import { checkRateLimit } from "@/server/lib/rate-limit";
 
 const webhookBodySchema = z.object({
   event: z.string().trim().min(1).max(100),
   products: z.array(z.unknown()).optional(),
 });
+
+/** Chave única (não por origem) — o ERP é o único chamador esperado deste endpoint. */
+const WEBHOOK_RATE_LIMIT = { windowSeconds: 60, max: 60 };
 
 /** Comparação em tempo constante, tolerante a tamanhos diferentes (evita early-return por length). */
 function timingSafeEqualString(a: string, b: string): boolean {
@@ -28,6 +32,14 @@ function timingSafeEqualString(a: string, b: string): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rateLimit = await checkRateLimit("webhook:erp", WEBHOOK_RATE_LIMIT);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } }
+      );
+    }
+
     const expectedSecret = process.env.ERP_WEBHOOK_SECRET;
     if (!expectedSecret) {
       console.error("[api/webhooks/erp] ERP_WEBHOOK_SECRET não configurado.");
