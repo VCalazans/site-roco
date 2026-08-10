@@ -255,3 +255,41 @@ cria/atualiza hash de admin se envs definidas (segurança: rejeita senha <12 cha
 `db:seed` e `db:import-catalog` migraram para `tsx` (devDependency) — Node 20 local sem `--experimental-strip-types`.
 **Risco**: Com login por senha, rate limiting no endpoint de credenciais ficou URGENTE (brute force) —
 já estava no backlog de segurança; recomendação: `@upstash/ratelimit` sobre Redis existente no login.
+
+## 2026-08-10 — MUI unlayered: remoção do enableCssLayer
+**Decisão**: Remover `enableCssLayer: true` do Emotion config em `src/core/theme/portal-providers.tsx`.
+O MUI passa a usar CSS _unlayered_ (global scope) em vez de `@layer mui`, vencendo qualquer camada
+do Tailwind por especificidade bruta (regra CSS padrão, não layer).
+**Alternativas**: (a) Manter enableCssLayer e fixar ordem manualmente com statements @layer —
+inviável, Tailwind v4 ainda consome statements @layer do developer no globals.css (não permite
+reordenar); (b) manter layers e aceitar que inputs encolhem no dark → rejeitado (bug crítico).
+**Justificativa**: A CSS layer _order_ é definida pela **primeira aparição no documento** (não por
+declaração). Emotion (MUI) rodava primeiro em SSR → `@layer mui` era declarado antes das layers do
+Tailwind (@theme/@base/@components/@utilities) → preflight (@layer base, zera padding/border) VENCIA
+o MUI (especificidade global < layer local). Solução: remover `@layer` do MUI garante que CSS
+unlayered vence qualquer layer, mantendo inputs/labels corretos em qualquer esquema de cores.
+**Impacto**: (1) MUI CSS servido sem camadas — especificidade bruta, mas previne buracos de
+especificidade. (2) Route groups isolam o escopo: (site) usa só Tailwind (layered), (internal) usa
+MUI (unlayered) — nunca compartilham componentes. (3) Padrão para o projeto: quando misturar layer
+e unlayered, usar route groups e garantir fronteiras lógicas. (4) Verificação realizada: inputs
+aparecem corretamente, labels alinhados, light/dark mode consistente.
+
+## 2026-08-10 — Boas-vindas como homepage do representante + padrão anti-Tooltip em disabled
+**Decisão**: A página `/portal/boas-vindas` é a **homepage autêntica** do representante (role
+`representative` sem `staff`). Rota `/portal` redireciona para `/portal/boas-vindas`. A página
+renderiza welcome-hero (copy ROCO oficial, 34 chaves i18n pt/en), seções de atalhos e materiais
+"Em breve" visíveis como **Chip** com label "Em breve no portal" (não Tooltip em Button disabled).
+**Alternativas**: (a) Usar Tooltip em Button disabled (padrão MUI) — causa hydration mismatch em
+SSR (clone do filho diverge); (b) Button disabled sem rótulo — UX ruim, não evidente por quê
+desabilitado (especialmente em touch).
+**Justificativa**: **Padrão descoberto**: Tooltip renderiza um Popper que clona o filho para
+medir/posicionar → em SSR, o cloneElement pode divergir do original (ex.: aria-describedby).
+Mesmo sem style inline, a reação do React é hydration mismatch. Para elementos disabled em árvore
+SSR, usar Chip ou texto visível em vez de Tooltip. Chip tem semântica melhor (affordance clara,
+touch-friendly).
+**Impacto**: (1) Componentes: `src/modules/portal/components/welcome/{welcome-hero,welcome-section-card,
+welcome-dw-system-card,welcome-closing,onboarding-status-alert}.tsx` em `(internal)/portal/boas-vindas/page.tsx`.
+(2) Copy em portal.welcome (pt/en). (3) CTA catálogo baixa `/downloads/catalogo-roco-2026.pdf`
+(hoje placeholder). (4) Materiais sem asset (contactos, política, logística, vídeo DW) com Chip
+visível (não Tooltip). (5) **Padrão de projeto**: nunca Tooltip em elemento disabled em SSR; usar
+Chip, Badge ou texto inline.

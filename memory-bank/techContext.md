@@ -165,6 +165,18 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 Procedência, SHA-256, resultado da inspeção e passos de reextração: `public/vendor/README.md`.
 **Nunca** atualize essas cópias a partir de um servidor Mautic não verificado.
 
+## Armadilhas da Stack (Descobertas 2026-08-10)
+1. **CSS Layers + MUI Emotion**: `enableCssLayer: true` do Emotion coloca MUI em `@layer mui`
+   → se declarado ANTES das layers do Tailwind, preflight (@layer base, zera padding/border)
+   **vence** o MUI no SSR (ordem = primeira aparição no documento). Solução: remover enableCssLayer,
+   deixar MUI unlayered (especificidade bruta, mas consistente com route groups).
+2. **`sx` como função em Server Components**: revalidação de SSR não resolve theme callbacks em runtime.
+   Use CSS variables: `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez de
+   `(theme) => ({ color: theme.palette.primary.main })`.
+3. **Tooltip em elemento disabled no SSR**: MUI Popper clona o filho para medir → divergência
+   de atributos (aria-describedby) → hydration mismatch **mesmo sem style inline**. Padrão: Chip
+   visível ou texto inline; nunca Tooltip em disabled em árvore Server.
+
 ## Infraestrutura de Deploy
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.
 - Headers de segurança configurados em `next.config.ts`.
@@ -173,3 +185,4 @@ Procedência, SHA-256, resultado da inspeção e passos de reextração: `public
 - Next.js App Router: https://nextjs.org/docs/app
 - Tailwind v4: https://tailwindcss.com/docs
 - framer-motion: https://www.framer.com/motion/
+- MUI CSS Variables: https://mui.com/material-ui/customization/css-variables/

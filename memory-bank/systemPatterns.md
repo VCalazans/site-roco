@@ -89,12 +89,28 @@ Request → proxy.ts (Node runtime)
 
 **Antipadrão evitado**: upload proxy pelo servidor (banda, latência).
 
-### MUI + Tailwind: Coexistência
+### MUI + Tailwind: Coexistência (Unlayered)
 - **MUI**: `src/core/theme` (theme único, CSS variables, `@mui/material-nextjs` com
   InitColorSchemeScript). Componentes Portal isolados em `src/app/[locale]/(internal)/`.
 - **Tailwind**: Site público em `src/app/[locale]/(site)/` + shared components.
-- **CSS Layers**: MUI usa `@layer`, Tailwind v4 @theme via layers — sem conflito de especificidade.
-- **Tokens**: marca ROCO (cyan, amber) definidos em ambos (MUI theme + Tailwind @theme).
+- **CSS Layers**: Tailwind v4 usa @theme/@base/@components/@utilities (layered); MUI é **unlayered**
+  (enableCssLayer removido 2026-08-10). Especificidade bruta do MUI vence layers por regra CSS padrão,
+  prevenindo buracos onde preflight pudesse vencer estilos de componentes. Route groups isolam
+  fronteiras: nunca compartilham componentes entre site/portal.
+- **Tokens**: marca ROCO (cyan #3ec6f0, amber #f5a33c) definidos em ambos (MUI theme + Tailwind @theme).
+
+### Micro-padrões da Stack (Descobertos em Teste Manual)
+1. **`sx` em Server Components**: nunca use **função** de tema em `sx={}` de componentes Server
+   (revalidação de SSR em runtime não resolvida). Use CSS variables em vez disso:
+   `sx={{ bgcolor: "rgba(var(--mui-palette-primary-mainChannel) / 0.16)" }}`.
+2. **Tooltip em elemento disabled no SSR**: MUI Tooltip renderiza um Popper que clona o filho
+   → em SSR, divergência de atributos (ex.: aria-describedby) causa hydration mismatch **mesmo sem
+   style inline**. **Padrão**: usar Chip/Badge visível ou texto inline; nunca Tooltip em disabled
+   em árvore Server.
+3. **Hidratação única de form com autosave**: se autosave refaz query e invalida cache (ex.: `me`),
+   o refetch pode reexecuta hidratação e sobrescrever entrada do usuário + reverter para passo salvo.
+   **Padrão**: guard booleano (hidrata UMA vez no mount), form local é fonte de verdade, autosave
+   persiste apenas a mudança de passo (não relê do server).
 
 ### Fluxo de Dados — Portal (tRPC + REST)
 ```

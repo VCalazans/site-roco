@@ -17,37 +17,44 @@
 - [x] Tracking de visitantes (Mautic `mtc.js`) — cópia self-hosted verificada + pageview por rota,
       CSP mantendo `script-src 'self'` (`src/shared/components/analytics/`)
 
-### Portal Interno/CRM (2026-08-09)
+### Portal Interno/CRM (2026-08-09 a 2026-08-10)
 - [x] Schema Drizzle (18 tabelas + 4 enums) + migrations 0000-0001 em `./drizzle`
 - [x] Seed idempotente (roles: admin, sales_manager, representative, viewer; permissões resource:action)
-- [x] Auth.js v5 + Google SSO + DrizzleAdapter + JWT revalidação staleness (5min)
+- [x] Auth.js v5 + Google SSO + Credentials provider + DrizzleAdapter + JWT revalidação staleness (5min)
 - [x] proxy.ts (renomeado de middleware.ts): Node runtime, guardas sessão/role /portal/* /admin/*
-- [x] Portal UI: MUI v9 + tema centralizado dark/light (tokens ROCO) + InitColorSchemeScript (sem FOUC)
+- [x] Portal UI: MUI v9 + tema centralizado dark/light (tokens ROCO: cyan + amber AA 4.7:1)
+      + InitColorSchemeScript (sem FOUC) + unlayered (sem enableCssLayer)
 - [x] Route groups: (site) com tracking; (internal) sem tracking
-- [x] Login Google + validação callbackUrl (anti-CSRF)
+- [x] Login Google + Credentials (e-mail/senha) + validação callbackUrl (anti-CSRF)
 - [x] Shell (AppBar + Drawer): nav por permissão, representantes vs admin
-- [x] Onboarding wizard (5 passos): autosave + upload documentos presigned
+- [x] Onboarding wizard (5 passos): autosave com guard booleano (hidrata uma vez), uploads presigned
 - [x] Review representantes: aprovar/rejeitar com anti-auto-aprovação + audit log
-- [x] tRPC v11 routers: products, representatives, sync
+- [x] Boas-vindas do representante (homepage): welcome-hero/sections/closing/status-alert,
+      copy ROCO oficial, CTA catálogo PDF, materiais "Em breve" como Chip (não Tooltip)
+- [x] tRPC v11 routers: products, representatives, sync (type-safe, withRBAC procedures)
 - [x] REST público `/api/products` + `/api/products/[slug]` (unstable_cache + revalidateTag)
-- [x] Cloudflare R2 presigned PUT/GET: imagens públicas, documentos privados
+- [x] Cloudflare R2 presigned PUT/GET: imagens públicas, documentos privados (2-step validation)
 - [x] BullMQ 6 + Redis: fila erp-sync in-process (instrumentation singleton), retry 3x backoff, DLQ
 - [x] Webhook `/api/webhooks/erp` (secret timing-safe, 202 + fila)
-- [x] Importador catálogo: SheetJS via CDN, 769 produtos + variantes embalagem, normalizações,
-      idempotente (published=false, re-import não mexe em published/active)
-- [x] CRUD produtos: busca/filtros/cursor pagination, form embalagens/badges/categorias, R2 uploads
-- [x] Validação CNPJ/telefone em uploads representantes
-- [x] Vitest 4: 208 testes, 100% cobertura lógica pura (rbac, cnpj, slugify, db-error, permissions)
-- [x] Segurança: Next 16.3.0 (CVEs RCE+middleware), CSP R2 sem afrouxar script-src, audit logs,
-      callbackUrl validation, npm audit 0 vulns
-- [x] ESLint: flat config nativo, 3 erros legados corrigidos
+- [x] Importador catálogo: SheetJS via CDN, 769 produtos + variantes, normalizações, idempotente
+- [x] CRUD produtos: busca/filtros/cursor pagination + paginação real (total, page, perPage),
+      form embalagens/badges/categorias, R2 uploads
+- [x] Validação CNPJ/telefone + masking em uploads representantes
+- [x] Dashboard: products.stats (total, published, active) + representatives.stats (draft, submitted, etc.)
+- [x] Vitest 4: 226 testes, 100% cobertura lógica pura; 18 testes novos para rate limiting
+- [x] Rate limiting Redis: login 5/5min + 30/5min global, webhook 60/min, /api/products 120/min,
+      presigns 30/5min (fail-open sem REDIS_URL)
+- [x] Segurança: Next 16.3.0 (CVEs), CSP R2, audit logs, callbackUrl validation, npm audit 0 vulns
+- [x] ESLint: flat config nativo
 - [x] i18n Portal: namespace `portal` (~156 chaves) pt/en idênticas
-- [x] Login tradicional (Credentials + bcrypt) ao lado Google SSO: Auth.js v5 Credentials provider,
-      hash bcryptjs (custo 12) em users.passwordHash (nullable), erro genérico anti-enumeration
-- [x] Admin bootstrap via seed: `npm run db:seed` lê PORTAL_ADMIN_EMAIL/PORTAL_ADMIN_PASSWORD (mín. 12 chars),
-      idempotente, sem padrão hardcoded; migration drizzle/0002 (passwordHash)
-- [x] UI login: card e-mail/senha + Google SSO; dicionários portal.login.* pt/en
-- [x] Scripts db:seed/db:import-catalog migrados para tsx (devDependency)
+- [x] Bug fixes (7 reais encontrados em teste manual):
+      (1) sx via CSS vars (não função em Server Components)
+      (2) Tooltip em disabled REMOVIDO (hydration + chip visível)
+      (3) Guard booleano hidratação onboarding (form = fonte verdade)
+      (4) draftField preprocess ""→undefined (min validação só submit)
+      (5) enableCssLayer REMOVIDO (MUI unlayered vence layers por route groups)
+      (6) Light mode bgcolor background.default + minHeight 100dvh em (internal) layout
+      (7) Processo órfão dev Windows: taskkill antes de restart
 
 ### Qualidade
 - [x] `npm run build` verde
@@ -80,20 +87,22 @@
 - [ ] Conteúdo institucional (Quem somos) / blog (se aplicável)
 
 ## 🐛 Débitos Técnicos
+- **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
+  atualmente disabled; links precisam de upload/asset públicos.
+- **Processo órfão dev server Windows**: taskkill manual necessário antes de `npm run dev` restart
+  (nota operacional documentar em README).
 - Avaliar tornar CNPJ obrigatório em representantes (atualmente só se preenchido).
-- `roco-wordmark-white.png` (wordmark 3D) tem leve bleed do render; logo 2D é principal.
-- `docs/documento` e `docs/Novos ícones_OK.psd` (~98 MB) versionados — avaliar LFS/storage externo.
+- `roco-wordmark-white.png` (wordmark 3D) tem leve bleed; logo 2D é principal.
+- `docs/documento` (~98 MB) versionado — avaliar LFS/storage externo.
 - Copy EN do landing é provisório (revisar com copywriter).
-- Destinos CTAs landing podem ser placeholders até stakeholder confirmar.
-- **xlsx via CDN tarball**: fora do npm audit — reauditar manualmente a cada atualização
-      (mesmo protocolo de public/vendor/ — procedência + SHA-256 em `docs/` ou README).
-- Teste runner formal configurado, mas E2E e component tests da UI do portal ainda faltam.
-- Logs auditoria na tabela `audit_logs` — avaliar export/retention policy.
+- **xlsx via CDN tarball**: fora do npm audit — reauditar manualmente a cada atualização.
+- E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
+- Audit logs export/retention policy indefinida.
 
 ## 🔐 Riscos de Segurança
-- **Rate limiting ausente** (CRÍTICO com Credentials): webhook `/api/webhooks/erp`, presign uploads,
-  `/api/products`, **endpoint `/api/auth/signin` (brute force de Credentials)** — recomendação:
-  @upstash/ratelimit sobre Redis existente.
+- **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
+  /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
+  **Nota**: sem Redis em dev, rate limit não funciona (comportamento esperado, recomendação: testar em staging com Redis).
 - **LGPD Portal**: CNPJ/telefone/documentos de representantes (dados pessoais). Minimização ok,
   mas política retenção não definida. Audit log implementado.
 - **Tracking Mautic sem consentimento**: `mtc.js` grava `mtc_id`/`mtc_sid`/`mautic_device_id`,
@@ -101,10 +110,11 @@
 - **CORS Mautic**: allowlist tem só `https://roco.com.br`; visitantes via `www` caem em pixel
   sem amarrar ao contato — corrigir CORS ou canonicalizar host.
 - **Cópias em `public/vendor/`**: reextrair APENAS de servidor Mautic limpo (pós-ClickFix).
-  Reinspecionar + SHA-256 no `public/vendor/README.md`. Devolver `mautic.roco.com.br` ao
-  `script-src` reabriria vetor ClickFix.
+  Reinspecionar + SHA-256 em `public/vendor/README.md`. Devolver `mautic.roco.com.br` ao `script-src` reabriria vetor.
 - **JWT + Drizzle**: validação staleness por callback a cada 5min; user.active booleano; desativação
   derruba sessão em ≤5min (ok). RBAC checado em tRPC procedures + Server Actions.
+- **sx (Emotion) em Server Components**: não pode usar funções (revalidação em runtime); usar
+  `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
 
 ## 📊 Métricas de Qualidade
 - **Testes**: Vitest 4, 208 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
