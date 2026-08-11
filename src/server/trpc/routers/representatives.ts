@@ -31,6 +31,14 @@ const REPRESENTATIVE_ROLE_SLUG = "representative";
 /** Rascunho/pendente: ainda editável pelo próprio representante. */
 const EDITABLE_STATUSES = new Set(["draft", "rejected"]);
 
+/**
+ * Estados que aceitam anexar documentos: além do rascunho, `approved` — quem
+ * chega pelo pré-cadastro do site é aprovado ANTES de completar o perfil, e o
+ * primeiro acesso (território + documentos) anexa arquivos já aprovado. Só o
+ * `submitted` fica de fora: em análise, nada muda debaixo do revisor.
+ */
+const DOCUMENT_STATUSES = new Set(["draft", "rejected", "approved"]);
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_PER_PAGE = 20;
 const MAX_PER_PAGE = 100;
@@ -193,7 +201,7 @@ export const representativesRouter = router({
       }
 
       const existing = await getOwnRepresentative(ctx.db, ctx.session.user.id);
-      if (!existing || !EDITABLE_STATUSES.has(existing.status)) {
+      if (!existing || !DOCUMENT_STATUSES.has(existing.status)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Nenhum cadastro editável encontrado para anexar documentos.",
@@ -227,7 +235,7 @@ export const representativesRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const existing = await getOwnRepresentative(ctx.db, ctx.session.user.id);
-      if (!existing || !EDITABLE_STATUSES.has(existing.status)) {
+      if (!existing || !DOCUMENT_STATUSES.has(existing.status)) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Nenhum cadastro editável encontrado para anexar documentos.",
@@ -270,6 +278,51 @@ export const representativesRouter = router({
       });
 
       return document;
+    }),
+
+  /**
+   * Complemento de perfil do PRIMEIRO ACESSO pós-aprovação (fluxo do
+   * pré-cadastro pelo site): o representante já foi aprovado com CNPJ e dados
+   * principais, e aqui informa território/observações (documentos sobem pelos
+   * presigns, liberados para `approved`). Não mexe em `status` nem em campos
+   * já validados pelo revisor (CNPJ/razão social ficam imutáveis).
+   */
+  completeProfile: protectedProcedure
+    .input(
+      z.object({
+        region: z.string().trim().min(1).max(120),
+        notes: draftField(2000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const existing = await getOwnRepresentative(ctx.db, ctx.session.user.id);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Nenhum cadastro encontrado." });
+      }
+      if (existing.status !== "approved") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "O complemento de perfil só está disponível após a aprovação.",
+        });
+      }
+
+      const [updated] = await ctx.db
+        .update(representatives)
+        .set({
+          region: input.region,
+          notes: input.notes ?? existing.notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(representatives.id, existing.id))
+        .returning();
+
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "representatives.complete_profile",
+        resource: "representatives",
+        resourceId: existing.id,
+      });
+
+      return updated;
     }),
 
   list: permissionProcedure("representatives", "read")

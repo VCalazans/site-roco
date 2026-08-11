@@ -47,6 +47,13 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
    `POST /mtc/event` ou pixel `mtracking.gif`.
 
 ### Fluxo de Representante (Portal)
+**Canal padrão (2026-08-11): pré-cadastro pelo SITE.**
+0. Visitante acessa `/{locale}/representantes` (nav "Força de Vendas") → pré-cadastro com CNPJ
+   obrigatório + nome/e-mail/telefone/razão social/senha → `representatives.status = "submitted"`
+   direto na fila do admin. Aprovação (review existente) concede a role `representative`.
+   Primeiro acesso pós-aprovação: wizard "modo conclusão" (território + documentos, `completeProfile`).
+
+**Fluxo alternativo (onboarding completo pós-login):**
 1. Acessa `/portal/login` (link de convite via WhatsApp/e-mail é fase futura).
 2. Login com Google (SSO) → primeira vez: onboarding wizard (MUI Stepper).
    - **Passo 1**: Dados pessoais (nome/e-mail da sessão Google readonly + telefone com máscara).

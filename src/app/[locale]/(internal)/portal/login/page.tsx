@@ -86,6 +86,9 @@ export default async function PortalLoginPage({
           signInButtonLabel={portal.login.signInButton}
           orDividerLabel={portal.login.orDivider}
           errorMessage={error === "credentials" ? portal.login.invalidCredentials : undefined}
+          registerPrompt={portal.login.registerPrompt}
+          registerLinkLabel={portal.login.registerLink}
+          registerHref={`/${locale}/representantes`}
           googleAction={googleAction}
           credentialsAction={credentialsAction}
         />

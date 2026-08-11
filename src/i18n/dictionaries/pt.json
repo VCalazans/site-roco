@@ -25,9 +25,8 @@
       },
       {
         "label": "Força de Vendas",
-        "href": "#contato",
-        "icon": "sales",
-        "hidden": true
+        "href": "#representantes",
+        "icon": "sales"
       },
       {
         "label": "Entre em contato",
@@ -112,6 +111,50 @@
   "languageSwitcher": {
     "label": "Idioma"
   },
+  "representatives": {
+    "seo": {
+      "title": "Seja um representante ROCO",
+      "description": "Faça seu pré-cadastro como representante comercial da ROCO. Informe seu CNPJ e dados principais — nosso time analisa e libera seu acesso ao portal."
+    },
+    "headline": "Força de Vendas ROCO",
+    "subheadline": "Representar a ROCO é levar produtos de fabricação nacional, com qualidade e pronta entrega, para todo o Brasil.",
+    "intro": "Preencha o pré-cadastro abaixo com o CNPJ da sua empresa e seus dados principais. Nosso time comercial analisa as informações e, assim que aprovado, você recebe acesso ao portal do representante para completar o restante do cadastro.",
+    "form": {
+      "title": "Pré-cadastro de representante",
+      "name": "Nome completo",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "companyName": "Razão social",
+      "cnpj": "CNPJ",
+      "password": "Senha de acesso",
+      "passwordConfirm": "Confirme a senha",
+      "passwordHint": "Mínimo de 8 caracteres. Você usará e-mail e senha para entrar no portal.",
+      "submit": "Enviar pré-cadastro",
+      "sending": "Enviando…"
+    },
+    "validation": {
+      "required": "Este campo é obrigatório.",
+      "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
+      "invalidCnpj": "CNPJ inválido. Confira os números digitados.",
+      "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
+      "passwordTooShort": "A senha precisa ter pelo menos 8 caracteres.",
+      "passwordMismatch": "As senhas não conferem."
+    },
+    "errors": {
+      "emailExists": "Já existe um cadastro com este e-mail. Entre no portal para acompanhar seu status.",
+      "cnpjExists": "Já existe um cadastro com este CNPJ. Fale com nosso time se precisar de ajuda.",
+      "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+      "generic": "Não foi possível enviar seu cadastro agora. Tente novamente em instantes."
+    },
+    "success": {
+      "title": "Pré-cadastro recebido!",
+      "message": "Nosso time comercial vai analisar suas informações. Assim que seu cadastro for aprovado, você poderá entrar no portal com seu e-mail e senha para completar o restante dos dados.",
+      "loginCta": "Ir para o login do portal"
+    },
+    "loginPrompt": "Já fez seu pré-cadastro?",
+    "loginLink": "Entrar no portal",
+    "lgpd": "Seus dados serão usados exclusivamente no processo de credenciamento de representantes ROCO."
+  },
   "portal": {
     "login": {
       "title": "Acesse sua área de trabalho",
@@ -122,7 +165,9 @@
       "passwordLabel": "Senha",
       "signInButton": "Entrar",
       "orDivider": "ou",
-      "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente."
+      "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
+      "registerPrompt": "Quer representar a ROCO?",
+      "registerLink": "Faça seu pré-cadastro"
     },
     "shell": {
       "appName": "ROCO Portal",
@@ -208,6 +253,12 @@
       "submitted": {
         "title": "Cadastro enviado com sucesso!",
         "message": "Obrigado por se cadastrar. Nossa equipe irá revisar os dados em breve."
+      },
+      "completion": {
+        "title": "Complete seu cadastro",
+        "subtitle": "Seu acesso foi aprovado! Falta pouco: informe seu território de atuação e anexe seus documentos.",
+        "finish": "Concluir cadastro",
+        "done": "Cadastro completo! Bem-vindo ao time ROCO."
       },
       "validation": {
         "required": "Este campo é obrigatório.",

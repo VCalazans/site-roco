@@ -31,6 +31,14 @@ export const siteLinks = {
 /** Route segment of the catalog page, appended after the locale prefix. */
 export const CATALOG_SEGMENT = "catalogo";
 
+/** Route segment of the representative pre-registration page. */
+export const REPRESENTATIVES_SEGMENT = "representantes";
+
+/** Locale-prefixed path of the representative pre-registration page. */
+export function representativesPath(locale: string): string {
+  return `/${locale}/${REPRESENTATIVES_SEGMENT}`;
+}
+
 /** Filename suggested to the browser when the catalog PDF is downloaded. */
 export const CATALOG_PDF_FILENAME = "catalogo-roco-2026.pdf";
 
@@ -53,6 +61,8 @@ export function resolveDestination(href: string, locale: string): string {
       return siteLinks.products || href;
     case "#catalogo":
       return siteLinks.catalog || catalogPath(locale);
+    case "#representantes":
+      return representativesPath(locale);
     default:
       return href;
   }

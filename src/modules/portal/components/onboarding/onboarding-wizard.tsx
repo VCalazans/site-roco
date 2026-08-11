@@ -23,6 +23,7 @@ import {
 import { isValidPhoneBR } from "@/modules/portal/lib/phone";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { OnboardingStatusView } from "./onboarding-status";
+import { ProfileCompletion } from "./profile-completion";
 import { CompanyStep } from "./steps/company-step";
 import { DocumentsStep } from "./steps/documents-step";
 import { PersonalStep } from "./steps/personal-step";
@@ -141,6 +142,20 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
   }
 
   const status = meQuery.data?.status ?? "draft";
+
+  // Fluxo do pré-cadastro pelo site: aprovado ANTES de completar o perfil —
+  // o primeiro acesso preenche território/documentos (`completeProfile`).
+  // Quando `region` já existe, o perfil está completo e cai no status normal.
+  if (status === "approved" && !meQuery.data?.region) {
+    return (
+      <ProfileCompletion
+        portal={portal}
+        initial={{ region: "", notes: meQuery.data?.notes ?? "" }}
+        documents={meQuery.data?.documents ?? []}
+      />
+    );
+  }
+
   if (status !== "draft") {
     return (
       <OnboardingStatusView

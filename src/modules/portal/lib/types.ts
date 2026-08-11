@@ -18,6 +18,8 @@ export type PortalDictionary = {
     signInButton: string;
     orDivider: string;
     invalidCredentials: string;
+    registerPrompt: string;
+    registerLink: string;
   };
   shell: {
     appName: string;
@@ -84,6 +86,12 @@ export type PortalDictionary = {
       submitted: string;
       approved: string;
       rejected: string;
+    };
+    completion: {
+      title: string;
+      subtitle: string;
+      finish: string;
+      done: string;
     };
     submitted: {
       title: string;

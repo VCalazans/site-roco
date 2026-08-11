@@ -25,9 +25,8 @@
       },
       {
         "label": "Sales Force",
-        "href": "#contato",
-        "icon": "sales",
-        "hidden": true
+        "href": "#representantes",
+        "icon": "sales"
       },
       {
         "label": "Get in touch",
@@ -112,6 +111,50 @@
   "languageSwitcher": {
     "label": "Language"
   },
+  "representatives": {
+    "seo": {
+      "title": "Become a ROCO sales representative",
+      "description": "Pre-register as a ROCO sales representative. Provide your CNPJ and main details — our team reviews it and grants you portal access."
+    },
+    "headline": "ROCO Sales Force",
+    "subheadline": "Representing ROCO means bringing nationally manufactured products, with quality and fast delivery, to all of Brazil.",
+    "intro": "Fill in the pre-registration below with your company's CNPJ and your main details. Our sales team reviews the information and, once approved, you get access to the representative portal to complete the rest of your profile.",
+    "form": {
+      "title": "Representative pre-registration",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyName": "Company name",
+      "cnpj": "CNPJ",
+      "password": "Access password",
+      "passwordConfirm": "Confirm password",
+      "passwordHint": "At least 8 characters. You will use email and password to sign in to the portal.",
+      "submit": "Submit pre-registration",
+      "sending": "Sending…"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "invalidEmail": "Invalid email. Please check the address.",
+      "invalidCnpj": "Invalid CNPJ. Please check the digits.",
+      "invalidPhone": "Invalid phone. Use the format (XX) 9XXXX-XXXX.",
+      "passwordTooShort": "Password must be at least 8 characters long.",
+      "passwordMismatch": "Passwords do not match."
+    },
+    "errors": {
+      "emailExists": "There is already a registration with this email. Sign in to the portal to check your status.",
+      "cnpjExists": "There is already a registration with this CNPJ. Contact our team if you need help.",
+      "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
+      "generic": "We could not submit your registration right now. Please try again shortly."
+    },
+    "success": {
+      "title": "Pre-registration received!",
+      "message": "Our sales team will review your information. Once your registration is approved, you can sign in to the portal with your email and password to complete the remaining details.",
+      "loginCta": "Go to portal login"
+    },
+    "loginPrompt": "Already pre-registered?",
+    "loginLink": "Sign in to the portal",
+    "lgpd": "Your data will be used exclusively for the ROCO representative accreditation process."
+  },
   "portal": {
     "login": {
       "title": "Access your workspace",
@@ -122,7 +165,9 @@
       "passwordLabel": "Password",
       "signInButton": "Sign in",
       "orDivider": "or",
-      "invalidCredentials": "Incorrect email or password. Please check and try again."
+      "invalidCredentials": "Incorrect email or password. Please check and try again.",
+      "registerPrompt": "Want to represent ROCO?",
+      "registerLink": "Pre-register here"
     },
     "shell": {
       "appName": "ROCO Portal",
@@ -204,6 +249,12 @@
         "submitted": "Submitted",
         "approved": "Approved",
         "rejected": "Rejected"
+      },
+      "completion": {
+        "title": "Complete your registration",
+        "subtitle": "Your access has been approved! Almost there: tell us your sales territory and attach your documents.",
+        "finish": "Finish registration",
+        "done": "Registration complete! Welcome to the ROCO team."
       },
       "submitted": {
         "title": "Registration submitted successfully!",

@@ -4,6 +4,19 @@
 ## Data
 2026-08-11
 
+## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
+- **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):
+  CNPJ obrigatório/validado + nome, e-mail, telefone, razão social e senha (login por credenciais;
+  Google SSO com o mesmo e-mail funciona quando configurado).
+- `POST /api/representatives/register`: rate limit IP+global, honeypot, dedupe e-mail/CNPJ (409),
+  transação user (bcrypt 12) + representative `submitted` + audit log. Schema puro testável
+  (`representative-register.ts`, 10 testes novos → 236).
+- **Fluxo**: site → fila de aprovação do admin (review existente concede role) → primeiro acesso
+  completa território+documentos (`completeProfile`, wizard "modo conclusão"; docs liberados para
+  `approved`). CNPJ/razão social imutáveis pós-aprovação.
+- Compartilhado: `shared/lib/phone.ts` (site+portal), alias `.form-neon` no globals.css.
+- Ver decisionLog 2026-08-11 para o racional completo.
+
 ## Sessão 2026-08-11 — Stack Docker local sempre no ar
 - `docker compose up -d`: web (localhost:3000, produção standalone) + postgres (host 5433) +
   redis (host 6380), todos `restart: unless-stopped`. Dados preservados no volume (737 produtos).

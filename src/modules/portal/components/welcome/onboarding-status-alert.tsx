@@ -36,11 +36,17 @@ export function OnboardingStatusAlert({ onboardingHref, dictionary }: Onboarding
   }
 
   const status = meQuery.data?.status ?? "draft";
-  if (status === "approved") {
+
+  // Aprovado com perfil completo: nada a pedir. Aprovado SEM território =
+  // veio do pré-cadastro do site — o primeiro acesso completa o restante.
+  const needsCompletion = status === "approved" && !meQuery.data?.region;
+  if (status === "approved" && !needsCompletion) {
     return null;
   }
 
-  const severity = status === "rejected" ? "warning" : "info";
+  const severity = status === "rejected" ? "warning" : needsCompletion ? "success" : "info";
+  const title = needsCompletion ? dictionary.completion.title : dictionary.status[status];
+  const body = needsCompletion ? dictionary.completion.subtitle : dictionary.subtitle;
 
   return (
     <Alert
@@ -59,8 +65,8 @@ export function OnboardingStatusAlert({ onboardingHref, dictionary }: Onboarding
       }
     >
       <Stack spacing={0.5}>
-        <AlertTitle>{dictionary.status[status]}</AlertTitle>
-        {dictionary.subtitle}
+        <AlertTitle>{title}</AlertTitle>
+        {body}
       </Stack>
     </Alert>
   );

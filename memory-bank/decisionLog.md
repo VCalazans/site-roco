@@ -293,3 +293,32 @@ welcome-dw-system-card,welcome-closing,onboarding-status-alert}.tsx` em `(intern
 (hoje placeholder). (4) Materiais sem asset (contactos, política, logística, vídeo DW) com Chip
 visível (não Tooltip). (5) **Padrão de projeto**: nunca Tooltip em elemento disabled em SSR; usar
 Chip, Badge ou texto inline.
+
+## 2026-08-11 — Canal público de aquisição de representantes (pré-cadastro no site, CNPJ obrigatório)
+**Decisão**: O cadastro inicial do representante se dá pelo SITE PÚBLICO em `/{locale}/representantes`
+(nav "Força de Vendas" reativada — item já existia estacionado com `hidden: true` e ícone `sales`).
+O pré-cadastro exige **CNPJ obrigatório e válido** + dados principais (nome, e-mail, telefone, razão
+social, senha) e cria `user` (bcrypt 12) + `representatives` já em **status `submitted`** — direto na
+fila de aprovação do admin (`/portal/representantes`, fluxo de review existente, que concede a role).
+O **primeiro acesso pós-aprovação** completa o restante: wizard em "modo conclusão" (território +
+documentos) via nova mutation `completeProfile` (só status `approved`; presign/confirm de documentos
+liberados para `approved` — `DOCUMENT_STATUSES`). CNPJ/razão social ficam imutáveis pós-aprovação.
+**Alternativas**: (a) manter onboarding só pós-login (fluxo original draft→submit→review) — não
+atende "cadastro inicial pelo site"; (b) aprovar só após perfil completo — atrasa a esteira comercial;
+(c) convite por e-mail/WhatsApp — sem infra de e-mail no MVP.
+**Justificativa**: Requisito do stakeholder: canal padrão de cadastro acessível pelo site, com CNPJ
+obrigatório e aprovação da administração; o resto preenchido no primeiro acesso. Senha no form é o
+único método de login funcional hoje (Google OAuth ainda sem credentials); SSO Google passa a
+funcionar automaticamente com o mesmo e-mail quando configurado.
+**Impacto**: (1) Rota pública `POST /api/representatives/register`: rate limit 5/10min por IP +
+30/5min global, honeypot (`website`, sucesso silencioso), dedupe e-mail (409 `email_exists`) e CNPJ
+(409 `cnpj_exists` — enumeração aceita como trade-off de UX, mitigada por rate limit), transação
+user+representative+audit (`representatives.register`, ator = próprio usuário, IP registrado).
+(2) Schema zod em `src/server/lib/representative-register.ts` (puro, testável — 10 testes novos,
+236 total). (3) `formatPhoneBR`/`isValidPhoneBR` movidos para `src/shared/lib/phone.ts` (site +
+portal; portal re-exporta). (4) Estilos de input neon ganharam alias `.form-neon` no globals.css
+(antes presos a `.mautic-form-wrap`). (5) Novo módulo `src/modules/representatives/` (form client +
+tipos de dicionário); página com glows dual-tone (sem arte nova). (6) Dicionários: namespace raiz
+`representatives` (~35 chaves), `portal.onboarding.completion`, `portal.login.registerPrompt/Link`;
+sitemap + `resolveDestination("#representantes")`. (7) Wizard: `ProfileCompletion` quando
+`approved && !region`; alerta de boas-vindas convida a completar o cadastro no mesmo caso.

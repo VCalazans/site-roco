@@ -2,7 +2,9 @@
 
 import { useFormStatus } from "react-dom";
 import Image from "next/image";
+import NextLink from "next/link";
 import GoogleIcon from "@mui/icons-material/Google";
+import MuiLink from "@mui/material/Link";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -28,6 +30,10 @@ type LoginCardProps = {
   orDividerLabel: string;
   /** Mensagem genérica de credencial inválida (via `?error=credentials`). */
   errorMessage?: string;
+  /** CTA para o pré-cadastro público de representantes (`/{locale}/representantes`). */
+  registerPrompt: string;
+  registerLinkLabel: string;
+  registerHref: string;
   /** Server Actions já com argumentos fixados via `.bind` (ver
    *  `login-action.ts` e `(internal)/portal/login/page.tsx`). */
   googleAction: (formData: FormData) => void | Promise<void>;
@@ -77,6 +83,9 @@ export function LoginCard({
   signInButtonLabel,
   orDividerLabel,
   errorMessage,
+  registerPrompt,
+  registerLinkLabel,
+  registerHref,
   googleAction,
   credentialsAction,
 }: LoginCardProps) {
@@ -157,6 +166,13 @@ export function LoginCard({
               variant="outlined"
             />
           </Box>
+
+          <Typography variant="body2" color="text.secondary">
+            {registerPrompt}{" "}
+            <MuiLink component={NextLink} href={registerHref}>
+              {registerLinkLabel}
+            </MuiLink>
+          </Typography>
 
           <Typography variant="caption" color="text.secondary">
             {disclaimer}

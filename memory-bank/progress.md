@@ -56,6 +56,16 @@
       (6) Light mode bgcolor background.default + minHeight 100dvh em (internal) layout
       (7) Processo órfão dev Windows: taskkill antes de restart
 
+### Aquisição de Representantes (2026-08-11)
+- [x] Página pública `/{locale}/representantes` (pré-cadastro, CNPJ obrigatório) + nav
+      "Força de Vendas" reativada + sitemap + namespace i18n `representatives` pt/en
+- [x] `POST /api/representatives/register`: rate limit (5/10min IP + 30/5min global), honeypot,
+      dedupe e-mail/CNPJ, transação user+representative(`submitted`)+audit, bcrypt 12
+- [x] Primeiro acesso pós-aprovação: `completeProfile` + wizard "modo conclusão"
+      (território+documentos), presign/confirm liberados p/ `approved`, alerta nas boas-vindas
+- [x] Link "Faça seu pré-cadastro" no login do portal; phone helpers movidos p/ `shared/lib`
+- [x] 10 testes novos (registerSchema) → 236 total
+
 ### Infra Local (2026-08-11)
 - [x] Stack Docker completa sempre no ar: web (localhost:3000) + postgres (host 5433) +
       redis (host 6380), `restart: unless-stopped`; dados preservados no volume (737 produtos)
