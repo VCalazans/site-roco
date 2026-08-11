@@ -24,7 +24,7 @@
         "icon": "headset"
       },
       {
-        "label": "Força de Vendas",
+        "label": "Portal ROCO",
         "href": "#representantes",
         "icon": "sales"
       },
@@ -113,14 +113,14 @@
   },
   "representatives": {
     "seo": {
-      "title": "Seja um representante ROCO",
-      "description": "Faça seu pré-cadastro como representante comercial da ROCO. Informe seu CNPJ e dados principais — nosso time analisa e libera seu acesso ao portal."
+      "title": "Portal ROCO — obtenha seu acesso",
+      "description": "Obtenha seu acesso ao Portal ROCO. Informe seu CNPJ e dados principais — nosso time analisa e libera seu acesso de representante."
     },
-    "headline": "Força de Vendas ROCO",
-    "subheadline": "Representar a ROCO é levar produtos de fabricação nacional, com qualidade e pronta entrega, para todo o Brasil.",
-    "intro": "Preencha o pré-cadastro abaixo com o CNPJ da sua empresa e seus dados principais. Nosso time comercial analisa as informações e, assim que aprovado, você recebe acesso ao portal do representante para completar o restante do cadastro.",
+    "headline": "Portal ROCO",
+    "subheadline": "Obtenha seu acesso ao Portal ROCO e faça parte da nossa rede de representantes em todo o Brasil.",
+    "intro": "Preencha o pré-cadastro abaixo com o CNPJ da sua empresa e seus dados principais. Nosso time comercial analisa as informações e, assim que aprovado, você recebe seu acesso ao Portal ROCO para completar o restante do cadastro.",
     "form": {
-      "title": "Pré-cadastro de representante",
+      "title": "Obtenha seu acesso",
       "name": "Nome completo",
       "email": "E-mail",
       "phone": "Telefone",
@@ -166,8 +166,8 @@
       "signInButton": "Entrar",
       "orDivider": "ou",
       "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
-      "registerPrompt": "Quer representar a ROCO?",
-      "registerLink": "Faça seu pré-cadastro"
+      "registerPrompt": "Ainda não tem acesso?",
+      "registerLink": "Obtenha seu acesso ao Portal ROCO"
     },
     "shell": {
       "appName": "ROCO Portal",

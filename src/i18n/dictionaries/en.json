@@ -24,7 +24,7 @@
         "icon": "headset"
       },
       {
-        "label": "Sales Force",
+        "label": "ROCO Portal",
         "href": "#representantes",
         "icon": "sales"
       },
@@ -113,14 +113,14 @@
   },
   "representatives": {
     "seo": {
-      "title": "Become a ROCO sales representative",
-      "description": "Pre-register as a ROCO sales representative. Provide your CNPJ and main details — our team reviews it and grants you portal access."
+      "title": "ROCO Portal — get your access",
+      "description": "Get your access to the ROCO Portal. Provide your CNPJ and main details — our team reviews it and grants your representative access."
     },
-    "headline": "ROCO Sales Force",
-    "subheadline": "Representing ROCO means bringing nationally manufactured products, with quality and fast delivery, to all of Brazil.",
-    "intro": "Fill in the pre-registration below with your company's CNPJ and your main details. Our sales team reviews the information and, once approved, you get access to the representative portal to complete the rest of your profile.",
+    "headline": "ROCO Portal",
+    "subheadline": "Get your access to the ROCO Portal and join our network of representatives across Brazil.",
+    "intro": "Fill in the pre-registration below with your company's CNPJ and your main details. Our sales team reviews the information and, once approved, you receive your ROCO Portal access to complete the rest of your profile.",
     "form": {
-      "title": "Representative pre-registration",
+      "title": "Get your access",
       "name": "Full name",
       "email": "Email",
       "phone": "Phone",
@@ -166,8 +166,8 @@
       "signInButton": "Sign in",
       "orDivider": "or",
       "invalidCredentials": "Incorrect email or password. Please check and try again.",
-      "registerPrompt": "Want to represent ROCO?",
-      "registerLink": "Pre-register here"
+      "registerPrompt": "Don't have access yet?",
+      "registerLink": "Get your ROCO Portal access"
     },
     "shell": {
       "appName": "ROCO Portal",
