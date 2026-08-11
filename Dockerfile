@@ -12,6 +12,12 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* é embutido no bundle em build-time. Em teste local (docker-compose)
+# passe "false" para não enviar hits reais ao Mautic; em produção deixe vazio (on).
+ARG NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=
+ENV NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=$NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED
+ARG NEXT_PUBLIC_SITE_URL=
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
 # ---- Runner (standalone) ----

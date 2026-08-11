@@ -2,7 +2,18 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-10
+2026-08-11
+
+## Sessão 2026-08-11 — Stack Docker local sempre no ar
+- `docker compose up -d`: web (localhost:3000, produção standalone) + postgres (host 5433) +
+  redis (host 6380), todos `restart: unless-stopped`. Dados preservados no volume (737 produtos).
+- Portas do host remapeadas (5433/6380) para não conflitar com Postgres/Redis de outros projetos;
+  `.env.local` atualizado. Container web usa `.env` (gitignored) + hosts internos do compose.
+- **Bug BuildKit/Windows**: `compose build` falha com caminhos `[locale]`/`(site)` → workaround
+  permanente em `scripts/docker-build.cmd` (contexto via tar/stdin) + `--no-build` no up.
+- Tracking Mautic desativado no bundle da imagem local (build-arg `false` — flag é build-time).
+- Smoke tests OK: /pt 200, /api/products com dados, /pt/portal/login 200, guard 307, login
+  credentials E2E 302 + cookie de sessão.
 
 ## Fase Atual
 Portal interno robusto — landing + catálogo + portal CRM em produção. Sessão 2026-08-10 focou em

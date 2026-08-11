@@ -181,6 +181,28 @@ Procedência, SHA-256, resultado da inspeção e passos de reextração: `public
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.
 - Headers de segurança configurados em `next.config.ts`.
 
+## Stack Docker Local (sempre no ar — 2026-08-11)
+Os 3 serviços rodam via `docker compose` com `restart: unless-stopped` (voltam com o Docker Desktop):
+- **web** (`site-roco`) → http://localhost:3000 — site + API + portal (build de produção).
+- **postgres** (`site-roco-postgres`) → host `localhost:5433` (interno 5432; 5433 evita conflito
+  com Postgres de outros projetos). Volume `roco_postgres_data` preserva dados (737 produtos, seed).
+- **redis** (`site-roco-redis`) → host `localhost:6380` (interno 6379).
+
+Envs: container web usa `.env` (gitignored) + `environment:` do compose (DATABASE_URL/REDIS_URL
+apontam para os hosts internos `postgres`/`redis`); tooling do host (`npm run dev`, drizzle-kit)
+usa `.env.local` (localhost:5433/6380 — mesmo banco).
+
+**Build no Windows (bug do BuildKit)**: `docker compose build` falha com
+`invalid file request src/app/[locale]/(site)/page.tsx` (colchetes/parênteses no caminho).
+Use `scripts\docker-build.cmd` (contexto via tar/stdin, binário-seguro via cmd) e depois
+`docker compose up -d --no-build web`. O script passa
+`NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=false` como build-arg (flag é embutida no bundle em
+build-time — imagem local NÃO envia hits reais ao Mautic).
+
+**Hot reload**: a imagem é build de produção (sem HMR). Para desenvolver com hot reload:
+`docker compose stop web && npm run dev` (mesma porta 3000, mesmo Postgres/Redis do Docker);
+ao terminar, `docker compose start web`.
+
 ## Links de Referência
 - Next.js App Router: https://nextjs.org/docs/app
 - Tailwind v4: https://tailwindcss.com/docs
