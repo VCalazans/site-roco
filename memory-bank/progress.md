@@ -56,6 +56,15 @@
       (6) Light mode bgcolor background.default + minHeight 100dvh em (internal) layout
       (7) Processo órfão dev Windows: taskkill antes de restart
 
+### Infra Local (2026-08-11)
+- [x] Stack Docker completa sempre no ar: web (localhost:3000) + postgres (host 5433) +
+      redis (host 6380), `restart: unless-stopped`; dados preservados no volume (737 produtos)
+- [x] `scripts/docker-build.cmd`: build via tar/stdin (bug BuildKit Windows com `[locale]`/`(site)`)
+      + `docker compose up -d --no-build web`
+- [x] Build-args `NEXT_PUBLIC_*` no Dockerfile — tracking Mautic OFF no bundle da imagem local
+- [x] Smoke tests no container: site 200, /api/products com dados, guard do portal 307,
+      login credentials E2E (302 + cookie de sessão)
+
 ### Qualidade
 - [x] `npm run build` verde
 - [x] `npm run test` e `npm run test:coverage` funcionando
@@ -90,7 +99,8 @@
 - **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
   atualmente disabled; links precisam de upload/asset públicos.
 - **Processo órfão dev server Windows**: taskkill manual necessário antes de `npm run dev` restart
-  (nota operacional documentar em README).
+  (mitigado 2026-08-11: teste contínuo agora roda no container Docker; dev server só para hot reload
+  — `docker compose stop web && npm run dev`).
 - Avaliar tornar CNPJ obrigatório em representantes (atualmente só se preenchido).
 - `roco-wordmark-white.png` (wordmark 3D) tem leve bleed; logo 2D é principal.
 - `docs/documento` (~98 MB) versionado — avaliar LFS/storage externo.
