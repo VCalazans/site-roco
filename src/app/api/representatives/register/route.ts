@@ -18,9 +18,14 @@ import { formatPhoneBR } from "@/shared/lib/phone";
 /** Mesmo custo do seed do admin (`src/db/seed.ts`) — consistência de política. */
 const BCRYPT_COST = 12;
 
-/** Cadastro é ação rara por visitante — janela apertada por IP + teto global. */
-const REGISTER_IP_RATE_LIMIT = { windowSeconds: 10 * 60, max: 5 };
-const REGISTER_GLOBAL_RATE_LIMIT = { windowSeconds: 5 * 60, max: 30 };
+/**
+ * Por IP: folgado o bastante para vários visitantes atrás do MESMO IP (NAT de
+ * escritório; localmente TODO host chega como o gateway do Docker — 5/10min
+ * bloqueou o primeiro teste manual real). O teto global é quem limita spam em
+ * volume; o por-IP só corta rajadas de uma origem.
+ */
+const REGISTER_IP_RATE_LIMIT = { windowSeconds: 10 * 60, max: 20 };
+const REGISTER_GLOBAL_RATE_LIMIT = { windowSeconds: 5 * 60, max: 60 };
 
 /**
  * Pré-cadastro público de representante comercial (canal do site).
