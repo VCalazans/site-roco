@@ -157,13 +157,16 @@ body {
  * (medido: 20.16px aqui contra 16px no catálogo a 1920x1080, e o inverso a
  * 1920x800, porque `cqw` depende também da ALTURA da janela).
  *
- * Precisa ficar FORA de `@layer` — como `.nav-glass` e `.btn-neon` — para
+ * Precisa ficar FORA de `@layer` — como `.btn-neon` — para
  * vencer o `:root` que o Tailwind emite em `@layer theme`.
  */
 .hero-board {
   container-type: inline-size;
-  --type-h1: 2.85cqw;
-  --type-lede: 1.2cqw;
+  /* O board passou de CONTAIN para COVER (2026-08-12): a 16:9 ele fica ~22%
+     mais largo que a viewport, então os valores em cqw foram reduzidos na
+     mesma proporção para o texto renderizar no mesmo tamanho óptico. */
+  --type-h1: 2.5cqw;
+  --type-lede: 1.05cqw;
 }
 
 a {
@@ -208,51 +211,9 @@ a {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }
 
-/* ---- Glass nav bar ----
-   Live CSS rebuild of the bar baked into the renders, for pages that are not
-   aspect-locked to the 3224x1724 board (see shared/components/nav/site-header).
-   Stops sampled from "Agrupar 1" in docs/Layout pag catalogo_ok.psd: dark slate
-   at the top, a lighter band through the middle, and a cool→warm wash along the
-   bottom edge (cyan side left, amber side right). */
-.nav-glass {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(
-    180deg,
-    rgba(38, 42, 54, 0.92) 0%,
-    rgba(56, 57, 68, 0.9) 42%,
-    rgba(74, 78, 92, 0.86) 68%,
-    rgba(92, 104, 126, 0.82) 100%
-  );
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.nav-glass::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    rgba(72, 124, 180, 0.55) 0%,
-    rgba(72, 124, 180, 0.45) 48%,
-    rgba(120, 112, 120, 0.25) 58%,
-    rgba(180, 116, 72, 0.5) 74%,
-    rgba(190, 124, 80, 0.55) 100%
-  );
-  mask-image: linear-gradient(180deg, transparent 45%, #000 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 45%, #000 100%);
-}
-
-.nav-glass > * {
-  position: relative;
-  z-index: 1;
-}
+/* A antiga `.nav-glass` (card flutuante do header) foi removida em 2026-08-12:
+   o `SiteHeader` virou faixa fixa translúcida no padrão WEG, estilizada com
+   utilitários Tailwind direto no componente. Recuperável no histórico do git. */
 
 /* Neon pill button (used on the mobile / no-render fallback layout) */
 .btn-neon {

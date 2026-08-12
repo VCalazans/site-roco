@@ -49,7 +49,8 @@
         "label": "Baixar Catálogo",
         "href": "#catalogo"
       },
-      "sceneAlt": "Ambiente futurista da ROCO com iluminação neon ciano e âmbar"
+      "sceneAlt": "Ambiente futurista da ROCO com iluminação neon ciano e âmbar",
+      "scrollCue": "Rolar para o conteúdo"
     },
     "about": {
       "eyebrow": "ROCO",

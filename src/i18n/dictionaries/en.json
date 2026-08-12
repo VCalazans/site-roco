@@ -49,7 +49,8 @@
         "label": "Download Catalog",
         "href": "#catalogo"
       },
-      "sceneAlt": "Futuristic ROCO environment with cyan and amber neon lighting"
+      "sceneAlt": "Futuristic ROCO environment with cyan and amber neon lighting",
+      "scrollCue": "Scroll to content"
     },
     "about": {
       "eyebrow": "ROCO",

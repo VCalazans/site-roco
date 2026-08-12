@@ -66,6 +66,7 @@ export default async function HomePage({ params }: PageProps) {
       href: resolveDestination(home.hero.secondaryCta.href, locale),
     },
     sceneAlt: home.hero.sceneAlt,
+    scrollCue: home.hero.scrollCue,
   };
 
   // Server-side data for the sections below the hero — direct imports from the

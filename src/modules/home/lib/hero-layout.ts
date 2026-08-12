@@ -23,7 +23,16 @@ import type { Variants } from "framer-motion";
  * a ser o `SiteHeader` compartilhado.
  */
 export const POS = {
-  copy: { left: "29.1%", top: "47.14%", width: "42%" },
+  /**
+   * O bloco de copy deixou de usar a caixa medida do .psd (left 29.1%, que
+   * deixava o texto fora de eixo contra uma arte de composição CENTRADA —
+   * wordmark no topo central, botões neon no rodapé central). Passa a ser
+   * centralizado nos dois eixos na faixa vazia entre o wordmark (termina
+   * ~y24%) e os botões (começam y75.8%): `top: 50%` + translate(-50%, -50%)
+   * — autocentrado para qualquer comprimento de texto (padrão WEG, pedido
+   * do stakeholder 2026-08-12).
+   */
+  copy: { top: "50%", width: "46%" },
   btnPrimary: { left: "34.8%", top: "75.84%", width: "17.6%", height: "10.22%" },
   btnSecondary: {
     left: "53.0%",

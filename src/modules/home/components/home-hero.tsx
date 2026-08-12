@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight, ChevronDown, Download } from "lucide-react";
 import { SiteHeader } from "@/shared/components/nav";
 import { CtaHotspot } from "@/modules/home/components/cta-hotspot";
 import { POS, fade } from "@/modules/home/lib/hero-layout";
@@ -15,6 +15,7 @@ type HomeHeroContent = {
   primaryCta: Cta;
   secondaryCta: Cta;
   sceneAlt: string;
+  scrollCue: string;
 };
 
 type HomeHeroProps = {
@@ -46,7 +47,7 @@ const SCENE = "/images/hero/hero-stage.jpg";
  */
 export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps) {
   return (
-    <section className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#05070b]">
+    <section className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
       {/* Uma única barra, ancorada à VIEWPORT — não ao board.
           O board é centralizado verticalmente e sobra tarja quando a tela não
           é 2.17:1; ancorar a barra nele fazia o header "pular" ao navegar
@@ -56,19 +57,25 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
           Instância única também no mobile: o SiteHeader já colapsa sozinho no
           hambúrguer abaixo de `md`. */}
       <SiteHeader brand={brand} links={navLinks} menuLabels={menuLabels} />
-      {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay =================
-          The whole render is shown undistorted so the live overlays (headline, paragraph, CTA
-          hotspots) stay aligned to the baked art. On screens whose ratio differs from the art
-          (~2.17:1) there are dark margins — the trade-off for never cropping content.
+      {/* ================= DESKTOP / TABLET — render em COVER full-bleed + overlay alinhado =================
+          A arte preenche a viewport inteira (padrão WEG: primeira dobra 100% imagem, sem
+          tarjas). O board mantém o aspect da arte (3224:1484) mas dimensionado para COBRIR:
+          `width: max(100vw, 100svh × 2.1725)` — em telas mais "quadradas" que a arte, as
+          LATERAIS atmosféricas (galpão/fábrica) são cortadas simetricamente; a composição
+          central (wordmark, copy, botões neon) permanece intacta e alinhada, porque os
+          overlays continuam posicionados em % DO BOARD, não da viewport.
 
-          A barra de nav NÃO faz mais parte da arte: o render foi recortado em y=240 (ver
-          `hero-layout.ts`) e o `SiteHeader` — o mesmo componente do catálogo — é renderizado
-          uma vez no nível da section, acima. É o que faz as duas páginas usarem exatamente a
-          mesma barra, mesmo logo e mesma posição, em vez de uma pintada e outra viva. */}
-      <div className="hidden md:flex md:h-[100svh] md:w-full md:items-center md:justify-center">
+          Antes o board era CONTAIN (`min(...)`) e sobravam tarjas escuras acima/abaixo em
+          qualquer tela ≠ 2.17:1 — feedback do stakeholder: "primeira seção não está
+          proporcional" (2026-08-12).
+
+          A barra de nav não faz parte da arte (render recortado em y=240, ver
+          `hero-layout.ts`): o `SiteHeader` fixo flutua por cima, o mesmo de todas as
+          páginas. */}
+      <div className="absolute inset-0 hidden overflow-hidden md:block">
         <div
-          className="hero-board relative aspect-[3224/1484] w-full"
-          style={{ maxWidth: "min(100vw, calc(100svh * 3224 / 1484))" }}
+          className="hero-board absolute left-1/2 top-1/2 aspect-[3224/1484] -translate-x-1/2 -translate-y-1/2"
+          style={{ width: "max(100vw, calc(100svh * 3224 / 1484))" }}
         >
           <Image
             src={SCENE}
@@ -79,11 +86,12 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
             className="object-cover"
           />
 
-          {/* Eyebrow + headline + paragraph (translatable, selectable, indexable) */}
+          {/* Eyebrow + headline + paragraph — CENTRALIZADOS nos dois eixos na
+              faixa livre entre o wordmark e os botões neon (composição
+              centrada da arte; ver POS.copy em hero-layout.ts). */}
           <div
-            className="absolute flex flex-col"
+            className="absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center"
             style={{
-              left: POS.copy.left,
               top: POS.copy.top,
               width: POS.copy.width,
               gap: "0.9cqw",
@@ -103,7 +111,7 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
               initial="hidden"
               animate="show"
               custom={1}
-              className="text-glow-soft whitespace-nowrap font-display text-h1 text-white"
+              className="text-glow-soft text-balance font-display text-h1 text-white"
             >
               {content.headline}
             </motion.h1>
@@ -124,6 +132,19 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
           <CtaHotspot cta={content.secondaryCta} style={{ ...POS.btnSecondary }} tone="amber" />
         </div>
       </div>
+
+      {/* Indicador de scroll (padrão WEG) — convida a descer para o conteúdo. */}
+      <motion.button
+        type="button"
+        onClick={() => window.scrollBy({ top: window.innerHeight * 0.9, behavior: "smooth" })}
+        aria-label={content.scrollCue}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.1, duration: 0.8 }}
+        className="absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 text-white/60 transition hover:text-white md:block"
+      >
+        <ChevronDown className="size-7 animate-bounce" aria-hidden />
+      </motion.button>
 
       {/* ================= MOBILE — atmospheric render + rebuilt live foreground ================= */}
       <div className="flex w-full flex-col md:hidden">
