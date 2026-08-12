@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { MauticTracking } from "@/shared/components/analytics";
 import { ContactFormProvider } from "@/shared/components/contact-form";
+import { SiteFooter } from "@/shared/components/footer";
 import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -11,10 +12,10 @@ type SiteLayoutProps = {
 };
 
 /**
- * Layout do SITE PÚBLICO (landing + catálogo). O grupo `(site)` existe para que
- * o botão flutuante de WhatsApp e o tracking de marketing (Mautic) não vazem
- * para o portal interno — `(internal)` tem providers próprios (MUI) e nenhum
- * script de marketing.
+ * Layout do SITE PÚBLICO (home + catálogo de produtos + representantes). O
+ * grupo `(site)` existe para que o botão flutuante de WhatsApp, o rodapé e o
+ * tracking de marketing (Mautic) não vazem para o portal interno —
+ * `(internal)` tem providers próprios (MUI) e nenhum script de marketing.
  */
 export default async function SiteLayout({ children, params }: SiteLayoutProps) {
   const { locale } = await params;
@@ -23,6 +24,7 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   return (
     <ContactFormProvider content={dictionary.contact}>
       {children}
+      <SiteFooter content={dictionary.footer} brand={dictionary.navigation.brand} locale={locale as Locale} />
       <WhatsAppFloat content={dictionary.whatsapp} />
       {/* Tracking de visitantes (Mautic). Vive aqui, e não no layout de [locale],
           para cobrir todas as rotas públicas sem instrumentar o portal interno. */}

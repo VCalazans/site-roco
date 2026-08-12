@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { and, asc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
 import { getPublicUrl } from "@/core/storage/r2";
 import { db } from "@/db";
 import {
@@ -49,6 +49,7 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
         productId: productCategories.productId,
         slug: categories.slug,
         namePt: categories.namePt,
+        nameEn: categories.nameEn,
       })
       .from(productCategories)
       .innerJoin(categories, eq(categories.id, productCategories.categoryId))
@@ -78,10 +79,13 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
       .orderBy(asc(productImages.sortOrder)),
   ]);
 
-  const categoriesByProduct = new Map<string, { slug: string; namePt: string }[]>();
+  const categoriesByProduct = new Map<
+    string,
+    { slug: string; namePt: string; nameEn: string | null }[]
+  >();
   for (const row of categoryRows) {
     const list = categoriesByProduct.get(row.productId) ?? [];
-    list.push({ slug: row.slug, namePt: row.namePt });
+    list.push({ slug: row.slug, namePt: row.namePt, nameEn: row.nameEn });
     categoriesByProduct.set(row.productId, list);
   }
 
@@ -191,5 +195,78 @@ export const getPublicProductBySlug = unstable_cache(
     return assembled ?? null;
   },
   ["public-product-detail"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/**
+ * Categorias ativas para os filtros da listagem pública. Chamada direto pelo
+ * Server Component (sem passar por HTTP — módulo `server-only`), então não
+ * ganha rota REST própria. Mesma tag `"products"` para invalidar junto do
+ * catálogo (uma categoria pode mudar de nome/ordem nas mutações do tRPC).
+ */
+export const getPublicCategoryList = unstable_cache(
+  async () => {
+    const rows = await db
+      .select({
+        slug: categories.slug,
+        namePt: categories.namePt,
+        nameEn: categories.nameEn,
+        parentId: categories.parentId,
+      })
+      .from(categories)
+      .where(eq(categories.active, true))
+      .orderBy(asc(categories.sortOrder), asc(categories.namePt));
+
+    return rows;
+  },
+  ["public-category-list"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/**
+ * Produtos em destaque para a seção "produtos em destaque" da home —
+ * prioriza quem tem o badge `"top"` (mais recentes primeiro) e, se não
+ * houver o suficiente, completa com os produtos publicados mais recentes,
+ * sem repetir nenhum já escolhido.
+ */
+export const getFeaturedProducts = unstable_cache(
+  async (limit = 8) => {
+    const baseConditions = [eq(products.published, true), eq(products.active, true)];
+
+    const topRows = await db
+      .select()
+      .from(products)
+      .where(
+        and(
+          ...baseConditions,
+          exists(
+            db
+              .select({ one: sql`1` })
+              .from(productBadges)
+              .where(and(eq(productBadges.productId, products.id), eq(productBadges.badge, "top")))
+          )
+        )
+      )
+      .orderBy(desc(products.createdAt))
+      .limit(limit);
+
+    const remaining = limit - topRows.length;
+    let fillRows: (typeof products.$inferSelect)[] = [];
+
+    if (remaining > 0) {
+      const excludeIds = topRows.map((row) => row.id);
+      fillRows = await db
+        .select()
+        .from(products)
+        .where(
+          and(...baseConditions, excludeIds.length > 0 ? notInArray(products.id, excludeIds) : undefined)
+        )
+        .orderBy(desc(products.createdAt))
+        .limit(remaining);
+    }
+
+    return assembleProducts([...topRows, ...fillRows]);
+  },
+  ["public-featured-products"],
   { tags: ["products"], revalidate: 300 }
 );

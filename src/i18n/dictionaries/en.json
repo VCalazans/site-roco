@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "ROCO — Something new is coming!",
-    "description": "We are preparing a new website, designed to stay ever more connected with you. In the meantime, keep browsing our products and catalog."
+    "title": "ROCO — Plumbing and Hydraulic Solutions",
+    "description": "ROCO. Solutions in plumbing, hydraulics and industrial components. Brazilian manufacturer with national presence and exports."
   },
   "navigation": {
     "brand": "ROCO",
@@ -35,27 +35,87 @@
       }
     ]
   },
-  "comingSoon": {
+  "home": {
     "brand": "ROCO",
-    "headline": "Something new is coming!",
-    "description": "We are preparing a new website, designed to stay ever more connected with you. In the meantime, keep browsing our products and catalog using the links below.",
-    "primaryCta": {
-      "label": "Explore our Products",
-      "href": "#produtos"
+    "hero": {
+      "eyebrow": "Industrial Solutions",
+      "headline": "Plumbing and Hydraulic Solutions You Can Trust",
+      "description": "Explore the complete ROCO product line. Engineered to meet the most demanding requirements of the Brazilian industrial market.",
+      "primaryCta": {
+        "label": "Explore Our Products",
+        "href": "/produtos"
+      },
+      "secondaryCta": {
+        "label": "Download Catalog",
+        "href": "#catalogo"
+      },
+      "sceneAlt": "Futuristic ROCO environment with cyan and amber neon lighting"
     },
-    "secondaryCta": {
-      "label": "Download Catalog",
-      "href": "#catalogo"
+    "about": {
+      "eyebrow": "ROCO",
+      "headline": "Brazilian Industry in Growth",
+      "paragraphs": [
+        "ROCO is a manufacturer specialized in plumbing and hydraulic solutions, serving the market since 2014. With headquarters in Blumenau and Gaspar, Santa Catarina, we invest constantly in innovation and quality to better serve our customers.",
+        "Our operations span the entire national territory and exports to Paraguay and Bolivia. We combine industrial expertise with commitment to sustainability and best business practices."
+      ],
+      "highlights": [
+        {
+          "label": "Since 2014",
+          "value": "Experience and market reliability"
+        },
+        {
+          "label": "Blumenau and Gaspar/SC",
+          "value": "Modern facilities in Brazil"
+        },
+        {
+          "label": "Great Place to Work",
+          "value": "GPTW excellence certification"
+        },
+        {
+          "label": "National Coverage",
+          "value": "Consolidated presence and exports"
+        }
+      ],
+      "cta": {
+        "label": "Discover our products",
+        "href": "/produtos"
+      }
     },
-    "sceneAlt": "Futuristic ROCO environment with neon lighting"
+    "categories": {
+      "eyebrow": "Our Portfolio",
+      "headline": "Product Categories",
+      "description": "Explore our complete line of plumbing, hydraulics, connections, hoses and more. Quality and reliability in every category.",
+      "cta": {
+        "label": "View All Products",
+        "href": "/produtos"
+      }
+    },
+    "featured": {
+      "eyebrow": "Featured",
+      "headline": "Featured Products",
+      "description": "Check out a selection of highlighted products in our portfolio. Browse through the featured items and discover solutions aligned with your needs.",
+      "emptyState": "Explore our complete line in Products.",
+      "cta": {
+        "label": "View Full Catalog",
+        "href": "/produtos"
+      }
+    },
+    "portalCta": {
+      "headline": "ROCO Sales Network",
+      "description": "Pre-register as a commercial representative for ROCO. Seize business opportunities throughout your sales region.",
+      "cta": {
+        "label": "ROCO Portal",
+        "href": "/representantes"
+      }
+    }
   },
   "catalog": {
     "seo": {
       "title": "ROCO Product Catalog — download the PDF",
-      "description": "Explore the full ROCO range: MVS, repair kits for valves and taps, gas installations, coupled cistern mechanisms, filter adapters and garden watering accessories. Fill in your details and download the catalog."
+      "description": "Explore the full ROCO range: plumbing, hydraulic solutions, repair kits, connections, gas installations, hoses and complementary accessories. Fill in your details and download the catalog."
     },
     "headline": "Explore our full product line",
-    "description": "Discover a wide range of products — from MVS to repair kits for valves and taps, gas installations, coupled cistern mechanisms, filter adapters and garden watering accessories — all designed to meet your customers' needs. Download our exclusive catalog now and offer quality products.",
+    "description": "Discover a wide range of products — from plumbing solutions to hydraulic systems, repair kits for valves and taps, gas installations, connections, hoses and complementary accessories — all engineered to meet your customers' needs. Download our exclusive catalog now and offer quality products.",
     "sceneAlt": "Printed ROCO product catalog on a surface with neon lighting",
     "formTitle": "Fill in your details to receive the catalog",
     "submit": "Download Catalog",
@@ -106,7 +166,47 @@
     "message": "Hi! I came from the ROCO website and would like more information."
   },
   "footer": {
-    "rights": "© 2026 ROCO. All rights reserved."
+    "rights": "© 2026 ROCO Indústria Metalplástica S.A. All rights reserved.",
+    "tagline": "Quality, innovation and reliability in plumbing and hydraulic solutions.",
+    "columns": [
+      {
+        "title": "Products",
+        "links": [
+          {
+            "label": "View catalog",
+            "href": "/produtos"
+          },
+          {
+            "label": "Download catalog as PDF",
+            "href": "#catalogo"
+          }
+        ]
+      },
+      {
+        "title": "Company",
+        "links": [
+          {
+            "label": "ROCO Portal — Sales Network",
+            "href": "/representantes"
+          }
+        ]
+      },
+      {
+        "title": "Contact",
+        "links": [
+          {
+            "label": "Get in touch",
+            "href": "#contato"
+          },
+          {
+            "label": "We'll call you",
+            "href": "#contato"
+          }
+        ]
+      }
+    ],
+    "socialLabel": "Follow ROCO",
+    "addressLabel": "Blumenau and Gaspar — Santa Catarina, Brazil"
   },
   "languageSwitcher": {
     "label": "Language"
@@ -154,6 +254,59 @@
     "loginPrompt": "Already pre-registered?",
     "loginLink": "Sign in to the portal",
     "lgpd": "Your data will be used exclusively for the ROCO representative accreditation process."
+  },
+  "products": {
+    "seo": {
+      "title": "ROCO Products — Complete Catalog",
+      "description": "Explore the complete ROCO product portfolio. Plumbing, hydraulics, connections, hoses and more. Industrial quality for your needs."
+    },
+    "listing": {
+      "headline": "Products",
+      "description": "Explore our complete line of plumbing and hydraulic solutions.",
+      "searchPlaceholder": "Search product by name, SKU or category...",
+      "categoryAllLabel": "All categories",
+      "emptyState": "No products found. Adjust your filters and try again.",
+      "resultsCount": "{count} products found",
+      "loadMore": "Load more",
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "pageLabel": "Page {page} of {totalPages}"
+      }
+    },
+    "card": {
+      "viewDetails": "View details",
+      "codeLabel": "Code"
+    },
+    "detail": {
+      "breadcrumbHome": "Home",
+      "breadcrumbProducts": "Products",
+      "codeLabel": "Code",
+      "descriptionHeadline": "Features",
+      "packagingsHeadline": "Available Packaging",
+      "badgesHeadline": "Highlights",
+      "relatedHeadline": "Related Products",
+      "notFoundTitle": "Product not found",
+      "notFoundDescription": "The product you're looking for does not exist or has been removed. Go back to the catalog to explore other options.",
+      "backToListing": "Back to catalog",
+      "quoteCta": "Request a quote",
+      "noPackagings": "Packaging information not available",
+      "noBadges": "No highlights associated",
+      "noRelated": "No related products found"
+    },
+    "badges": {
+      "nacional": "National Manufacturing",
+      "universal": "Universal Compatibility",
+      "top": "Best Seller",
+      "tres_em_um": "3 in 1",
+      "seguro": "Safety Certified"
+    },
+    "packaging": {
+      "peca": "Unit",
+      "blister": "Blister",
+      "caixa": "Box",
+      "saco_plastico": "Plastic Bag"
+    }
   },
   "portal": {
     "login": {

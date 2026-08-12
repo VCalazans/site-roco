@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ComingSoonHero } from "@/modules/landing/components/coming-soon-hero";
+import { HomeHero } from "@/modules/home/components/home-hero";
+import { HomeAbout } from "@/modules/home/components/home-about";
+import { HomeCategories } from "@/modules/home/components/home-categories";
+import { HomeFeatured } from "@/modules/home/components/home-featured";
+import { HomePortalCta } from "@/modules/home/components/home-portal-cta";
 import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getFeaturedProducts, getPublicCategoryList, getPublicProductList } from "@/server/lib/public-products";
 import { visibleNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
@@ -32,7 +37,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function LandingPage({ params }: PageProps) {
+export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
 
   if (!locales.includes(locale)) {
@@ -40,7 +45,7 @@ export default async function LandingPage({ params }: PageProps) {
   }
 
   const dictionary = await getDictionary(locale);
-  const { comingSoon, navigation } = dictionary;
+  const { home, navigation, products } = dictionary;
 
   // Destinations come from env/config; dictionary hrefs are copy-only fallbacks.
   const navLinks = visibleNavLinks(navigation.links).map((link) => ({
@@ -48,23 +53,62 @@ export default async function LandingPage({ params }: PageProps) {
     href: resolveDestination(link.href, locale),
   }));
 
-  const content = {
-    ...comingSoon,
+  const heroContent = {
+    eyebrow: home.hero.eyebrow,
+    headline: home.hero.headline,
+    description: home.hero.description,
     primaryCta: {
-      ...comingSoon.primaryCta,
-      href: resolveDestination(comingSoon.primaryCta.href, locale),
+      ...home.hero.primaryCta,
+      href: resolveDestination(home.hero.primaryCta.href, locale),
     },
     secondaryCta: {
-      ...comingSoon.secondaryCta,
-      href: resolveDestination(comingSoon.secondaryCta.href, locale),
+      ...home.hero.secondaryCta,
+      href: resolveDestination(home.hero.secondaryCta.href, locale),
     },
+    sceneAlt: home.hero.sceneAlt,
   };
 
+  // Server-side data for the sections below the hero — direct imports from the
+  // `server-only` catalog helpers (no HTTP round-trip); cached via
+  // `unstable_cache` (tag "products", see `@/server/lib/public-products`).
+  const [productStats, categoryList, featuredProducts] = await Promise.all([
+    getPublicProductList({ page: 1, perPage: 1 }),
+    getPublicCategoryList(),
+    getFeaturedProducts(8),
+  ]);
+
   return (
-    <ComingSoonHero
-      content={content}
-      navLinks={navLinks}
-      menuLabels={{ open: navigation.menu, close: navigation.close }}
-    />
+    <>
+      <HomeHero
+        brand={home.brand}
+        content={heroContent}
+        navLinks={navLinks}
+        menuLabels={{ open: navigation.menu, close: navigation.close }}
+      />
+      <HomeAbout
+        content={home.about}
+        ctaHref={resolveDestination(home.about.cta.href, locale)}
+        locale={locale}
+        stats={{ totalProducts: productStats.total, totalCategories: categoryList.length }}
+      />
+      <HomeCategories
+        content={home.categories}
+        categories={categoryList}
+        locale={locale}
+        ctaHref={resolveDestination(home.categories.cta.href, locale)}
+      />
+      <HomeFeatured
+        content={home.featured}
+        items={featuredProducts}
+        locale={locale}
+        ctaHref={resolveDestination(home.featured.cta.href, locale)}
+        cardContent={products.card}
+        badgeLabels={products.badges}
+      />
+      <HomePortalCta
+        content={home.portalCta}
+        ctaHref={resolveDestination(home.portalCta.cta.href, locale)}
+      />
+    </>
   );
 }

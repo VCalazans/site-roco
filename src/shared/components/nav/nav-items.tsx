@@ -1,8 +1,14 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Headset, Package, PhoneCall } from "lucide-react";
-import { externalProps, isContactLink, type NavLink } from "@/shared/lib/nav";
+import {
+  externalProps,
+  isContactLink,
+  isNavLinkActive,
+  type NavLink,
+} from "@/shared/lib/nav";
 
 /**
  * Nav icons taken from the design (docs/Novos ícones_OK.psd and
@@ -21,8 +27,12 @@ type NavItemsProps = {
   links: NavLink[];
   /** Called when a contact link is chosen (opens the contact modal). */
   onContact: () => void;
-  /** Per-index class name, so each layout keeps its own look. */
-  itemClassName: (index: number) => string;
+  /**
+   * Per-index class name. Also receives whether the item's href matches the
+   * current route (`isNavLinkActive`) so callers can hand it to
+   * `navLabelClass` and highlight the truly active item — not a fixed index.
+   */
+  itemClassName: (index: number, isActive: boolean) => string;
   /** Optional per-index inline style (e.g. container-query font sizing). */
   itemStyle?: (index: number) => CSSProperties | undefined;
   /** Fired on any item activation — used by the mobile menu to close itself. */
@@ -51,11 +61,13 @@ export function NavItems({
   wrapItem,
 }: NavItemsProps) {
   const wrap = wrapItem ?? ((node: ReactNode) => node);
+  const pathname = usePathname();
 
   return (
     <>
       {links.map((link, index) => {
-        const className = itemClassName(index);
+        const isActive = isNavLinkActive(link.href, pathname);
+        const className = itemClassName(index, isActive);
         const style = itemStyle?.(index);
         const Icon = link.icon ? NAV_ICONS[link.icon] : undefined;
 
@@ -63,7 +75,11 @@ export function NavItems({
           <span className="inline-flex items-center gap-[0.45em]">
             <Icon
               aria-hidden
-              className="shrink-0 icon-glow-amber"
+              className={
+                isActive
+                  ? "shrink-0 icon-glow-cyan"
+                  : "shrink-0 icon-glow-amber"
+              }
               style={{ width: "1.25em", height: "1.25em" }}
             />
             <span>{link.label}</span>
@@ -97,6 +113,7 @@ export function NavItems({
             onClick={onSelect}
             className={className}
             style={style}
+            aria-current={isActive ? "page" : undefined}
             {...externalProps(link.href)}
           >
             {content}

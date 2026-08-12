@@ -1,8 +1,8 @@
 /**
- * Navigation primitives shared by every page (landing hero overlay, catalog
+ * Navigation primitives shared by every page (home hero overlay, catalog
  * header, mobile menu). Kept in `shared/` because more than one module renders
  * the same nav; page-specific geometry stays with the page (see
- * `@/modules/landing/lib/hero-layout`).
+ * `@/modules/home/lib/hero-layout`).
  */
 
 /** A labelled destination — used by nav links and page CTAs. */
@@ -42,8 +42,13 @@ export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
  * home e 16px no catálogo a 1920x1080 — e o inverso a 1920x800. `text-nav`
  * depende só da largura da viewport, então os três passam a medir igual.
  *
- * `index === 0` é o item "Home", em ciano; os demais em âmbar — o mesmo
- * pareamento dual-tone da marca que aparece no render.
+ * O tom ciano marca o item da rota ATIVA (ver `isNavLinkActive`); os demais
+ * ficam em âmbar — o mesmo pareamento dual-tone da marca que aparece no
+ * render. Antes o ciano ia sempre para `index === 0` ("Home"), fixo,
+ * independente da página — em `/produtos`, `/representantes` etc. "Home"
+ * aparecia "ativo" mesmo sem ser a rota atual, o que não indicava nada de
+ * verdade (padrão WEG: só o segmento realmente selecionado acende, ver
+ * `docs/referencia weg/home/image3.png` e `image4.png`).
  *
  * LINHA ÚNICA sempre. O .psd desenha os rótulos em duas linhas, mas isso é
  * composição de pôster, não padrão de navegação web: rótulo quebrado dobra a
@@ -52,21 +57,45 @@ export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
  * lista horizontal, um rótulo por linha, espaçamento constante. Quando não
  * couber, o menu colapsa no hambúrguer (abaixo de `lg`) em vez de quebrar.
  *
+ * @param isActive Se o link corresponde à rota atual (ver `isNavLinkActive`).
  * @param variant `"bar"` é o item da barra horizontal;
  *                `"menu"` alinha à esquerda e ocupa a largura toda (dropdown).
  */
 export function navLabelClass(
-  index: number,
+  isActive: boolean,
   variant: "bar" | "menu" = "bar"
 ): string {
   const base = "text-nav whitespace-nowrap transition";
   const shape = variant === "bar" ? "" : "w-full text-left";
-  const tone =
-    index === 0
-      ? "text-glow-cyan text-neon-cyan-bright hover:opacity-90"
-      : "text-glow-amber text-white/90 hover:text-white";
+  const tone = isActive
+    ? "text-glow-cyan text-neon-cyan-bright hover:opacity-90"
+    : "text-glow-amber text-white/90 hover:text-white";
 
   return [base, shape, tone].filter(Boolean).join(" ");
+}
+
+/**
+ * Se um link de nav corresponde à rota ATUAL — usado por `NavItems` para
+ * decidir o tom (`navLabelClass`) de cada item com base no `pathname` real, em
+ * vez de um índice fixo.
+ *
+ * - Links de contato (`#contato`) nunca "ativam": abrem um modal, não navegam.
+ * - O link "Home" resolve para `href === "/"` (`resolveDestination` não
+ *   prefixa com o locale, ver `core/config/site.ts`); ele conta como ativo
+ *   tanto na raiz nua (`/`) quanto na raiz do locale (`/pt`, `/en`), já que o
+ *   middleware nunca deixa a home renderizar em outra profundidade.
+ * - Todo outro href já sai locale-prefixado de `resolveDestination`
+ *   (`/pt/representantes`, `/pt/produtos`…); conta como ativo em match exato
+ *   ou em qualquer rota aninhada por baixo dele (`/pt/produtos/algum-slug`).
+ */
+export function isNavLinkActive(href: string, pathname: string): boolean {
+  if (isContactLink(href)) return false;
+
+  if (href === "/") {
+    return pathname === "/" || /^\/[^/]+\/?$/.test(pathname);
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Open external (http) links in a new tab; leave internal links as-is. */

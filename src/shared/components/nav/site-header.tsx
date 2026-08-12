@@ -61,7 +61,7 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
             <NavItems
               links={links}
               onContact={openContact}
-              itemClassName={(index) => navLabelClass(index, "bar")}
+              itemClassName={(_index, isActive) => navLabelClass(isActive, "bar")}
               wrapItem={(node, key) => <li key={key}>{node}</li>}
             />
           </ul>

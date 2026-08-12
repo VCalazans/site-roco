@@ -4,7 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { SiteHeader } from "@/shared/components/nav";
 import type { NavLink } from "@/shared/lib/nav";
-import { fade } from "@/modules/landing/lib/hero-layout";
+import { fade } from "@/modules/home/lib/hero-layout";
 import {
   CatalogForm,
   type CatalogFormContent,

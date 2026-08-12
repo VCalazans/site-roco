@@ -1,7 +1,7 @@
 {
   "seo": {
-    "title": "ROCO — Tem novidade chegando!",
-    "description": "Estamos preparando um novo site, pensado para estar cada vez mais conectado com você. Enquanto isso, continue acessando nossos produtos e catálogo."
+    "title": "ROCO — Soluções Hidrossanitárias e Hidráulicas",
+    "description": "ROCO. Soluções em hidrossanitários, hidráulica e componentes industriais. Fabricante brasileira com presença nacional e exportação."
   },
   "navigation": {
     "brand": "ROCO",
@@ -35,27 +35,87 @@
       }
     ]
   },
-  "comingSoon": {
+  "home": {
     "brand": "ROCO",
-    "headline": "Tem novidade chegando!",
-    "description": "Estamos preparando um novo site, pensado para estar cada vez mais conectado com você. Enquanto isso, continue acessando nossos produtos e catálogo, clicando nos links abaixo.",
-    "primaryCta": {
-      "label": "Conheça nossos Produtos",
-      "href": "#produtos"
+    "hero": {
+      "eyebrow": "Soluções Industriais",
+      "headline": "Hidrossanitários e Hidráulica com Qualidade",
+      "description": "Conheça a linha completa de produtos ROCO. Desenvolvidos para atender às demandas mais exigentes do mercado industrial brasileiro.",
+      "primaryCta": {
+        "label": "Conheça nossos Produtos",
+        "href": "/produtos"
+      },
+      "secondaryCta": {
+        "label": "Baixar Catálogo",
+        "href": "#catalogo"
+      },
+      "sceneAlt": "Ambiente futurista da ROCO com iluminação neon ciano e âmbar"
     },
-    "secondaryCta": {
-      "label": "Baixar Catálogo",
-      "href": "#catalogo"
+    "about": {
+      "eyebrow": "ROCO",
+      "headline": "Indústria Brasileira em Crescimento",
+      "paragraphs": [
+        "A ROCO é uma fabricante especializada em soluções hidrossanitárias e hidráulicas, atuando no mercado desde 2014. Com sedes em Blumenau e Gaspar, Santa Catarina, investimos constantemente em inovação e qualidade para melhor servir nossos clientes.",
+        "Nossa atuação abrange todo o território nacional e exportações para Paraguai e Bolívia. Combinamos experiência industrial com compromisso com sustentabilidade e boas práticas comerciais."
+      ],
+      "highlights": [
+        {
+          "label": "Desde 2014",
+          "value": "Experiência e solidez no mercado"
+        },
+        {
+          "label": "Blumenau e Gaspar/SC",
+          "value": "Sedes modernas no Brasil"
+        },
+        {
+          "label": "Great Place to Work",
+          "value": "Certificação GPTW de excelência"
+        },
+        {
+          "label": "Atuação Nacional",
+          "value": "Presença consolidada e exportação"
+        }
+      ],
+      "cta": {
+        "label": "Descubra nossos produtos",
+        "href": "/produtos"
+      }
     },
-    "sceneAlt": "Ambiente futurista da ROCO com iluminação neon"
+    "categories": {
+      "eyebrow": "Nosso Portfólio",
+      "headline": "Categorias de Produtos",
+      "description": "Explore nossa linha completa de hidrossanitários, hidráulica, conexões, flexíveis e muito mais. Qualidade e confiabilidade em cada categoria.",
+      "cta": {
+        "label": "Ver Todos os Produtos",
+        "href": "/produtos"
+      }
+    },
+    "featured": {
+      "eyebrow": "Destaque",
+      "headline": "Produtos em Evidência",
+      "description": "Confira uma seleção de produtos de destaque no nosso portfólio. Navegue pelos destaques e descubra soluções alinhadas às suas necessidades.",
+      "emptyState": "Explore nossa linha completa em Produtos.",
+      "cta": {
+        "label": "Ver Catálogo Completo",
+        "href": "/produtos"
+      }
+    },
+    "portalCta": {
+      "headline": "Força de Vendas ROCO",
+      "description": "Faça seu pré-cadastro como representante comercial da ROCO. Aproveite as oportunidades de negócio em toda a sua região de atuação.",
+      "cta": {
+        "label": "Portal ROCO",
+        "href": "/representantes"
+      }
+    }
   },
   "catalog": {
     "seo": {
       "title": "Catálogo de Produtos ROCO — baixe o PDF",
-      "description": "Conheça toda a linha ROCO: MVS, reparos para registros e torneiras, instalações a gás, mecanismos para caixas acopladas, adaptadores de filtro e acessórios para hidrojardim. Preencha os dados e baixe o catálogo."
+      "description": "Conheça toda a linha ROCO: hidrossanitários, hidráulica, reparos, conexões, instalações a gás, flexíveis e acessórios. Preencha os dados e baixe o catálogo."
     },
     "headline": "Conheça toda a nossa linha de produtos",
-    "description": "Descubra uma ampla variedade de produtos, desde MVS a reparos para registros e torneiras, instalações a gás, mecanismos para caixas acopladas, adaptadores de filtro e acessórios para hidrojardim, tudo projetado para atender às necessidades dos seus clientes. Baixe agora nosso catálogo exclusivo e ofereça produtos de qualidade.",
+    "description": "Descubra uma ampla variedade de produtos, desde hidrossanitários a soluções de hidráulica, reparos para registros e torneiras, instalações a gás, conexões, flexíveis e acessórios complementares, tudo projetado para atender às necessidades dos seus clientes. Baixe agora nosso catálogo exclusivo e ofereça produtos de qualidade.",
     "sceneAlt": "Catálogo de produtos ROCO impresso sobre uma superfície com iluminação neon",
     "formTitle": "Preencha os dados para receber o catálogo",
     "submit": "Baixar Catálogo",
@@ -106,7 +166,47 @@
     "message": "Olá! Vim pelo site da ROCO e gostaria de mais informações."
   },
   "footer": {
-    "rights": "© 2026 ROCO. Todos os direitos reservados."
+    "rights": "© 2026 ROCO Indústria Metalplástica S.A. Todos os direitos reservados.",
+    "tagline": "Qualidade, inovação e confiabilidade em soluções hidrossanitárias e hidráulicas.",
+    "columns": [
+      {
+        "title": "Produtos",
+        "links": [
+          {
+            "label": "Ver catálogo",
+            "href": "/produtos"
+          },
+          {
+            "label": "Baixar catálogo em PDF",
+            "href": "#catalogo"
+          }
+        ]
+      },
+      {
+        "title": "Empresa",
+        "links": [
+          {
+            "label": "Portal ROCO — Força de Vendas",
+            "href": "/representantes"
+          }
+        ]
+      },
+      {
+        "title": "Contato",
+        "links": [
+          {
+            "label": "Fale conosco",
+            "href": "#contato"
+          },
+          {
+            "label": "Ligamos pra você",
+            "href": "#contato"
+          }
+        ]
+      }
+    ],
+    "socialLabel": "Siga a ROCO",
+    "addressLabel": "Blumenau e Gaspar — Santa Catarina, Brasil"
   },
   "languageSwitcher": {
     "label": "Idioma"
@@ -154,6 +254,59 @@
     "loginPrompt": "Já fez seu pré-cadastro?",
     "loginLink": "Entrar no portal",
     "lgpd": "Seus dados serão usados exclusivamente no processo de credenciamento de representantes ROCO."
+  },
+  "products": {
+    "seo": {
+      "title": "Produtos ROCO — Catálogo Completo",
+      "description": "Conheça o portfólio completo de produtos ROCO. Hidrossanitários, hidráulica, conexões, flexíveis e muito mais. Qualidade industrial para suas necessidades."
+    },
+    "listing": {
+      "headline": "Produtos",
+      "description": "Explore nossa linha completa de soluções hidrossanitárias e hidráulicas.",
+      "searchPlaceholder": "Buscar produto por nome, SKU ou categoria...",
+      "categoryAllLabel": "Todas as categorias",
+      "emptyState": "Nenhum produto encontrado. Ajuste os filtros e tente novamente.",
+      "resultsCount": "{count} produtos encontrados",
+      "loadMore": "Carregar mais",
+      "pagination": {
+        "previous": "Anterior",
+        "next": "Próximo",
+        "pageLabel": "Página {page} de {totalPages}"
+      }
+    },
+    "card": {
+      "viewDetails": "Ver detalhes",
+      "codeLabel": "Cód."
+    },
+    "detail": {
+      "breadcrumbHome": "Home",
+      "breadcrumbProducts": "Produtos",
+      "codeLabel": "Código",
+      "descriptionHeadline": "Características",
+      "packagingsHeadline": "Embalagens Disponíveis",
+      "badgesHeadline": "Destaques",
+      "relatedHeadline": "Produtos Relacionados",
+      "notFoundTitle": "Produto não encontrado",
+      "notFoundDescription": "O produto que você está procurando não existe ou foi removido. Volte ao catálogo para explorar outras opções.",
+      "backToListing": "Voltar ao catálogo",
+      "quoteCta": "Solicitar orçamento",
+      "noPackagings": "Informações de embalagem não disponíveis",
+      "noBadges": "Nenhum destaque associado",
+      "noRelated": "Nenhum produto relacionado encontrado"
+    },
+    "badges": {
+      "nacional": "Fabricação Nacional",
+      "universal": "Compatibilidade Universal",
+      "top": "Mais Vendido",
+      "tres_em_um": "3 em 1",
+      "seguro": "Segurança Certificada"
+    },
+    "packaging": {
+      "peca": "Unidade",
+      "blister": "Blister",
+      "caixa": "Caixa",
+      "saco_plastico": "Saco Plástico"
+    }
   },
   "portal": {
     "login": {

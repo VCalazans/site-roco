@@ -197,6 +197,13 @@ a {
   filter: drop-shadow(0 0 6px rgba(195, 83, 0, 0.65));
 }
 
+/* Cyan counterpart — nav icons switch to this when their item is the ACTIVE
+   route (see `isNavLinkActive`), so the icon glow matches the cyan label
+   tone instead of staying amber next to a cyan word. */
+.icon-glow-cyan {
+  filter: drop-shadow(0 0 6px rgba(53, 217, 255, 0.65));
+}
+
 .text-glow-soft {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
 }

@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    remotePatterns: getRemotePatterns(),
   },
 
   // Baseline security headers
@@ -99,6 +100,50 @@ function contentSecurityPolicy(): string {
     // nenhum acesso a este documento nem permite executar script na nossa origem.
     `frame-src 'self' ${mautic}`,
   ].join("; ");
+}
+
+/**
+ * Remote patterns para otimização de imagens do next/image.
+ *
+ * Cloudflare R2 (bucket público): permite otimizar imagens de produto servidas
+ * do URL público R2 (via R2_PUBLIC_URL definida em build-time e runtime). O
+ * otimizador do Next valida o origem antes de fazer o rewrite, então o
+ * remotePattern precisa bater com a URL pública do bucket.
+ *
+ * Se R2_PUBLIC_URL não estiver definida (desenvolvimento sem R2, ou before configuração),
+ * o array fica vazio — next/image rejeitará URLs R2, o que é o comportamento
+ * esperado (fallback para <img> sem otimização).
+ */
+function getRemotePatterns(): Array<{
+  protocol: "http" | "https";
+  hostname: string;
+  port?: string;
+  pathname?: string;
+}> {
+  const patterns: Array<{
+    protocol: "http" | "https";
+    hostname: string;
+    port?: string;
+    pathname?: string;
+  }> = [];
+
+  if (process.env.R2_PUBLIC_URL) {
+    try {
+      const url = new URL(process.env.R2_PUBLIC_URL);
+      const rawPath = url.pathname.replace(/\/+$/, ""); // Remove trailing slashes; "/" becomes ""
+      patterns.push({
+        protocol: (url.protocol.replace(":", "") as "http" | "https"),
+        hostname: url.hostname,
+        port: url.port || undefined,
+        pathname: `${rawPath}/**`, // Now "/**" for root, "/subpath/**" for subpaths; no double slash
+      });
+    } catch {
+      // Se R2_PUBLIC_URL for inválida, ignora silenciosamente
+      // (fallback para sem otimização).
+    }
+  }
+
+  return patterns;
 }
 
 export default nextConfig;

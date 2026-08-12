@@ -4,12 +4,12 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Download } from "lucide-react";
 import { SiteHeader } from "@/shared/components/nav";
-import { CtaHotspot } from "@/modules/landing/components/cta-hotspot";
-import { POS, fade } from "@/modules/landing/lib/hero-layout";
+import { CtaHotspot } from "@/modules/home/components/cta-hotspot";
+import { POS, fade } from "@/modules/home/lib/hero-layout";
 import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
 
-type ComingSoonContent = {
-  brand: string;
+type HomeHeroContent = {
+  eyebrow: string;
   headline: string;
   description: string;
   primaryCta: Cta;
@@ -17,8 +17,9 @@ type ComingSoonContent = {
   sceneAlt: string;
 };
 
-type ComingSoonHeroProps = {
-  content: ComingSoonContent;
+type HomeHeroProps = {
+  brand: string;
+  content: HomeHeroContent;
   navLinks: NavLink[];
   menuLabels: { open: string; close: string };
 };
@@ -34,11 +35,16 @@ type ComingSoonHeroProps = {
  */
 const SCENE = "/images/hero/hero-stage.jpg";
 
-export function ComingSoonHero({
-  content,
-  navLinks,
-  menuLabels,
-}: ComingSoonHeroProps) {
+/**
+ * Hero cinematográfico da HOME. Renomeado de `ComingSoonHero`
+ * (`src/modules/landing`) para `HomeHero` (`src/modules/home`) — a página
+ * deixou de ser uma "página de espera" e passou a ser a home real do site
+ * (ver decisionLog 2026-08-11). A arte, os hotspots dos dois botões neon
+ * "assados" no render e as coordenadas extraídas do .psd continuam válidos;
+ * só a copy mudou, agora vinda de `dictionary.home.hero` em vez de
+ * `dictionary.comingSoon`.
+ */
+export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps) {
   return (
     <section className="relative flex min-h-[100svh] w-full items-center justify-center overflow-hidden bg-[#05070b]">
       {/* Uma única barra, ancorada à VIEWPORT — não ao board.
@@ -49,11 +55,7 @@ export function ComingSoonHero({
           páginas em qualquer janela.
           Instância única também no mobile: o SiteHeader já colapsa sozinho no
           hambúrguer abaixo de `md`. */}
-      <SiteHeader
-        brand={content.brand}
-        links={navLinks}
-        menuLabels={menuLabels}
-      />
+      <SiteHeader brand={brand} links={navLinks} menuLabels={menuLabels} />
       {/* ================= DESKTOP / TABLET — aspect-locked render + aligned overlay =================
           The whole render is shown undistorted so the live overlays (headline, paragraph, CTA
           hotspots) stay aligned to the baked art. On screens whose ratio differs from the art
@@ -77,7 +79,7 @@ export function ComingSoonHero({
             className="object-cover"
           />
 
-          {/* Headline + paragraph (translatable, selectable, indexable) */}
+          {/* Eyebrow + headline + paragraph (translatable, selectable, indexable) */}
           <div
             className="absolute flex flex-col"
             style={{
@@ -87,11 +89,20 @@ export function ComingSoonHero({
               gap: "0.9cqw",
             }}
           >
-            <motion.h1
+            <motion.p
               variants={fade}
               initial="hidden"
               animate="show"
               custom={0}
+              className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright"
+            >
+              {content.eyebrow}
+            </motion.p>
+            <motion.h1
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              custom={1}
               className="text-glow-soft whitespace-nowrap font-display text-h1 text-white"
             >
               {content.headline}
@@ -100,16 +111,17 @@ export function ComingSoonHero({
               variants={fade}
               initial="hidden"
               animate="show"
-              custom={1}
+              custom={2}
               className="text-glow-soft text-lede text-white/85"
             >
               {content.description}
             </motion.p>
           </div>
 
-          {/* Transparent, accessible hotspots over the baked neon buttons */}
-          <CtaHotspot cta={content.primaryCta} style={{ ...POS.btnPrimary }} />
-          <CtaHotspot cta={content.secondaryCta} style={{ ...POS.btnSecondary }} />
+          {/* Transparent, accessible hotspots over the baked neon buttons —
+              tone matches the button underneath (cyan left, amber right). */}
+          <CtaHotspot cta={content.primaryCta} style={{ ...POS.btnPrimary }} tone="cyan" />
+          <CtaHotspot cta={content.secondaryCta} style={{ ...POS.btnSecondary }} tone="amber" />
         </div>
       </div>
 
@@ -128,11 +140,20 @@ export function ComingSoonHero({
 
         {/* Content */}
         <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 pt-24 pb-16 text-center">
-          <motion.h1
+          <motion.p
             variants={fade}
             initial="hidden"
             animate="show"
             custom={0}
+            className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright"
+          >
+            {content.eyebrow}
+          </motion.p>
+          <motion.h1
+            variants={fade}
+            initial="hidden"
+            animate="show"
+            custom={1}
             className="text-glow-cyan font-display text-h1 text-white"
           >
             {content.headline}
@@ -141,7 +162,7 @@ export function ComingSoonHero({
             variants={fade}
             initial="hidden"
             animate="show"
-            custom={1}
+            custom={2}
             className="max-w-md text-body text-white/80"
           >
             {content.description}
@@ -150,7 +171,7 @@ export function ComingSoonHero({
             variants={fade}
             initial="hidden"
             animate="show"
-            custom={2}
+            custom={3}
             className="mt-2 flex w-full max-w-xs flex-col gap-4"
           >
             <a

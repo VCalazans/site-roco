@@ -72,10 +72,10 @@ export function MobileMenu({ links, onContact, labels }: MobileMenuProps) {
               links={links}
               onContact={onContact}
               onSelect={close}
-              itemClassName={(index) =>
+              itemClassName={(_index, isActive) =>
                 cn(
                   "rounded-xl px-4 py-2.5 hover:bg-white/5",
-                  navLabelClass(index, "menu"),
+                  navLabelClass(isActive, "menu"),
                 )
               }
             />
