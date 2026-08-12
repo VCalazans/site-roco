@@ -98,7 +98,12 @@ function contentSecurityPolicy(): string {
     // e a página nunca sabe se o envio deu certo (a página de catálogo depende
     // disso para liberar o PDF). Permitir *enquadrar* o Mautic não dá a ele
     // nenhum acesso a este documento nem permite executar script na nossa origem.
-    `frame-src 'self' ${mautic}`,
+    //
+    // youtube-nocookie.com: vídeo institucional de fundo do hero da home
+    // (`home-hero.tsx`), embed em modo privacidade-avançada. Mesmo racional do
+    // Mautic: enquadrar ≠ executar script na nossa origem — `script-src 'self'`
+    // segue intacto (garantia pós-ClickFix).
+    `frame-src 'self' ${mautic} https://www.youtube-nocookie.com`,
   ].join("; ");
 }
 

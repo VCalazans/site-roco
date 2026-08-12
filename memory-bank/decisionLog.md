@@ -364,3 +364,30 @@ sitemap + `resolveDestination("#representantes")`. (7) Wizard: `ProfileCompletio
 **Alternativas**: (a) manter só os produtos já publicados manualmente e aceitar uma listagem quase vazia até o admin publicar item a item — inviável para validar/demonstrar a feature de listagem pública; (b) mudar o IMPORTADOR para `published=true` por padrão — mudaria o comportamento também em produção, onde cada novo produto sincronizado do ERP iria direto ao ar sem revisão (risco: produto sem foto, descrição incompleta, preço desatualizado exposto publicamente sem curadoria).
 **Justificativa**: A feature de listagem pública (`/produtos`) precisa de dados reais para ser útil/testável localmente; a curadoria admin-driven continua sendo o modelo correto para produção. A decisão de PRODUÇÃO permanece em aberto — ver pendência abaixo.
 **Impacto**: Ambiente local reflete o catálogo completo (737 produtos publicados, 16 categorias). **Pendência para o stakeholder decidir antes do deploy em produção**: (1) manter `published=false` por padrão no importador, publicando em produção via curadoria do admin (item a item ou em lote deliberado); ou (2) mudar o importador para publicar por padrão também em produção, aceitando o catálogo do ERP como fonte de verdade sem revisão prévia individual. Até essa decisão, `npm run db:import-catalog` em qualquer ambiente (inclusive produção) continua respeitando `published=false` por padrão — o UPDATE em massa de hoje foi um ato manual pontual no banco local, não uma mudança de código.
+
+## 2026-08-12 — Hero com vídeo institucional (YouTube nocookie) + nav uniforme sem ícones (padrão WEG)
+**Decisão**: (1) A primeira dobra da home passa a usar o **vídeo institucional da ROCO**
+(https://www.youtube.com/watch?v=rqn-okkh0ww) como fundo full-bleed em cover, via embed
+`youtube-nocookie.com` (autoplay mudo, loop, sem controles, `playsinline`, `pointer-events: none`),
+com pôster (`hero-stage.jpg` esmaecido) atrás e conteúdo vivo CENTRALIZADO (eyebrow + headline +
+parágrafo + 2 CTAs `.btn-neon`) — um único layout para todos os breakpoints, padrão WEG. Os hotspots
+sobre os botões "assados" no render (`CtaHotspot` + `POS` medidos do .psd) foram aposentados.
+(2) A CSP ganha `frame-src https://www.youtube-nocookie.com` — enquadrar ≠ executar script na nossa
+origem; `script-src 'self'` segue intacto (garantia pós-ClickFix). (3) Os itens da nav perdem os
+ícones lucide (PhoneCall/Headset/Package) e os text-glows: rótulos uniformes em caixa alta, tracking
+constante, todos brancos; o único diferencial do item ativo é o tom ciano da marca.
+**Alternativas**: (a) MP4 self-hosted em `public/videos/` — preferível a prazo (sem terceiro, sem
+tracking), mas o arquivo não existe no repo e baixar do YouTube viola o ToS mesmo sendo dono do
+conteúdo; pedido do stakeholder foi explícito: "por hora vamos usar o vídeo institucional" via
+YouTube. (b) embed `youtube.com` padrão — mais cookies/tracking que o modo privacidade-avançada.
+(c) manter o render estático — não atende "bem parecida com a da WEG". (d) manter ícones na nav —
+stakeholder reportou desalinhamento por conta deles ("hoje estão desalinhados por conta dos ícones").
+**Justificativa**: Pedido explícito do stakeholder (2026-08-12): "primeira seção bem parecida com a
+da WEG… vamos usar o vídeo institucional… site altamente harmônico… mesmas configurações para os
+itens do menu". O embed nocookie minimiza tracking (LGPD) e mantém a CSP de script intocada.
+**Impacto**: `home-hero.tsx` reescrito (um layout, CTAs reais); `hero-layout.ts` só com as variants
+de animação; `cta-hotspot.tsx`, `.hero-board` e `.icon-glow-*` removidos (histórico no git);
+`navLabelClass` uniformizada (testes atualizados); `next.config.ts` frame-src. **Follow-ups**:
+substituir o embed por MP4 self-hosted quando o stakeholder fornecer o arquivo (remove o terceiro da
+CSP e o playerzinho do YouTube em conexões lentas); avaliar `prefers-reduced-motion` (pôster já cobre
+autoplay bloqueado). O campo `icon` segue nos dicionários/`NavLink` (ignorado) para não quebrar copy.

@@ -78,9 +78,10 @@
   --font-display: var(--type-font-display);
 
   /* Utilitários da escala. `@theme inline` faz o utilitário referenciar
-     `var(--type-*)` em vez de colar o literal — é justamente isso que
-     permite ao `.hero-board` redefinir a base de medida para `cqw` sem
-     duplicar a escala (ver `.hero-board` mais abaixo). */
+     `var(--type-*)` em vez de colar o literal — o que permite a um contexto
+     específico redefinir a base de medida sem duplicar a escala (foi assim
+     que o antigo `.hero-board` media em `cqw`; removido 2026-08-12 junto com
+     o hero de render — histórico no git). */
   --text-h1: var(--type-h1);
   --text-h1--line-height: var(--type-h1-leading);
   --text-h1--letter-spacing: var(--type-h1-tracking);
@@ -143,32 +144,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/**
- * Hero desktop da landing: a caixa travada em 3224/1724 sobre a qual os
- * overlays vivos são alinhados à arte assada em `hero-scene.jpg`.
- *
- * Aqui a ESCALA é a mesma do resto do site — o que muda é só a BASE DE
- * MEDIDA: headline e parágrafo passam a medir em `cqw` para acompanhar o
- * render em qualquer largura, como as coordenadas extraídas do .psd exigem.
- * Família, peso, leading e tracking continuam vindo dos mesmos tokens.
- *
- * `--type-nav` NÃO é sobrescrito de propósito: os rótulos do menu precisam
- * medir igual aos do catálogo, e é justamente o `cqw` que os fazia divergir
- * (medido: 20.16px aqui contra 16px no catálogo a 1920x1080, e o inverso a
- * 1920x800, porque `cqw` depende também da ALTURA da janela).
- *
- * Precisa ficar FORA de `@layer` — como `.btn-neon` — para
- * vencer o `:root` que o Tailwind emite em `@layer theme`.
- */
-.hero-board {
-  container-type: inline-size;
-  /* O board passou de CONTAIN para COVER (2026-08-12): a 16:9 ele fica ~22%
-     mais largo que a viewport, então os valores em cqw foram reduzidos na
-     mesma proporção para o texto renderizar no mesmo tamanho óptico. */
-  --type-h1: 2.5cqw;
-  --type-lede: 1.05cqw;
-}
-
 a {
   text-decoration: none;
   color: inherit;
@@ -196,16 +171,8 @@ a {
   text-shadow: 0 0 12px rgba(195, 83, 0, 0.6), 0 0 32px rgba(195, 83, 0, 0.32);
 }
 
-.icon-glow-amber {
-  filter: drop-shadow(0 0 6px rgba(195, 83, 0, 0.65));
-}
-
-/* Cyan counterpart — nav icons switch to this when their item is the ACTIVE
-   route (see `isNavLinkActive`), so the icon glow matches the cyan label
-   tone instead of staying amber next to a cyan word. */
-.icon-glow-cyan {
-  filter: drop-shadow(0 0 6px rgba(53, 217, 255, 0.65));
-}
+/* `.icon-glow-{amber,cyan}` removidas em 2026-08-12 junto com os ícones da
+   nav (padrão WEG: rótulos uniformes, só texto). Histórico no git. */
 
 .text-glow-soft {
   text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);

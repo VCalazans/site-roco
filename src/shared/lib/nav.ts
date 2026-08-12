@@ -33,43 +33,32 @@ export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
 }
 
 /**
- * Tipografia dos rótulos de menu — ÚNICA fonte de verdade, usada pelos três
- * caminhos que renderizam nav no site: o overlay do hero da landing, a barra
- * de vidro do catálogo (`SiteHeader`) e o dropdown mobile.
+ * Tipografia dos rótulos de menu — ÚNICA fonte de verdade, usada pela barra
+ * fixa (`SiteHeader`) e pelo painel mobile.
  *
- * Antes cada caminho escrevia o seu: a landing media em `cqw` (que depende da
- * altura da janela) e o catálogo em `rem`, então o mesmo menu saía 20.16px na
- * home e 16px no catálogo a 1920x1080 — e o inverso a 1920x800. `text-nav`
- * depende só da largura da viewport, então os três passam a medir igual.
+ * Padrão WEG desde 2026-08-12 (pedido do stakeholder: itens uniformes, sem os
+ * desalinhamentos que os ícones e os glows criavam): TODOS os itens medem e
+ * pesam igual — caixa alta, tracking constante, mesma cor de base — e o único
+ * diferencial do item ATIVO é o tom ciano da marca (ver `isNavLinkActive`).
+ * Os text-glows saíram dos rótulos: sombra de neon borrava o contorno dos
+ * glifos e cada item parecia ter um peso diferente.
  *
- * O tom ciano marca o item da rota ATIVA (ver `isNavLinkActive`); os demais
- * ficam em âmbar — o mesmo pareamento dual-tone da marca que aparece no
- * render. Antes o ciano ia sempre para `index === 0` ("Home"), fixo,
- * independente da página — em `/produtos`, `/representantes` etc. "Home"
- * aparecia "ativo" mesmo sem ser a rota atual, o que não indicava nada de
- * verdade (padrão WEG: só o segmento realmente selecionado acende, ver
- * `docs/referencia weg/home/image3.png` e `image4.png`).
- *
- * LINHA ÚNICA sempre. O .psd desenha os rótulos em duas linhas, mas isso é
- * composição de pôster, não padrão de navegação web: rótulo quebrado dobra a
- * altura da linha, desalinha os itens entre si (uns com uma linha, outros com
- * duas) e piora a leitura. A referência aqui é a barra do site da Archicode —
- * lista horizontal, um rótulo por linha, espaçamento constante. Quando não
- * couber, o menu colapsa no hambúrguer (abaixo de `lg`) em vez de quebrar.
+ * LINHA ÚNICA sempre (rótulo quebrado desalinha a barra); quando não couber,
+ * o menu colapsa no hambúrguer (abaixo de `lg`) em vez de quebrar.
  *
  * @param isActive Se o link corresponde à rota atual (ver `isNavLinkActive`).
  * @param variant `"bar"` é o item da barra horizontal;
- *                `"menu"` alinha à esquerda e ocupa a largura toda (dropdown).
+ *                `"menu"` alinha à esquerda e ocupa a largura toda (painel).
  */
 export function navLabelClass(
   isActive: boolean,
   variant: "bar" | "menu" = "bar"
 ): string {
-  const base = "text-nav whitespace-nowrap transition";
+  const base = "text-nav whitespace-nowrap uppercase tracking-[0.06em] transition-colors";
   const shape = variant === "bar" ? "" : "w-full text-left";
   const tone = isActive
-    ? "text-glow-cyan text-neon-cyan-bright hover:opacity-90"
-    : "text-glow-amber text-white/90 hover:text-white";
+    ? "text-neon-cyan-bright"
+    : "text-white/85 hover:text-white";
 
   return [base, shape, tone].filter(Boolean).join(" ");
 }

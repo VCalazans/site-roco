@@ -20,6 +20,12 @@
   dobra reprojetada: board COVER full-bleed (sem tarjas), copy centralizada nos dois eixos entre o
   wordmark e os botões neon (POS.copy top 50% + translate), tipografia cqw reescalada, indicador
   de scroll. Chave nova `home.hero.scrollCue` (345 chaves pt/en, paridade OK). Commit fe00ef8.
+- **Rodada 3 (feedback do stakeholder)**: hero passa a usar o VÍDEO institucional da ROCO
+  (youtube-nocookie, autoplay mudo em loop, cover full-bleed, pôster hero-stage esmaecido) com
+  conteúdo centralizado e CTAs `.btn-neon` reais — `CtaHotspot`/`POS`/`.hero-board` aposentados.
+  CSP: `frame-src` ganha youtube-nocookie (script-src intacto). Nav uniforme padrão WEG: sem
+  ícones lucide, sem text-glows, caixa alta, ativo = ciano (navLabelClass; 341 testes).
+  Ver decisionLog 2026-08-12. **Follow-up**: trocar embed por MP4 self-hosted quando houver arquivo.
 
 ## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
 - **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):

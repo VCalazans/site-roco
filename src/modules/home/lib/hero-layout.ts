@@ -1,48 +1,15 @@
 import type { Variants } from "framer-motion";
 
 /**
- * Coordinates measured from the source .psd, expressed as percentages so the
- * live overlay stays aligned with the baked render at every width.
+ * Animações do hero da home.
  *
- * BOARD 3224 x 1484 (ratio 2.1725).
- *
- * O board original era 3224x1724 e trazia a barra de nav e o logotipo PINTADOS
- * no topo do render. Como as duas páginas precisavam da mesma barra e a do
- * catálogo é HTML vivo (`SiteHeader`), a arte foi recortada em y=240 — logo
- * abaixo do filete neon que fecha a barra assada — e a barra viva passou a
- * flutuar sobre a cena, exatamente como no catálogo. O `hero-scene.jpg`
- * anterior, com a barra, continua recuperável no histórico do git.
- *
- * As coordenadas em Y foram reconvertidas por
- *     novo% = (antigo% × 1724 − 240) ÷ 1484
- * e as ALTURAS por
- *     nova% = antiga% × 1724 ÷ 1484
- * (X não muda: o recorte foi só vertical.)
- *
- * Não há mais entrada `nav`: o menu deixou de ser overlay posicionado e passou
- * a ser o `SiteHeader` compartilhado.
+ * As coordenadas medidas do .psd (`POS`) e os hotspots sobre os botões
+ * "assados" no render foram aposentados em 2026-08-12, quando o hero passou a
+ * usar o vídeo institucional como fundo e CTAs vivas centralizadas (padrão
+ * WEG — ver decisionLog). Histórico completo no git.
  */
-export const POS = {
-  /**
-   * O bloco de copy deixou de usar a caixa medida do .psd (left 29.1%, que
-   * deixava o texto fora de eixo contra uma arte de composição CENTRADA —
-   * wordmark no topo central, botões neon no rodapé central). Passa a ser
-   * centralizado nos dois eixos na faixa vazia entre o wordmark (termina
-   * ~y24%) e os botões (começam y75.8%): `top: 50%` + translate(-50%, -50%)
-   * — autocentrado para qualquer comprimento de texto (padrão WEG, pedido
-   * do stakeholder 2026-08-12).
-   */
-  copy: { top: "50%", width: "46%" },
-  btnPrimary: { left: "34.8%", top: "75.84%", width: "17.6%", height: "10.22%" },
-  btnSecondary: {
-    left: "53.0%",
-    top: "75.84%",
-    width: "12.4%",
-    height: "10.22%",
-  },
-} as const;
 
-/** Staggered fade-up used by the headline, paragraph and mobile CTAs. */
+/** Staggered fade-up used by the eyebrow, headline, paragraph and CTAs. */
 export const fade: Variants = {
   hidden: { opacity: 0, y: 24 },
   show: (i: number) => ({

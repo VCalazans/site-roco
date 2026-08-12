@@ -108,6 +108,9 @@
 - [ ] Uploads órfãos no R2 (presign sem confirm) — job de limpeza futuro
 
 ### Site (pós-MVP home/produtos)
+- [ ] **Vídeo do hero: trocar embed YouTube por MP4 self-hosted** (2026-08-12): pedir o arquivo ao
+      stakeholder; remove youtube-nocookie da CSP `frame-src`, elimina tracking de terceiro (LGPD)
+      e o player em conexões lentas. Avaliar `prefers-reduced-motion` (pôster já cobre fallback).
 - [ ] **Endurecer register contra enumeração/spam** (revisão 2026-08-12): oráculo 409
       email_exists/cnpj_exists + teto global 60/5min permitem ~17k probes/dia (enumeração) e
       pré-cadastros falsos inundando a fila do admin (CNPJs válidos são geráveis; honeypot só

@@ -84,18 +84,20 @@ describe("nav utilities", () => {
 
   describe("navLabelClass", () => {
     describe("bar variant (default)", () => {
-      it("applies cyan glow style when the item is active", () => {
+      it("marks the active item with the brand cyan tone", () => {
         const result = navLabelClass(true, "bar");
-        expect(result).toContain("text-glow-cyan");
         expect(result).toContain("text-neon-cyan-bright");
-        expect(result).toContain("hover:opacity-90");
       });
 
-      it("applies amber glow style when the item is not active", () => {
+      it("keeps inactive items uniform white with hover", () => {
         const result = navLabelClass(false, "bar");
-        expect(result).toContain("text-glow-amber");
-        expect(result).toContain("text-white/90");
+        expect(result).toContain("text-white/85");
         expect(result).toContain("hover:text-white");
+      });
+
+      it("does not apply neon text glows (WEG-uniform labels)", () => {
+        expect(navLabelClass(true, "bar")).not.toContain("text-glow");
+        expect(navLabelClass(false, "bar")).not.toContain("text-glow");
       });
 
       it("does not include 'w-full text-left' for bar variant", () => {
@@ -108,7 +110,8 @@ describe("nav utilities", () => {
         const result = navLabelClass(true, "bar");
         expect(result).toContain("text-nav");
         expect(result).toContain("whitespace-nowrap");
-        expect(result).toContain("transition");
+        expect(result).toContain("uppercase");
+        expect(result).toContain("transition-colors");
       });
 
       it("applies different colors depending on active state, regardless of item position", () => {
@@ -116,22 +119,20 @@ describe("nav utilities", () => {
         const inactive1 = navLabelClass(false, "bar");
         const inactive2 = navLabelClass(false, "bar");
         expect(active).toContain("neon-cyan-bright");
-        expect(inactive1).toContain("text-glow-amber");
-        expect(inactive2).toContain("text-glow-amber");
+        expect(inactive1).toContain("text-white/85");
+        expect(inactive2).toContain("text-white/85");
       });
     });
 
     describe("menu variant", () => {
-      it("applies cyan style when the item is active in the menu", () => {
+      it("marks the active item with the brand cyan tone in the menu", () => {
         const result = navLabelClass(true, "menu");
-        expect(result).toContain("text-glow-cyan");
         expect(result).toContain("neon-cyan");
       });
 
-      it("applies amber style when the item is not active in the menu", () => {
+      it("keeps inactive menu items uniform white", () => {
         const result = navLabelClass(false, "menu");
-        expect(result).toContain("text-glow-amber");
-        expect(result).toContain("text-white/90");
+        expect(result).toContain("text-white/85");
       });
 
       it("includes 'w-full text-left' for menu variant", () => {
@@ -144,7 +145,8 @@ describe("nav utilities", () => {
         const result = navLabelClass(true, "menu");
         expect(result).toContain("text-nav");
         expect(result).toContain("whitespace-nowrap");
-        expect(result).toContain("transition");
+        expect(result).toContain("uppercase");
+        expect(result).toContain("transition-colors");
       });
     });
 
@@ -157,10 +159,11 @@ describe("nav utilities", () => {
 
       it("produces valid Tailwind class strings", () => {
         const result = navLabelClass(false, "bar");
-        // Should be a string with space-separated classes
+        // Should be a string with space-separated classes (o `.` cobre
+        // valores arbitrários como `tracking-[0.06em]`)
         expect(typeof result).toBe("string");
         expect(result.length).toBeGreaterThan(0);
-        expect(/^[\w\-\s/[\]:]+$/.test(result)).toBe(true);
+        expect(/^[\w\-\s/[\].:]+$/.test(result)).toBe(true);
       });
     });
   });

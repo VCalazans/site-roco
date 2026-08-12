@@ -4,8 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronDown, Download } from "lucide-react";
 import { SiteHeader } from "@/shared/components/nav";
-import { CtaHotspot } from "@/modules/home/components/cta-hotspot";
-import { POS, fade } from "@/modules/home/lib/hero-layout";
+import { fade } from "@/modules/home/lib/hero-layout";
 import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
 
 type HomeHeroContent = {
@@ -26,111 +25,118 @@ type HomeHeroProps = {
 };
 
 /**
- * Cena do hero SEM a barra de navegação.
- *
- * Derivada do antigo `hero-scene.jpg` (3224x1724), que trazia a barra e o
- * logotipo pintados no topo, recortando em y=240 — logo abaixo do filete neon
- * que fechava a barra. Nome novo de propósito: além de deixar a mudança
- * explícita, troca a URL e evita que o otimizador de imagens do Next (e
- * qualquer CDN) sirva a arte antiga de cache. O original segue no histórico.
+ * Vídeo institucional da ROCO (YouTube, embed privacy-enhanced) como fundo do
+ * hero — decisão de 2026-08-12 (ver decisionLog): "por hora" via
+ * youtube-nocookie, até existir um MP4 self-hosted. Parâmetros: autoplay
+ * mudo em loop, sem controles/teclado, `playsinline` para iOS. A CSP ganhou
+ * `frame-src https://www.youtube-nocookie.com` (script-src segue 'self').
  */
-const SCENE = "/images/hero/hero-stage.jpg";
+const VIDEO_ID = "rqn-okkh0ww";
+const VIDEO_EMBED = `https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&mute=1&controls=0&loop=1&playlist=${VIDEO_ID}&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1`;
 
 /**
- * Hero cinematográfico da HOME. Renomeado de `ComingSoonHero`
- * (`src/modules/landing`) para `HomeHero` (`src/modules/home`) — a página
- * deixou de ser uma "página de espera" e passou a ser a home real do site
- * (ver decisionLog 2026-08-11). A arte, os hotspots dos dois botões neon
- * "assados" no render e as coordenadas extraídas do .psd continuam válidos;
- * só a copy mudou, agora vinda de `dictionary.home.hero` em vez de
- * `dictionary.comingSoon`.
+ * Pôster exibido atrás/enquanto o vídeo carrega (e quando o autoplay é
+ * bloqueado): o render 3D do hero anterior, esmaecido sob o gradiente.
+ */
+const POSTER = "/images/hero/hero-stage.jpg";
+
+/**
+ * Hero da HOME no padrão WEG (ver `docs/referencia weg/home/image1.png`):
+ * primeira dobra 100% mídia (vídeo institucional em COVER full-bleed, cortado
+ * simetricamente no eixo que sobrar), conteúdo VIVO centralizado nos dois
+ * eixos (eyebrow + headline + parágrafo + CTAs) e indicador de scroll no
+ * rodapé. Um único layout para todos os breakpoints — o desktop deixou de
+ * depender do render com botões "assados" e seus hotspots medidos do .psd
+ * (`CtaHotspot`/`POS` aposentados; histórico no git), então os CTAs viraram
+ * botões reais (`.btn-neon`), os mesmos que o mobile já usava.
  */
 export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps) {
   return (
     <section className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
-      {/* Uma única barra, ancorada à VIEWPORT — não ao board.
-          O board é centralizado verticalmente e sobra tarja quando a tela não
-          é 2.17:1; ancorar a barra nele fazia o header "pular" ao navegar
-          entre home e catálogo (medido a 1920x1080: 125px aqui contra 26.9px
-          no catálogo). Presa à viewport, a barra fica no mesmo lugar nas duas
-          páginas em qualquer janela.
-          Instância única também no mobile: o SiteHeader já colapsa sozinho no
-          hambúrguer abaixo de `md`. */}
       <SiteHeader brand={brand} links={navLinks} menuLabels={menuLabels} />
-      {/* ================= DESKTOP / TABLET — render em COVER full-bleed + overlay alinhado =================
-          A arte preenche a viewport inteira (padrão WEG: primeira dobra 100% imagem, sem
-          tarjas). O board mantém o aspect da arte (3224:1484) mas dimensionado para COBRIR:
-          `width: max(100vw, 100svh × 2.1725)` — em telas mais "quadradas" que a arte, as
-          LATERAIS atmosféricas (galpão/fábrica) são cortadas simetricamente; a composição
-          central (wordmark, copy, botões neon) permanece intacta e alinhada, porque os
-          overlays continuam posicionados em % DO BOARD, não da viewport.
 
-          Antes o board era CONTAIN (`min(...)`) e sobravam tarjas escuras acima/abaixo em
-          qualquer tela ≠ 2.17:1 — feedback do stakeholder: "primeira seção não está
-          proporcional" (2026-08-12).
+      {/* ===== Fundo: vídeo em cover + pôster + gradiente de legibilidade ===== */}
+      <div aria-hidden className="absolute inset-0 overflow-hidden">
+        <Image
+          src={POSTER}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-50"
+        />
+        {/* Iframe dimensionado para COBRIR a viewport mantendo 16:9 (mesma
+            matemática do board anterior, agora com o aspect do vídeo):
+            largura = max(100vw, 100svh × 16/9), centralizado nos dois eixos.
+            `pointer-events-none` — é cenário, não player: sem controles, sem
+            foco (tabIndex -1), o clique atravessa para o conteúdo. */}
+        <iframe
+          src={VIDEO_EMBED}
+          title={content.sceneAlt}
+          tabIndex={-1}
+          allow="autoplay; encrypted-media"
+          className="pointer-events-none absolute left-1/2 top-1/2 aspect-video -translate-x-1/2 -translate-y-1/2 border-0"
+          style={{ width: "max(100vw, calc(100svh * 16 / 9))" }}
+        />
+        {/* Véu dual-tone + escurecimento progressivo para o texto central e a
+            transição para a seção seguinte (mesma linguagem do hero mobile
+            anterior). */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/70 via-[#05070b]/35 to-[#05070b]" />
+      </div>
 
-          A barra de nav não faz parte da arte (render recortado em y=240, ver
-          `hero-layout.ts`): o `SiteHeader` fixo flutua por cima, o mesmo de todas as
-          páginas. */}
-      <div className="absolute inset-0 hidden overflow-hidden md:block">
-        <div
-          className="hero-board absolute left-1/2 top-1/2 aspect-[3224/1484] -translate-x-1/2 -translate-y-1/2"
-          style={{ width: "max(100vw, calc(100svh * 3224 / 1484))" }}
+      {/* ===== Conteúdo central (padrão WEG: tudo no eixo) ===== */}
+      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-4xl flex-col items-center justify-center gap-5 px-6 pb-20 pt-24 text-center md:gap-6">
+        <motion.p
+          variants={fade}
+          initial="hidden"
+          animate="show"
+          custom={0}
+          className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright"
         >
-          <Image
-            src={SCENE}
-            alt={content.sceneAlt}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-
-          {/* Eyebrow + headline + paragraph — CENTRALIZADOS nos dois eixos na
-              faixa livre entre o wordmark e os botões neon (composição
-              centrada da arte; ver POS.copy em hero-layout.ts). */}
-          <div
-            className="absolute left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center"
-            style={{
-              top: POS.copy.top,
-              width: POS.copy.width,
-              gap: "0.9cqw",
-            }}
+          {content.eyebrow}
+        </motion.p>
+        <motion.h1
+          variants={fade}
+          initial="hidden"
+          animate="show"
+          custom={1}
+          className="text-glow-soft text-balance font-display text-h1 text-white md:text-[3.4rem] md:leading-[1.08]"
+        >
+          {content.headline}
+        </motion.h1>
+        <motion.p
+          variants={fade}
+          initial="hidden"
+          animate="show"
+          custom={2}
+          className="max-w-2xl text-balance text-lede text-white/85"
+        >
+          {content.description}
+        </motion.p>
+        <motion.div
+          variants={fade}
+          initial="hidden"
+          animate="show"
+          custom={3}
+          className="mt-3 flex w-full max-w-xs flex-col gap-4 sm:w-auto sm:max-w-none sm:flex-row sm:gap-5"
+        >
+          <a
+            href={content.primaryCta.href}
+            {...externalProps(content.primaryCta.href)}
+            className="btn-neon"
           >
-            <motion.p
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={0}
-              className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright"
-            >
-              {content.eyebrow}
-            </motion.p>
-            <motion.h1
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={1}
-              className="text-glow-soft text-balance font-display text-h1 text-white"
-            >
-              {content.headline}
-            </motion.h1>
-            <motion.p
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={2}
-              className="text-glow-soft text-lede text-white/85"
-            >
-              {content.description}
-            </motion.p>
-          </div>
-
-          {/* Transparent, accessible hotspots over the baked neon buttons —
-              tone matches the button underneath (cyan left, amber right). */}
-          <CtaHotspot cta={content.primaryCta} style={{ ...POS.btnPrimary }} tone="cyan" />
-          <CtaHotspot cta={content.secondaryCta} style={{ ...POS.btnSecondary }} tone="amber" />
-        </div>
+            {content.primaryCta.label}
+            <ArrowRight className="size-4" aria-hidden />
+          </a>
+          <a
+            href={content.secondaryCta.href}
+            {...externalProps(content.secondaryCta.href)}
+            className="btn-neon btn-neon--amber"
+          >
+            <Download className="size-4" aria-hidden />
+            {content.secondaryCta.label}
+          </a>
+        </motion.div>
       </div>
 
       {/* Indicador de scroll (padrão WEG) — convida a descer para o conteúdo. */}
@@ -141,79 +147,10 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.1, duration: 0.8 }}
-        className="absolute bottom-4 left-1/2 z-10 hidden -translate-x-1/2 text-white/60 transition hover:text-white md:block"
+        className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 text-white/60 transition hover:text-white"
       >
         <ChevronDown className="size-7 animate-bounce" aria-hidden />
       </motion.button>
-
-      {/* ================= MOBILE — atmospheric render + rebuilt live foreground ================= */}
-      <div className="flex w-full flex-col md:hidden">
-        <Image
-          src={SCENE}
-          alt=""
-          aria-hidden
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center opacity-45"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/60 via-[#05070b]/40 to-[#05070b]" />
-
-        {/* Content */}
-        <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center gap-6 px-6 pt-24 pb-16 text-center">
-          <motion.p
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            custom={0}
-            className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright"
-          >
-            {content.eyebrow}
-          </motion.p>
-          <motion.h1
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            custom={1}
-            className="text-glow-cyan font-display text-h1 text-white"
-          >
-            {content.headline}
-          </motion.h1>
-          <motion.p
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            custom={2}
-            className="max-w-md text-body text-white/80"
-          >
-            {content.description}
-          </motion.p>
-          <motion.div
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            custom={3}
-            className="mt-2 flex w-full max-w-xs flex-col gap-4"
-          >
-            <a
-              href={content.primaryCta.href}
-              {...externalProps(content.primaryCta.href)}
-              className="btn-neon"
-            >
-              {content.primaryCta.label}
-              <ArrowRight className="size-4" aria-hidden />
-            </a>
-            <a
-              href={content.secondaryCta.href}
-              {...externalProps(content.secondaryCta.href)}
-              className="btn-neon btn-neon--amber"
-            >
-              <Download className="size-4" aria-hidden />
-              {content.secondaryCta.label}
-            </a>
-          </motion.div>
-        </div>
-      </div>
     </section>
   );
 }
