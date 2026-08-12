@@ -133,8 +133,9 @@
   e outras em `public-products.ts` não são módulos testáveis isoladamente — testáveis só via componente.
   Refatorar para `src/server/lib` quando escala de testes crescer. (`interpolate` já migrou para
   `src/shared/lib/interpolate.ts` com testes próprios — 2026-08-12.)
-- **SiteHeader não sticky/fixed**: position absolute em todas páginas — nav desaparece ao rolar em
-  `/produtos`/`/produtos/[slug]`. Melhoria futura de UX quando decidir sobre comportamento mobile.
+- ~~SiteHeader não sticky/fixed~~ **RESOLVIDO 2026-08-12**: header virou faixa fixa translúcida
+  padrão WEG (backdrop-blur, fundo sólido ao rolar, filete dual-tone) com painel mobile full-width
+  (backdrop + trava de scroll). `.nav-glass` removida do globals.css (histórico no git).
 - **Seções "Notícias" e "Newsletter" omitidas** (2026-08-11): padrão WEG não replicado (sem CMS/e-mail
   marketing hoje). Backlog pós-MVP quando houver fonte de conteúdo real.
 - **Processo órfão dev server Windows**: taskkill manual necessário antes de `npm run dev` restart

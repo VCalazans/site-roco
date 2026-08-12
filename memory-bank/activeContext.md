@@ -15,6 +15,11 @@
   7 corrigidos (ver progress.md Métricas). Backlog novo: endurecer register (captcha/e-mail),
   busca por categoria.
 - Imagem Docker rebuildada com o código final; smoke tests no container.
+- **Rodada 2 (feedback do stakeholder)**: header fixo translúcido padrão WEG (blur, mais sólido ao
+  rolar, filete ciano→âmbar, painel mobile full-width com backdrop e trava de scroll) e primeira
+  dobra reprojetada: board COVER full-bleed (sem tarjas), copy centralizada nos dois eixos entre o
+  wordmark e os botões neon (POS.copy top 50% + translate), tipografia cqw reescalada, indicador
+  de scroll. Chave nova `home.hero.scrollCue` (345 chaves pt/en, paridade OK). Commit fe00ef8.
 
 ## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
 - **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):
