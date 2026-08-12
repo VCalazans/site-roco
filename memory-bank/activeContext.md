@@ -2,7 +2,19 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-11
+2026-08-12
+
+## Sessão 2026-08-12 — Finalização: commits, revisão adversarial e correções
+- Recuperação pós-stall do architect: trabalho da parte 3 verificado (hero/menu polish aplicado,
+  `hero-stage.jpg` recortado sem a barra pintada, SiteHeader único ancorado à viewport em todas
+  as páginas; listagem servindo 737 produtos). Portões verdes (334→340 testes, lint, build).
+- 7 commits atômicos: fix rate-limit register (20/10min), feat(site) completo (39 arquivos),
+  build(docker) R2_PUBLIC_URL, chore(tooling) psd-extract, docs (memory-bank + PSDs referência),
+  fix(produtos) achados da revisão.
+- **Revisão adversarial multi-agente** (Workflow, 13 agentes): 8 achados confirmados, 1 refutado,
+  7 corrigidos (ver progress.md Métricas). Backlog novo: endurecer register (captcha/e-mail),
+  busca por categoria.
+- Imagem Docker rebuildada com o código final; smoke tests no container.
 
 ## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
 - **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):

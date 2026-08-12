@@ -108,6 +108,14 @@
 - [ ] Uploads órfãos no R2 (presign sem confirm) — job de limpeza futuro
 
 ### Site (pós-MVP home/produtos)
+- [ ] **Endurecer register contra enumeração/spam** (revisão 2026-08-12): oráculo 409
+      email_exists/cnpj_exists + teto global 60/5min permitem ~17k probes/dia (enumeração) e
+      pré-cadastros falsos inundando a fila do admin (CNPJs válidos são geráveis; honeypot só
+      dispara se o campo vier preenchido). Mitigação recomendada: Turnstile/hCaptcha ou
+      confirmação de e-mail antes do INSERT, mantendo o 409 atrás do desafio.
+- [ ] Busca por nome de categoria na listagem `/produtos` (revisão 2026-08-12): a busca cobre
+      nome (pt/en) + SKU; categoria só via filtro select. Placeholder já ajustado para não
+      prometer o que não faz — implementar se o stakeholder quiser busca unificada.
 - [ ] Smoke test tracking Mautic no navegador (hits, cookies, CSP clean)
 - [ ] Confirmar certificação/selo GPTW (ano/validade) com stakeholder antes de produção
 - [ ] Liberar `https://www.roco.com.br` nas "CORS Valid Domains" do Mautic (hoje só `roco.com.br`),
@@ -121,9 +129,10 @@
 ## 🐛 Débitos Técnicos
 - **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
   atualmente disabled; links precisam de upload/asset públicos.
-- **Funções puras não exportadas** (2026-08-11): `categoryName`/`interpolate` em `products-explorer.tsx`
+- **Funções puras não exportadas** (2026-08-11): `categoryName` em `products-explorer.tsx`
   e outras em `public-products.ts` não são módulos testáveis isoladamente — testáveis só via componente.
-  Refatorar para `src/server/lib` quando escala de testes crescer.
+  Refatorar para `src/server/lib` quando escala de testes crescer. (`interpolate` já migrou para
+  `src/shared/lib/interpolate.ts` com testes próprios — 2026-08-12.)
 - **SiteHeader não sticky/fixed**: position absolute em todas páginas — nav desaparece ao rolar em
   `/produtos`/`/produtos/[slug]`. Melhoria futura de UX quando decidir sobre comportamento mobile.
 - **Seções "Notícias" e "Newsletter" omitidas** (2026-08-11): padrão WEG não replicado (sem CMS/e-mail
@@ -164,10 +173,16 @@
   `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 326 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
-  (+90 testes 2026-08-11 para produtos explorer/detail, categorias, funções puras).
+- **Testes**: Vitest 4, 340 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+  (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
 - **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
   (nenhum achado crítico/alto novo introduzido).
+- **Revisão adversarial multi-agente** (2026-08-12): 13 agentes (4 dimensões: corretude, i18n,
+  segurança, regressão + verificação adversarial por achado) sobre o diff da feature WEG.
+  8 achados confirmados / 1 refutado; 7 corrigidos no mesmo dia (resync URL↔estado do explorer
+  via history.replaceState + adoção de props, revert de erro com banner, clamp de página no
+  server, escape/teto/no-cache da busca livre, busca inclui nameEn, alt localizado altPt/altEn,
+  copy do HomeAbout → dicionários). 1 movido para backlog (endurecer register). Regressão: zero.
 - **i18n**: portal namespace (~156 chaves) + home (~50 chaves) + footer (~20 chaves) — árvores pt/en
   idênticas. Dicionário estruturado por módulo (landing → home, representantes como namespace raiz).
