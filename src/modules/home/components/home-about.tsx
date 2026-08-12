@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import { interpolate } from "@/shared/lib/interpolate";
 
 type HomeAboutContent = Dictionary["home"]["about"];
 
@@ -12,30 +12,22 @@ type HomeAboutStats = {
 type HomeAboutProps = {
   content: HomeAboutContent;
   ctaHref: string;
-  locale: Locale;
   stats: HomeAboutStats;
 };
 
 /**
  * Seção institucional da home. Os 4 highlights (fundação, sedes, GPTW,
- * exportação) vêm prontos do dicionário; um 5º card é montado aqui com dados
- * reais do catálogo (total de produtos publicados + categorias ativas).
- *
- * Nem `home.about.paragraphs` nem `home.categories.description` trazem um
- * placeholder (`{count}`) para interpolar esse número — por instrução
- * explícita da tarefa, quando isso acontece o card extra é construído em
- * código com um rótulo curto, em vez de inventar uma chave nova no
- * dicionário (que já foi fechado por outro agente nesta sessão). É uma
- * exceção pontual à regra "toda copy vem do dicionário": o valor é dado
- * (varia conforme o catálogo cresce), não texto de marketing.
+ * exportação) vêm prontos do dicionário; o 5º card interpola dados reais do
+ * catálogo (total de produtos publicados + categorias ativas) na chave
+ * `home.about.catalogHighlight` — copy nos dicionários, números do banco.
  */
-export function HomeAbout({ content, ctaHref, locale, stats }: HomeAboutProps) {
+export function HomeAbout({ content, ctaHref, stats }: HomeAboutProps) {
   const catalogHighlight = {
-    label: locale === "en" ? "ROCO Catalog" : "Catálogo ROCO",
-    value:
-      locale === "en"
-        ? `${stats.totalProducts}+ products across ${stats.totalCategories} categories`
-        : `${stats.totalProducts}+ produtos em ${stats.totalCategories} categorias`,
+    label: content.catalogHighlight.label,
+    value: interpolate(content.catalogHighlight.value, {
+      totalProducts: stats.totalProducts,
+      totalCategories: stats.totalCategories,
+    }),
   };
   const highlights = [...content.highlights, catalogHighlight];
 

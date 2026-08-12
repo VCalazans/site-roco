@@ -38,6 +38,8 @@ export function ProductCard({ item, locale, href, content, badgeLabels, priority
       ? primaryCategory.nameEn
       : primaryCategory?.namePt;
   const cover = item.images[0];
+  const coverAlt =
+    (locale === "en" ? cover?.altEn ?? cover?.altPt : cover?.altPt ?? cover?.altEn) || name;
 
   return (
     <Link
@@ -48,7 +50,7 @@ export function ProductCard({ item, locale, href, content, badgeLabels, priority
         {cover ? (
           <Image
             src={cover.url}
-            alt={cover.alt || name}
+            alt={coverAlt}
             fill
             priority={priority}
             sizes="(min-width: 1024px) 22vw, (min-width: 640px) 40vw, 90vw"

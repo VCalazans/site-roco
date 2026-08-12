@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import type { PublicCategory, PublicProductItem } from "@/modules/products/lib/types";
 import { ProductCard } from "@/shared/components/product-card";
+import { interpolate } from "@/shared/lib/interpolate";
 
 const DEBOUNCE_MS = 350;
 
@@ -27,24 +28,25 @@ function categoryName(category: PublicCategory, locale: Locale): string {
   return locale === "en" && category.nameEn ? category.nameEn : category.namePt;
 }
 
-/**
- * Interpolate `{count}`/`{page}`/`{totalPages}` placeholders in dictionary
- * strings. Kept tiny on purpose — the dictionaries only ever use single,
- * non-nested placeholders here.
- */
-function interpolate(template: string, values: Record<string, string | number>): string {
-  return Object.entries(values).reduce(
-    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
-    template
-  );
-}
+type ExplorerFilters = { search: string; category: string; page: number };
 
 /**
  * Client-side catálogo explorer. Recebe a primeira página já renderizada no
  * server (via `getPublicProductList`, sem round-trip HTTP) e, a partir daí,
- * toda busca/filtro/paginação usa `GET /api/products` (client-side) —
- * mantendo a URL em sincronia (`router.replace`, shallow) para que o estado
- * filtrado seja compartilhável/recarregável.
+ * toda busca/filtro/paginação usa `GET /api/products` (client-side).
+ *
+ * Sincronia de URL: `window.history.replaceState` (integração nativa do App
+ * Router — atualiza `useSearchParams` SEM re-renderizar a página no server).
+ * `router.replace` aqui NÃO seria shallow: cada tecla do debounce dispararia
+ * um refetch RSC que re-executa `getPublicProductList` no server além do
+ * fetch client — consulta duplicada (achado da revisão).
+ *
+ * Navegação externa para a MESMA rota (ex.: link "Produtos" do rodapé com a
+ * URL limpa enquanto há filtro ativo): o server manda novas props, mas o React
+ * preserva a instância do componente — os `useState` ignorariam os novos
+ * valores e a tela mentiria sobre a URL. O bloco de adoção abaixo compara as
+ * props iniciais com as da última renderização e re-adota quando mudam
+ * (padrão React de derived state, sem useEffect).
  */
 export function ProductsExplorer({
   locale,
@@ -58,7 +60,6 @@ export function ProductsExplorer({
   cardContent,
   badgeLabels,
 }: ProductsExplorerProps) {
-  const router = useRouter();
   const pathname = usePathname();
 
   const [search, setSearch] = useState(initialFilters.search);
@@ -67,9 +68,61 @@ export function ProductsExplorer({
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  // Último conjunto filtros+página cujos resultados chegaram com sucesso —
+  // usado para reverter estado e URL quando um fetch falha.
+  const lastGoodRef = useRef<ExplorerFilters>({
+    search: initialFilters.search,
+    category: initialFilters.category,
+    page: initialPage,
+  });
+
+  // Adoção de novas props do server (navegação externa para a mesma rota).
+  // Como o replaceState local nunca re-renderiza o server, props novas só
+  // chegam em navegação real — seguro adotar incondicionalmente. O estado
+  // visível é adotado DURANTE o render (padrão React de derived state, evita
+  // um paint com dados velhos); refs não podem ser tocadas no render
+  // (react-hooks/refs), então o bookkeeping delas fica no effect abaixo, com
+  // as mesmas dependências.
+  const [prevInitial, setPrevInitial] = useState<ExplorerFilters>({
+    search: initialFilters.search,
+    category: initialFilters.category,
+    page: initialPage,
+  });
+  if (
+    prevInitial.search !== initialFilters.search ||
+    prevInitial.category !== initialFilters.category ||
+    prevInitial.page !== initialPage
+  ) {
+    const adopted: ExplorerFilters = {
+      search: initialFilters.search,
+      category: initialFilters.category,
+      page: initialPage,
+    };
+    setPrevInitial(adopted);
+    setSearch(adopted.search);
+    setCategory(adopted.category);
+    setPage(adopted.page);
+    setItems(initialItems);
+    setTotal(initialTotal);
+    setLoading(false);
+    setLoadError(false);
+  }
+
+  useEffect(() => {
+    // Mesmo gatilho do bloco de adoção acima: invalida fetch em voo, cancela
+    // debounce pendente e realinha o "último sucesso" às props adotadas.
+    lastGoodRef.current = {
+      search: initialFilters.search,
+      category: initialFilters.category,
+      page: initialPage,
+    };
+    requestIdRef.current += 1;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, [initialFilters.search, initialFilters.category, initialPage]);
 
   useEffect(() => {
     return () => {
@@ -77,10 +130,23 @@ export function ProductsExplorer({
     };
   }, []);
 
+  const syncUrl = useCallback(
+    (next: ExplorerFilters) => {
+      const qs = new URLSearchParams();
+      if (next.search) qs.set("search", next.search);
+      if (next.category) qs.set("category", next.category);
+      if (next.page > 1) qs.set("page", String(next.page));
+      const queryString = qs.toString();
+      window.history.replaceState(null, "", queryString ? `${pathname}?${queryString}` : pathname);
+    },
+    [pathname]
+  );
+
   const fetchProducts = useCallback(
-    async (next: { search: string; category: string; page: number }) => {
+    async (next: ExplorerFilters) => {
       const requestId = ++requestIdRef.current;
       setLoading(true);
+      setLoadError(false);
 
       const qs = new URLSearchParams();
       if (next.search) qs.set("search", next.search);
@@ -91,34 +157,42 @@ export function ProductsExplorer({
       try {
         const response = await fetch(`/api/products?${qs.toString()}`);
         if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
-        const data = (await response.json()) as { items: PublicProductItem[]; total: number };
+        const data = (await response.json()) as {
+          items: PublicProductItem[];
+          total: number;
+          page: number;
+        };
 
         // Stale response guard: ignore results from a request that isn't the
         // most recent one (fast typing / fast clicks can resolve out of order).
         if (requestId !== requestIdRef.current) return;
         setItems(data.items);
         setTotal(data.total);
+        // O server clampa a página ao intervalo real (?page=999 → última) —
+        // adota o valor efetivo para o rótulo e a URL não mentirem.
+        const effective = { ...next, page: data.page ?? next.page };
+        if (effective.page !== next.page) {
+          setPage(effective.page);
+          syncUrl(effective);
+        }
+        lastGoodRef.current = effective;
       } catch (error) {
         if (requestId !== requestIdRef.current) return;
         console.error("[ProductsExplorer] failed to fetch products", error);
-        // Keep the previous results on screen — better than clearing the grid.
+        // Reverte estado e URL para o último conjunto que carregou de fato —
+        // sem isso a UI mostraria "Página 3" com itens da página 2 e a URL
+        // apontaria para conteúdo que nunca chegou (achado da revisão).
+        const prev = lastGoodRef.current;
+        setSearch(prev.search);
+        setCategory(prev.category);
+        setPage(prev.page);
+        syncUrl(prev);
+        setLoadError(true);
       } finally {
         if (requestId === requestIdRef.current) setLoading(false);
       }
     },
-    [perPage]
-  );
-
-  const syncUrl = useCallback(
-    (next: { search: string; category: string; page: number }) => {
-      const qs = new URLSearchParams();
-      if (next.search) qs.set("search", next.search);
-      if (next.category) qs.set("category", next.category);
-      if (next.page > 1) qs.set("page", String(next.page));
-      const queryString = qs.toString();
-      router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false });
-    },
-    [pathname, router]
+    [perPage, syncUrl]
   );
 
   const handleSearchChange = (value: string) => {
@@ -185,6 +259,16 @@ export function ProductsExplorer({
           </select>
         </label>
       </div>
+
+      {/* Load error (fetch falhou; estado/URL já revertidos ao último sucesso) */}
+      {loadError ? (
+        <p
+          role="alert"
+          className="mt-6 rounded-xl border border-neon-amber/40 bg-neon-amber/10 px-4 py-3 text-meta text-neon-amber-bright"
+        >
+          {content.loadError}
+        </p>
+      ) : null}
 
       {/* Results count */}
       <div className="mt-6 flex items-center gap-2 text-meta text-white/60" aria-live="polite">

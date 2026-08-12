@@ -88,7 +88,6 @@ export default async function HomePage({ params }: PageProps) {
       <HomeAbout
         content={home.about}
         ctaHref={resolveDestination(home.about.cta.href, locale)}
-        locale={locale}
         stats={{ totalProducts: productStats.total, totalCategories: categoryList.length }}
       />
       <HomeCategories

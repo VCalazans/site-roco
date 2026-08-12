@@ -76,6 +76,10 @@
           "value": "Consolidated presence and exports"
         }
       ],
+      "catalogHighlight": {
+        "label": "ROCO Catalog",
+        "value": "{totalProducts}+ products across {totalCategories} categories"
+      },
       "cta": {
         "label": "Discover our products",
         "href": "/produtos"
@@ -263,9 +267,10 @@
     "listing": {
       "headline": "Products",
       "description": "Explore our complete line of plumbing and hydraulic solutions.",
-      "searchPlaceholder": "Search product by name, SKU or category...",
+      "searchPlaceholder": "Search product by name or code (SKU)...",
       "categoryAllLabel": "All categories",
       "emptyState": "No products found. Adjust your filters and try again.",
+      "loadError": "Could not load products. Check your connection and try again.",
       "resultsCount": "{count} products found",
       "loadMore": "Load more",
       "pagination": {

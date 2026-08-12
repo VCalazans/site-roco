@@ -49,7 +49,9 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
 
   const sp = await searchParams;
   const category = sp.category?.trim() || "";
-  const search = sp.search?.trim() || "";
+  // Mesmo teto de `getPublicProductList` (MAX_SEARCH_LENGTH) — o input do
+  // explorer deve refletir o termo que o server de fato usou.
+  const search = (sp.search?.trim() || "").slice(0, 80);
   const requestedPage = Number(sp.page);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 

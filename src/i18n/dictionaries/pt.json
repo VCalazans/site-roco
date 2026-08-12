@@ -76,6 +76,10 @@
           "value": "Presença consolidada e exportação"
         }
       ],
+      "catalogHighlight": {
+        "label": "Catálogo ROCO",
+        "value": "{totalProducts}+ produtos em {totalCategories} categorias"
+      },
       "cta": {
         "label": "Descubra nossos produtos",
         "href": "/produtos"
@@ -263,9 +267,10 @@
     "listing": {
       "headline": "Produtos",
       "description": "Explore nossa linha completa de soluções hidrossanitárias e hidráulicas.",
-      "searchPlaceholder": "Buscar produto por nome, SKU ou categoria...",
+      "searchPlaceholder": "Buscar produto por nome ou código (SKU)...",
       "categoryAllLabel": "Todas as categorias",
       "emptyState": "Nenhum produto encontrado. Ajuste os filtros e tente novamente.",
+      "loadError": "Não foi possível carregar os produtos. Verifique sua conexão e tente novamente.",
       "resultsCount": "{count} produtos encontrados",
       "loadMore": "Carregar mais",
       "pagination": {

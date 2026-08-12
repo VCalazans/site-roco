@@ -42,6 +42,8 @@ export function ProductDetailView({
   const description = locale === "en" ? product.descriptionEn : product.descriptionPt;
   const cover = product.images[0];
   const gallery = product.images.slice(1, 5);
+  const imageAlt = (image: { altPt: string | null; altEn: string | null }) =>
+    (locale === "en" ? image.altEn ?? image.altPt : image.altPt ?? image.altEn) || name;
 
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">
@@ -85,7 +87,7 @@ export function ProductDetailView({
               {cover ? (
                 <Image
                   src={cover.url}
-                  alt={cover.alt || name}
+                  alt={imageAlt(cover)}
                   fill
                   priority
                   sizes="(min-width: 1024px) 45vw, 90vw"
@@ -107,7 +109,7 @@ export function ProductDetailView({
                   >
                     <Image
                       src={image.url}
-                      alt={image.alt || name}
+                      alt={imageAlt(image)}
                       fill
                       sizes="120px"
                       className="object-contain p-2"
