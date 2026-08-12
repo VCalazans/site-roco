@@ -23,6 +23,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - AUTH_URL=http://localhost:3000
       - AUTH_TRUST_HOST=true
+      # Cloudflare R2: URLs e IDs para imagens de produto + documentos de representante.
+      # Lidos em runtime para presigned URLs e getPublicUrl.
+      - R2_PUBLIC_URL=${R2_PUBLIC_URL:-}
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
     env_file:
       - .env
     depends_on:
