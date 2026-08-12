@@ -29,8 +29,8 @@
   credentials E2E 302 + cookie de sessão.
 
 ## Fase Atual
-Portal interno robusto — landing + catálogo + portal CRM em produção. Sessão 2026-08-10 focou em
-consistência de UI (MUI light mode, paginação real) e 7 bugs críticos encontrados em testes manuais.
+Site institucional completo + portal CRM — home reformulada (marketing completo), listagem/detalhe de
+produtos do catálogo real, rodapé institucional. Sessão 2026-08-11 (parte 3) entregou site público robusto.
 
 ## O Que Foi Feito (esta sessão — 2026-08-10)
 ### Rodada "Robustez e Consistência"
@@ -78,6 +78,30 @@ consistência de UI (MUI light mode, paginação real) e 7 bugs críticos encont
 - Google OAuth credentials production.
 - Confirmação arquitetura deployment (RDS/ElastiCache vs docker-compose).
 
+## Sessão 2026-08-11 (parte 3) — Site institucional completo: home reformulada + /produtos + rodapé
+- **Home** (`src/app/[locale]/(site)/page.tsx` + `src/modules/home/components/`): hero
+  cinematográfico reaproveitado, seção institucional "Quem é a ROCO" (dados verificáveis: Roco Indústria
+  Metalplástica S.A., 2014, Blumenau/SC + Gaspar/SC, GPTW, exportação Paraguai/Bolívia), vitrine de
+  categorias reais, vitrine de produtos em destaque (badge `top` + fallback recentes), CTA Portal ROCO.
+  Copy EN revisada; dicionário `home` (~50 chaves pt/en) reestruturado.
+- **`/{locale}/produtos`** (listagem): grid com busca (debounce 350ms), filtro por categoria, paginação.
+  SSR cacheado via `unstable_cache` (tag `"products"`, revalidate 300s), sem `generateStaticParams`.
+  Funções novas: `getPublicProductList`/`getPublicCategoryList` em `src/server/lib/public-products.ts`.
+- **`/{locale}/produtos/[slug]`** (detalhe): galeria (R2 via `next/image` com `remotePatterns`), nome,
+  código, categorias, descrição, embalagens, badges, CTA "Solicite um orçamento" (modal Mautic).
+  Produtos relacionados por categoria.
+- **`SiteFooter`** (`src/shared/components/footer/`): rodapé completo (colunas, redes, copyright) em
+  (site) layout. Namespace `footer` (~20 chaves pt/en).
+- **3 bugs fixados**: (a) `assembleProducts` não trazia `nameEn` de categorias → EN broken; (b)
+  `home.about.cta.href` apontava para `/sobre` (404) → corrigido para `/produtos`; (c)
+  `getRemotePatterns()` gerava `pathname: "//*"` malformado sem subpath → corrigido.
+- **Infra**: `next.config.ts` + `Dockerfile`/`docker-compose.yml` ganharam suporte a `R2_PUBLIC_URL`
+  como build-arg (resolução de `images.remotePatterns` em build-time).
+- **90 testes novos** (produtos explorer, detalhes, funções puras) → suite verde.
+- **Segurança OWASP**: revisão OK, nenhum achado crítico/alto introduzido. Ver progress.md novos riscos.
+- Ver decisionLog 2026-08-11 decisões #7–#11 para detalhes arquiteturais.
+
 ## Decisões Pendentes
+- Confirmação: seal GPTW (ano/validade) com stakeholder antes de produção.
 - Fluxo completo validação (onboarding→admin review→acesso portal).
 - LGPD/consentimento banner (herdado 2026-08-04).

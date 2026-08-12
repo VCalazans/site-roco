@@ -75,9 +75,23 @@
 - [x] Smoke tests no container: site 200, /api/products com dados, guard do portal 307,
       login credentials E2E (302 + cookie de sessão)
 
+### Site Institucional Completo (2026-08-11 parte 3)
+- [x] Home reformulada: hero cinematográfico + institucional "Quem é a ROCO" (dados reais verificáveis)
+      + vitrine categorias reais + produtos destaque + CTA Portal ROCO + footer
+- [x] `/{locale}/produtos` (listagem): grid + busca (debounce 350ms) + filtro por categoria + paginação
+      SSR cacheado via `unstable_cache` (tag "products", revalidate 300s), sem `generateStaticParams`
+- [x] `/{locale}/produtos/[slug]` (detalhe): galeria R2 + `next/image`, nome/código/categorias/embalagens/
+      badges, CTA "Solicite um orçamento" (modal Mautic), produtos relacionados por categoria
+- [x] `SiteFooter` (`src/shared/components/footer/`): rodapé completo em (site) layout.
+      Namespace `footer` (~20 chaves pt/en)
+- [x] Funções novas: `getPublicProductList`/`getPublicCategoryList` (src/server/lib/public-products.ts)
+- [x] 90 testes novos (produtos explorer, detail, funções puras) → suite verde
+- [x] `next.config.ts` + Dockerfile/docker-compose suportam `R2_PUBLIC_URL` como build-arg
+- [x] Revisão OWASP: nenhum achado crítico/alto novo introduzido
+
 ### Qualidade
 - [x] `npm run build` verde
-- [x] `npm run test` e `npm run test:coverage` funcionando
+- [x] `npm run test` e `npm run test:coverage` funcionando (326 testes totais agora)
 
 ## 🔄 Em Andamento
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
@@ -93,28 +107,33 @@
 - [ ] E2E + component tests; /portal/produtos com next/image (hoje <img> cru)
 - [ ] Uploads órfãos no R2 (presign sem confirm) — job de limpeza futuro
 
-### Site (landing)
+### Site (pós-MVP home/produtos)
 - [ ] Smoke test tracking Mautic no navegador (hits, cookies, CSP clean)
+- [ ] Confirmar certificação/selo GPTW (ano/validade) com stakeholder antes de produção
 - [ ] Liberar `https://www.roco.com.br` nas "CORS Valid Domains" do Mautic (hoje só `roco.com.br`),
       ou canonicalizar host — senão visitas via `www` não amarram ao contato
 - [ ] Decidir política consentimento (LGPD) para tracking Mautic
-- [ ] Revisar copy EN com copywriter
-- [ ] Confirmar destinos reais (URL Produtos, arquivo Catálogo PDF)
-- [ ] Página/fluxo Contato completo (se diferente modal Mautic)
-- [ ] Metadata/SEO definitiva + favicon/OG oficiais
-- [ ] Página de Produtos e Catálogo (usando /api/products)
-- [ ] Conteúdo institucional (Quem somos) / blog (se aplicável)
+- [ ] Subir PDFs das seções do site (catálogo, notícia técnica, brochura) na rota de download
+- [ ] Metadata/SEO definitiva + favicon/OG oficiais (home e páginas de produtos)
+- [ ] Blog/Notícias (backlog futuro quando CMS/fonte de conteúdo definida)
+- [ ] Newsletter integrada (backlog futuro quando infra de e-mail definida)
 
 ## 🐛 Débitos Técnicos
 - **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
   atualmente disabled; links precisam de upload/asset públicos.
+- **Funções puras não exportadas** (2026-08-11): `categoryName`/`interpolate` em `products-explorer.tsx`
+  e outras em `public-products.ts` não são módulos testáveis isoladamente — testáveis só via componente.
+  Refatorar para `src/server/lib` quando escala de testes crescer.
+- **SiteHeader não sticky/fixed**: position absolute em todas páginas — nav desaparece ao rolar em
+  `/produtos`/`/produtos/[slug]`. Melhoria futura de UX quando decidir sobre comportamento mobile.
+- **Seções "Notícias" e "Newsletter" omitidas** (2026-08-11): padrão WEG não replicado (sem CMS/e-mail
+  marketing hoje). Backlog pós-MVP quando houver fonte de conteúdo real.
 - **Processo órfão dev server Windows**: taskkill manual necessário antes de `npm run dev` restart
   (mitigado 2026-08-11: teste contínuo agora roda no container Docker; dev server só para hot reload
   — `docker compose stop web && npm run dev`).
 - Avaliar tornar CNPJ obrigatório em representantes (atualmente só se preenchido).
 - `roco-wordmark-white.png` (wordmark 3D) tem leve bleed; logo 2D é principal.
 - `docs/documento` (~98 MB) versionado — avaliar LFS/storage externo.
-- Copy EN do landing é provisório (revisar com copywriter).
 - **xlsx via CDN tarball**: fora do npm audit — reauditar manualmente a cada atualização.
 - E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
 - Audit logs export/retention policy indefinida.
@@ -123,6 +142,14 @@
 - **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
   /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
   **Nota**: sem Redis em dev, rate limit não funciona (comportamento esperado, recomendação: testar em staging com Redis).
+- **Claim GPTW pendente de confirmação** (2026-08-11): home institucional cita "Great Place to Work"
+  sem documentação de ano/validade do selo. Risco de compliance CDC se não puder ser sustentado com prova
+  documental — mover confirmação com stakeholder para topo de bloqueadores antes de produção.
+- **`getClientIp` confia em `X-Forwarded-For` sem validar topologia de proxy** (2026-08-11): rate-limit
+  usa header sem normalização. Pré-existente, porém tráfego público novo (catálogo) aumenta superfície.
+  Recomendação: confirmar que proxy de produção (Cloudflare/reverse proxy) normaliza o header.
+- **`proxy.ts` usa `pathname.includes("/api")` não segmento exato** (2026-08-11): substring não seguro.
+  Não explorável hoje (nenhuma rota interna contém "api" no path), item de hardening futuro.
 - **LGPD Portal**: CNPJ/telefone/documentos de representantes (dados pessoais). Minimização ok,
   mas política retenção não definida. Audit log implementado.
 - **Tracking Mautic sem consentimento**: `mtc.js` grava `mtc_id`/`mtc_sid`/`mautic_device_id`,
@@ -137,7 +164,10 @@
   `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 208 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 326 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+  (+90 testes 2026-08-11 para produtos explorer/detail, categorias, funções puras).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
-- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan aplicado.
-- **i18n**: portal namespace (~156 chaves) + landing (~40 chaves) — árvores pt/en idênticas.
+- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
+  (nenhum achado crítico/alto novo introduzido).
+- **i18n**: portal namespace (~156 chaves) + home (~50 chaves) + footer (~20 chaves) — árvores pt/en
+  idênticas. Dicionário estruturado por módulo (landing → home, representantes como namespace raiz).

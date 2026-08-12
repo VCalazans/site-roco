@@ -8,10 +8,11 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 
 ## Fluxos Principais (fase atual)
 1. Visitante acessa `/` → é redirecionado para `/pt` (ou `/en` conforme idioma).
-2. Vê a página "Tem novidade chegando!" com a mensagem de site em construção.
-3. Pode: acessar **Produtos**, **Baixar Catálogo**, ou **Entrar em contato**.
-   > Destinos desses links são placeholders (`#produtos`, `#catalogo`, `#contato`) até
-   > que as URLs/recursos reais sejam definidos (ver decisionLog / progress).
+2. Vê a página home: site de marketing completo (hero + institucional "Quem é a ROCO" + vitrine de
+   categorias + produtos em destaque + CTA Portal ROCO + rodapé).
+3. Pode: **Explorar Produtos** (→ `/pt/produtos`, listagem real), **Baixar Catálogo** (formulário Mautic
+   + PDF), **Força de Vendas** (pré-cadastro de representantes), **Portal ROCO** (acesso interno),
+   ou **Entrar em contato** (modal Mautic).
 
 ## Integrações de Negócio
 - **WhatsApp (MCP Archicode)**: disponível para automações/notificações internas.
@@ -23,8 +24,11 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 
 ## Personas
 ### Site Público
-- **Cliente/Parceiro industrial**: quer conhecer produtos, obter catálogo e entrar em contato.
-- **Visitante geral**: quer entender o que é a ROCO e como conversar com a empresa.
+- **Cliente/Parceiro industrial**: quer explorar catálogo real, filtrar por categoria/busca, obter PDF e
+  entrar em contato → `/produtos` com paginação/filtro, CTA "Solicite um orçamento", modal Mautic.
+- **Visitante geral**: quer entender quem é a ROCO (história, dados reais, certificações) e como conversar →
+  home com seção institucional (Roco Indústria Metalplástica S.A., 2014, Blumenau/SC + Gaspar/SC, GPTW,
+  exportação), vitrine de categorias, rodapé com contatos, CTA Portal.
 
 ### Portal Interno (CRM)
 - **Representante comercial em onboarding**: acessa via Google OAuth, preenche perfil/empresa,
@@ -37,14 +41,20 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 ## Fluxos de Negócio
 
 ### Fluxo de Visitante (Site Público)
-1. Acessa `/pt` (ou `/en`) → landing "Tem novidade chegando!" com hero + 4 CTAs.
-2. Clica **"Conheça nossos Produtos"** → `/pt/catalogo` (listagem via API `/api/products`).
-3. Clica **"Baixar Catálogo"** → download PDF (link externo ou arquivo.pdf).
-4. Clica **"Entre em contato"** ou **"Ligamos pra você"** → abre modal com form Mautic (id=1).
-5. Preenche CNPJ/empresa/email/telefone → validação client-side (CNPJ, telefone) + bloqueio
-   de submit inválido → POST via Mautic → lead criado no Mautic.
-6. Tracking: pageview em cada rota (`mtc.js` via `mautic-tracking.tsx`); hit enviado a
-   `POST /mtc/event` ou pixel `mtracking.gif`.
+1. Acessa `/pt` (ou `/en`) → home institucional (hero + "Quem é a ROCO" + categorias + produtos destaque + footer).
+2. **Via vitrine de produtos**: clica um produto destacado → `/pt/produtos/[slug]` (detalhe com galeria R2,
+   embalagens, badges, produtos relacionados).
+3. **Via vitrine de categorias**: clica categoria (ex.: "Metalurgia") → `/pt/produtos?category=metalurgia`
+   (filtro aplicado).
+4. **Via barra de busca**: digita termo + ENTER/buscar → `/pt/produtos?q=termo` (SSR, debounce 350ms
+   no client, paginação real, cache tag `"products"`).
+5. Clica **"Solicite um orçamento"** (em produto) ou **"Entre em contato"** (nav) → abre modal form Mautic (id=1).
+6. Preenche CNPJ/empresa/email/telefone → validação client-side (CNPJ, telefone) + bloqueio de submit inválido
+   → POST via Mautic → lead criado no Mautic.
+7. **Alternativa**: clica **"Baixar Catálogo"** (nav/footer) → abre modal Mautic (captura de lead) + link PDF
+   (endpoint `/downloads/catalogo-roco-2026.pdf`).
+8. Tracking: pageview em cada rota (`mtc.js` via `mautic-tracking.tsx`); hit enviado a `POST /mtc/event` ou
+   pixel `mtracking.gif`.
 
 ### Fluxo de Representante (Portal)
 **Canal padrão (2026-08-11): pré-cadastro pelo SITE.**
