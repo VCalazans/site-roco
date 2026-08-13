@@ -68,9 +68,15 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
           sizes="100vw"
           className="object-cover opacity-50"
         />
-        {/* Iframe dimensionado para COBRIR a viewport mantendo 16:9 (mesma
-            matemática do board anterior, agora com o aspect do vídeo):
-            largura = max(100vw, 100svh × 16/9), centralizado nos dois eixos.
+        {/* Iframe dimensionado para COBRIR a viewport mantendo 16:9, com
+            OVERSCAN de 35% além do cover (largura = cover × 1.35): o chrome
+            do player do YouTube — barra de título/traduções no topo, legendas
+            automáticas, marca-d'água e controles de pausa/próximo (o loop via
+            `playlist` cria UI de playlist) no rodapé — cai FORA da área
+            visível, cortado pelo `overflow-hidden` do wrapper. Não há
+            parâmetro de embed que desligue tudo isso de forma confiável
+            (feedback do stakeholder 2026-08-12); o corte é a mitigação até o
+            MP4 self-hosted substituir o embed (backlog).
             `pointer-events-none` — é cenário, não player: sem controles, sem
             foco (tabIndex -1), o clique atravessa para o conteúdo. */}
         <iframe
@@ -79,7 +85,7 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
           tabIndex={-1}
           allow="autoplay; encrypted-media"
           className="pointer-events-none absolute left-1/2 top-1/2 aspect-video -translate-x-1/2 -translate-y-1/2 border-0"
-          style={{ width: "max(100vw, calc(100svh * 16 / 9))" }}
+          style={{ width: "calc(max(100vw, 100svh * 16 / 9) * 1.35)" }}
         />
         {/* Véu dual-tone + escurecimento progressivo para o texto central e a
             transição para a seção seguinte (mesma linguagem do hero mobile
