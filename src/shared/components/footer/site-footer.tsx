@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Award } from "lucide-react";
 import { resolveDestination } from "@/core/config/site";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
@@ -52,6 +53,32 @@ export function SiteFooter({ content, brand, locale }: SiteFooterProps) {
               </ul>
             </div>
           ))}
+        </div>
+
+        {/* Certificações e selos da empresa (pedido do stakeholder 2026-08-12).
+            Badge textual + ícone no estilo do site — NÃO é a arte oficial do
+            selo GPTW: o layout licenciado (com ano de vigência) deve substituir
+            este badge quando o stakeholder fornecer o arquivo (pendência de
+            compliance registrada no progress.md). O array nos dicionários
+            (`footer.certifications.items`) já comporta selos adicionais. */}
+        <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
+          <h3 className="text-micro uppercase tracking-wide text-white/40">
+            {content.certifications.title}
+          </h3>
+          <ul className="flex flex-wrap gap-3">
+            {content.certifications.items.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 shadow-[0_0_24px_-8px_rgba(53,217,255,0.25)]"
+              >
+                <Award className="size-6 shrink-0 text-neon-amber-bright" aria-hidden />
+                <div className="flex flex-col">
+                  <span className="text-meta font-semibold text-white/90">{item.label}</span>
+                  <span className="text-micro text-white/50">{item.note}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="border-t border-white/10 pt-6">

@@ -40,6 +40,9 @@ const VIDEO_EMBED = `https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay
  */
 const POSTER = "/images/hero/hero-stage.jpg";
 
+/** Mesmo logotipo 2D limpo do `SiteHeader`/`SiteFooter` — ver comentário lá. */
+const LOGO = "/images/hero/roco-logo.png";
+
 /**
  * Hero da HOME no padrão WEG (ver `docs/referencia weg/home/image1.png`):
  * primeira dobra 100% mídia (vídeo institucional em COVER full-bleed, cortado
@@ -95,14 +98,25 @@ export function HomeHero({ brand, content, navLinks, menuLabels }: HomeHeroProps
         >
           {content.eyebrow}
         </motion.p>
+        {/* A headline visível é o LOGOTIPO da ROCO (pedido do stakeholder,
+            2026-08-12) — o texto do dicionário permanece no h1 como sr-only,
+            preservando SEO e leitores de tela. */}
         <motion.h1
           variants={fade}
           initial="hidden"
           animate="show"
           custom={1}
-          className="text-glow-soft text-balance font-display text-h1 text-white md:text-[3.4rem] md:leading-[1.08]"
+          className="flex justify-center"
         >
-          {content.headline}
+          <Image
+            src={LOGO}
+            alt={brand}
+            width={300}
+            height={122}
+            priority
+            className="h-16 w-auto drop-shadow-[0_0_28px_rgba(53,217,255,0.35)] md:h-24"
+          />
+          <span className="sr-only">{content.headline}</span>
         </motion.h1>
         <motion.p
           variants={fade}

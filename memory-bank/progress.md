@@ -155,9 +155,11 @@
 - **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
   /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
   **Nota**: sem Redis em dev, rate limit não funciona (comportamento esperado, recomendação: testar em staging com Redis).
-- **Claim GPTW pendente de confirmação** (2026-08-11): home institucional cita "Great Place to Work"
-  sem documentação de ano/validade do selo. Risco de compliance CDC se não puder ser sustentado com prova
-  documental — mover confirmação com stakeholder para topo de bloqueadores antes de produção.
+- **Claim GPTW pendente de confirmação** (2026-08-11; atualizado 2026-08-12): home institucional e
+  agora o RODAPÉ citam "Great Place To Work®" (badge textual no footer foi pedido explícito do
+  stakeholder em 2026-08-12 — não é a arte oficial licenciada). Continua faltando ano/validade e a
+  arte oficial do selo. Risco de compliance CDC se não puder ser sustentado com prova documental —
+  obter do stakeholder o certificado (ano) e o arquivo do selo licenciado antes de produção.
 - **`getClientIp` confia em `X-Forwarded-For` sem validar topologia de proxy** (2026-08-11): rate-limit
   usa header sem normalização. Pré-existente, porém tráfego público novo (catálogo) aumenta superfície.
   Recomendação: confirmar que proxy de produção (Cloudflare/reverse proxy) normaliza o header.

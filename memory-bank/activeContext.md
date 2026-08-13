@@ -26,6 +26,10 @@
   CSP: `frame-src` ganha youtube-nocookie (script-src intacto). Nav uniforme padrão WEG: sem
   ícones lucide, sem text-glows, caixa alta, ativo = ciano (navLabelClass; 341 testes).
   Ver decisionLog 2026-08-12. **Follow-up**: trocar embed por MP4 self-hosted quando houver arquivo.
+- **Rodada 4 (feedback do stakeholder)**: headline visível do hero substituída pelo LOGOTIPO ROCO
+  (texto do dicionário preservado como sr-only no h1 — SEO/a11y); rodapé ganhou bloco
+  "Certificações e selos" com badge GPTW textual (`footer.certifications`, array extensível;
+  347 chaves pt/en). Arte oficial do selo + ano seguem pendentes (ver risco no progress.md).
 
 ## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
 - **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):

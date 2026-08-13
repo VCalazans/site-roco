@@ -211,7 +211,16 @@
       }
     ],
     "socialLabel": "Siga a ROCO",
-    "addressLabel": "Blumenau e Gaspar — Santa Catarina, Brasil"
+    "addressLabel": "Blumenau e Gaspar — Santa Catarina, Brasil",
+    "certifications": {
+      "title": "Certificações e selos",
+      "items": [
+        {
+          "label": "Great Place To Work®",
+          "note": "Empresa certificada"
+        }
+      ]
+    }
   },
   "languageSwitcher": {
     "label": "Idioma"
