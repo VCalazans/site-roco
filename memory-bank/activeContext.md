@@ -30,6 +30,18 @@
   (texto do dicionário preservado como sr-only no h1 — SEO/a11y); rodapé ganhou bloco
   "Certificações e selos" com badge GPTW textual (`footer.certifications`, array extensível;
   347 chaves pt/en). Arte oficial do selo + ano seguem pendentes (ver risco no progress.md).
+- **Rodada 5 (feedback do stakeholder)**: chrome do player do YouTube (título/traduções,
+  legendas, marca-d'água, controles pausa/próximo da UI de playlist do loop) aparecia sobre o
+  vídeo → iframe com OVERSCAN de 35% além do cover; o wrapper corta o chrome para fora da tela.
+  Nenhum parâmetro de embed desliga isso de forma confiável — mitigação até o MP4 self-hosted.
+  Commits da sessão: d12fb88..5d9cde7 (13 atômicos). Imagem Docker local atualizada e smoke OK.
+
+## Estado ao fim de 2026-08-12
+- Branch `feat/porta-mais-site`, working tree limpo, 341 testes verdes, lint/build verdes.
+- Site no ar em localhost:3000 (container): home WEG (vídeo + logo + CTAs centrais), header fixo
+  translúcido, nav uniforme, /produtos (737), footer com selo GPTW.
+- Aguardando do stakeholder: MP4 do vídeo institucional (YouTube Studio), arte oficial do selo
+  GPTW com ano, decisão publicação do catálogo em produção, Google OAuth, infra de produção.
 
 ## Sessão 2026-08-11 (parte 2) — Canal público de aquisição de representantes
 - **Pré-cadastro pelo site** em `/{locale}/representantes` (nav "Força de Vendas" reativada):
