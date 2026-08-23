@@ -55,12 +55,12 @@ export function SiteFooter({ content, brand, locale }: SiteFooterProps) {
           ))}
         </div>
 
-        {/* Certificações e selos da empresa (pedido do stakeholder 2026-08-12).
-            Badge textual + ícone no estilo do site — NÃO é a arte oficial do
-            selo GPTW: o layout licenciado (com ano de vigência) deve substituir
-            este badge quando o stakeholder fornecer o arquivo (pendência de
-            compliance registrada no progress.md). O array nos dicionários
-            (`footer.certifications.items`) já comporta selos adicionais. */}
+        {/* Certificações e selos da empresa. O selo GPTW é a ARTE OFICIAL com
+            vigência (fev 2026 – fev 2027), fornecida pelo stakeholder em
+            2026-08-23 e processada para PNG transparente (fundo claro
+            removido; original de referência em docs/). Itens sem `image`
+            caem no ícone genérico. O array nos dicionários
+            (`footer.certifications.items`) comporta selos adicionais. */}
         <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
           <h3 className="text-micro uppercase tracking-wide text-white/40">
             {content.certifications.title}
@@ -69,9 +69,19 @@ export function SiteFooter({ content, brand, locale }: SiteFooterProps) {
             {content.certifications.items.map((item) => (
               <li
                 key={item.label}
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 shadow-[0_0_24px_-8px_rgba(53,217,255,0.25)]"
+                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_0_24px_-8px_rgba(53,217,255,0.25)]"
               >
-                <Award className="size-6 shrink-0 text-neon-amber-bright" aria-hidden />
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.alt}
+                    width={96}
+                    height={161}
+                    className="h-16 w-auto shrink-0"
+                  />
+                ) : (
+                  <Award className="size-6 shrink-0 text-neon-amber-bright" aria-hidden />
+                )}
                 <div className="flex flex-col">
                   <span className="text-meta font-semibold text-white/90">{item.label}</span>
                   <span className="text-micro text-white/50">{item.note}</span>

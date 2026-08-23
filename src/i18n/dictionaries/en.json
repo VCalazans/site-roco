@@ -255,7 +255,9 @@
       "items": [
         {
           "label": "Great Place To Work®",
-          "note": "Certified company"
+          "note": "Certified · Feb 2026 – Feb 2027",
+          "image": "/images/certifications/gptw-certificada-2026-2027.png",
+          "alt": "Great Place To Work Certified badge, February 2026 to February 2027, Brazil"
         }
       ]
     }
