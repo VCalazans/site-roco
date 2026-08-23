@@ -435,3 +435,31 @@ neon; o selo colorido sobre o card glassy mantém contraste (topo vermelho + tex
 **Impacto**: Risco de compliance CDC do claim GPTW RESOLVIDO (prova com vigência); nome do arquivo
 carrega a vigência para forçar revisão na renovação (fev/2027 — substituir asset + notas dos
 dicionários). Dicionários: `note` ganha vigência, campos novos `image`/`alt` por locale.
+
+## 2026-08-23 — Carga inicial de imagens de produto: script batch 100% compatível com o fluxo do portal
+**Decisão**: A primeira carga das fotos de produto (`docs/PRODUTOS/`, ~745 imagens nomeadas por SKU,
+não versionadas) sobe por um script batch novo — `npm run db:import-images`
+(`src/db/import/import-product-images.ts`, padrão do `import-catalog`: fora do bundler, clients
+Drizzle/S3 próprios, carrega `.env.local`/`.env` sozinho) — que reproduz EXATAMENTE o contrato do
+fluxo presign/confirm do portal: chave `products/{sku}/{uuid}.{ext}` (mesma validação de prefixo do
+`confirmImageUpload`), INSERT em `product_images` com contentType permitido (png/jpg/webp), teto de
+10MB, `altPt`/`altEn` = nome do produto e `sortOrder` da galeria. Assim o time gerencia
+(lista/adiciona/substitui/exclui) as imagens seed pelo portal como qualquer upload manual.
+Matching: exato por stem === sku + fallback por prefixo numérico (≥3 dígitos) para variantes com
+sufixo (`1122_v2`, `1263_01`, ...), que entram como imagens secundárias (arquivo exato = sortOrder 0,
+variantes em ordem alfabética). Idempotente por (produto, filename) — re-execução não duplica nem
+sobrescreve curadoria posterior do time. Dry-run: 613 imagens → 593 produtos (19 variantes);
+132 arquivos sem produto no catálogo atual (faixas 1906–1919, 2237–2280, 3068–3179 ausentes do
+import de 2026-08) + 11 com nome livre (BLISTER, CAIXA, Cunha_*, ...) para mapear manualmente.
+**Alternativas**: (a) subir via UI do portal (593 produtos × presign manual — inviável); (b) INSERT
+com chave própria (ex.: `seed/{sku}.png`) — quebraria a validação de prefixo do confirm e a
+exclusão/substituição pelo portal; (c) exigir mapeamento manual dos 132 não casados antes da carga —
+atrasa o go-live do acervo; ficam para segunda rodada.
+**Impacto**: Comando novo `db:import-images` (package.json); envs R2 reais em `.env.local`/`.env`
+(gitignored — bucket `roco-test`). **BLOQUEIO no ato**: as credenciais fornecidas autenticam mas
+retornam 403 AccessDenied em TODAS as operações (put/head/list/listBuckets, endpoints padrão e EU) —
+token da API R2 sem permissão "Object Read & Write" no bucket, escopo em outro bucket, ou bucket
+inexistente. Aguardando correção do token pelo stakeholder; o script roda com um comando depois.
+**Pendências ligadas**: `R2_PUBLIC_URL` (habilitar acesso público r2.dev ou domínio custom no
+bucket) para o SITE exibir as fotos — entra na CSP `img-src` e no `images.remotePatterns`
+(build-arg do Docker); sem ela as páginas caem no placeholder "sem foto" por design.

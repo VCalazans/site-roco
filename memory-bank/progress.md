@@ -94,6 +94,12 @@
 - [x] `npm run test` e `npm run test:coverage` funcionando (326 testes totais agora)
 
 ## 🔄 Em Andamento
+- [ ] **Carga inicial de imagens de produto** (2026-08-23): `npm run db:import-images` pronto
+      (613 imagens → 593 produtos em dry-run; compatível com o fluxo do portal — decisionLog).
+      BLOQUEADO: token R2 do bucket `roco-test` retorna 403 em todas as operações — stakeholder
+      precisa reemitir com "Object Read & Write" no bucket. Depois: rodar o script, reiniciar o
+      container web e obter `R2_PUBLIC_URL` (acesso público) p/ o site exibir as fotos.
+      Segunda rodada: mapear 132 arquivos sem produto (faixas ausentes do catálogo + nomes livres).
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
 - [ ] Provisionar infra prod (Postgres + Redis, Google OAuth, R2 bucket)
 

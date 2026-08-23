@@ -101,6 +101,7 @@ npm run dev        # http://localhost:3000
 | `npm run db:studio`  | Abrir Drizzle Studio (UI local)              |
 | `npm run db:seed`    | Seed roles + permissões (idempotente)       |
 | `npm run db:import-catalog` | Importar catálogo de .xls (769 produtos) |
+| `npm run db:import-images` | Carga inicial de fotos (docs/PRODUTOS → R2 + product_images; `--dry-run`/`--limit=N`; idempotente por produto+filename) |
 
 ## Portal Interno (CRM)
 ### Arquitetura
