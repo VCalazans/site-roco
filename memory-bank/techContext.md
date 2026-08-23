@@ -182,6 +182,38 @@ Procedência, SHA-256, resultado da inspeção e passos de reextração: `public
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.
 - Headers de segurança configurados em `next.config.ts`.
 
+## Runbook — Primeiro Deploy em Produção (seed completo, escrito 2026-08-23)
+Pipeline validado ponta a ponta no ambiente local (migrations → seed → catálogo → imagens →
+site com fotos). Ordem para produção:
+
+1. **Provisionar**: Postgres, Redis e bucket R2 de PRODUÇÃO (não reutilizar `roco-test`):
+   criar bucket + token "Object Read & Write" escopado nele + acesso público
+   (preferir domínio custom, ex. `img.roco.com.br`, ao r2.dev — cache/branding).
+2. **Build da imagem** com build-args (resolvidos em build-time — CSP/remotePatterns/flags):
+   `NEXT_PUBLIC_SITE_URL=https://roco.com.br`, `R2_PUBLIC_URL`, `R2_ACCOUNT_ID`,
+   `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED` (prod: ligado por padrão — decisão LGPD pendente).
+3. **Envs runtime** (`.env` de produção): `DATABASE_URL`, `AUTH_SECRET` (≥32), `AUTH_URL`,
+   `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` (≥12 — exigido pelo seed), `REDIS_URL`
+   (SEM ele rate limit é fail-open!), `ERP_WEBHOOK_SECRET`, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
+   `R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_URL`, `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`
+   (quando o stakeholder criar — sem eles o login Google falha ao clicar; credenciais funcionam).
+4. **Carga inicial — rodar da MÁQUINA LOCAL** com `DATABASE_URL`/R2 de produção no `.env.local`
+   (os scripts rodam fora do bundle e leem `docs/`, que NÃO vai na imagem Docker), nesta ordem:
+   a. `npm run db:migrate`      (drizzle 0000–0002)
+   b. `npm run db:seed`         (roles/permissões + admin bootstrap; idempotente)
+   c. `npm run db:import-catalog` (upsert por sku; nasce `published=false` POR DESIGN)
+   d. **DECISÃO DO STAKEHOLDER**: publicar em massa (ato deliberado, ex. UPDATE em lote) OU
+      curadoria item a item no admin — sem isso `/produtos` nasce VAZIO em produção
+      (pendência registrada no decisionLog 2026-08-11).
+   e. `npm run db:import-images -- --dry-run` e depois sem flag (613 fotos; idempotente).
+   ⚠️ Apontar tooling local para banco de produção só nessa janela; conferir env antes de cada
+   comando e remover as credenciais de produção do `.env.local` ao terminar.
+5. **Smoke**: home 200 nos 2 locales, `/produtos` com fotos (otimizador `_next/image` 200),
+   login credenciais 302+cookie, guard `/portal` 307, webhook ERP sem secret → 401,
+   rate limit ativo (Redis conectado — ver logs).
+6. **Riscos abertos no go-live** (progress.md): banner LGPD do tracking Mautic (decisão),
+   CORS `www` no Mautic, endurecer register (captcha/e-mail), MP4 self-hosted do hero.
+
 ## Stack Docker Local (sempre no ar — 2026-08-11)
 Os 3 serviços rodam via `docker compose` com `restart: unless-stopped` (voltam com o Docker Desktop):
 - **web** (`site-roco`) → http://localhost:3000 — site + API + portal (build de produção).
