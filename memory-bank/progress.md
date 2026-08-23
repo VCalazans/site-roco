@@ -99,10 +99,11 @@
       bucket `roco-test`, 0 falhas, chaves/registros no formato do portal; re-execução pula tudo
       (idempotência verificada); objeto amostrado byte-idêntico ao original; container web
       recriado com as envs R2 (portal apto a presign/confirm/delete).
-- [ ] **`R2_PUBLIC_URL` pendente** (2026-08-23): bucket ainda sem acesso público — o SITE mostra
-      placeholder "sem foto" até o stakeholder habilitar (R2 → roco-test → Settings → Public
-      access r2.dev, ou domínio custom) e a URL entrar em `.env`/build-arg (CSP img-src +
-      images.remotePatterns exigem rebuild da imagem Docker com o build-arg R2_PUBLIC_URL).
+- [x] **`R2_PUBLIC_URL` — RESOLVIDO 2026-08-23**: stakeholder habilitou o r2.dev
+      (`https://pub-a1a98630b8f4417ebc7e9d2098e8c2f9.r2.dev`); URL gravada em `.env`/`.env.local`
+      e imagem Docker rebuildada com os build-args R2_PUBLIC_URL + R2_ACCOUNT_ID. Verificado:
+      listagem/detalhe servem as fotos reais via next/image (otimizador 200), CSP img-src com o
+      host. Em produção, avaliar domínio custom no lugar do r2.dev (cache/branding).
 - [ ] Segunda rodada de fotos: mapear 132 arquivos sem produto (faixas 1906–1919, 2237–2280,
       3068–3179 ausentes do catálogo + 11 nomes livres) e 144 produtos sem foto.
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)

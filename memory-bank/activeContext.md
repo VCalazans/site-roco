@@ -30,8 +30,9 @@
   permissão), stakeholder corrigiu; `npm run db:import-images` subiu 613 imagens (336 MB) → 593
   produtos, 0 falhas; idempotência verificada (re-run pula 613); objeto amostrado byte-idêntico;
   container web recriado com envs R2 (portal apto a presign/confirm/delete no `roco-test`).
-  Envs R2_* em `.env.local`/`.env` (gitignored). **Falta `R2_PUBLIC_URL`** (acesso público do
-  bucket) + rebuild com build-arg para o SITE exibir as fotos — até lá, placeholder "sem foto".
+  Envs R2_* em `.env.local`/`.env` (gitignored). `R2_PUBLIC_URL` (r2.dev) habilitada pelo
+  stakeholder na sequência: envs + rebuild com build-arg → SITE exibe as fotos reais
+  (otimizador next/image 200, CSP ok). Catálogo público com imagem no ar em localhost:3000.
 
 ## Sessão 2026-08-12 — Finalização: commits, revisão adversarial e correções
 - Recuperação pós-stall do architect: trabalho da parte 3 verificado (hero/menu polish aplicado,
