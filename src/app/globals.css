@@ -225,6 +225,42 @@ a {
     0 0 26px rgba(245, 163, 60, 0.6), 0 0 60px rgba(245, 163, 60, 0.3);
 }
 
+/* ---- Card de categoria da home (fiel ao PSD "Layout pag Produtos_OK_01") ----
+   Reproduz a moldura das vitrines do PSD: tubo neon em gradiente ciano →
+   ponto quente claro → âmbar (o render 3D tem essa transição no topo de cada
+   card), interior de vidro escuro (a arte extraída do composite preenche o
+   miolo) e glow dual-tone no entorno. O rótulo vivo (i18n) fica por cima —
+   o rótulo assado do PSD foi removido na extração do asset. */
+.card-neon {
+  position: relative;
+  display: block;
+  border-radius: 1.625rem;
+  padding: 1.5px;
+  background: linear-gradient(
+    118deg,
+    var(--neon-cyan-bright) 0%,
+    color-mix(in oklab, var(--neon-cyan-bright), white 72%) 42%,
+    var(--neon-amber-bright) 58%,
+    var(--neon-amber) 100%
+  );
+  box-shadow: 0 0 30px -10px rgba(53, 217, 255, 0.45),
+    0 0 30px -10px rgba(245, 163, 60, 0.35),
+    0 22px 44px -20px rgba(0, 0, 0, 0.85);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-neon:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 0 42px -8px rgba(53, 217, 255, 0.65),
+    0 0 42px -8px rgba(245, 163, 60, 0.5),
+    0 26px 52px -20px rgba(0, 0, 0, 0.9);
+}
+
+.card-neon-label {
+  color: color-mix(in oklab, var(--neon-cyan-bright), white 55%);
+  text-shadow: 0 0 14px rgba(53, 217, 255, 0.45);
+}
+
 /* ---- Mautic embedded form (styled to match the dark/neon theme) ---- */
 .mautic-form-wrap {
   color: #e8eef4;

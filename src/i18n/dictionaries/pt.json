@@ -93,7 +93,45 @@
       "cta": {
         "label": "Ver Todos os Produtos",
         "href": "/produtos"
-      }
+      },
+      "items": [
+        {
+          "label": "Hidrossanitários",
+          "href": "/produtos?category=caixa-acoplada",
+          "image": "/images/home/categorias/hidrossanitarios.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Hidráulica",
+          "href": "/produtos?category=hidro-latao",
+          "image": "/images/home/categorias/hidraulica.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Reparos",
+          "href": "/produtos?search=reparo",
+          "image": "/images/home/categorias/reparos.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Conexões",
+          "href": "/produtos?category=conexoes",
+          "image": "/images/home/categorias/conexoes.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Gás",
+          "href": "/produtos?category=gas",
+          "image": "/images/home/categorias/gas.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Flexíveis",
+          "href": "/produtos?category=flexiveis",
+          "image": "/images/home/categorias/flexiveis.jpg",
+          "alt": ""
+        }
+      ]
     },
     "featured": {
       "eyebrow": "Destaque",

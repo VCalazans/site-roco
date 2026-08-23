@@ -93,7 +93,7 @@ export default async function HomePage({ params }: PageProps) {
       />
       <HomeCategories
         content={home.categories}
-        categories={categoryList}
+        categorySlugs={categoryList.map((category) => category.slug)}
         locale={locale}
         ctaHref={resolveDestination(home.categories.cta.href, locale)}
       />

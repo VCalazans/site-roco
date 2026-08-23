@@ -1,45 +1,38 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Cable, Droplet, Flame, Package, Shapes, Wrench } from "lucide-react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import type { PublicCategory } from "@/modules/products/lib/types";
+import { resolveCategoryCardHref } from "@/modules/home/lib/category-cards";
 
 type HomeCategoriesContent = Dictionary["home"]["categories"];
 
 type HomeCategoriesProps = {
   content: HomeCategoriesContent;
-  categories: PublicCategory[];
+  /** Slugs reais do catálogo — valida os hrefs `?category=` dos cards. */
+  categorySlugs: string[];
   locale: Locale;
   ctaHref: string;
 };
 
 /**
- * Não há ícone customizado por categoria ainda (o catálogo não guarda esse
- * dado) — rotaciona um conjunto genérico de ícones lucide-react, na mesma
- * linguagem do resto do nav/hero. Determinístico por índice, não por slug,
- * então o ícone de uma categoria pode mudar se a ordem/sortOrder mudar — é um
- * placeholder visual, não uma identidade fixa.
+ * Vitrine de categorias da home, fiel ao PSD "Layout pag Produtos_OK_01.psd"
+ * (docs/): 6 cards verticais com moldura neon ciano→âmbar, arte line-art neon
+ * extraída do composite do PSD (as ilustrações não são camadas separáveis —
+ * ver decisionLog 2026-08-23) e rótulo vivo em caixa alta. Os cards são as 6
+ * MACRO-FAMÍLIAS de marketing aprovadas no design — não as 16 categorias do
+ * ERP (essas ficam no filtro de `/produtos`); o mapa card→filtro vive nos
+ * dicionários e degrada para a listagem completa se a categoria sumir do
+ * catálogo (`resolveCategoryCardHref`).
  */
-const CATEGORY_ICONS = [Droplet, Wrench, Shapes, Cable, Flame, Package];
-
-function categoryName(category: PublicCategory, locale: Locale): string {
-  return locale === "en" && category.nameEn ? category.nameEn : category.namePt;
-}
-
-/**
- * Vitrine de categorias reais da home. Mostra só as categorias de topo
- * (`parentId === null`) — a lista completa (com subcategorias) fica reservada
- * para o filtro da página `/produtos`, onde granularidade extra ajuda; aqui,
- * na home, um grid enxuto de categorias-mãe é mais lido de relance (decisão
- * de UX, ver resumo final).
- */
-export function HomeCategories({ content, categories, locale, ctaHref }: HomeCategoriesProps) {
-  const topLevel = categories.filter((category) => !category.parentId);
-  if (topLevel.length === 0) return null;
-
+export function HomeCategories({ content, categorySlugs, locale, ctaHref }: HomeCategoriesProps) {
   return (
-    <section className="relative px-6 py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl">
+    <section className="relative overflow-hidden px-6 py-20 sm:py-24">
+      {/* Glows de ambiente dual-tone — eco do piso refletivo do PSD. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-72 bg-[radial-gradient(60%_100%_at_25%_100%,rgba(53,217,255,0.08),transparent_70%),radial-gradient(60%_100%_at_75%_100%,rgba(245,163,60,0.07),transparent_70%)]"
+      />
+      <div className="relative mx-auto max-w-7xl">
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
           <div className="max-w-2xl">
             <p className="text-glow-amber text-meta font-semibold uppercase tracking-[0.2em] text-neon-amber-bright">
@@ -53,31 +46,35 @@ export function HomeCategories({ content, categories, locale, ctaHref }: HomeCat
           </Link>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {topLevel.map((category, index) => {
-            const Icon = CATEGORY_ICONS[index % CATEGORY_ICONS.length];
-            const isCyan = index % 2 === 0;
-            return (
-              <Link
-                key={category.slug}
-                href={`/${locale}/produtos?category=${category.slug}`}
-                className="group flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-8 text-center transition hover:-translate-y-1"
-                style={{
-                  boxShadow: isCyan
-                    ? "0 0 0 1px rgba(53,217,255,0.08) inset, 0 0 30px -12px rgba(53,217,255,0.4)"
-                    : "0 0 0 1px rgba(245,163,60,0.08) inset, 0 0 30px -12px rgba(245,163,60,0.4)",
-                }}
-              >
-                <Icon
-                  className={isCyan ? "size-8 text-neon-cyan-bright" : "size-8 text-neon-amber-bright"}
-                  aria-hidden
+        <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5">
+          {content.items.map((item) => (
+            <Link
+              key={item.label}
+              href={resolveCategoryCardHref(item.href, locale, categorySlugs)}
+              className="card-neon group aspect-[45/82]"
+            >
+              <span className="relative block h-full w-full overflow-hidden rounded-[25px] bg-background">
+                <Image
+                  src={item.image}
+                  alt={item.alt}
+                  fill
+                  sizes="(min-width: 1024px) 16vw, (min-width: 640px) 33vw, 50vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                 />
-                <span className="text-ui font-semibold text-white/90">
-                  {categoryName(category, locale)}
+                {/* Scrim atrás do rótulo: em 2 das 6 artes o reflexo neon do
+                    piso cai exatamente sob o texto (contraste ~1:1 medido na
+                    revisão) — o degradê garante WCAG 1.4.3 sem alterar o
+                    resto da arte. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background via-background/55 to-transparent"
+                />
+                <span className="card-neon-label absolute inset-x-2 bottom-5 text-center text-ui font-semibold uppercase tracking-[0.14em]">
+                  {item.label}
                 </span>
-              </Link>
-            );
-          })}
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
     </section>

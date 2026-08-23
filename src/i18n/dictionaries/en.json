@@ -89,11 +89,49 @@
     "categories": {
       "eyebrow": "Our Portfolio",
       "headline": "Product Categories",
-      "description": "Explore our complete line of plumbing, hydraulics, connections, hoses and more. Quality and reliability in every category.",
+      "description": "Explore our complete line of plumbing, hydraulics, fittings, hoses and more. Quality and reliability in every category.",
       "cta": {
         "label": "View All Products",
         "href": "/produtos"
-      }
+      },
+      "items": [
+        {
+          "label": "Sanitary Solutions",
+          "href": "/produtos?category=caixa-acoplada",
+          "image": "/images/home/categorias/hidrossanitarios.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Plumbing",
+          "href": "/produtos?category=hidro-latao",
+          "image": "/images/home/categorias/hidraulica.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Repairs",
+          "href": "/produtos?search=reparo",
+          "image": "/images/home/categorias/reparos.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Fittings",
+          "href": "/produtos?category=conexoes",
+          "image": "/images/home/categorias/conexoes.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Gas",
+          "href": "/produtos?category=gas",
+          "image": "/images/home/categorias/gas.jpg",
+          "alt": ""
+        },
+        {
+          "label": "Flexible Hoses",
+          "href": "/produtos?category=flexiveis",
+          "image": "/images/home/categorias/flexiveis.jpg",
+          "alt": ""
+        }
+      ]
     },
     "featured": {
       "eyebrow": "Featured",
