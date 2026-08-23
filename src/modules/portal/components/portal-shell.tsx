@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import ImageIcon from "@mui/icons-material/Image";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import PeopleIcon from "@mui/icons-material/People";
 import PersonIcon from "@mui/icons-material/Person";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import WavingHandIcon from "@mui/icons-material/WavingHand";
 import AppBar from "@mui/material/AppBar";
@@ -27,17 +30,21 @@ import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { ThemeToggle, type ThemeToggleLabels } from "@/core/theme/theme-toggle";
 
 const DRAWER_WIDTH = 260;
+const DRAWER_COLLAPSED_WIDTH = 72;
+const SIDEBAR_COLLAPSE_STORAGE_KEY = "portal_sidebar_collapsed";
 
 export type PortalNavKey =
   | "dashboard"
   | "onboarding"
   | "products"
   | "representatives"
-  | "welcome";
+  | "welcome"
+  | "hero";
 
 export type PortalNavItem = {
   key: PortalNavKey;
@@ -78,6 +85,7 @@ const NAV_ICONS: Record<PortalNavKey, ComponentType<{ fontSize?: "small" }>> = {
   products: Inventory2Icon,
   representatives: PeopleIcon,
   welcome: WavingHandIcon,
+  hero: ImageIcon,
 };
 
 function DrawerHeader({
@@ -175,7 +183,29 @@ export function PortalShell({
     null
   );
 
+  /**
+   * Sidebar colapsável (solicitação do stakeholder 2026-08-23).
+   *  - Default: expandido.
+   *  - Persistido por usuário em `localStorage` (chave
+   *    `portal_sidebar_collapsed`) — sobrevive a refresh e a troca de aba.
+   *  - Inicialização LAZY em `useState` (lê o localStorage na primeira
+   *    renderização no client) — evita o `setState` em `useEffect` que a
+   *    regra `react-hooks/set-state-in-effect` proíbe e o flash de drawer
+   *    expandido que ocorreria se hidratássemos via efeito.
+   *  - O toggle fica no AppBar (desktop `md+`); no mobile usa o botão
+   *    hambúrguer existente que abre o drawer temporário — não muda.
+   */
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === "true";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, String(collapsed));
+  }, [collapsed]);
+
   const initials = (user?.name ?? user?.email ?? "?").trim().charAt(0).toUpperCase();
+  const drawerWidth = collapsed ? DRAWER_COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100dvh" }}>
@@ -187,8 +217,8 @@ export function PortalShell({
           zIndex: (theme) => theme.zIndex.drawer + 1,
           borderBottom: "1px solid",
           borderColor: "divider",
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { md: `${DRAWER_WIDTH}px` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
         }}
       >
         <Toolbar sx={{ gap: 1 }}>
@@ -200,6 +230,18 @@ export function PortalShell({
           >
             <MenuIcon />
           </IconButton>
+          <Tooltip
+            title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
+            placement="bottom"
+          >
+            <IconButton
+              aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
+              onClick={() => setCollapsed((c) => !c)}
+              sx={{ display: { xs: "none", md: "inline-flex" } }}
+            >
+              {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+          </Tooltip>
 
           <Box sx={{ flexGrow: 1 }} />
 
@@ -249,7 +291,7 @@ export function PortalShell({
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}>
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -257,7 +299,7 @@ export function PortalShell({
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: "block", md: "none" },
-            "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box" },
+            "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
           }}
         >
           <DrawerHeader
@@ -280,7 +322,7 @@ export function PortalShell({
           open
           sx={{
             display: { xs: "none", md: "block" },
-            "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box" },
+            "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
           }}
         >
           <DrawerHeader appName={appName} logoAlt={logoAlt} />
@@ -298,7 +340,7 @@ export function PortalShell({
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
           p: { xs: 2, sm: 3, md: 4 },
         }}
       >
