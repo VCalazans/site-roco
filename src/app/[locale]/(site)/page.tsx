@@ -47,13 +47,12 @@ export default async function HomePage({ params }: PageProps) {
   const dictionary = await getDictionary(locale);
   const { home, navigation, products } = dictionary;
 
-  // Destinations come from env/config; dictionary hrefs are copy-only fallbacks.
   const navLinks = visibleNavLinks(navigation.links).map((link) => ({
     ...link,
     href: resolveDestination(link.href, locale),
   }));
 
-  const heroContent = {
+  const heroFallback = {
     eyebrow: home.hero.eyebrow,
     headline: home.hero.headline,
     description: home.hero.description,
@@ -82,9 +81,10 @@ export default async function HomePage({ params }: PageProps) {
     <>
       <HomeHero
         brand={home.brand}
-        content={heroContent}
+        fallback={heroFallback}
         navLinks={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        locale={locale}
       />
       <HomeAbout
         content={home.about}

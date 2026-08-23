@@ -29,6 +29,7 @@ export type PortalDictionary = {
       products: string;
       representatives: string;
       welcome: string;
+      hero: string;
     };
     comingSoon: string;
     userMenu: {
@@ -249,6 +250,7 @@ export type PortalDictionary = {
     clear: string;
     backToSite: string;
   };
+  hero: PortalHeroDictionary;
 };
 
 /**
@@ -261,3 +263,90 @@ export type PortalDictionary = {
 export function getPortalDictionary(dictionary: Dictionary): PortalDictionary {
   return (dictionary as Dictionary & { portal: PortalDictionary }).portal;
 }
+
+export type PortalHeroDictionary = {
+  title: string;
+  subtitle: string;
+  table: {
+    slug: string;
+    kind: string;
+    headline: string;
+    status: string;
+    window: string;
+    actions: string;
+  };
+  status: {
+    published: string;
+    unpublished: string;
+    scheduled: string;
+    expired: string;
+  };
+  kind: { youtube: string; upload: string };
+  media: {
+    posterAlt: string;
+    youtubeHelper: string;
+    uploadHelper: string;
+    dropzone: string;
+    dropzonePoster: string;
+    maxSize: string;
+    accepted: string;
+    remove: string;
+    uploadError: string;
+  };
+  form: {
+    createTitle: string;
+    editTitle: string;
+    media: string;
+    copy: string;
+    ctas: string;
+    playback: string;
+    schedule: string;
+    fields: {
+      slug: string;
+      kind: string;
+      eyebrowPt: string;
+      eyebrowEn: string;
+      headlinePt: string;
+      headlineEn: string;
+      descriptionPt: string;
+      descriptionEn: string;
+      primaryCtaLabelPt: string;
+      primaryCtaLabelEn: string;
+      primaryCtaHref: string;
+      secondaryCtaLabelPt: string;
+      secondaryCtaLabelEn: string;
+      secondaryCtaHref: string;
+      loopWindowStart: string;
+      loopWindowEnd: string;
+      autoAdvance: string;
+      muted: string;
+      published: string;
+      startsAt: string;
+      endsAt: string;
+    };
+    actions: { save: string; cancel: string; delete: string };
+    tabs: {
+      media: string;
+      copy: string;
+      playback: string;
+      ctas: string;
+      schedule: string;
+    };
+  };
+  actions: {
+    newSlide: string;
+    reorder: string;
+    moveUp: string;
+    moveDown: string;
+  };
+  empty: { title: string; description: string };
+  deleteConfirm: {
+    title: string;
+    message: string;
+    confirm: string;
+    cancel: string;
+  };
+  carousel: { prev: string; next: string; of: string };
+  loopWindowHelper: string;
+  autoAdvanceHelper: string;
+};

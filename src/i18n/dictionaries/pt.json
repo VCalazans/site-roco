@@ -384,7 +384,8 @@
         "onboarding": "Cadastro",
         "products": "Produtos",
         "representatives": "Representantes",
-        "welcome": "Boas-vindas"
+        "welcome": "Boas-vindas",
+        "hero": "Hero da Home"
       },
       "comingSoon": "Em desenvolvimento",
       "userMenu": {
@@ -654,6 +655,116 @@
       "filter": "Filtrar",
       "clear": "Limpar",
       "backToSite": "Voltar para o site público"
+    },
+    "hero": {
+      "title": "Hero da Home",
+      "subtitle": "Slides da primeira seção do site — gerencie mídia (vídeo do YouTube ou upload), copy bilíngue, CTAs e agendamento.",
+      "table": {
+        "slug": "Slug",
+        "kind": "Tipo de mídia",
+        "headline": "Título",
+        "status": "Status",
+        "window": "Janela de exibição",
+        "actions": "Ações"
+      },
+      "status": {
+        "published": "Publicado",
+        "unpublished": "Não publicado",
+        "scheduled": "Agendado",
+        "expired": "Expirado"
+      },
+      "kind": {
+        "youtube": "YouTube",
+        "upload": "Upload (R2)"
+      },
+      "media": {
+        "posterAlt": "Imagem do slide (pôster)",
+        "youtubeHelper": "Cole apenas o ID do vídeo do YouTube (ex.: rqn-okkh0ww).",
+        "uploadHelper": "Faça upload do MP4 (até 200 MB). Opcionalmente envie um pôster JPG/PNG.",
+        "dropzone": "Arraste o vídeo aqui ou clique para selecionar",
+        "dropzonePoster": "Arraste o pôster aqui ou clique para selecionar (opcional)",
+        "maxSize": "Tamanho máximo: 200 MB",
+        "accepted": "Formatos aceitos: MP4, WebM",
+        "remove": "Remover",
+        "uploadError": "Erro no upload — verifique o formato e o tamanho."
+      },
+      "form": {
+        "createTitle": "Novo slide do hero",
+        "editTitle": "Editar slide do hero",
+        "media": "Mídia",
+        "copy": "Copy (bilíngue)",
+        "ctas": "CTAs",
+        "playback": "Reprodução",
+        "schedule": "Agendamento",
+        "fields": {
+          "slug": "Slug (auto se vazio)",
+          "kind": "Tipo de mídia",
+          "eyebrowPt": "Eyebrow (Português)",
+          "eyebrowEn": "Eyebrow (English)",
+          "headlinePt": "Título (Português)",
+          "headlineEn": "Título (English)",
+          "descriptionPt": "Descrição (Português)",
+          "descriptionEn": "Descrição (English)",
+          "primaryCtaLabelPt": "Rótulo CTA primário (PT)",
+          "primaryCtaLabelEn": "Rótulo CTA primário (EN)",
+          "primaryCtaHref": "URL CTA primário",
+          "secondaryCtaLabelPt": "Rótulo CTA secundário (PT)",
+          "secondaryCtaLabelEn": "Rótulo CTA secundário (EN)",
+          "secondaryCtaHref": "URL CTA secundário",
+          "loopWindowStart": "Início do loop (segundos)",
+          "loopWindowEnd": "Fim do loop (segundos)",
+          "autoAdvance": "Auto-advance (segundos, 0 = sem rotação)",
+          "muted": "Sem som (obrigatório para autoplay)",
+          "published": "Publicado no site",
+          "startsAt": "Início da visibilidade",
+          "endsAt": "Fim da visibilidade"
+        },
+        "actions": {
+          "save": "Salvar slide",
+          "cancel": "Cancelar",
+          "delete": "Deletar slide"
+        },
+        "tabs": {
+          "media": "Mídia",
+          "copy": "Copy",
+          "playback": "Reprodução",
+          "ctas": "CTAs",
+          "schedule": "Agendamento"
+        }
+      },
+      "actions": {
+        "newSlide": "Novo slide",
+        "reorder": "Reordenar",
+        "moveUp": "Mover para cima",
+        "moveDown": "Mover para baixo"
+      },
+      "empty": {
+        "title": "Nenhum slide cadastrado",
+        "description": "Crie o primeiro slide para a primeira seção do site."
+      },
+      "deleteConfirm": {
+        "title": "Deletar slide",
+        "message": "Esta ação não pode ser desfeita. O vídeo/pôster enviado para o R2 também será removido.",
+        "confirm": "Sim, deletar",
+        "cancel": "Cancelar"
+      },
+      "carousel": {
+        "prev": "Slide anterior",
+        "next": "Próximo slide",
+        "of": "de"
+      },
+      "loopWindowHelper": "Deixe em branco para tocar o vídeo inteiro. Use para destacar só um trecho (ex.: primeiros 30s).",
+      "autoAdvanceHelper": "0 = sem rotação. Se setado, o slider transiciona entre slides a cada N segundos (crossfade)."
+    }
+  },
+  "site": {
+    "consent": {
+      "title": "Cookies e privacidade",
+      "body": "Usamos cookies e dados de navegação para entender como você usa o site e melhorar sua experiência. Você pode aceitar ou recusar o rastreamento analítico — o site funciona normalmente em ambos os casos.",
+      "accept": "Aceitar",
+      "reject": "Recusar",
+      "policy": "Política de Privacidade",
+      "policyHref": "/privacidade"
     }
   }
 }

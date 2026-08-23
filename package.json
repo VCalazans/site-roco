@@ -16,7 +16,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
     "db:import-catalog": "tsx src/db/import/import-catalog.ts",
-    "db:import-images": "tsx src/db/import/import-product-images.ts"
+    "db:import-images": "tsx src/db/import/import-product-images.ts",
+    "db:seed-hero-slide": "tsx src/db/seed-hero-slide.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

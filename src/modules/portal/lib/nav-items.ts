@@ -12,6 +12,7 @@ type NavLabels = {
   products: string;
   representatives: string;
   welcome: string;
+  hero: string;
 };
 
 /**
@@ -71,6 +72,14 @@ export function buildPortalNavItems(
       key: "representatives",
       label: labels.representatives,
       href: `${basePath}/representantes`,
+    });
+  }
+
+  if (can(user, "hero_slides", "read")) {
+    items.push({
+      key: "hero",
+      label: labels.hero,
+      href: `${basePath}/hero`,
     });
   }
 

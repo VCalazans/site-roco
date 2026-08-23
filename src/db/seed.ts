@@ -48,6 +48,14 @@ const PERMISSIONS: PermissionSeed[] = [
   { resource: "onboarding", action: "create" },
   { resource: "onboarding", action: "read" },
   { resource: "onboarding", action: "update" },
+  // Hero slider da home pública (gerenciado pelo admin em /portal/hero).
+  // Mesmo par resource:action dos demais recursos do portal; todas as
+  // mutações da página de hero exigem o conjunto completo (criar/editar/
+  // publicar/excluir) — `read` está inclusa em todos.
+  { resource: "hero_slides", action: "create" },
+  { resource: "hero_slides", action: "read" },
+  { resource: "hero_slides", action: "update" },
+  { resource: "hero_slides", action: "delete" },
 ];
 
 const ROLES: { slug: string; name: string; description: string; isSystem: boolean }[] = [
@@ -83,6 +91,13 @@ const ROLE_PERMISSIONS: Record<string, PermissionSeed[] | "*"> = {
     { resource: "products", action: "publish" },
     { resource: "representatives", action: "read" },
     { resource: "representatives", action: "review" },
+    // Gerente comercial também opera o hero da home (pode subir vídeos e
+    // reordenar slides). Publicação exige `publish` em `products` — no hero
+    // o `update` é o suficiente porque o próprio campo `published` da linha
+    // é o toggle de visibilidade.
+    { resource: "hero_slides", action: "read" },
+    { resource: "hero_slides", action: "create" },
+    { resource: "hero_slides", action: "update" },
   ],
   representative: [
     { resource: "onboarding", action: "create" },

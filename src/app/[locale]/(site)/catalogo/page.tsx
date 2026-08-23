@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  CATALOG_FORM_ANCHOR,
-  CatalogHero,
-} from "@/modules/catalog/components/catalog-hero";
-import {
-  CATALOG_PDF_FILENAME,
-  resolveDestination,
-  siteLinks,
-} from "@/core/config/site";
+import Link from "next/link";
+import Image from "next/image";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import { getCatalogPdfUrl } from "@/server/lib/site-settings";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { visibleNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -47,50 +45,75 @@ export default async function CatalogPage({ params }: PageProps) {
   }
 
   const dictionary = await getDictionary(locale);
-  const { catalog, contact, navigation } = dictionary;
-
-  /**
-   * This page already embeds the shared Mautic form inline, and only one embed
-   * of it may exist per page (duplicate `mauticform_<alias>` ids would confuse
-   * the SDK). So the nav's contact links scroll to that form instead of opening
-   * the contact modal — which also reads better here.
-   */
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href:
-      link.href === "#contato"
-        ? `#${CATALOG_FORM_ANCHOR}`
-        : resolveDestination(link.href, locale),
-  }));
-
-  const content = {
-    brand: navigation.brand,
-    headline: catalog.headline,
-    description: catalog.description,
-    sceneAlt: catalog.sceneAlt,
-    form: {
-      title: catalog.formTitle,
-      privacyNotice: catalog.privacyNotice,
-      privacyLabel: catalog.privacyLabel,
-      success: catalog.success,
-      // Same Mautic form as the contact modal, with the catalog's own CTA label.
-      form: { ...contact.form, submit: catalog.submit },
-      enhancement: {
-        cnpjInvalid: contact.cnpjInvalid,
-        cnpjPlaceholder: contact.cnpjPlaceholder,
-        phonePlaceholder: contact.phonePlaceholder,
-      },
-    },
-  };
+  const { catalog } = dictionary;
+  const pdfUrl = await getCatalogPdfUrl();
 
   return (
-    <CatalogHero
-      content={content}
-      navLinks={navLinks}
-      menuLabels={{ open: navigation.menu, close: navigation.close }}
-      pdfUrl={siteLinks.catalogPdf}
-      pdfFileName={CATALOG_PDF_FILENAME}
-      privacyUrl={siteLinks.privacy || undefined}
-    />
+    <main className="bg-background">
+      <Container maxWidth="md" sx={{ py: { xs: 8, md: 14 } }}>
+        <Stack spacing={4} sx={{ alignItems: "center", textAlign: "center" }}>
+          <Box
+            sx={{
+              position: "relative",
+              width: { xs: 240, md: 320 },
+              height: { xs: 240, md: 320 },
+              borderRadius: "50%",
+              overflow: "hidden",
+              boxShadow: "0 0 60px -10px rgba(53, 217, 255, 0.35)",
+            }}
+          >
+            <Image
+              src="/images/hero/hero-stage.jpg"
+              alt={catalog.sceneAlt}
+              fill
+              priority
+              sizes="(max-width: 768px) 240px, 320px"
+              className="object-cover"
+            />
+          </Box>
+
+          <Stack spacing={2} sx={{ alignItems: "center" }}>
+            <p className="text-glow-amber text-meta font-semibold uppercase tracking-[0.2em] text-neon-amber-bright">
+              {dictionary.navigation.brand}
+            </p>
+            <Typography
+              variant="h2"
+              component="h1"
+              sx={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+                textWrap: "balance",
+              }}
+            >
+              {catalog.headline}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 560 }}>
+              {catalog.description}
+            </Typography>
+          </Stack>
+
+          <Button
+            component={Link}
+            href={pdfUrl}
+            download
+            variant="contained"
+            size="large"
+            sx={{
+              borderRadius: 999,
+              px: 5,
+              py: 1.5,
+              fontSize: "var(--type-ui)",
+              fontWeight: "var(--type-ui-weight)",
+              background: "linear-gradient(118deg, #35d9ff 0%, #f5a33c 100%)",
+              color: "#05070b",
+              "&:hover": { background: "linear-gradient(118deg, #6ce6ff 0%, #ffb454 100%)" },
+            }}
+          >
+            {catalog.submit}
+          </Button>
+        </Stack>
+      </Container>
+    </main>
   );
 }

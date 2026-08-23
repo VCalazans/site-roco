@@ -384,7 +384,8 @@
         "onboarding": "Onboarding",
         "products": "Products",
         "representatives": "Representatives",
-        "welcome": "Welcome"
+        "welcome": "Welcome",
+        "hero": "Home Hero"
       },
       "comingSoon": "Coming soon",
       "userMenu": {
@@ -654,6 +655,116 @@
       "filter": "Filter",
       "clear": "Clear",
       "backToSite": "Back to public website"
+    },
+    "hero": {
+      "title": "Home Hero",
+      "subtitle": "Slides for the first section of the site — manage media (YouTube or upload), bilingual copy, CTAs, and scheduling.",
+      "table": {
+        "slug": "Slug",
+        "kind": "Media type",
+        "headline": "Headline",
+        "status": "Status",
+        "window": "Display window",
+        "actions": "Actions"
+      },
+      "status": {
+        "published": "Published",
+        "unpublished": "Unpublished",
+        "scheduled": "Scheduled",
+        "expired": "Expired"
+      },
+      "kind": {
+        "youtube": "YouTube",
+        "upload": "Upload (R2)"
+      },
+      "media": {
+        "posterAlt": "Slide image (poster)",
+        "youtubeHelper": "Paste just the YouTube video ID (e.g. rqn-okkh0ww).",
+        "uploadHelper": "Upload MP4 (up to 200 MB). Optionally upload a poster JPG/PNG.",
+        "dropzone": "Drag video here or click to select",
+        "dropzonePoster": "Drag poster here or click to select (optional)",
+        "maxSize": "Max size: 200 MB",
+        "accepted": "Accepted formats: MP4, WebM",
+        "remove": "Remove",
+        "uploadError": "Upload failed — check format and size."
+      },
+      "form": {
+        "createTitle": "New hero slide",
+        "editTitle": "Edit hero slide",
+        "media": "Media",
+        "copy": "Copy (bilingual)",
+        "ctas": "CTAs",
+        "playback": "Playback",
+        "schedule": "Schedule",
+        "fields": {
+          "slug": "Slug (auto if blank)",
+          "kind": "Media type",
+          "eyebrowPt": "Eyebrow (Portuguese)",
+          "eyebrowEn": "Eyebrow (English)",
+          "headlinePt": "Headline (Portuguese)",
+          "headlineEn": "Headline (English)",
+          "descriptionPt": "Description (Portuguese)",
+          "descriptionEn": "Description (English)",
+          "primaryCtaLabelPt": "Primary CTA label (PT)",
+          "primaryCtaLabelEn": "Primary CTA label (EN)",
+          "primaryCtaHref": "Primary CTA URL",
+          "secondaryCtaLabelPt": "Secondary CTA label (PT)",
+          "secondaryCtaLabelEn": "Secondary CTA label (EN)",
+          "secondaryCtaHref": "Secondary CTA URL",
+          "loopWindowStart": "Loop start (seconds)",
+          "loopWindowEnd": "Loop end (seconds)",
+          "autoAdvance": "Auto-advance (seconds, 0 = no rotation)",
+          "muted": "Muted (required for autoplay)",
+          "published": "Published on site",
+          "startsAt": "Visibility starts at",
+          "endsAt": "Visibility ends at"
+        },
+        "actions": {
+          "save": "Save slide",
+          "cancel": "Cancel",
+          "delete": "Delete slide"
+        },
+        "tabs": {
+          "media": "Media",
+          "copy": "Copy",
+          "playback": "Playback",
+          "ctas": "CTAs",
+          "schedule": "Schedule"
+        }
+      },
+      "actions": {
+        "newSlide": "New slide",
+        "reorder": "Reorder",
+        "moveUp": "Move up",
+        "moveDown": "Move down"
+      },
+      "empty": {
+        "title": "No slides yet",
+        "description": "Create the first slide for the site hero."
+      },
+      "deleteConfirm": {
+        "title": "Delete slide",
+        "message": "This cannot be undone. The uploaded video/poster will also be removed from R2.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      },
+      "carousel": {
+        "prev": "Previous slide",
+        "next": "Next slide",
+        "of": "of"
+      },
+      "loopWindowHelper": "Leave blank to play the whole video. Use to highlight only a segment (e.g. first 30s).",
+      "autoAdvanceHelper": "0 = no rotation. When set, the slider transitions between slides every N seconds (crossfade)."
+    }
+  },
+  "site": {
+    "consent": {
+      "title": "Cookies & Privacy",
+      "body": "We use cookies and browsing data to understand how you use the site and improve your experience. You can accept or decline analytics tracking — the site works either way.",
+      "accept": "Accept",
+      "reject": "Decline",
+      "policy": "Privacy Policy",
+      "policyHref": "/privacidade"
     }
   }
 }
