@@ -391,3 +391,47 @@ de animação; `cta-hotspot.tsx`, `.hero-board` e `.icon-glow-*` removidos (hist
 substituir o embed por MP4 self-hosted quando o stakeholder fornecer o arquivo (remove o terceiro da
 CSP e o playerzinho do YouTube em conexões lentas); avaliar `prefers-reduced-motion` (pôster já cobre
 autoplay bloqueado). O campo `icon` segue nos dicionários/`NavLink` (ignorado) para não quebrar copy.
+
+## 2026-08-23 — Vitrine de categorias da home fiel ao PSD (6 macro-famílias com arte extraída do composite)
+**Decisão**: A vitrine de categorias da home deixa de ser um grid data-driven das 16 categorias de
+topo do ERP (ícones lucide genéricos) e passa a reproduzir o design do PSD
+`docs/Layout pag Produtos_OK_01.psd`: 6 cards verticais (aspect ~45:82) com moldura neon em
+gradiente ciano→âmbar (`.card-neon` no globals.css, `color-mix` sobre os tokens da marca), arte
+line-art neon de produto no miolo e rótulo vivo em caixa alta (`.card-neon-label`). As artes foram
+RECORTADAS do composite achatado do PSD (a cena é um render 3D em camada única — ilustrações não
+separáveis, mesmo caso do hero de 2026-07-13): medição das molduras por perfil de luminância
+(tubos = runs contínuos verticais; molduras têm linha dupla em algumas bordas e leve perspectiva),
+recorte do interior SEM a moldura e patch do rótulo assado (faixa limpa do próprio interior com
+feather) → 6 JPEGs q90 (~400×770, 37–77 KB) em `public/images/home/categorias/`. Os 6 cards são
+MACRO-FAMÍLIAS de marketing (Hidrossanitários, Hidráulica, Reparos, Conexões, Gás, Flexíveis) — não
+categorias do ERP; o mapa card→destino vive nos dicionários (`home.categories.items[].href`):
+conexões/gás/flexíveis têm categoria exata (39/130/83 produtos), hidrossanitários→caixa-acoplada
+(43, a arte É a válvula de caixa acoplada), hidráulica→hidro-latao (31), reparos→`?search=reparo`
+(173, cobre mvs-reparo + outros-reparo; `search=` é o parâmetro real da listagem). Helper puro
+`resolveCategoryCardHref` (`src/modules/home/lib/category-cards.ts`, 6 testes) valida `?category=`
+contra os slugs reais e degrada para `/produtos` se a categoria sumir do catálogo.
+**Alternativas**: (a) manter grid data-driven e só embelezar — não atende "fiel ao PSD" (pedido
+explícito do stakeholder 2026-08-23); (b) usar o card inteiro assado (com moldura e rótulo) como
+imagem — rótulo PT assado quebraria o EN e a moldura raster não teria hover/estados; (c) recriar as
+ilustrações em SVG — infiel ao render 3D com glow.
+**Impacto**: `home-categories.tsx` reescrito (sem lucide/PublicCategory; prop nova `categorySlugs`);
+página home passa `categoryList.map(c => c.slug)`; dicionários +24 chaves por locale
+(`home.categories.items`). As 16 categorias reais continuam expostas no filtro de `/produtos`.
+Se o catálogo ganhar novas famílias com arte no PSD, extrair novo asset e adicionar item no
+dicionário (pipeline documentado no script da sessão; ver activeContext).
+
+## 2026-08-23 — Selo GPTW oficial no rodapé (arte licenciada com vigência)
+**Decisão**: O badge textual de certificação no rodapé (Award + texto, 2026-08-12) é substituído
+pela ARTE OFICIAL do selo GPTW fornecida pelo stakeholder ("Certificada FEV 2026 – FEV 2027,
+Brasil"): fundo claro removido por flood-fill a partir das bordas (tolerância 30 sobre a cor dos
+cantos) → PNG transparente aparado (382×640, ~113 KB) em
+`public/images/certifications/gptw-certificada-2026-2027.png`; original de referência preservado em
+`docs/selo-gptw-fev2026-fev2027.jpeg`. O rodapé renderiza o selo via `next/image` (h-16) dentro do
+card glassy existente, com label + vigência ao lado; itens de `footer.certifications.items` sem
+`image` caem no ícone Award (fallback preservado para selos futuros sem arte).
+**Alternativas**: (a) JPEG original com fundo claro — retângulo branco destoante no rodapé dark;
+(b) tile branco atrás do selo — mais "seguro" de brand guideline, porém visualmente pesado no tema
+neon; o selo colorido sobre o card glassy mantém contraste (topo vermelho + texto branco legíveis).
+**Impacto**: Risco de compliance CDC do claim GPTW RESOLVIDO (prova com vigência); nome do arquivo
+carrega a vigência para forçar revisão na renovação (fev/2027 — substituir asset + notas dos
+dicionários). Dicionários: `note` ganha vigência, campos novos `image`/`alt` por locale.

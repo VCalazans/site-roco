@@ -120,7 +120,8 @@
       nome (pt/en) + SKU; categoria só via filtro select. Placeholder já ajustado para não
       prometer o que não faz — implementar se o stakeholder quiser busca unificada.
 - [ ] Smoke test tracking Mautic no navegador (hits, cookies, CSP clean)
-- [ ] Confirmar certificação/selo GPTW (ano/validade) com stakeholder antes de produção
+- [x] ~~Confirmar certificação/selo GPTW~~ **RESOLVIDO 2026-08-23**: arte oficial com vigência
+      fev 2026 – fev 2027 recebida e no rodapé (ver Riscos de Segurança)
 - [ ] Liberar `https://www.roco.com.br` nas "CORS Valid Domains" do Mautic (hoje só `roco.com.br`),
       ou canonicalizar host — senão visitas via `www` não amarram ao contato
 - [ ] Decidir política consentimento (LGPD) para tracking Mautic
@@ -155,11 +156,12 @@
 - **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
   /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
   **Nota**: sem Redis em dev, rate limit não funciona (comportamento esperado, recomendação: testar em staging com Redis).
-- **Claim GPTW pendente de confirmação** (2026-08-11; atualizado 2026-08-12): home institucional e
-  agora o RODAPÉ citam "Great Place To Work®" (badge textual no footer foi pedido explícito do
-  stakeholder em 2026-08-12 — não é a arte oficial licenciada). Continua faltando ano/validade e a
-  arte oficial do selo. Risco de compliance CDC se não puder ser sustentado com prova documental —
-  obter do stakeholder o certificado (ano) e o arquivo do selo licenciado antes de produção.
+- **Claim GPTW — RESOLVIDO 2026-08-23**: stakeholder forneceu a arte oficial do selo com vigência
+  ("Certificada FEV 2026 – FEV 2027, Brasil"). Processada para PNG transparente em
+  `public/images/certifications/gptw-certificada-2026-2027.png` (original de referência em
+  `docs/selo-gptw-fev2026-fev2027.jpeg`); rodapé exibe o selo oficial + vigência no lugar do
+  badge textual. Ao RENOVAR a certificação (fev/2027), substituir o asset e as notas nos
+  dicionários (`footer.certifications.items[0]`) — selo vencido volta a ser risco CDC.
 - **`getClientIp` confia em `X-Forwarded-For` sem validar topologia de proxy** (2026-08-11): rate-limit
   usa header sem normalização. Pré-existente, porém tráfego público novo (catálogo) aumenta superfície.
   Recomendação: confirmar que proxy de produção (Cloudflare/reverse proxy) normaliza o header.
@@ -179,8 +181,9 @@
   `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 340 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
-  (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`).
+- **Testes**: Vitest 4, 347 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+  (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
+  +6 testes 2026-08-23 `resolveCategoryCardHref`).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
 - **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
   (nenhum achado crítico/alto novo introduzido).
@@ -190,5 +193,11 @@
   via history.replaceState + adoção de props, revert de erro com banner, clamp de página no
   server, escape/teto/no-cache da busca livre, busca inclui nameEn, alt localizado altPt/altEn,
   copy do HomeAbout → dicionários). 1 movido para backlog (endurecer register). Regressão: zero.
+- **Revisão adversarial multi-agente** (2026-08-23): 11 agentes (3 dimensões: corretude, i18n/a11y,
+  design/segurança + verificação adversarial por achado) sobre o diff da vitrine PSD + selo GPTW.
+  4 confirmados / 3 refutados; 4 corrigidos na hora (guard de URIError no resolveCategoryCardHref,
+  scrim WCAG atrás do rótulo dos cards — contraste ~1:1 medido em 2 das 6 artes, alt decorativo ""
+  nos cards — nome acessível do link ficava verboso, EN "Connections"→"Fittings" + description).
+  Verificadores mediram contraste por pixel nas artes reais e reproduziram o URIError via tsx.
 - **i18n**: portal namespace (~156 chaves) + home (~50 chaves) + footer (~20 chaves) — árvores pt/en
   idênticas. Dicionário estruturado por módulo (landing → home, representantes como namespace raiz).

@@ -2,7 +2,28 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-12
+2026-08-23
+
+## Sessão 2026-08-23 — Vitrine de categorias fiel ao PSD + selo GPTW oficial
+- **Feedback do stakeholder**: (1) vitrine de categorias da home "bem simples", não parecia com o
+  projetado no Photoshop; (2) forneceu a arte oficial do selo GPTW (vigência FEV 2026 – FEV 2027).
+- **Categorias**: o design está em `docs/Layout pag Produtos_OK_01.psd` (preview =
+  `docs/categorias.jpeg`): 6 cards verticais neon com ilustrações line-art. A cena é um render 3D
+  ACHATADO (camada única "Cor e vibração 1") — ilustrações não separáveis; artes RECORTADAS do
+  composite por medição de luminância (molduras têm linha dupla + leve perspectiva) com patch do
+  rótulo assado → 6 JPEGs em `public/images/home/categorias/`. Componente reescrito
+  (`.card-neon` + `.card-neon-label` no globals.css, `color-mix` sobre tokens); cards = 6
+  macro-famílias do PSD (não as 16 categorias do ERP); destinos validados contra o catálogo real
+  (`resolveCategoryCardHref` + 6 testes). Ver decisionLog 2026-08-23.
+- **GPTW**: fundo claro removido (flood-fill) → PNG transparente em
+  `public/images/certifications/gptw-certificada-2026-2027.png`; rodapé mostra o selo oficial +
+  vigência (dicionários com image/alt). Risco CDC do claim RESOLVIDO; renovação em fev/2027.
+  Original de referência: `docs/selo-gptw-fev2026-fev2027.jpeg`.
+- **`docs/PRODUTOS/` (~1 GB de fotos de produto por externalId, PNGs)**: chegou do stakeholder,
+  NÃO versionado (adicionado ao .gitignore). Próximo passo provável: pipeline de upload para o R2
+  ligando foto → produto por externalId.
+- Portões: lint ✓, 347 testes ✓ (+6), build ✓; imagem Docker rebuildada, smoke OK
+  (/pt e /en com os 6 hrefs validados, assets 200, selo no rodapé dos dois locales).
 
 ## Sessão 2026-08-12 — Finalização: commits, revisão adversarial e correções
 - Recuperação pós-stall do architect: trabalho da parte 3 verificado (hero/menu polish aplicado,
