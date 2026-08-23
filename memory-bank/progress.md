@@ -109,6 +109,28 @@
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
 - [ ] Provisionar infra prod (Postgres + Redis, Google OAuth, R2 bucket)
 
+## 🗺️ Roadmap Estratégico (avaliação multi-agente 2026-08-23)
+Análise de 5 áreas (conversão, portal/CRM, dados/integrações, SEO, segurança/LGPD) sobre o código
+real — 29 oportunidades ancoradas em arquivo/rota. Artefato completo publicado para o stakeholder
+(claude.ai/code/artifact/de6b6f9c-4ef2-4563-8e94-e1a40818e1ef). Síntese em 3 fases:
+- **Fase 0 (pré-launch)**: rate-limit fail-closed + IP confiável; canonicalização www→apex (resolve
+  CORS Mautic + SEO); Turnstile no register; LGPD (banner consentimento + /privacidade); curadoria
+  em LOTE de published no admin (destrava go-live); ficha técnica B2B (EAN/NCM/embalagens já no
+  banco, não exibidos); nav "Produtos" + /sobre + /contato; 2ª carga de fotos (132 órfãs via
+  planilha de mapeamento); SEO fundação (sitemap dinâmico de produtos — reverter parcialmente
+  decisão 2026-08-11 com cache por tag, hreflang/canonical, fix <html lang> via cookie, OG por
+  produto, malha de links rastreável, facade do YouTube p/ LCP).
+- **Fase 1 (quick wins)**: busca unaccent+multi-termo+categoria; orçamento com contexto do produto
+  (prefill Mautic + WhatsApp contextual); JSON-LD Product/Breadcrumb/Organization; notificações
+  WhatsApp (MCP configurado, zero uso no código — ciclo do representante + alerta de lead);
+  gestor de materiais de venda no admin (mata os 6 "Em breve").
+- **Fase 2 (salto de valor)**: full-sync ERP com preço+estoque (DESTRAVADOR — priceCents é coluna
+  morta); catálogo comercial do representante; badge dinâmica pronta-entrega; carrinho de cotação
+  multi-item no site; cotação estruturada do representante → fila interna; upload de imagens em
+  massa no admin; ciclo de vida de documentos (deleteDocument + retenção LGPD).
+Tese: 4 movimentos — tirar atrito do funil de cotação → portal com motivo de uso semanal →
+catálogo vivo via ERP → cotação como dado estruturado.
+
 ## 📋 Backlog MVP / Pós-MVP
 ### Portal (pós-launch inicial)
 - [ ] **Rate limiting** (ALTO): webhook, presign, /api/products, login via @upstash/ratelimit
