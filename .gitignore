@@ -45,3 +45,7 @@ next-env.d.ts.bak
 
 # large design source (PSD ~95MB) — kept local; use Git LFS if it must be versioned
 /docs/documento
+
+# fotos de produto do stakeholder (~1GB de PNGs por externalId) — material para
+# upload ao R2, nunca para o repositório
+/docs/PRODUTOS/
