@@ -66,6 +66,16 @@
   Nenhum parâmetro de embed desliga isso de forma confiável — mitigação até o MP4 self-hosted.
   Commits da sessão: d12fb88..5d9cde7 (13 atômicos). Imagem Docker local atualizada e smoke OK.
 
+## Decisões do stakeholder que condicionam o go-live (consolidado 2026-08-23)
+1. **Política de publicação do catálogo** — importador nasce `published=false`; sem publicação em
+   massa deliberada ou curadoria no admin, `/produtos` estreia VAZIO (decisionLog 2026-08-11).
+2. **Bucket R2 definitivo** — `roco-test` é de teste; criar bucket de produção + token próprio +
+   acesso público (preferir domínio custom `img.roco.com.br` ao r2.dev).
+3. **Infra + envs de produção** — Postgres, Redis (sem ele rate limit desliga — fail-open),
+   AUTH_SECRET, admin bootstrap, ERP_WEBHOOK_SECRET; Google OAuth pendente (credenciais funcionam).
+4. **LGPD do tracking Mautic** — em produção liga por padrão; decisão do banner aberta desde 08/08.
+Runbook completo do primeiro seed: techContext.md ("Runbook — Primeiro Deploy em Produção").
+
 ## Estado ao fim de 2026-08-12
 - Branch `feat/porta-mais-site`, working tree limpo, 341 testes verdes, lint/build verdes.
 - Site no ar em localhost:3000 (container): home WEG (vídeo + logo + CTAs centrais), header fixo
