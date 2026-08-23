@@ -6,6 +6,20 @@ export interface RateLimitOptions {
   windowSeconds: number;
   /** Nº máximo de hits permitidos dentro da janela. */
   max: number;
+  /**
+   * Quando `true`, a função falha de forma SEGURA (retorna `allowed: false`)
+   * caso o Redis não esteja configurado OU a chamada falhe — proteção
+   * obrigatória em produção para rotas de autenticação, webhook e
+   * qualquer endpoint sensível a abuso. Quando `false` (padrão), mantém
+   * fail-open para preservar a experiência de dev local sem Redis.
+   *
+   * TRADE-OFF: esquecer `productionSafe: true` em uma rota de auth deixa
+   * a porta aberta sem rate-limit quando o Redis cai — exatamente o
+   * cenário que queremos evitar. Toda rota de auth existente DEVE ser
+   * atualizada para passar `productionSafe: true` (backlog aberto; ver
+   * decisionLog 2026-08-23).
+   */
+  productionSafe?: boolean;
 }
 
 export interface RateLimitResult {
@@ -76,7 +90,18 @@ export async function checkRateLimit(
   opts: RateLimitOptions
 ): Promise<RateLimitResult> {
   const redis = getRedis();
+  const failClosed = opts.productionSafe === true;
+
+  // Fail-closed: quando a rota é sensível a abuso e o Redis não está
+  // respondendo, melhor negar a request (e acender alerta) do que liberar
+  // tudo. Fail-open (padrão) preserva o fluxo de dev sem Redis.
   if (!redis) {
+    if (failClosed) {
+      console.error(
+        "[rate-limit] REDIS indisponível em rota productionSafe — bloqueando request.",
+      );
+      return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+    }
     return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
   }
 
@@ -92,6 +117,9 @@ export async function checkRateLimit(
     // `exec()` retorna `null` só quando a transação foi abortada (ex.: WATCH
     // em conflito — não usamos WATCH aqui, então isto é defensivo).
     if (!results) {
+      if (failClosed) {
+        return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+      }
       return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
     }
 
@@ -111,7 +139,10 @@ export async function checkRateLimit(
     const retryAfterSeconds = ttl > 0 ? ttl : opts.windowSeconds;
     return { allowed: false, remaining: 0, retryAfterSeconds };
   } catch (error) {
-    console.error("[rate-limit] Falha ao checar limite — fail-open.", error);
+    console.error("[rate-limit] Falha ao checar limite — fail-" + (failClosed ? "closed" : "open") + ".", error);
+    if (failClosed) {
+      return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+    }
     return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
   }
 }

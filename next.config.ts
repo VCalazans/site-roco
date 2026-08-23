@@ -66,7 +66,6 @@ const nextConfig: NextConfig = {
  */
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
-  const mautic = "https://mautic.roco.com.br";
 
   // Cloudflare R2 (portal interno): o upload de imagens de produto e documentos
   // de representante é um PUT presignado feito DIRETO do navegador para o
@@ -86,24 +85,17 @@ function contentSecurityPolicy(): string {
     "frame-ancestors 'self'",
     `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    // O domínio do Mautic entra aqui por causa do pixel de tracking
-    // (`mtracking.gif`): o `mtc.js` tenta primeiro um POST em `/mtc/event`
-    // (coberto por `connect-src`) e, se o CORS falhar, recorre a uma <img>.
-    `img-src 'self' data: blob: ${mautic}${r2Public ? ` ${r2Public}` : ""}`,
+    // R2 público (catálogo de imagens) + MAUTIC removido em 2026-08-23.
+    `img-src 'self' data: blob:${r2Public ? ` ${r2Public}` : ""}`,
     "font-src 'self'",
-    `connect-src 'self' ${mautic}${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
-    `form-action 'self' ${mautic}`,
-    // O SDK do Mautic posta o formulário num iframe oculto e lê a resposta JSON
-    // via postMessage — sem esta diretiva o iframe é bloqueado por `default-src`
-    // e a página nunca sabe se o envio deu certo (a página de catálogo depende
-    // disso para liberar o PDF). Permitir *enquadrar* o Mautic não dá a ele
-    // nenhum acesso a este documento nem permite executar script na nossa origem.
-    //
-    // youtube-nocookie.com: vídeo institucional de fundo do hero da home
-    // (`home-hero.tsx`), embed em modo privacidade-avançada. Mesmo racional do
-    // Mautic: enquadrar ≠ executar script na nossa origem — `script-src 'self'`
-    // segue intacto (garantia pós-ClickFix).
-    `frame-src 'self' ${mautic} https://www.youtube-nocookie.com`,
+    `connect-src 'self'${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
+    "form-action 'self'",
+    // youtube-nocookie.com: mantido porque o admin pode criar slides YouTube
+    // no carrossel do hero (home-slider.tsx) — o rationale de "enquadrar ≠
+    // executar script na nossa origem" continua válido. RD Station entra por
+    // `script-src 'self'` (carregado de `/vendor/rdstation.js` self-hosted,
+    // mesmo padrão do antigo Mautic — ver decisionLog 2026-08-23).
+    `frame-src 'self' https://www.youtube-nocookie.com`,
   ].join("; ");
 }
 

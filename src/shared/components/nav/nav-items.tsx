@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -11,8 +12,6 @@ import {
 
 type NavItemsProps = {
   links: NavLink[];
-  /** Called when a contact link is chosen (opens the contact modal). */
-  onContact: () => void;
   /**
    * Per-index class name. Also receives whether the item's href matches the
    * current route (`isNavLinkActive`) so callers can hand it to
@@ -44,7 +43,6 @@ type NavItemsProps = {
  */
 export function NavItems({
   links,
-  onContact,
   itemClassName,
   itemStyle,
   onSelect,
@@ -62,18 +60,15 @@ export function NavItems({
 
         if (isContactLink(link.href)) {
           return wrap(
-            <button
+            <Link
               key={link.label}
-              type="button"
-              onClick={() => {
-                onSelect?.();
-                onContact();
-              }}
+              href="/contato"
+              onClick={onSelect}
               className={className}
               style={style}
             >
               {link.label}
-            </button>,
+            </Link>,
             link.label
           );
         }

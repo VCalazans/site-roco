@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useContactForm } from "@/shared/components/contact-form";
 import { externalProps, isContactLink } from "@/shared/lib/nav";
 
 type FooterLinkProps = {
@@ -12,20 +11,17 @@ type FooterLinkProps = {
 };
 
 /**
- * Link do rodapé — pequeno Client Component porque um item ("Fale conosco",
- * "Ligamos pra você") precisa abrir o MESMO modal de contato do nav
- * (`useContactForm`) em vez de navegar; os demais são links normais (internos
- * ou externos). Mesma lógica de `NavItems`, simplificada para o rodapé (sem
- * ícones).
+ * Link do rodapé — quando o href é um "contato" (apontava para `#contato`
+ * no antigo modal Mautic), agora leva para `/contato` (página dedicada
+ * que será criada quando o destino do formulário for definido — pode ser
+ * a integração com RD Station). Os demais itens são links normais.
  */
 export function FooterLink({ href, className, children }: FooterLinkProps) {
-  const { open } = useContactForm();
-
   if (isContactLink(href)) {
     return (
-      <button type="button" onClick={open} className={className}>
+      <Link href="/contato" className={className}>
         {children}
-      </button>
+      </Link>
     );
   }
 

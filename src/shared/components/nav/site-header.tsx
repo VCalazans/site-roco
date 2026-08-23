@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/core/lib/utils";
-import { useContactForm } from "@/shared/components/contact-form";
 import { MobileMenu } from "@/shared/components/nav/mobile-menu";
 import { NavItems } from "@/shared/components/nav/nav-items";
 import { navLabelClass, type NavLink } from "@/shared/lib/nav";
@@ -41,7 +40,6 @@ type SiteHeaderProps = {
  * nenhum layout — só mantém a barra visível durante a rolagem.
  */
 export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
-  const { open: openContact } = useContactForm();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -86,7 +84,6 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
           <ul className="flex items-center gap-6 xl:gap-9">
             <NavItems
               links={links}
-              onContact={openContact}
               itemClassName={(_index, isActive) => navLabelClass(isActive, "bar")}
               wrapItem={(node, key) => <li key={key}>{node}</li>}
             />
@@ -95,7 +92,7 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
 
         {/* Abaixo de `lg`: colapsa no hambúrguer (painel full-width) */}
         <div className="lg:hidden">
-          <MobileMenu links={links} onContact={openContact} labels={menuLabels} />
+          <MobileMenu links={links} labels={menuLabels} />
         </div>
       </div>
 

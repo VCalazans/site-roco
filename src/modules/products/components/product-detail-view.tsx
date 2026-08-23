@@ -190,7 +190,7 @@ export function ProductDetailView({
               )}
             </div>
 
-            <QuoteCtaButton label={products.detail.quoteCta} />
+            <QuoteCtaButton label={products.detail.quoteCta} href="/catalogo" />
           </div>
         </div>
 

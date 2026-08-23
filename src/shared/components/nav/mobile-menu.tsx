@@ -9,7 +9,6 @@ import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
 type MobileMenuProps = {
   links: NavLink[];
-  onContact: () => void;
   /** aria-label for the toggle when the menu is closed / open. */
   labels: { open: string; close: string };
 };
@@ -24,7 +23,7 @@ type MobileMenuProps = {
  * `top-16 md:top-20` espelha a altura da faixa do header (h-16 / md:h-20);
  * se a altura da barra mudar lá, precisa mudar aqui junto.
  */
-export function MobileMenu({ links, onContact, labels }: MobileMenuProps) {
+export function MobileMenu({ links, labels }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -85,7 +84,6 @@ export function MobileMenu({ links, onContact, labels }: MobileMenuProps) {
             >
               <NavItems
                 links={links}
-                onContact={onContact}
                 onSelect={close}
                 itemClassName={(_index, isActive) =>
                   cn(

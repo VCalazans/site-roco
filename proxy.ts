@@ -40,7 +40,7 @@ export default auth((request) => {
 
   if (
     pathname.startsWith("/_next") ||
-    pathname.includes("/api") ||
+    pathname.split("/")[1] === "api" ||
     PUBLIC_FILE.test(pathname)
   ) {
     return NextResponse.next();

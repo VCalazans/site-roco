@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { MauticTracking } from "@/shared/components/analytics";
-import { ContactFormProvider } from "@/shared/components/contact-form";
+import { RdStationTracking } from "@/shared/components/analytics";
+import { ConsentBanner } from "@/shared/components/consent/consent-banner";
 import { SiteFooter } from "@/shared/components/footer";
 import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { type Locale } from "@/i18n/config";
@@ -22,13 +22,19 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
   const dictionary = await getDictionary(locale as Locale);
 
   return (
-    <ContactFormProvider content={dictionary.contact}>
+    <>
       {children}
       <SiteFooter content={dictionary.footer} brand={dictionary.navigation.brand} locale={locale as Locale} />
       <WhatsAppFloat content={dictionary.whatsapp} />
-      {/* Tracking de visitantes (Mautic). Vive aqui, e não no layout de [locale],
-          para cobrir todas as rotas públicas sem instrumentar o portal interno. */}
-      <MauticTracking />
-    </ContactFormProvider>
+      {/* Tracking de visitantes (RD Station). Vive aqui, e não no layout de
+       * [locale], para cobrir todas as rotas públicas sem instrumentar o
+       * portal interno. Desligado por padrão — só ativa quando
+       * NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=true. */}
+      <RdStationTracking />
+      {/* Banner LGPD. Liga via NEXT_PUBLIC_CONSENT_ENABLED=true; o jurídico
+       * precisa preencher a `body` final do dicionário antes de ligar em
+       * produção. Renderiza `null` quando desligado — zero overhead. */}
+      {dictionary.site?.consent ? <ConsentBanner copy={dictionary.site.consent} /> : null}
+    </>
   );
 }
