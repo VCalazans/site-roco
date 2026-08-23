@@ -94,12 +94,17 @@
 - [x] `npm run test` e `npm run test:coverage` funcionando (326 testes totais agora)
 
 ## 🔄 Em Andamento
-- [ ] **Carga inicial de imagens de produto** (2026-08-23): `npm run db:import-images` pronto
-      (613 imagens → 593 produtos em dry-run; compatível com o fluxo do portal — decisionLog).
-      BLOQUEADO: token R2 do bucket `roco-test` retorna 403 em todas as operações — stakeholder
-      precisa reemitir com "Object Read & Write" no bucket. Depois: rodar o script, reiniciar o
-      container web e obter `R2_PUBLIC_URL` (acesso público) p/ o site exibir as fotos.
-      Segunda rodada: mapear 132 arquivos sem produto (faixas ausentes do catálogo + nomes livres).
+- [x] **Carga inicial de imagens de produto — CONCLUÍDA 2026-08-23**: token corrigido pelo
+      stakeholder; `npm run db:import-images` subiu 613 imagens (336 MB) para 593 produtos no
+      bucket `roco-test`, 0 falhas, chaves/registros no formato do portal; re-execução pula tudo
+      (idempotência verificada); objeto amostrado byte-idêntico ao original; container web
+      recriado com as envs R2 (portal apto a presign/confirm/delete).
+- [ ] **`R2_PUBLIC_URL` pendente** (2026-08-23): bucket ainda sem acesso público — o SITE mostra
+      placeholder "sem foto" até o stakeholder habilitar (R2 → roco-test → Settings → Public
+      access r2.dev, ou domínio custom) e a URL entrar em `.env`/build-arg (CSP img-src +
+      images.remotePatterns exigem rebuild da imagem Docker com o build-arg R2_PUBLIC_URL).
+- [ ] Segunda rodada de fotos: mapear 132 arquivos sem produto (faixas 1906–1919, 2237–2280,
+      3068–3179 ausentes do catálogo + 11 nomes livres) e 144 produtos sem foto.
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
 - [ ] Provisionar infra prod (Postgres + Redis, Google OAuth, R2 bucket)
 

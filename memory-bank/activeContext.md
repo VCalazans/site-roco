@@ -26,13 +26,12 @@
   (/pt e /en com os 6 hrefs validados, assets 200, selo no rodapé dos dois locales).
 - **Revisão adversarial** (Workflow, 11 agentes): 4 confirmados/3 refutados; 4 corrigidos na hora
   (guard URIError, scrim WCAG, alt decorativo, EN Fittings). Ver progress.md Métricas.
-- **Carga inicial de imagens de produto (parte 2 da sessão)**: script `npm run db:import-images`
-  pronto e validado em dry-run (613 imagens → 593 produtos, chave/registro idênticos ao fluxo do
-  portal — ver decisionLog). **BLOQUEADO por credencial**: token R2 do bucket `roco-test` retorna
-  403 AccessDenied em todas as operações — stakeholder precisa reemitir/ajustar o token
-  ("Object Read & Write", escopo no bucket certo). Envs R2_* já em `.env.local`/`.env` (gitignored).
-  Depois do upload: reiniciar o container web (envs novas) e obter `R2_PUBLIC_URL` (acesso público
-  do bucket) + rebuild com build-arg para o site exibir as fotos.
+- **Carga inicial de imagens de produto (parte 2 da sessão) — CONCLUÍDA**: primeiro 403 (token sem
+  permissão), stakeholder corrigiu; `npm run db:import-images` subiu 613 imagens (336 MB) → 593
+  produtos, 0 falhas; idempotência verificada (re-run pula 613); objeto amostrado byte-idêntico;
+  container web recriado com envs R2 (portal apto a presign/confirm/delete no `roco-test`).
+  Envs R2_* em `.env.local`/`.env` (gitignored). **Falta `R2_PUBLIC_URL`** (acesso público do
+  bucket) + rebuild com build-arg para o SITE exibir as fotos — até lá, placeholder "sem foto".
 
 ## Sessão 2026-08-12 — Finalização: commits, revisão adversarial e correções
 - Recuperação pós-stall do architect: trabalho da parte 3 verificado (hero/menu polish aplicado,
