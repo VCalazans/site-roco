@@ -463,3 +463,111 @@ inexistente. Aguardando correção do token pelo stakeholder; o script roda com 
 **Pendências ligadas**: `R2_PUBLIC_URL` (habilitar acesso público r2.dev ou domínio custom no
 bucket) para o SITE exibir as fotos — entra na CSP `img-src` e no `images.remotePatterns`
 (build-arg do Docker); sem ela as páginas caem no placeholder "sem foto" por design.
+
+## 2026-08-23 — Hero slideshow admin (slides configuráveis no /portal/hero)
+**Decisão**: A 1ª seção do site sai do hero hard-coded e vira uma coleção
+ordenada de slides, cada um com mídia (YouTube OU upload para R2), copy
+bilíngue (PT/EN), CTAs, janela de loop opcional, auto-advance opcional,
+muted obrigatório para autoplay, agendamento (starts_at/ends_at) e ordem
+configurável — gerenciada pelo admin do portal em `/{locale}/portal/hero`.
+**Alternativas**: (a) continuar hard-coded no componente (vai contra o
+pedido explícito do stakeholder de "configurável por marketing"); (b) usar
+JSON estático em `public/config` (só devs editam, sem curadoria); (c)
+Contentful/Sanity externo (overkill para 1 seção + acoplamento SaaS).
+**Justificativa**: O stakeholder pediu explicitamente "quantos slides for
+possível / aceitável" e "configurar até em que parte o vídeo ficará em loop".
+A solução precisa de (1) banco (persistência), (2) admin (UX de edição) e
+(3) cache (perf). Uma tabela dedicada `hero_slides` cobre os três com
+~30 colunas e cache tag "hero" revalidada por mutação.
+**Impacto**: Tabela `hero_slides` (migration 0003) + tabela genérica
+`site_settings` (migration 0004, abriga `catalog.pdf-url` e futuras
+configurações). tRPC `heroSlides` (list/create/update/reorder/delete/presign/
+confirm). Admin `/portal/hero` com reorder + dialog tabs. Refatoração do
+`home-hero.tsx` para usar `getCachedActiveHeroSlides(locale)` + novo
+`HeroSlider` (auto-advance + crossfade + pause-on-hover + indicadores).
+`/catalogo` virou direct download (lê `getCatalogPdfUrl()` com fallback DB→env→constante).
+
+## 2026-08-23 — Mautic sai, RD Station entra
+**Decisão**: Tracking de marketing migrado do Mautic (que ficou self-hosted
+após o incidente ClickFix em 2026-07) para o RD Station, plataforma
+anterior que o stakeholder está voltando a usar. Stub desativado por
+padrão (`NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=false`); liga via env quando
+as URLs/IDs do RD forem fornecidos.
+**Alternativas**: (a) manter Mautic (cripto-vendor sem auditoria recente);
+(b) Google Analytics 4 (grátis, mas sem lead scoring integrado); (c) sem
+tracking até o jurídico aprovar base legal (perde a atribuição de lead).
+**Justificativa**: O stakeholder decidiu voltar ao RD Station em 2026-08-23;
+o Mautic foi o plano B técnico após o ClickFix e não tem mais razão de ser.
+O RD Station carrega de `/vendor/rdstation.js` self-hosted (mesmo padrão
+do antigo `mtc-tracking.js`), mantendo `script-src 'self'` intacto.
+**Impacto**: 11 arquivos removidos (componentes Mautic + scripts + helpers
+de form/SDK). `next.config.ts` tira `mautic.roco.com.br` de todas as
+diretivas CSP (mantém `youtube-nocookie.com` porque o admin pode criar
+slide YouTube no carrossel). Stub `RdStationTracking` + flag
+`NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED`. Items "contato" da nav viraram
+links para `/contato` (página a criar). Banner LGPD stub
+(`ConsentBanner` + flag `NEXT_PUBLIC_CONSENT_ENABLED`).
+
+## 2026-08-23 — Sidebar colapsável do portal (persistido por usuário)
+**Decisão**: Drawer lateral do `/portal/*` ganha botão de recolher/expandir
+no AppBar (só visível em md+; mobile segue com hambúrguer). Estado
+persistido por usuário em `localStorage` (`portal_sidebar_collapsed`),
+sobrevive a refresh e troca de aba. Largura: 260px expandido, 72px
+recolhido.
+**Alternativas**: (a) sempre expandido (não atende ao pedido de "menu
+lateral colapsável"); (b) collapsed-by-default (atrapalha quem usa 1
+item só); (c) per-session em cookie (sobrevive mas exige SSR). Decidi
+localStorage: UX consistente entre sessões e SSR-safe via lazy
+`useState(() => …)` que evita hydration mismatch e o flash do drawer
+expandido.
+**Impacto**: `src/modules/portal/components/portal-shell.tsx` ganha estado
++ efeito de persistência. Constantes `DRAWER_COLLAPSED_WIDTH=72` e
+`SIDEBAR_COLLAPSE_STORAGE_KEY`. Inicialização lazy em `useState(() => …)`
+para cumprir `react-hooks/set-state-in-effect`. Chevron toggle via MUI
+`Tooltip` no AppBar (`xs:hidden md:inline-flex`).
+
+## 2026-08-23 — Hardening de segurança (rate-limit fail-closed + proxy.ts exact-match)
+**Decisão**: Dois ajustes cirúrgicos em pontos que viraram incidente real
+no checklist de 2026-08-12: (1) `checkRateLimit` ganha flag `productionSafe`
+nas `RateLimitOptions`; quando `true`, sem Redis o request é NEGADO
+(503) em vez de liberado — a escolha de disponibilidade do fail-open
+continua válida para `products.list` e `presignImageUpload`, mas rotas de
+auth (login/register/webhook) DEVEM passar `productionSafe: true`; (2) `proxy.ts`
+troca `pathname.includes("/api")` (substring match, abria buraco para qualquer
+path futuro como `/portal/api-docs`) por `pathname.split("/")[1] === "api"`
+(match exato de segmento).
+**Alternativas**: (a) exigir Redis em produção via guard de boot (fail
+loud, mas exige Redis disponível antes do primeiro deploy); (b) Circuit
+Breaker que libera quando Redis recupera (overhead, 2 endpoints com
+auth não justifica); (c) para o proxy: lista de allowlist de paths
+explícita (menos robusto que match de segmento — esquece um e cria
+o mesmo buraco).
+**Justificativa**: Trade-off explícito disponibilidade vs segurança.
+Auth routes NUNCA podem operar sem rate-limit em produção; rota de
+produto pode tolerar 5min sem proteção durante deploy. O bug do
+proxy é latente (nenhum path bate hoje, mas a primeira página
+`/portal/api-docs` nasceria pública silenciosamente).
+**Impacto**: `src/server/lib/rate-limit.ts` (assinatura nova, 3 callers
+afetados — auth/register/webhook precisam passar `productionSafe: true`
+em um commit de hardening de chamadas; este fica aberto como follow-up).
+`proxy.ts` linha do gate de sessão. Não muda CSP nem auth.
+
+## 2026-08-23 — Tabela `site_settings` (configurações genéricas chave-valor)
+**Decisão**: Tabela `site_settings(key, value jsonb, type, description,
+is_public, updated_by, updated_at)` para configurações 1-por-site que
+não cabem em env (editáveis pelo admin sem deploy). Primeira chave
+usada: `catalog.pdf-url` — o link do PDF de catálogo exibido na landing
+`/catalogo`, hoje em `NEXT_PUBLIC_CATALOG_PDF_URL`. O getter
+`getCatalogPdfUrl()` lê em camadas: DB → env → constante.
+**Alternativas**: (a) colunas dedicadas em `hero_slides` ou nova tabela
+por config (inviável para N configs futuras); (b) JSON estático em
+`public/config` (só devs editam); (c) feature flags no Redis
+(acoplamento operacional desnecessário para um link de PDF).
+**Justificativa**: O stakeholder pediu "link configurável pelo admin tb"
+para o botão de catálogo. Padrão 1-por-site com `jsonb` cobre o caso
+atual (string) e abre para tipos futuros (number, boolean, json) sem
+migrations. `is_public = true` é o filtro de UI (admin só expõe chaves
+públicas); flags internas continuam por env.
+**Impacto**: Migration 0004 + tRPC `siteSettings` (list/set) + helper
+`getCachedReadSetting(key)` (cache tag "site-settings", 60s).
+

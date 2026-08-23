@@ -47,7 +47,10 @@ npm run dev        # http://localhost:3000
 | NEXT_PUBLIC_WHATSAPP_NUMBER  | não    | WhatsApp de contato (fase futura)          |
 | NEXT_PUBLIC_PRODUCTS_URL     | não    | Destino do CTA "Conheça nossos Produtos"   |
 | NEXT_PUBLIC_CATALOG_URL      | não    | Destino do CTA "Baixar Catálogo" (PDF)     |
-| NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED | não | Tracking de visitantes (prod: on salvo `"false"`; dev: off salvo `"true"`) |
+| NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED | não | **(Removido 2026-08-23)** Mautic saiu; substituído por RD Station — ver `NEXT_PUBLIC_RDSTATION_*` abaixo. |
+| NEXT_PUBLIC_RDSTATION_SCRIPT_URL  | não    | URL do script RD Station (carregado via `next/script`); entra na CSP `script-src` quando configurado. Stub em src/shared/components/analytics/rdstation-tracking.tsx. |
+| NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED | não | Liga/desliga o tracking RD Station (prod: `"false"` por padrão; dev: idem). |
+| NEXT_PUBLIC_CONSENT_ENABLED       | não    | Liga/desliga o banner LGPD (ConsentBanner). Stub em src/shared/components/consent/consent-banner.tsx — body do dicionário fica em branco até o jurídico preencher. |
 | WHATSAPP_MCP_URL             | não    | Endpoint do MCP WhatsApp (automações)      |
 
 ### Portal / Auth

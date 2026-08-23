@@ -186,6 +186,14 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
 - Audit logs export/retention policy indefinida.
 
+## ✅ Resolvido em 2026-08-23
+- **Sidebar colapsável do portal**: toggle no AppBar com persistência localStorage por usuário (larguras 260/72px); padrão `next/navigation` decidiu estado inicial para evitar hydration mismatch.
+- **Hero slideshow admin** (`/portal/hero`): 6 macro-famílias de marketing configuráveis (YouTube ou upload R2), copy bilíngue PT/EN, CTAs, janela de loop opcional, auto-advance opcional, agendamento, reorder. `HeroSlider` com auto-advance + crossfade + pause-on-hover. `/catalogo` virou download direto (lê `getCatalogPdfUrl()` com fallback DB → env → constante).
+- **Mautic → RD Station**: 11 arquivos removidos, stub `RdStationTracking` off-by-default. CSP limpa do domínio Mautic; mantém `youtube-nocookie.com` (slides YouTube continuam possíveis).
+- **LGPD stub**: `ConsentBanner` off-by-default via `NEXT_PUBLIC_CONSENT_ENABLED`; usa `useSyncExternalStore` (sem hydration mismatch, sem setState em effect). Body do dicionário fica em branco até jurídico preencher.
+- **Hardening de segurança**: `proxy.ts` agora match exato de `/api` por segmento (era substring — qualquer `/portal/api-docs` futuro nasceria público). `rate-limit.ts` com `productionSafe` para fail-closed em rotas de auth.
+- **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
+
 ## 🔐 Riscos de Segurança
 - **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
   /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
@@ -215,7 +223,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
   `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 347 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 348 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
   +6 testes 2026-08-23 `resolveCategoryCardHref`).
 - **Build**: verde. **Lint**: verde (ESLint flat config).

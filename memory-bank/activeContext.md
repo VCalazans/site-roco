@@ -184,3 +184,45 @@ produtos do catálogo real, rodapé institucional. Sessão 2026-08-11 (parte 3) 
 - Confirmação: seal GPTW (ano/validade) com stakeholder antes de produção.
 - Fluxo completo validação (onboarding→admin review→acesso portal).
 - LGPD/consentimento banner (herdado 2026-08-04).
+
+## Sessão 2026-08-23 (parte 3) — Slider de hero editável + portal completo + segurança
+- **Pedido do stakeholder** (2026-08-23): "Mautic sai, entra RD Station.
+  Portal completo (CRUDs, sidebar colapsável). Site mais profissional
+  possível. Marketing precisa editar partes chave do layout, ex.: primeira
+  seção configurável com N slides (vídeo ou foto, YouTube ou upload, janela
+  de loop configurável)."
+- **Resposta** (3 commits atômicos, e47bc1d..203e4b9):
+  - `feat(home): carrossel de slides do hero + admin de catálogo` —
+    schema `hero_slides` (migration 0003) + schema `site_settings`
+    (migration 0004), server lib + tRPC para os dois, admin
+    `/portal/hero` com reorder + dialog com abas (mídia/copy/CTAs/
+    playback/agendamento), `home-hero.tsx` reescrito, novo `HeroSlider`
+    com auto-advance + crossfade + pause-on-hover, `/catalogo` virou
+    direct download via `getCatalogPdfUrl()`.
+  - `refactor(site): sai Mautic, entra RD Station + LGPD stub + hardening`
+    — remove 11 arquivos Mautic, adiciona `RdStationTracking` stub +
+    `ConsentBanner` stub (useSyncExternalStore, sem setState em
+    effect), restaura `cnpj.ts`/`cnpj.test.ts` (helpers puros),
+    consumers (footer-link, nav-items, site-header, mobile-menu,
+    quote-cta-button) reescritos para apontar a `/contato` em vez do
+    modal Mautic, `next.config.ts` tira `mautic.roco.com.br` de 4
+    diretivas CSP (mantém `youtube-nocookie.com`), `proxy.ts` corrige
+    match exato de `/api`, `rate-limit.ts` ganha flag `productionSafe`
+    para fail-closed nas rotas de auth.
+  - `feat(portal): sidebar colapsável (persistido por usuário)` —
+    `portal-shell.tsx` ganha estado `collapsed` + toggle no AppBar com
+    `Tooltip`, persistido em `localStorage`, inicialização lazy em
+    `useState(() => …)` (evita hydration mismatch e o flash de
+    drawer expandido).
+- **Gates**: lint ✓, 348 testes ✓ (baseline restaurada após restaurar
+  `cnpj.test.ts`), build ✓. 0 dirty files.
+- **Pendências abertas** (ver decisionLog 2026-08-23 + progress.md):
+  LGPD body text (jurídico preencher antes de ligar
+  `NEXT_PUBLIC_CONSENT_ENABLED`); R2 bucket de produção + URL pública
+  definitiva (hoje `roco-test` com r2.dev); OAuth Google (login
+  funciona só por credentials); follow-up de hardening para passar
+  `productionSafe: true` nos 3 callers de auth.
+- Próxima sessão sugerida: front da vitrine de hero com prévia visual,
+  mensagens de WhatsApp automáticas no ciclo de representantes, full-sync
+  ERP (preço + estoque) — destrava o badge "pronta entrega" e a
+  vitrine de catálogo.
