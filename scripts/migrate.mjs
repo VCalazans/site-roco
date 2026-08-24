@@ -197,7 +197,35 @@ console.log(`[migrate] Migrations: ${migrationsFolder}`);
 
 const pool = new Pool({ connectionString });
 
+/**
+ * Trava de exclusão mútua entre processos.
+ *
+ * Como as migrations rodam no boot do container, N réplicas subindo juntas
+ * chamariam `migrate()` ao mesmo tempo e tentariam criar as mesmas tabelas.
+ * `pg_advisory_lock` serializa isso no próprio Postgres: o segundo processo
+ * BLOQUEIA até o primeiro terminar e então encontra tudo aplicado (o
+ * migrator é idempotente, relê o journal e não repete nada).
+ *
+ * O lock é de SESSÃO, então precisa viver num client dedicado — se usasse
+ * `pool.query`, a liberação poderia cair noutra conexão e o lock vazaria
+ * até o pool fechar. O `migrate()` continua usando o pool normalmente; as
+ * duas coisas convivem porque são conexões diferentes.
+ *
+ * Se o processo morrer no meio, o Postgres derruba a sessão e libera o lock
+ * sozinho — não há risco de travar o deploy seguinte.
+ */
+const LOCK_ID = 8_314_027; // arbitrário, fixo para este projeto
+
+// `pool.connect()` fica DENTRO do try: é o primeiro contato real com o banco,
+// então é ele que estoura em host errado/senha errada/SSL. Fora do try, o erro
+// escapava como unhandled rejection e o Node despejava um stack cru, passando
+// por cima de todo o diagnóstico traduzido de `reportarErro`.
+let lockClient;
+
 try {
+  lockClient = await pool.connect();
+  await lockClient.query("select pg_advisory_lock($1)", [LOCK_ID]);
+
   const antes = await countApplied(pool);
   console.log(`[migrate] Já aplicadas: ${antes}`);
 
@@ -218,5 +246,17 @@ try {
   reportarErro(error);
   process.exitCode = 1;
 } finally {
+  // `lockClient` pode nem existir (falha já no connect). Liberar o lock é
+  // best-effort: se a conexão caiu, o Postgres derruba a sessão e o lock some
+  // junto. Falhar aqui não pode mascarar o erro real que trouxe o fluxo até
+  // este `finally`.
+  if (lockClient) {
+    try {
+      await lockClient.query("select pg_advisory_unlock($1)", [LOCK_ID]);
+    } catch {
+      // silencioso por design — ver comentário acima
+    }
+    lockClient.release();
+  }
   await pool.end();
 }

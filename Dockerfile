@@ -64,4 +64,22 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-CMD ["node", "server.js"]
+# As migrations rodam no boot, antes do servidor.
+#
+# Por que aqui e não num `entrypoint.sh`: o repo tem `core.autocrlf=true` e um
+# arquivo `.sh` comitado do Windows chegaria com CRLF, quebrando o shebang no
+# Alpine com "no such file or directory" — o container simplesmente não subiria.
+# Inline no CMD não existe esse risco.
+#
+# `||` em vez de `&&`: migration que falha NÃO impede o servidor de subir. O
+# motivo real fica no log (o script traduz ECONNREFUSED, 28P01, SSL, etc.) e a
+# aplicação continua acessível para diagnóstico, em vez de o container entrar em
+# crash-loop e esconder a causa.
+#
+# `exec` no fim: substitui o shell pelo node, então o servidor vira PID 1 e
+# recebe SIGTERM do `docker stop` normalmente (sem ele, o shell engoliria o
+# sinal e a parada viraria SIGKILL após o timeout).
+#
+# `RUN_MIGRATIONS_ON_BOOT=false` desliga, se algum dia for preciso separar
+# deploy de migração.
+CMD ["sh", "-c", "if [ \"$RUN_MIGRATIONS_ON_BOOT\" != false ]; then node scripts/migrate.mjs || echo '[boot] AVISO: migrations falharam (motivo acima). O servidor sobe assim mesmo; paginas que leem o banco vao responder erro.'; fi; exec node server.js"]
