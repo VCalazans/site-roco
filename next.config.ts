@@ -87,6 +87,12 @@ function contentSecurityPolicy(): string {
     "style-src 'self' 'unsafe-inline'",
     // R2 público (catálogo de imagens) + MAUTIC removido em 2026-08-23.
     `img-src 'self' data: blob:${r2Public ? ` ${r2Public}` : ""}`,
+    // Vídeo do hero servido do R2 (slides `kind: "upload"` — ver
+    // `hero-slider.tsx`). SEM esta diretiva o `<video>` cairia no
+    // `default-src 'self'` e o navegador bloquearia o arquivo: o hero
+    // ficaria só no pôster, sem erro visível fora do console. Slides
+    // YouTube não passam por aqui — são iframe, cobertos por `frame-src`.
+    `media-src 'self' blob:${r2Public ? ` ${r2Public}` : ""}`,
     "font-src 'self'",
     `connect-src 'self'${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
     "form-action 'self'",
