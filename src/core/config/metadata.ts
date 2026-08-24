@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://roco.com.br";
+/**
+ * `siteUrl` é embutido no `metadataBase` em build-time (Next 14+ exige URL
+ * absoluta no construtor de `URL`). O Dockerfile passa
+ * `NEXT_PUBLIC_SITE_URL` como build-arg com default vazio — se o arg não
+ * for definido em produção, o `new URL("")` crasha o build. Por isso
+ * a cadeia de fallback trata `""` e `undefined` como ausência: o placeholder
+ * é o último recurso (só aparece se o deploy esquecer de passar o arg).
+ *
+ * Em produção real (go-live), `NEXT_PUBLIC_SITE_URL=https://roco.com.br`
+ * precisa ser passado como `--build-arg` no `docker build`. Se
+ * esquecido, o site sobe com o placeholder e o `metadataBase` aponta para
+ * ele — não bloqueia o deploy, mas o sitemap/OG/canonical ficam errados.
+ */
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "") || "https://roco.com.br";
 
 /**
  * Título/descrição default (fallback de `openGraph`/`twitter`, que as páginas
