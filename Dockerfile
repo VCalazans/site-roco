@@ -40,6 +40,25 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# ---- Migrations dentro do container ----
+# O standalone não basta para migrar: `drizzle-kit` é devDependency (não vem
+# na imagem), o Turbopack inlina o `drizzle-orm` nos chunks do servidor (o
+# pacote some de node_modules) e os arquivos .sql não são copiados. Sem isso,
+# o primeiro deploy sobe com o banco vazio e toda query morre em
+# `42P01 relation "products" does not exist`.
+#
+# Com os três COPY abaixo, `npm run db:migrate:container` (ou
+# `node scripts/migrate.mjs`) aplica o journal usando só dependências de
+# produção (drizzle-orm + pg, que o standalone já traz).
+# São ~16 MB a mais numa imagem que já carrega Next, React, sharp e AWS SDK.
+#
+# Atenção: o `package.json` que vai para a imagem é cópia integral do
+# projeto, então ele continua anunciando `db:migrate` -> `drizzle-kit`, que
+# NÃO existe aqui. O script irmão `db:migrate:container` é o que funciona.
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/migrate.mjs ./scripts/migrate.mjs
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000
