@@ -574,6 +574,65 @@
         "submittedAt": "Enviado em",
         "actions": "Ações"
       },
+      "search": {
+        "placeholder": "Buscar por nome, e-mail, empresa ou CNPJ..."
+      },
+      "filters": {
+        "region": "Filtrar por região",
+        "regionAll": "Todas as regiões",
+        "showDisabled": "Mostrar desabilitados"
+      },
+      "actions": {
+        "viewDetails": "Ver detalhes",
+        "disable": "Desabilitar",
+        "enable": "Reativar",
+        "delete": "Excluir cadastro"
+      },
+      "fields": {
+        "disableReason": "Motivo (opcional)",
+        "disabledAt": "Desabilitado em",
+        "disabledBy": "Desabilitado por",
+        "enableConfirm": "Reativar este cadastro?"
+      },
+      "details": {
+        "title": "Detalhes do cadastro",
+        "cnpj": "CNPJ",
+        "phone": "Telefone",
+        "region": "Região",
+        "submittedAt": "Enviado em",
+        "reviewedAt": "Revisado em",
+        "reviewedBy": "Revisado por",
+        "notes": "Observações do representante",
+        "reviewNotes": "Anotações do revisor",
+        "documents": "Documentos",
+        "disableReason": "Motivo do desligamento"
+      },
+      "confirmDisable": {
+        "title": "Desabilitar cadastro?",
+        "message": "O representante não conseguirá mais acessar o portal. Os dados são preservados e podem ser reativados depois.",
+        "reasonLabel": "Motivo (opcional)",
+        "confirm": "Sim, desabilitar",
+        "cancel": "Cancelar"
+      },
+      "confirmEnable": {
+        "title": "Reativar cadastro?",
+        "message": "O representante voltará a conseguir acessar o portal.",
+        "confirm": "Sim, reativar",
+        "cancel": "Cancelar"
+      },
+      "confirmDelete": {
+        "title": "Excluir cadastro?",
+        "message": "Esta ação remove o cadastro, os documentos e os arquivos no R2. Não pode ser desfeita. Prefira desabilitar se pretende reativar depois.",
+        "confirm": "Sim, excluir",
+        "cancel": "Cancelar"
+      },
+      "badge": {
+        "disabled": "Desabilitado"
+      },
+      "emptySearch": {
+        "title": "Nenhum resultado para essa busca",
+        "description": "Tente outros termos ou limpe os filtros."
+      },
       "review": {
         "approve": "Aprovar",
         "reject": "Rejeitar",

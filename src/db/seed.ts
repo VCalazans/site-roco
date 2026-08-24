@@ -40,6 +40,11 @@ const PERMISSIONS: PermissionSeed[] = [
   { resource: "representatives", action: "read" },
   { resource: "representatives", action: "review" },
   { resource: "representatives", action: "update" },
+  // Soft-disable + delete do cadastro (CRUD completo, 2026-08-23): só admin
+  // tem esses (admin recebe `*` em ROLE_PERMISSIONS). A reativação
+  // (`representatives:disable` apagando o timestamp) usa o mesmo par.
+  { resource: "representatives", action: "disable" },
+  { resource: "representatives", action: "delete" },
   { resource: "categories", action: "manage" },
   { resource: "sync", action: "trigger" },
   { resource: "sync", action: "read" },

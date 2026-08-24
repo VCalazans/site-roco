@@ -1,6 +1,6 @@
 import "server-only";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getPresignedDownloadUrl, getPresignedUploadUrl, headObject } from "@/core/storage/r2";
 import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
@@ -331,11 +331,46 @@ export const representativesRouter = router({
         status: z.enum(representativeStatusEnum.enumValues).optional(),
         page: z.number().int().min(1).default(DEFAULT_PAGE),
         perPage: z.number().int().min(1).max(MAX_PER_PAGE).default(DEFAULT_PER_PAGE),
+        region: z.string().trim().min(1).max(120).optional(),
+        search: z.string().trim().min(1).max(120).optional(),
+        includeDisabled: z.boolean().default(false),
       })
     )
     .query(async ({ ctx, input }) => {
-      const { status, page, perPage } = input;
+      const { status, page, perPage, region, search, includeDisabled } = input;
+
+      // Status filter (tab ativo) — sempre opcional.
       const conditions = status ? [eq(representatives.status, status)] : [];
+
+      // Por padrão, soft-disabled ficam fora da listagem (default
+      // includeDisabled=false). O admin liga o toggle no topo para ver
+      // quem ele próprio desabilitou.
+      if (!includeDisabled) {
+        conditions.push(isNull(representatives.disabledAt));
+      }
+
+      // Filtro por região (case-insensitive, exato).
+      if (region) {
+        conditions.push(
+          sql`lower(${representatives.region}) = ${region.toLowerCase()}` as never
+        );
+      }
+
+      // Busca textual: ILIKE em name/email/company/cnpj. Mesma semântica
+      // dos produtos (escape de metacaracteres, sem cache) — a lista não
+      // é hot path.
+      if (search) {
+        const like = `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+        conditions.push(
+          or(
+            ilike(users.name, like),
+            ilike(users.email, like),
+            ilike(representatives.companyName, like),
+            ilike(representatives.cnpj, like)
+          )!
+        );
+      }
+
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
       const [rows, [countRow]] = await Promise.all([
@@ -347,8 +382,15 @@ export const representativesRouter = router({
             region: representatives.region,
             submittedAt: representatives.submittedAt,
             createdAt: representatives.createdAt,
+            disabledAt: representatives.disabledAt,
+            disabledByUserId: representatives.disabledByUserId,
+            disableReason: representatives.disableReason,
             userName: users.name,
             userEmail: users.email,
+            // Quem desabilitou (subquery — evita alias collision com o JOIN
+            // principal de users). Retorna null se o user foi deletado ou
+            // se o disabled_by_user_id é null.
+            disabledByName: sql<string | null>`(SELECT name FROM users WHERE id = ${representatives.disabledByUserId})`,
           })
           .from(representatives)
           .innerJoin(users, eq(users.id, representatives.userId))
@@ -383,8 +425,9 @@ export const representativesRouter = router({
       }
 
       const items = await Promise.all(
-        rows.map(async ({ userName, userEmail, ...row }) => ({
+        rows.map(async ({ userName, userEmail, disabledByName, ...row }) => ({
           ...row,
+          disabledByName,
           user: { name: userName, email: userEmail },
           documents: await Promise.all(
             (documentsByRepresentative.get(row.id) ?? []).map(async (document) => ({
@@ -408,10 +451,11 @@ export const representativesRouter = router({
         submitted: sql<number>`count(*) filter (where ${representatives.status} = 'submitted')::int`,
         approved: sql<number>`count(*) filter (where ${representatives.status} = 'approved')::int`,
         rejected: sql<number>`count(*) filter (where ${representatives.status} = 'rejected')::int`,
+        disabled: sql<number>`count(*) filter (where ${representatives.disabledAt} is not null)::int`,
       })
       .from(representatives);
 
-    return row ?? { total: 0, draft: 0, submitted: 0, approved: 0, rejected: 0 };
+    return row ?? { total: 0, draft: 0, submitted: 0, approved: 0, rejected: 0, disabled: 0 };
   }),
 
   review: permissionProcedure("representatives", "review")
@@ -476,5 +520,170 @@ export const representativesRouter = router({
       });
 
       return updated;
+    }),
+
+  /**
+   * Soft-disable (2026-08-23, CRUD completo): admin marca o representante
+   * como inabilitado. Login é recusado em `loadUserAuthorization` (ver
+   * src/core/auth/index.ts). A linha permanece no banco (audit + reativação).
+   * A reativação usa `enable` abaixo (zera `disabledAt` e limpa o autor/reason).
+   * Idempotente: se já estava desabilitado, retorna o registro sem falhar.
+   */
+  disable: permissionProcedure("representatives", "disable")
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        reason: z.string().trim().min(1).max(500).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select()
+        .from(representatives)
+        .where(eq(representatives.id, input.id))
+        .limit(1);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+      }
+      if (existing.disabledAt) return existing;
+      const [updated] = await ctx.db
+        .update(representatives)
+        .set({
+          disabledAt: new Date(),
+          disabledByUserId: ctx.session.user.id,
+          disableReason: input.reason ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(representatives.id, input.id))
+        .returning();
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "representatives.disable",
+        resource: "representatives",
+        resourceId: input.id,
+        metadata: { reason: input.reason ?? null },
+      });
+      return updated;
+    }),
+
+  /** Reativa um representante soft-disabled. Limpa `disabledAt` + autor + reason. */
+  enable: permissionProcedure("representatives", "disable")
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select()
+        .from(representatives)
+        .where(eq(representatives.id, input.id))
+        .limit(1);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+      }
+      if (!existing.disabledAt) return existing;
+      const [updated] = await ctx.db
+        .update(representatives)
+        .set({
+          disabledAt: null,
+          disabledByUserId: null,
+          disableReason: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(representatives.id, input.id))
+        .returning();
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "representatives.enable",
+        resource: "representatives",
+        resourceId: input.id,
+      });
+      return updated;
+    }),
+
+  /**
+   * Edição pelo admin de campos pós-submit (CNPJ digitado errado, telefone
+   * mudou, representante pediu correção). Não mexe em status — só nos
+   * campos editáveis. Audit log preserva o evento.
+   */
+  update: permissionProcedure("representatives", "update")
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        companyName: z.string().trim().min(1).max(200).optional(),
+        cnpj: z.string().trim().min(1).max(18).optional(),
+        phone: z.string().trim().min(1).max(30).optional(),
+        region: z.string().trim().min(1).max(120).optional(),
+        notes: z.string().trim().max(2000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...patch } = input;
+      const [existing] = await ctx.db
+        .select()
+        .from(representatives)
+        .where(eq(representatives.id, id))
+        .limit(1);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+      }
+      if (patch.cnpj && !isValidCNPJ(patch.cnpj)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "CNPJ inválido." });
+      }
+      const [updated] = await ctx.db
+        .update(representatives)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(representatives.id, id))
+        .returning();
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "representatives.update",
+        resource: "representatives",
+        resourceId: id,
+        metadata: { fields: Object.keys(patch) },
+      });
+      return updated;
+    }),
+
+  /**
+   * Delete físico (admin-only, `representatives:delete`). Remove o cadastro +
+   * cascata em `representative_documents` (FK cascade) + objetos do R2
+   * (best-effort — falha no R2 não bloqueia a exclusão do banco para evitar
+   * "representante fantasma" na UI; órfãos podem ser limpos por job futuro).
+   * Soft-disable (`disable`) é a opção não-destrutiva recomendada; este
+   * procedimento é o último recurso (GDPR / reativação impossível).
+   */
+  delete: permissionProcedure("representatives", "delete")
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select()
+        .from(representatives)
+        .where(eq(representatives.id, input.id))
+        .limit(1);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
+      }
+      const documentRows = await ctx.db
+        .select()
+        .from(representativeDocuments)
+        .where(eq(representativeDocuments.representativeId, input.id));
+      await ctx.db.delete(representatives).where(eq(representatives.id, input.id));
+      if (documentRows.length > 0) {
+        const { deleteObject } = await import("@/core/storage/r2");
+        await Promise.all(
+          documentRows.map(async (document) => {
+            try {
+              await deleteObject(document.r2Key);
+            } catch (error) {
+              console.error(
+                "[representatives.delete] Falha ao remover documento do R2.",
+                { key: document.r2Key, error }
+              );
+            }
+          })
+        );
+      }
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "representatives.delete",
+        resource: "representatives",
+        resourceId: input.id,
+        metadata: { documents: documentRows.length },
+      });
+      return { ok: true as const, deletedDocuments: documentRows.length };
     }),
 });

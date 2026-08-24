@@ -574,6 +574,65 @@
         "submittedAt": "Submitted",
         "actions": "Actions"
       },
+      "search": {
+        "placeholder": "Search by name, email, company or CNPJ..."
+      },
+      "filters": {
+        "region": "Filter by region",
+        "regionAll": "All regions",
+        "showDisabled": "Show disabled"
+      },
+      "actions": {
+        "viewDetails": "View details",
+        "disable": "Disable",
+        "enable": "Re-enable",
+        "delete": "Delete record"
+      },
+      "fields": {
+        "disableReason": "Reason (optional)",
+        "disabledAt": "Disabled at",
+        "disabledBy": "Disabled by",
+        "enableConfirm": "Re-enable this record?"
+      },
+      "details": {
+        "title": "Record details",
+        "cnpj": "CNPJ",
+        "phone": "Phone",
+        "region": "Region",
+        "submittedAt": "Submitted at",
+        "reviewedAt": "Reviewed at",
+        "reviewedBy": "Reviewed by",
+        "notes": "Representative's notes",
+        "reviewNotes": "Reviewer's notes",
+        "documents": "Documents",
+        "disableReason": "Reason for disabling"
+      },
+      "confirmDisable": {
+        "title": "Disable record?",
+        "message": "The representative will no longer be able to access the portal. Data is preserved and can be re-enabled later.",
+        "reasonLabel": "Reason (optional)",
+        "confirm": "Yes, disable",
+        "cancel": "Cancel"
+      },
+      "confirmEnable": {
+        "title": "Re-enable record?",
+        "message": "The representative will be able to access the portal again.",
+        "confirm": "Yes, re-enable",
+        "cancel": "Cancel"
+      },
+      "confirmDelete": {
+        "title": "Delete record?",
+        "message": "This action removes the record, the documents and the R2 files. It cannot be undone. Prefer disabling if you intend to re-enable later.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      },
+      "badge": {
+        "disabled": "Disabled"
+      },
+      "emptySearch": {
+        "title": "No results for that search",
+        "description": "Try other terms or clear the filters."
+      },
       "review": {
         "approve": "Approve",
         "reject": "Reject",

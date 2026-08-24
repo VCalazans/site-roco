@@ -203,6 +203,65 @@ export type PortalDictionary = {
       submittedAt: string;
       actions: string;
     };
+    search: {
+      placeholder: string;
+    };
+    filters: {
+      region: string;
+      regionAll: string;
+      showDisabled: string;
+    };
+    actions: {
+      viewDetails: string;
+      disable: string;
+      enable: string;
+      delete: string;
+    };
+    fields: {
+      disableReason: string;
+      disabledAt: string;
+      disabledBy: string;
+      enableConfirm: string;
+    };
+    details: {
+      title: string;
+      cnpj: string;
+      phone: string;
+      region: string;
+      submittedAt: string;
+      reviewedAt: string;
+      reviewedBy: string;
+      notes: string;
+      reviewNotes: string;
+      documents: string;
+      disableReason: string;
+    };
+    confirmDisable: {
+      title: string;
+      message: string;
+      reasonLabel: string;
+      confirm: string;
+      cancel: string;
+    };
+    confirmEnable: {
+      title: string;
+      message: string;
+      confirm: string;
+      cancel: string;
+    };
+    confirmDelete: {
+      title: string;
+      message: string;
+      confirm: string;
+      cancel: string;
+    };
+    badge: {
+      disabled: string;
+    };
+    emptySearch: {
+      title: string;
+      description: string;
+    };
     review: {
       approve: string;
       reject: string;

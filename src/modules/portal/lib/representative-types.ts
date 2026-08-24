@@ -13,6 +13,16 @@ export type RepresentativeListItem = {
   region: string | null;
   submittedAt: string | null;
   createdAt: string;
+  /**
+   * Soft-disable (2026-08-23): `disabledAt != null` → admin desabilitou este
+   * representante (login é recusado em `auth()`). O status real continua
+   * visível para histórico. `disabledByName` vem do JOIN com `users` (FK
+   * `disabledByUserId`) e é usado na UI para mostrar QUEM desabilitou.
+   */
+  disabledAt: string | null;
+  disabledByUserId: string | null;
+  disabledByName: string | null;
+  disableReason: string | null;
   user: {
     name: string | null;
     email: string | null;
@@ -31,6 +41,12 @@ export type RepresentativeListInput = {
   status?: RepresentativeStatus;
   page?: number;
   perPage?: number;
+  /** Filtro por região/território (match exato, case-insensitive). */
+  region?: string;
+  /** Busca textual em `user.name`, `user.email`, `companyName`, `cnpj`. */
+  search?: string;
+  /** Inclui representantes com `disabledAt IS NOT NULL`. Default `false`. */
+  includeDisabled?: boolean;
 };
 
 export type RepresentativeListResult = {
@@ -47,6 +63,8 @@ export type RepresentativeStats = {
   submitted: number;
   approved: number;
   rejected: number;
+  /** Quantos cadastros estão atualmente soft-disabled (independe do status). */
+  disabled: number;
 };
 
 export const REPRESENTATIVE_STATUS_TABS: RepresentativeStatus[] = [

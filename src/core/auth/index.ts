@@ -6,7 +6,17 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { db } from "@/db";
-import { accounts, permissions, rolePermissions, roles, sessions, userRoles, users, verificationTokens } from "@/db/schema";
+import {
+  accounts,
+  permissions,
+  representatives,
+  rolePermissions,
+  roles,
+  sessions,
+  userRoles,
+  users,
+  verificationTokens,
+} from "@/db/schema";
 import { checkRateLimit, normalizeRateLimitKeyPart } from "@/server/lib/rate-limit";
 
 /** Role com acesso irrestrito — bypassa a checagem granular (ver `rbac.ts`). */
@@ -49,6 +59,21 @@ async function loadUserAuthorization(userId: string) {
 
   // Usuário removido ou desativado: sinaliza para o callback derrubar a sessão.
   if (!account || account.active === false) {
+    return null;
+  }
+
+  // Representante soft-disabled (2026-08-23, CRUD completo): o cadastro foi
+  // desabilitado pelo admin (`representatives.disabledAt` setado). O login
+  // é barrado exatamente como o `users.active=false` — mesma resposta
+  // genérica (sem revelar que a conta está desabilitada por representante).
+  // Apenas roles com a role `representative` checam; admin/sales_manager
+  // (e viewer) não passam por esta gate.
+  const [representativeRow] = await db
+    .select({ disabledAt: representatives.disabledAt })
+    .from(representatives)
+    .where(eq(representatives.userId, userId))
+    .limit(1);
+  if (representativeRow?.disabledAt) {
     return null;
   }
 

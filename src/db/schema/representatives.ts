@@ -32,6 +32,23 @@ export const representatives = pgTable("representatives", {
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   /** Retorno do revisor ao representante (distinto de `notes`, que é do próprio representante). */
   reviewNotes: text("review_notes"),
+  /**
+   * Soft-disable (2026-08-23, rodada "CRUD completo de representantes"):
+   *   - `disabledAt IS NULL`  → cadastro ativo (login permitido).
+   *   - `disabledAt IS NOT NULL` → admin desabilitou; login é recusado
+   *     no callback do `auth()` (ver `src/core/auth/index.ts`).
+   *   - `disabledByUserId` registra QUEM desabilitou (audit). `disableReason`
+   *     guarda a justificativa em texto livre.
+   *   - Reativar = setar `disabledAt = NULL` (limpa também o `disabledByUserId`).
+   *   - Decidido como COLUNA e não como enum status="disabled" para
+   *     preservar o status real (`approved` continua visível na listagem)
+   *     e o histórico de who/when.
+   */
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
+  disabledByUserId: text("disabled_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  disableReason: text("disable_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
