@@ -235,6 +235,32 @@ queries morriam com `42P01 relation "products" does not exist`. Dentro do contai
 (`drizzle/`, o script, e `node_modules/drizzle-orm` — que tem zero deps de runtime, então
 não arrasta nada transitivo; ~16 MB).
 
+**As migrations rodam SOZINHAS no boot** (2026-08-24, 2ª rodada). O passo manual não
+sobrevivia a redeploy — o deploy seguiu quebrado porque ninguém rodou o comando. Hoje o
+`CMD` do Dockerfile aplica as migrations antes de subir o servidor:
+
+```dockerfile
+CMD ["sh", "-c", "if [ \"$RUN_MIGRATIONS_ON_BOOT\" != false ]; then node scripts/migrate.mjs || echo '[boot] AVISO...'; fi; exec node server.js"]
+```
+
+- **Inline no CMD, sem `entrypoint.sh`**: o repo tem `core.autocrlf=true`; um `.sh` comitado
+  do Windows chegaria com CRLF e o shebang quebraria no Alpine ("no such file or directory") —
+  o container não subiria. Inline elimina essa classe de falha.
+- **`||` e não `&&`**: migration que falha não derruba o servidor. O motivo fica no log e a
+  aplicação segue acessível para diagnóstico, em vez de crash-loop escondendo a causa.
+- **`exec` no fim**: PID 1 do container vira o `next-server` (verificado via `/proc/1/cmdline`),
+  então SIGTERM do `docker stop` chega direto no Next.
+- **`pg_advisory_lock` num client dedicado**: serializa N réplicas subindo juntas. Verificado
+  com duas simultâneas — uma aplicou as 6, a outra esperou e encontrou tudo pronto; 20 tabelas
+  e journal com 6 linhas. O lock é de SESSÃO, por isso vive num client próprio (via
+  `pool.query` a liberação poderia cair noutra conexão e vazar).
+- **`RUN_MIGRATIONS_ON_BOOT=false`** desliga, se for preciso separar deploy de migração.
+
+Ganho colateral: a migration usa a MESMA `DATABASE_URL` do app, então some a classe de erro
+"migrei no banco errado" — as duas não podem mais divergir.
+
+Ainda dá para rodar à mão (útil para aplicar migration sem redeploy):
+
 ```bash
 # dentro do container (Terminal do EasyPanel, docker exec, etc.)
 npm run db:migrate:container      # ou: node scripts/migrate.mjs

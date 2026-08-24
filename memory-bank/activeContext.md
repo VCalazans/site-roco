@@ -31,10 +31,16 @@
   idempotência; `drizzle-kit` depois reconhece as 6; arquivos na imagem legíveis pelo
   usuário `nextjs`; `npm run db:migrate:container` dentro do container → 20 tabelas;
   ECONNREFUSED/EAI_AGAIN/28P01/3D000/sem-DATABASE_URL com mensagem correta e exit 1).
+- **2ª rodada (mesmo dia)**: o passo manual não sobrevivia a redeploy — o deploy seguiu
+  quebrado porque ninguém rodou o comando. Migrations passaram a rodar SOZINHAS no boot
+  (`CMD` inline, `||` para não derrubar o servidor, `exec` mantendo o next-server como PID 1,
+  `pg_advisory_lock` serializando réplicas). Bug pego em teste de container: `pool.connect()`
+  estava fora do `try`, então erro de host/senha virava stack cru e ignorava o diagnóstico.
 - Portões: lint ✓, 348 testes ✓, build ✓.
 
 ### Pendências imediatas do deploy (lado do stakeholder)
-1. Redeploy para a imagem pegar o migrator, então `npm run db:migrate:container` no container.
+1. Redeploy — as migrations agora rodam sozinhas no boot; conferir no log do container as
+   linhas `[migrate]`.
 2. `db:seed` (roles/permissões/admin) — precisa de `tsx` + `src/`: roda da máquina local ou
    de um `node:22-alpine` com o repo montado na VPS. **Sem ele não há como logar no portal.**
 3. `db:import-catalog` (769 produtos, nascem `published=false`) + **decisão de publicação**
