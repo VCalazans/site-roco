@@ -2,7 +2,44 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-23
+2026-08-24
+
+## Sessão 2026-08-24 — Deploy destravado: migrations dentro do container
+
+- **Sintoma inicial (produção EasyPanel)**: build quebrava com `Invalid URL: ''` em
+  `metadata.ts`; depois `ECONNREFUSED`; depois `42P01 relation "products" does not exist`.
+  Três problemas distintos em sequência, cada um mascarando o próximo.
+- **Fix 1 — build** (`2a32295`): `siteUrl` usava `??`, que não pega string vazia. O
+  Dockerfile declara `ARG NEXT_PUBLIC_SITE_URL=` (default vazio), então sem o build-arg o
+  `new URL("")` derrubava o build. Trocado por `trim() || fallback`.
+- **Fix 2 — migrations** (`dd14c23`): o container não conseguia migrar de jeito nenhum.
+  `drizzle-kit` é devDependency, o Turbopack **inlina** o `drizzle-orm` (o pacote nem existe
+  em `.next/standalone/node_modules`; idem `bcryptjs`) e os `.sql` não eram copiados.
+  Solução: `scripts/migrate.mjs` (usa o migrator interno do `drizzle-orm`, journal 100%
+  compatível com `drizzle-kit migrate`) + três COPY no runner + script
+  `db:migrate:container`. Ver techContext "Migrations em Produção".
+- **Revisão adversarial** (Workflow, 30 agentes, 26 achados → 6 confirmados / 20 refutados):
+  pegou um defeito **grave** que eu tinha deixado passar — o `catch` descartava
+  `error.cause`, e como a primeira instrução do migrator é `CREATE SCHEMA`, QUALQUER falha
+  de conexão/senha/SSL apareceria como problema de privilégio nesse CREATE SCHEMA. Também
+  pegou o `countApplied` engolindo erro de conexão e reportando "Já aplicadas: 0", e o
+  `package.json` da imagem continuar anunciando o `db:migrate` quebrado.
+- **Extra achado em teste de container** (não veio da revisão): `AggregateError` com
+  `.message` vazia — `localhost` resolve para 127.0.0.1 **e** ::1, o Node agrega as duas
+  falhas. Era exatamente a forma do erro no diagnóstico original. Desempacotado.
+- **Verificação**: 6 cenários contra Postgres real + imagem real (banco vazio → 20 tabelas;
+  idempotência; `drizzle-kit` depois reconhece as 6; arquivos na imagem legíveis pelo
+  usuário `nextjs`; `npm run db:migrate:container` dentro do container → 20 tabelas;
+  ECONNREFUSED/EAI_AGAIN/28P01/3D000/sem-DATABASE_URL com mensagem correta e exit 1).
+- Portões: lint ✓, 348 testes ✓, build ✓.
+
+### Pendências imediatas do deploy (lado do stakeholder)
+1. Redeploy para a imagem pegar o migrator, então `npm run db:migrate:container` no container.
+2. `db:seed` (roles/permissões/admin) — precisa de `tsx` + `src/`: roda da máquina local ou
+   de um `node:22-alpine` com o repo montado na VPS. **Sem ele não há como logar no portal.**
+3. `db:import-catalog` (769 produtos, nascem `published=false`) + **decisão de publicação**
+   (em massa vs curadoria) — sem isso `/produtos` fica vazio mesmo com banco populado.
+4. `db:import-images` — SÓ da máquina local (`docs/PRODUTOS/` é gitignored, ~1 GB).
 
 ## Sessão 2026-08-23 — Vitrine de categorias fiel ao PSD + selo GPTW oficial
 - **Feedback do stakeholder**: (1) vitrine de categorias da home "bem simples", não parecia com o

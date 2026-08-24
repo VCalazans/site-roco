@@ -202,7 +202,8 @@ site com fotos). Ordem para produção:
    (quando o stakeholder criar — sem eles o login Google falha ao clicar; credenciais funcionam).
 4. **Carga inicial — rodar da MÁQUINA LOCAL** com `DATABASE_URL`/R2 de produção no `.env.local`
    (os scripts rodam fora do bundle e leem `docs/`, que NÃO vai na imagem Docker), nesta ordem:
-   a. `npm run db:migrate`      (drizzle 0000–0002)
+   a. `npm run db:migrate`      (drizzle 0000–0005) — ou, de dentro do container,
+      `npm run db:migrate:container` (ver seção abaixo)
    b. `npm run db:seed`         (roles/permissões + admin bootstrap; idempotente)
    c. `npm run db:import-catalog` (upsert por sku; nasce `published=false` POR DESIGN)
    d. **DECISÃO DO STAKEHOLDER**: publicar em massa (ato deliberado, ex. UPDATE em lote) OU
@@ -216,6 +217,53 @@ site com fotos). Ordem para produção:
    rate limit ativo (Redis conectado — ver logs).
 6. **Riscos abertos no go-live** (progress.md): banner LGPD do tracking Mautic (decisão),
    CORS `www` no Mautic, endurecer register (captcha/e-mail), MP4 self-hosted do hero.
+
+## Migrations em Produção — o container consegue migrar sozinho (2026-08-24)
+
+**Incidente que originou isto**: o primeiro deploy subiu com o banco vazio e todas as
+queries morriam com `42P01 relation "products" does not exist`. Dentro do container,
+`npm run db:migrate` respondia `sh: drizzle-kit: not found`.
+
+**Três camadas de causa** (todas verificadas empiricamente no repo):
+1. `drizzle-kit` é devDependency — a imagem `output: standalone` só leva deps de produção.
+2. O Turbopack **inlina** o `drizzle-orm` nos chunks do servidor: o pacote não existe em
+   `.next/standalone/node_modules` (só o `pg` sobrevive, por ser nativo). O mesmo vale para
+   `bcryptjs`. Ou seja: instalar o drizzle-kit no container não resolveria.
+3. Os `.sql` de `drizzle/` nunca eram copiados para a imagem — não havia o que aplicar.
+
+**Solução**: `scripts/migrate.mjs` + três `COPY` no estágio runner do Dockerfile
+(`drizzle/`, o script, e `node_modules/drizzle-orm` — que tem zero deps de runtime, então
+não arrasta nada transitivo; ~16 MB).
+
+```bash
+# dentro do container (Terminal do EasyPanel, docker exec, etc.)
+npm run db:migrate:container      # ou: node scripts/migrate.mjs
+```
+
+⚠️ O `package.json` que vai para a imagem é **cópia integral** do projeto, então ele continua
+anunciando `db:migrate` → `drizzle-kit` — a isca exata que causou o incidente. O script que
+funciona lá dentro é o `db:migrate:container`.
+
+**Compatibilidade de journal**: o script usa o migrator que já vem dentro do `drizzle-orm`,
+a mesma implementação que o `drizzle-kit migrate` chama por baixo. Tabela de controle
+(`drizzle.__drizzle_migrations`) e hash SHA-256 são idênticos — rodar no servidor e depois
+rodar `drizzle-kit migrate` da máquina local contra o mesmo banco **não** duplica nada
+(verificado: o segundo reconhece as 6 como aplicadas e pula).
+
+**Não está no entrypoint de propósito**: o migrator do Drizzle não pega advisory lock, então
+N réplicas subindo juntas aplicariam a mesma migration em paralelo. Se algum dia virar
+automático no boot, envolver em `pg_advisory_lock`.
+
+**Diagnóstico de falha**: o script traduz o motivo real na primeira linha (ECONNREFUSED,
+EAI_AGAIN, 28P01, 3D000, 28000/SSL...), desempacota `AggregateError` (o `localhost` resolve
+para 127.0.0.1 e ::1 e o Node agrega as falhas com `.message` vazia) e imprime
+host:porta/base + status de SSL sem nunca mostrar a senha.
+
+**O que o container AINDA não faz**: `db:seed`, `db:import-catalog` e `db:import-images`
+dependem de `tsx` + `src/db/schema` (TypeScript) e, no caso das imagens, de `docs/PRODUTOS/`
+(~1 GB, gitignored). Esses continuam saindo da máquina local ou de um container
+`node:22-alpine` com o repo montado. Nota: `docs/Dados Catalogo ROCO site_2026.xls` **está**
+versionado, então o import de catálogo funciona também a partir do repo clonado no servidor.
 
 ## Stack Docker Local (sempre no ar — 2026-08-11)
 Os 3 serviços rodam via `docker compose` com `restart: unless-stopped` (voltam com o Docker Desktop):
