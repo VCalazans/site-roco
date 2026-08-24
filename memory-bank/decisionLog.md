@@ -571,3 +571,113 @@ públicas); flags internas continuam por env.
 **Impacto**: Migration 0004 + tRPC `siteSettings` (list/set) + helper
 `getCachedReadSetting(key)` (cache tag "site-settings", 60s).
 
+## 2026-08-24 — Upload de mídia do hero (sem digitar chaves R2 à mão)
+**Decisão**: Trocar os campos de texto cru onde o admin digitava a `r2Key`/`r2PosterKey` do slide
+do hero à mão (`src/modules/portal/components/hero/hero-form-dialog.tsx`) por um componente de
+upload genérico e reutilizável (`PortalFileUploader`, em `src/modules/portal/components/shared/`)
+com seleção de arquivo, barra de progresso e preview — nunca expondo a chave do bucket ao usuário.
+Corrigido também um bug real descoberto no backend: `presignUpload`/`confirmUpload` em
+`src/server/trpc/routers/hero-slides.ts` só aceitavam tipos de vídeo (`ALLOWED_VIDEO_TYPES`)
+mesmo quando o upload era do campo de **pôster** (que deveria aceitar imagem) — passam a existir
+`ALLOWED_POSTER_TYPES`/`MAX_POSTER_BYTES` distintos de `ALLOWED_VIDEO_TYPES`/`MAX_VIDEO_BYTES`,
+com o limite de tamanho aplicado conforme o tipo do campo (`poster: boolean` no input).
+**Alternativas**: (a) manter o `<TextField>` cru — rejeitado, é exatamente a dor relatada pelo
+stakeholder ("ninguém vai conhecer a estrutura do bucket"); (b) aceitar qualquer `contentType` sem
+diferenciar vídeo de pôster — rejeitado, mantinha o bug de validação e abria a porta para upload
+de tipo errado.
+**Justificativa**: Pedido explícito do stakeholder.
+**Impacto**: Novo componente compartilhado `PortalFileUploader` (usado também pelos materiais do
+representante, ver Entrada 2, e pelo campo `uploadFileDirect` de `src/modules/portal/lib/upload-file.ts`
+ganha suporte a progresso via XHR). `hero-slides.ts` ganha `ALLOWED_POSTER_TYPES`/`MAX_POSTER_BYTES`.
+Nenhuma migration nova.
+
+## 2026-08-24 — Materiais dinâmicos para representantes (linha do tempo, upload obrigatório)
+**Decisão**: Nova tabela `materials` (migration `drizzle/0006_materials.sql`, schema
+`src/db/schema/materials.ts`) para os materiais de apoio compartilhados com representantes. Campos:
+título/descrição bilíngue (pt/en), categoria (texto livre orientado por opções sugeridas no
+dicionário: política comercial, logística, contatos, treinamento, outro), `r2Key` **NOT NULL**
+(upload é obrigatório — nunca se aceita URL externa colada), `published`/`publishedAt` (a ordenação
+do feed é por `publishedAt DESC` — a "lógica de linha do tempo" pedida pelo stakeholder), autoria e
+timestamps. Os arquivos são armazenados como **privados** (URL de leitura via
+`getPresignedDownloadUrl`, gerada sob demanda a cada consulta — mesmo padrão já usado para os
+documentos de onboarding de representante desde 2026-08-09), diferente do `R2_PUBLIC_URL` usado para
+produtos/hero: material de vendas não deve ficar publicamente indexável/acessível sem login. CRUD
+administrativo em nova rota `/portal/materiais` (permissões novas `materials:{create,read,update,delete}`
+no seed), com o item de navegação "Materiais" liberado só para quem tem `materials:create` — assim o
+representante (que ganha `materials:read` para poder consultar o feed) nunca cai na tela de CRUD
+administrativa. O feed somente-leitura do representante fica embutido na página já existente
+`/portal/boas-vindas` (novo componente `WelcomeMaterialsFeed`), **substituindo** os 4 cards estáticos
+com CTA desabilitado "Em breve" que existiam ali para Contatos, Política Comercial, Logística e
+Biblioteca de vídeos (`welcome.contacts`/`welcome.commercialPolicy`/`welcome.logistics`/`welcome.library`
+saem do dicionário — eram promessas sem asset real), e removendo também o botão de CTA (igualmente
+desabilitado) do card do Sistema DW — o vídeo do Sistema DW passa a ser só mais um item publicável
+no feed de materiais, como qualquer outro. O card "Conheça a ROCO" (`welcome.about`, sem CTA) e o
+card do Catálogo (`welcome.catalog`, que já baixa um PDF real de `public/downloads/`) NÃO são
+tocados — não são "materiais sem asset", continuam como estavam.
+**Alternativas**: (a) permitir colar uma URL externa em vez de upload — **rejeitado explicitamente
+pelo stakeholder** ("tudo que é compartilhado com o representante deve ser upado"); (b) segmentar
+materiais por representante individual (targeting) — fora do escopo pedido (o pedido é broadcast
+para todos os representantes cadastrados); (c) reaproveitar o `R2_PUBLIC_URL` (mesmo padrão de
+produtos/hero) — rejeitado, material comercial não deveria ficar acessível publicamente sem login.
+**Justificativa**: Pedido explícito do stakeholder.
+**Impacto**: Migration `0006_materials.sql` (primeira migration desde a `0005`); router tRPC novo
+`src/server/trpc/routers/materials.ts`; `seed.ts` ganha as 4 permissões novas + `representative`
+ganha `materials:read` + `sales_manager` ganha `materials:{create,read,update}` (mesma régua já
+aplicada a `hero_slides` — sem delete); `nav-items.ts` e `portal-shell.tsx` (`PortalNavKey`) ganham
+a chave `materials`; a página de boas-vindas perde 4 seções hardcoded. **Nota operacional**: como o
+seed não roda automaticamente no boot (só migrations rodam via `scripts/migrate.mjs`), depois do
+deploy é preciso rodar `npm run db:seed` (ou `npm run db:bootstrap-producao -- --so=seed`) em cada
+ambiente (hoje `roco-test`; no futuro produção) para as novas permissões existirem de fato.
+
+## 2026-08-24 — Perfis e permissões dinâmicos (roles editáveis, catálogo de permissões continua seed)
+**Decisão**: O catálogo de PERMISSÕES (pares `resource:action`, tabela `permissions`) **continua
+seed/código** — cada permissão corresponde a uma checagem `permissionProcedure(resource, action)`
+hardcoded em algum router tRPC; criar uma permissão nova pela UI não teria nenhum efeito real,
+porque nenhum código a verificaria. O que se torna **dado editável** pelo admin, numa nova tela
+`/portal/perfis`, é: (1) **ROLES/"perfis"** — criar perfis customizados, editar nome/descrição
+(não é permitido reaproveitar tabelas novas: reaproveita-se `roles`/`role_permissions`/`user_roles`,
+já existentes desde 2026-08-09 — **nenhuma migration nova** para esta parte); (2) a **matriz
+`role_permissions`** de qualquer perfil, inclusive os 4 perfis de sistema (`sales_manager`/
+`representative`/`viewer`) — **exceto** `admin`, cuja matriz fica travada/somente-leitura na UI
+porque `admin` tem bypass total hardcoded em `hasPermission()` (`src/core/auth/rbac.ts`) e `can()`
+(`src/modules/portal/lib/permissions.ts`): editar a matriz do `admin` não mudaria nada, então a UI
+nem oferece; (3) atribuição de perfis a usuários (`user_roles`), numa aba "Usuários" com busca.
+O **slug** de qualquer perfil (de sistema ou customizado) é **imutável após a criação** — em
+especial os 4 slugs de sistema (`admin`, `sales_manager`, `representative`, `viewer`) são literais
+de string referenciados fora da tabela de permissões em vários pontos do código (`ADMIN_ROLE_SLUG`
+em `rbac.ts`, `REPRESENTATIVE_ROLE_SLUG`/`STAFF_ROLE_SLUGS` em `permissions.ts`,
+`INTERNAL_DEFAULT_ROLE`/`EXTERNAL_DEFAULT_ROLE` em `auth/index.ts`, `ADMIN_ONLY_ROLES` em
+`proxy.ts`) — renomear um desses quebraria essa lógica silenciosamente. Perfis de sistema não podem
+ser excluídos; perfis customizados só podem ser excluídos se não tiverem nenhum usuário atribuído.
+
+Cinco guardas de segurança, implementadas como **funções puras testáveis** em
+`src/server/lib/roles-guards.ts` (sem tocar banco — usadas pelo router tRPC): (a) bloquear exclusão
+de perfil de sistema ou de perfil com usuários atribuídos; (b) bloquear edição da matriz de
+permissões do perfil `admin`; (c) **autolockout**: se quem está editando NÃO tem a role `admin` e o
+perfil que está editando é (um) dos seus próprios perfis, e a nova matriz removeria a permissão
+`roles:manage` desse perfil, a mutação é bloqueada (evita o admin-delegado se trancar para fora da
+própria tela); (d) **último admin**: remover a role `admin` de um usuário é bloqueado se isso
+zerasse a contagem de usuários ATIVOS com a role `admin` no sistema; (e) **anti-escalonamento de
+privilégio**: conceder a role `admin` a um usuário exige que quem está concedendo JÁ seja `admin` —
+não basta ter a permissão genérica `roles:manage` delegada, impedindo que um perfil customizado com
+`roles:manage` (mas sem ser admin) crie novos admins por conta própria.
+**Alternativas**: (a) permissões totalmente dinâmicas (criar par `resource:action` novo pela UI) —
+rejeitado, seria uma permissão "fantasma" sem checagem real em código nenhum; (b) travar também a
+matriz dos 3 perfis de sistema não-admin — rejeitado, contraria o pedido explícito do stakeholder
+de aplicar permissões "dinamicamente", que inclui recalibrar o que `sales_manager`/`representative`/
+`viewer` podem fazer; (c) não implementar guardas de autolockout/último-admin/anti-escalonamento —
+rejeitado, é exatamente o cenário clássico de "portal RBAC que ninguém mais consegue administrar"
+ou "usuário comum vira admin por engano/abuso", citado como risco explícito no brief desta tarefa.
+**Justificativa**: Pedido explícito do stakeholder; risco de auto-lockout e de escalonamento de
+privilégio são reais e documentados nesta mesma sessão.
+**Impacto**: Nenhuma migration nova (reaproveita `roles`/`permissions`/`role_permissions`/`user_roles`
+do RBAC seed desde 2026-08-09). Router tRPC novo `src/server/trpc/routers/roles.ts`; helpers puros
+`src/server/lib/roles-guards.ts` (alvo direto de testes unitários de borda). Nova permissão
+`roles:manage` no catálogo do seed (só `admin` a recebe por padrão — um admin real pode delegá-la
+a um perfil customizado depois, e as guardas (d)/(e) continuam valendo a partir daí). Nova rota
+`/portal/perfis`, nova chave de nav `roles`. A revalidação de sessão via JWT já existente (staleness
+de 5 min, decisionLog 2026-08-09) propaga mudanças de perfil/permissão automaticamente — nenhum
+mecanismo novo de invalidação de sessão foi necessário. **Nota operacional**: mesma observação da
+Entrada 2 — a permissão `roles:manage` só existe depois de rodar `npm run db:seed` em cada
+ambiente após o deploy.
+

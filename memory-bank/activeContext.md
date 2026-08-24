@@ -4,7 +4,19 @@
 ## Data
 2026-08-24
 
-## Sessão 2026-08-24 — Deploy destravado: migrations dentro do container
+## Sessão 2026-08-24 (parte 2) — Upload de mídia, materiais dinâmicos e RBAC editável
+- **Pedido do stakeholder (3 partes)**: (1) upload de arquivo real (não chave bruta do R2) na config de mídia da home; (2) admin compartilha materiais com representantes via timeline, sempre upload (nunca URL externa); (3) admin cria perfis de acesso e aplica permissões por módulo dinamicamente.
+- **Entregue**:
+  - **Parte 1 — Upload de mídia do hero**: bug real corrigido em `presignUpload`/`confirmUpload` (routers hero-slides aceitavam só video mesmo para pôster). Novo helper puro `upload-limits.ts` (86 testes) centraliza tipo/tamanho por campo (`heroVideo`, `heroPoster`, `material`). Componente genérico reutilizável `portal-file-uploader.tsx` (dropzone, progresso XHR, preview, validação client-side).
+  - **Parte 2 — Materiais dinâmicos**: tabela `materials` (migration 0006), router tRPC, admin CRUD em `/{locale}/portal/materiais` (item nav `materials` gate `materials:create`). Feed somente-leitura em boas-vindas. Arquivos sempre privados (presigned GET). 4 cards estáticos "Em breve" (Contatos, Política, Logística, Vídeos) substituídos por feed dinâmico; card DW perdeu botão morto (mantém conteúdo informativo).
+  - **Parte 3 — Perfis e permissões dinâmicos**: 5 guardas puras em `roles-guards.ts` (51 testes: canDeleteRole, canEditRolePermissions, wouldSelfLockout, wouldRemoveLastAdmin, canGrantRole). Router tRPC routers/roles (CRUD + matriz). Tela `/{locale}/portal/perfis` (3 abas: perfis, permissões, usuários). Permissão nova `roles:manage` (admin only). Slug de perfil imutável pós-criação; perfil `admin` travado/RO.
+- **Testes**: 348 → 485 testes (+137: `roles-guards.test.ts` 51, `upload-limits.test.ts` 86). Lint ✓, build ✓ (rotas dinâmicas ƒ).
+- **Segurança — 2 achados ALTOS corrigidos**: (1) `materials.list` aceitava `materials:read` (devia ser `materials:create`) — representante lia rascunhos não publicados; trocado para gate correto. (2) `r2Key` bruta vazava no JSON (combinado com bucket público r2.dev) — omitido do retorno (só `downloadUrl`). Componentes consumidores ajustados (form prescindir de `r2Key` na update via patch parcial).
+- **Paridade i18n**: 408 chaves portal.* (idênticas pt/en) verificadas programaticamente. Bug real corrigido na sessão: `site` → `welcome` (namespace consentimento LGPD). Não é regressão da feature; acidente de edit anterior.
+- **Pendências de infra**: bucket R2 separado sem acesso público para conteúdo privado (antes de produção).
+- Ver decisionLog 2026-08-24 (3 últimas entradas) para racional arquitetural completo. Commits ainda não feitos (decisão do usuário).
+
+## Sessão 2026-08-24 (parte 1) — Deploy destravado: migrations dentro do container
 
 - **Sintoma inicial (produção EasyPanel)**: build quebrava com `Invalid URL: ''` em
   `metadata.ts`; depois `ECONNREFUSED`; depois `42P01 relation "products" does not exist`.

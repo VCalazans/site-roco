@@ -89,9 +89,27 @@
 - [x] `next.config.ts` + Dockerfile/docker-compose suportam `R2_PUBLIC_URL` como build-arg
 - [x] Revisão OWASP: nenhum achado crítico/alto novo introduzido
 
+### Upload de mídia, materiais dinâmicos e RBAC editável (2026-08-24)
+- [x] Upload de mídia do hero: bug fix `presignUpload`/`confirmUpload` (aceitava só vídeo mesmo para pôster)
+- [x] Helper puro `src/server/lib/upload-limits.ts` (validação centralizada tipo/tamanho por campo)
+- [x] Componente genérico `src/modules/portal/components/shared/portal-file-uploader.tsx` (dropzone, progresso, validação)
+- [x] Schema `materials` (migration 0006) + router tRPC materials (CRUD + presign/confirm 2-step)
+- [x] Admin CRUD `/{locale}/portal/materiais` + nav item gate `materials:create`
+- [x] Feed somente-leitura em boas-vindas `welcome-materials-feed.tsx` (substitui 4 cards estáticos)
+- [x] Arquivos sempre privados (presigned GET sob demanda, nunca `R2_PUBLIC_URL`)
+- [x] Permissões novas: `materials:{create,read,update,delete}` no seed
+- [x] 5 guardas puras RBAC: canDeleteRole, canEditRolePermissions, wouldSelfLockout, wouldRemoveLastAdmin, canGrantRole
+- [x] Router tRPC routers/roles (listRoles/listPermissionsCatalog/createRole/updateRoleMeta/deleteRole/updateRolePermissions/listUsers/assignUserRole/unassignUserRole)
+- [x] Tela `/{locale}/portal/perfis` (3 abas: Perfis CRUD, Matriz de permissões, Usuários)
+- [x] Permissão `roles:manage` (admin only); perfil `admin` travado em UI
+- [x] Slug de perfil imutável pós-criação (coluna `slug` no schema roles)
+- [x] 137 testes novos (roles-guards.test.ts 51, upload-limits.test.ts 86) → 485 total
+- [x] Segurança: 2 achados ALTOS corrigidos (gate `materials.list`, r2Key omitido do JSON)
+- [x] i18n: 408 chaves portal.* verificadas programaticamente (paridade pt/en), bug `site`→`welcome` corrigido
+
 ### Qualidade
 - [x] `npm run build` verde
-- [x] `npm run test` e `npm run test:coverage` funcionando (326 testes totais agora)
+- [x] `npm run test` e `npm run test:coverage` funcionando (485 testes totais agora)
 
 ## 🔄 Em Andamento
 - [x] **Carga inicial de imagens de produto — CONCLUÍDA 2026-08-23**: token corrigido pelo
@@ -132,6 +150,11 @@ Tese: 4 movimentos — tirar atrito do funil de cotação → portal com motivo 
 catálogo vivo via ERP → cotação como dado estruturado.
 
 ## 📋 Backlog MVP / Pós-MVP
+### Infra (pré-launch — decisão stakeholder)
+- [ ] **Bucket R2 separado para conteúdo privado** (Alto, infra): criar bucket sem acesso público para
+      materiais/documentos de representante (hoje compartilhado com bucket público hero/produtos).
+      Mitiga risco de exposição via r2.dev — ver Riscos de Segurança (TOCTOU e bucket compartilhado).
+
 ### Portal (pós-launch inicial)
 - [ ] **Rate limiting** (ALTO): webhook, presign, /api/products, login via @upstash/ratelimit
 - [ ] Confirmar assunções negócio: N categorias por produto? Preço sincronizado? Universo ERP
@@ -186,6 +209,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
 - Audit logs export/retention policy indefinida.
 
+## ✅ Resolvido em 2026-08-24
+- **Achado de segurança ALTO 1**: `materials.list` aceitava gate `materials:read` em vez de `materials:create` — representante conseguia ver rascunhos não publicados. CORRIGIDO: gate trocado para `permissionProcedure("materials","create")` (admin only).
+- **Achado de segurança ALTO 2**: `r2Key` bruta vazava no payload JSON de `materials.list`/`listPublished` — combinado com bucket R2 público (r2.dev), permitia montar URL pública contornando link presignado. CORRIGIDO: `withDownloadUrl` agora omite `r2Key` do retorno (expõe só `downloadUrl`). Componentes consumidores (`MaterialRow`, form edição) ajustados para patch parcial (reenviam `r2Key` só se arquivo trocado, senão omitem).
+
 ## ✅ Resolvido em 2026-08-23
 - **Sidebar colapsável do portal**: toggle no AppBar com persistência localStorage por usuário (larguras 260/72px); padrão `next/navigation` decidiu estado inicial para evitar hydration mismatch.
 - **Hero slideshow admin** (`/portal/hero`): 6 macro-famílias de marketing configuráveis (YouTube ou upload R2), copy bilíngue PT/EN, CTAs, janela de loop opcional, auto-advance opcional, agendamento, reorder. `HeroSlider` com auto-advance + crossfade + pause-on-hover. `/catalogo` virou download direto (lê `getCatalogPdfUrl()` com fallback DB → env → constante).
@@ -221,11 +248,28 @@ catálogo vivo via ERP → cotação como dado estruturado.
   derruba sessão em ≤5min (ok). RBAC checado em tRPC procedures + Server Actions.
 - **sx (Emotion) em Server Components**: não pode usar funções (revalidação em runtime); usar
   `rgba(var(--mui-palette-primary-mainChannel) / 0.16)` em vez disso.
+- **Condição de corrida (TOCTOU) em `unassignUserRole`** (2026-08-24, Médio/backlog): leitura da contagem
+  de admins ativos e o `DELETE` não estão na mesma transação/lock — duas remoções concorrentes de `admin`
+  poderiam, em teoria, zerar os admins ativos mesmo com guarda `wouldRemoveLastAdmin`. Exige ator já
+  privilegiado (`roles:manage`) e timing preciso. **Hardening futuro**: envolver em `db.transaction` com
+  `SELECT ... FOR UPDATE`.
+- **`roles:manage` é admin-equivalente** (2026-08-24, Médio/backlog): ator com só `roles:manage` pode
+  criar perfil customizado, marcar TODAS permissões do catálogo nele e se auto-atribuir — obtendo poder
+  operacional equivalente a admin sem tocar role `admin` (único caminho bloqueado por `canGrantRole`).
+  Não é promessa quebrada do decisionLog, mas limite real do modelo de confiança. **Mitigação**: tratar
+  `roles:manage` como nível "admin-equivalente"; hardening futuro: impedir concessão de permissão que
+  o ator não possui.
+- **Bucket R2 compartilhado com acesso público (r2.dev)** (2026-08-24, Alto/backlog): "privado" para
+  materiais/documentos de representante é CONVENÇÃO DA APLICAÇÃO (nunca gerar URL pública), não controle
+  de armazenamento — bucket inteiro tem acesso público desde 2026-08-23 para hero/produtos. Pré-existente
+  (onboarding docs desde 2026-08-09), visível agora com conteúdo sensível novo (materiais comerciais)
+  acessível a mais público (representantes vs admin). **Decisão pendente stakeholder**: bucket separado
+  sem acesso público para conteúdo privado, antes de produção.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 348 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 485 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
-  +6 testes 2026-08-23 `resolveCategoryCardHref`).
+  +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
 - **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
   (nenhum achado crítico/alto novo introduzido).
@@ -241,5 +285,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
   scrim WCAG atrás do rótulo dos cards — contraste ~1:1 medido em 2 das 6 artes, alt decorativo ""
   nos cards — nome acessível do link ficava verboso, EN "Connections"→"Fittings" + description).
   Verificadores mediram contraste por pixel nas artes reais e reproduziram o URIError via tsx.
-- **i18n**: portal namespace (~156 chaves) + home (~50 chaves) + footer (~20 chaves) — árvores pt/en
-  idênticas. Dicionário estruturado por módulo (landing → home, representantes como namespace raiz).
+- **Revisão de segurança** (2026-08-24): feature RBAC + materiais dinâmicos auditada internamente.
+  2 achados ALTOS confirmados + corrigidos (gate `materials.list`, r2Key omitido do JSON).
+  3 riscos Médio/backlog identificados (TOCTOU `unassignUserRole`, admin-equivalência de `roles:manage`,
+  bucket R2 compartilhado com acesso público) — não bloqueantes, registrados em Riscos e Backlog.
+- **i18n**: portal namespace (~156+24 chaves materiais) + home (~50 chaves) + footer (~20 chaves) —
+  árvores pt/en idênticas. Dicionário estruturado por módulo (landing → home, representantes como
+  namespace raiz). 408 chaves portal.* verificadas programaticamente (2026-08-24).
