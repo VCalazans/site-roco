@@ -200,7 +200,19 @@ site com fotos). Ordem para produção:
    (SEM ele rate limit é fail-open!), `ERP_WEBHOOK_SECRET`, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
    `R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_URL`, `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`
    (quando o stakeholder criar — sem eles o login Google falha ao clicar; credenciais funcionam).
-4. **Carga inicial — rodar da MÁQUINA LOCAL** com `DATABASE_URL`/R2 de produção no `.env.local`
+4. **Carga inicial — UM COMANDO da máquina local** (2026-08-24): `npm run db:bootstrap-producao`.
+   Credencial em `.env.producao.local` (gitignored) como `PRODUCTION_DATABASE_URL=...` — nome
+   separado de `DATABASE_URL` de propósito, para o ambiente local seguir apontando para o
+   Postgres de desenvolvimento e não haver o risco de esquecer a variável trocada. As demais
+   envs (PORTAL_ADMIN_*, R2_*) vêm do `.env.local`. O script roda migrations → seed → catálogo
+   → publicação → fotos, é idempotente, pede confirmação digitando o nome do banco, aceita
+   `--dry-run`, `--so=<ids>`, `--pular=<ids>` e imprime o estado ANTES/DEPOIS. Validado contra
+   banco descartável: 20 tabelas, 737 produtos publicados, 16 categorias, 4 roles, 24
+   permissões, 1 admin; re-execução não duplica nada.
+   ⚠️ As fotos (`docs/PRODUTOS/`, ~1 GB gitignored) só existem na máquina local — esta etapa
+   não tem como rodar do servidor.
+
+4b. **(histórico) Sequência manual equivalente**, com `DATABASE_URL`/R2 de produção no `.env.local`
    (os scripts rodam fora do bundle e leem `docs/`, que NÃO vai na imagem Docker), nesta ordem:
    a. `npm run db:migrate`      (drizzle 0000–0005) — ou, de dentro do container,
       `npm run db:migrate:container` (ver seção abaixo)
