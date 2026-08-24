@@ -18,6 +18,7 @@
     "db:seed": "tsx src/db/seed.ts",
     "db:import-catalog": "tsx src/db/import/import-catalog.ts",
     "db:import-images": "tsx src/db/import/import-product-images.ts",
+    "db:bootstrap-producao": "node scripts/bootstrap-producao.mjs",
     "db:seed-hero-slide": "tsx src/db/seed-hero-slide.ts"
   },
   "dependencies": {
