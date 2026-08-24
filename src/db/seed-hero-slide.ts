@@ -1,18 +1,37 @@
 /**
- * Seed do slide inicial do hero da home — espelha o que estava hard-coded
- * em `home-hero.tsx` antes da refatoração (YouTube `rqn-okkh0ww`, copy
- * bilíngue do dicionário). Idempotente: se já existir uma linha com o slug
- * `hero-inicial-youtube`, não insere de novo. Roda FORA do bundle do Next
- * (mesmo padrão de `seed.ts` e `import-product-images.ts`).
+ * Seed do slide inicial do hero da home.
+ *
+ * Usa o vídeo institucional hospedado no R2 (`kind: "upload"`), NÃO o embed
+ * do YouTube. O motivo é o requisito original do stakeholder: "não deve ser
+ * renderizado um player com botão de pause e etc". O embed do YouTube arrasta
+ * o chrome do player (título, legendas, marca-d'água, controles) e nenhum
+ * parâmetro de embed desliga isso de forma confiável — a mitigação era um
+ * overscan de 35% cortando as bordas para fora da tela. Já a tag `<video>`
+ * nativa, como o `HeroSlider` a renderiza (`loop`, `muted`, `playsinline`,
+ * `pointer-events-none`, sem `controls`), não tem chrome nenhum.
+ *
+ * Idempotente em dois níveis:
+ *  - se o slide novo já existe, não faz nada;
+ *  - se existe o slide LEGADO do YouTube (`hero-inicial-youtube`, criado
+ *    antes de o MP4 estar no bucket), ele é CONVERTIDO no lugar em vez de
+ *    inserir um segundo — do contrário o carrossel passaria a alternar entre
+ *    o vídeo e o embed antigo.
+ *
+ * Roda FORA do bundle do Next (mesmo padrão de `seed.ts` e
+ * `import-product-images.ts`).
  *
  * Uso:
  *   npm run db:seed-hero-slide
+ *
+ * A chave do objeto pode ser trocada por env quando o bucket de produção for
+ * outro:
+ *   HERO_VIDEO_R2_KEY=hero/outro-arquivo.mp4 npm run db:seed-hero-slide
  *
  * Por que um script separado (e não parte do `db:seed`)? O `db:seed` é
  * RBAC puro (roles/permissions) e roda toda vez que o esquema muda; misturar
  * conteúdo editorial (hero) com RBAC amarra o deploy a uma aprovação humana
  * da copy. Mantê-los separados respeita o runbook: `db:migrate` → `db:seed`
- * → (opcional) `db:seed-hero-slide`.
+ * → `db:seed-hero-slide`.
  */
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
@@ -21,8 +40,23 @@ import path from "node:path";
 import { Pool } from "pg";
 import { heroSlides } from "./schema/hero-slides";
 
-const INITIAL_SLUG = "hero-inicial-youtube";
-const INITIAL_YOUTUBE_ID = "rqn-okkh0ww";
+const SLUG = "hero-institucional";
+/** Slug do slide YouTube criado antes de o MP4 existir no bucket. */
+const LEGACY_SLUG = "hero-inicial-youtube";
+const DEFAULT_VIDEO_KEY = "hero/rocoinstitucional.mp4";
+
+/**
+ * `r2PosterKey` fica NULO de propósito.
+ *
+ * O campo é uma chave de objeto no R2 e `getPublicUrl` sempre a prefixa com
+ * `R2_PUBLIC_URL`. A versão anterior deste seed gravava
+ * `/images/hero/hero-stage.jpg`, que é um caminho do `public/` local — o
+ * resultado virava `https://<bucket>.r2.dev/images/hero/hero-stage.jpg`, que
+ * não existe (404). E como a URL saía não-nula, o fallback do slider
+ * (`posterUrl ?? posterFallbackSrc`) nunca era acionado. Com `null`, o
+ * slider usa corretamente o pôster local que já vem do dicionário.
+ */
+const POSTER_R2_KEY = null;
 
 function loadEnv(): void {
   for (const file of [".env.local", ".env"]) {
@@ -44,51 +78,75 @@ async function main(): Promise<void> {
   if (!connectionString) {
     throw new Error("DATABASE_URL não configurada.");
   }
+  const videoKey = process.env.HERO_VIDEO_R2_KEY?.trim() || DEFAULT_VIDEO_KEY;
+
   const pool = new Pool({ connectionString });
   const db = drizzle(pool);
 
+  const midia = {
+    kind: "upload" as const,
+    youtubeId: null,
+    r2Key: videoKey,
+    r2PosterKey: POSTER_R2_KEY,
+  };
+
+  const conteudo = {
+    eyebrowPt: "Soluções Industriais",
+    eyebrowEn: "Industrial Solutions",
+    headlinePt: "Hidrossanitários e Hidráulica com Qualidade",
+    headlineEn: "Quality Plumbing & Hydraulic Solutions",
+    descriptionPt:
+      "Conheça a linha completa de produtos ROCO. Desenvolvidos para atender às demandas mais exigentes do mercado industrial brasileiro.",
+    descriptionEn:
+      "Explore ROCO's complete product line — engineered to meet the most demanding Brazilian industrial market requirements.",
+    primaryCtaLabelPt: "Conheça nossos Produtos",
+    primaryCtaLabelEn: "Explore Our Products",
+    primaryCtaHref: "/produtos",
+    secondaryCtaLabelPt: "Baixar Catálogo",
+    secondaryCtaLabelEn: "Download Catalog",
+    secondaryCtaHref: "#catalogo",
+    loopWindowStartSeconds: null,
+    loopWindowEndSeconds: null,
+    muted: true,
+    sortOrder: 0,
+    published: true,
+    startsAt: null,
+    endsAt: null,
+  };
+
   try {
-    const [existing] = await db
+    const [atual] = await db
       .select({ id: heroSlides.id })
       .from(heroSlides)
-      .where(eq(heroSlides.slug, INITIAL_SLUG))
+      .where(eq(heroSlides.slug, SLUG))
       .limit(1);
 
-    if (existing) {
-      console.log(`[seed-hero-slide] slide "${INITIAL_SLUG}" já existe — pulando.`);
+    if (atual) {
+      console.log(`[seed-hero-slide] slide "${SLUG}" já existe — pulando.`);
       return;
     }
 
-    await db.insert(heroSlides).values({
-      slug: INITIAL_SLUG,
-      kind: "youtube",
-      youtubeId: INITIAL_YOUTUBE_ID,
-      r2Key: null,
-      r2PosterKey: "/images/hero/hero-stage.jpg",
-      eyebrowPt: "Soluções Industriais",
-      eyebrowEn: "Industrial Solutions",
-      headlinePt: "Hidrossanitários e Hidráulica com Qualidade",
-      headlineEn: "Quality Plumbing & Hydraulic Solutions",
-      descriptionPt:
-        "Conheça a linha completa de produtos ROCO. Desenvolvidos para atender às demandas mais exigentes do mercado industrial brasileiro.",
-      descriptionEn:
-        "Explore ROCO's complete product line — engineered to meet the most demanding Brazilian industrial market requirements.",
-      primaryCtaLabelPt: "Conheça nossos Produtos",
-      primaryCtaLabelEn: "Explore Our Products",
-      primaryCtaHref: "/produtos",
-      secondaryCtaLabelPt: "Baixar Catálogo",
-      secondaryCtaLabelEn: "Download Catalog",
-      secondaryCtaHref: "#catalogo",
-      loopWindowStartSeconds: null,
-      loopWindowEndSeconds: null,
-      muted: true,
-      sortOrder: 0,
-      published: true,
-      startsAt: null,
-      endsAt: null,
-    });
+    const [legado] = await db
+      .select({ id: heroSlides.id })
+      .from(heroSlides)
+      .where(eq(heroSlides.slug, LEGACY_SLUG))
+      .limit(1);
 
-    console.log(`[seed-hero-slide] slide "${INITIAL_SLUG}" inserido (kind=youtube, id=${INITIAL_YOUTUBE_ID}).`);
+    if (legado) {
+      await db
+        .update(heroSlides)
+        .set({ slug: SLUG, ...midia, updatedAt: new Date() })
+        .where(eq(heroSlides.id, legado.id));
+      console.log(
+        `[seed-hero-slide] slide legado "${LEGACY_SLUG}" convertido para "${SLUG}" (kind=upload, r2Key=${videoKey}).`
+      );
+      return;
+    }
+
+    await db.insert(heroSlides).values({ slug: SLUG, ...midia, ...conteudo });
+    console.log(
+      `[seed-hero-slide] slide "${SLUG}" inserido (kind=upload, r2Key=${videoKey}).`
+    );
   } finally {
     await pool.end();
   }

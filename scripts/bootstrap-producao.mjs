@@ -127,6 +127,7 @@ async function estado(pool) {
     roles: await consulta("select count(*)::int as n from roles"),
     permissoes: await consulta("select count(*)::int as n from permissions"),
     usuarios: await consulta('select count(*)::int as n from "user"'),
+    heroSlides: await consulta("select count(*)::int as n from hero_slides where published"),
   };
 }
 
@@ -139,6 +140,7 @@ function imprimirEstado(rotulo, e) {
   console.log(`    imagens .......... ${v(e.imagens)}`);
   console.log(`    roles/permissões . ${v(e.roles)}/${v(e.permissoes)}`);
   console.log(`    usuários ......... ${v(e.usuarios)}`);
+  console.log(`    slides do hero ... ${v(e.heroSlides)}`);
 }
 
 /* ------------------------------------------------------------------ *
@@ -167,6 +169,11 @@ const ETAPAS = [
     id: "seed",
     titulo: "Roles, permissões e usuário admin",
     executar: () => rodar("npm", ["run", "db:seed"], { DATABASE_URL: URL_PRODUCAO }),
+  },
+  {
+    id: "hero",
+    titulo: "Slide do hero (vídeo institucional do R2)",
+    executar: () => rodar("npm", ["run", "db:seed-hero-slide"], { DATABASE_URL: URL_PRODUCAO }),
   },
   {
     id: "catalogo",
