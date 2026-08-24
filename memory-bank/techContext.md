@@ -204,7 +204,7 @@ site com fotos). Ordem para produção:
    Credencial em `.env.producao.local` (gitignored) como `PRODUCTION_DATABASE_URL=...` — nome
    separado de `DATABASE_URL` de propósito, para o ambiente local seguir apontando para o
    Postgres de desenvolvimento e não haver o risco de esquecer a variável trocada. As demais
-   envs (PORTAL_ADMIN_*, R2_*) vêm do `.env.local`. O script roda migrations → seed → catálogo
+   envs (PORTAL_ADMIN_*, R2_*) vêm do `.env.local`. O script roda migrations → seed → hero (vídeo do R2) → catálogo
    → publicação → fotos, é idempotente, pede confirmação digitando o nome do banco, aceita
    `--dry-run`, `--so=<ids>`, `--pular=<ids>` e imprime o estado ANTES/DEPOIS. Validado contra
    banco descartável: 20 tabelas, 737 produtos publicados, 16 categorias, 4 roles, 24
