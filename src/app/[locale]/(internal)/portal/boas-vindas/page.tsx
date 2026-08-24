@@ -1,15 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ComputerIcon from "@mui/icons-material/Computer";
-import ContactsIcon from "@mui/icons-material/Contacts";
 import DownloadIcon from "@mui/icons-material/Download";
 import FactoryIcon from "@mui/icons-material/Factory";
-import GavelIcon from "@mui/icons-material/Gavel";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
-import OndemandVideoIcon from "@mui/icons-material/OndemandVideo";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import VideoLibraryIcon from "@mui/icons-material/VideoLibrary";
 import Box from "@mui/material/Box";
 import {
   PortalShell,
@@ -18,6 +12,7 @@ import {
 import { WelcomeClosing } from "@/modules/portal/components/welcome/welcome-closing";
 import { WelcomeDwSystemCard } from "@/modules/portal/components/welcome/welcome-dw-system-card";
 import { WelcomeHero } from "@/modules/portal/components/welcome/welcome-hero";
+import { WelcomeMaterialsFeed } from "@/modules/portal/components/welcome/welcome-materials-feed";
 import { WelcomeSectionCard } from "@/modules/portal/components/welcome/welcome-section-card";
 import { OnboardingStatusAlert } from "@/modules/portal/components/welcome/onboarding-status-alert";
 import { buildPortalNavItems } from "@/modules/portal/lib/nav-items";
@@ -50,16 +45,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 /**
  * Rota `/{locale}/portal/boas-vindas` — home do representante comercial:
- * hero de boas-vindas + materiais de apoio (catálogo, contatos, política
- * comercial, logística, Sistema DW, biblioteca de vídeos) + encerramento.
- * Visível a qualquer sessão válida (não tem gate de permissão própria — o
- * item de nav já limita quem normalmente chega aqui a `representative`/
- * `admin`, ver `nav-items.ts`); `/portal` (dashboard) redireciona para cá
- * quem é representante "puro" (ver `permissions.ts#isRepresentativeOnly`).
+ * hero de boas-vindas + cards institucionais (Conheça a ROCO, Catálogo) +
+ * card do Sistema DW + feed de materiais publicados (linha do tempo,
+ * `WelcomeMaterialsFeed`) + encerramento. Visível a qualquer sessão válida
+ * (não tem gate de permissão própria — o item de nav já limita quem
+ * normalmente chega aqui a `representative`/`admin`, ver `nav-items.ts`);
+ * `/portal` (dashboard) redireciona para cá quem é representante "puro"
+ * (ver `permissions.ts#isRepresentativeOnly`).
  *
- * Único CTA com destino real hoje é o catálogo (`public/downloads/`); os
- * demais materiais ainda não têm asset no portal — botão desabilitado com
- * `portal.welcome.comingSoon` como tooltip (nunca inventamos uma URL).
+ * Os cards de Contatos/Política Comercial/Logística/Biblioteca de vídeos
+ * (sempre "Em breve", sem asset real) saíram daqui — viraram itens
+ * publicáveis no feed de materiais. Ver decisionLog 2026-08-24 ("Materiais
+ * dinâmicos para representantes").
  */
 export default async function PortalWelcomePage({ params }: PageProps) {
   const { locale } = await params;
@@ -75,7 +72,11 @@ export default async function PortalWelcomePage({ params }: PageProps) {
   const { navigation } = dictionary;
   const welcome = portal.welcome;
 
-  const navItems: PortalNavItem[] = buildPortalNavItems(basePath, portal.shell.nav, session.user);
+  const navItems: PortalNavItem[] = buildPortalNavItems(
+    basePath,
+    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title },
+    session.user
+  );
   const isRepresentative = session.user.roles?.includes(REPRESENTATIVE_ROLE_SLUG) ?? false;
 
   return (
@@ -109,7 +110,7 @@ export default async function PortalWelcomePage({ params }: PageProps) {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" },
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
             gap: 3,
           }}
         >
@@ -129,47 +130,14 @@ export default async function PortalWelcomePage({ params }: PageProps) {
             download
             comingSoonLabel={welcome.comingSoon}
           />
-          <WelcomeSectionCard
-            icon={<ContactsIcon fontSize="large" />}
-            title={welcome.contacts.title}
-            body={welcome.contacts.body}
-            ctaLabel={welcome.contacts.cta}
-            ctaIcon={<DownloadIcon fontSize="small" />}
-            comingSoonLabel={welcome.comingSoon}
-          />
-          <WelcomeSectionCard
-            icon={<GavelIcon fontSize="large" />}
-            title={welcome.commercialPolicy.title}
-            body={welcome.commercialPolicy.body}
-            ctaLabel={welcome.commercialPolicy.cta}
-            ctaIcon={<DownloadIcon fontSize="small" />}
-            comingSoonLabel={welcome.comingSoon}
-          />
-          <WelcomeSectionCard
-            icon={<LocalShippingIcon fontSize="large" />}
-            title={welcome.logistics.title}
-            body={welcome.logistics.body}
-            ctaLabel={welcome.logistics.cta}
-            ctaIcon={<DownloadIcon fontSize="small" />}
-            comingSoonLabel={welcome.comingSoon}
-          />
-          <WelcomeSectionCard
-            icon={<VideoLibraryIcon fontSize="large" />}
-            title={welcome.library.title}
-            body={welcome.library.body}
-            ctaLabel={welcome.library.cta}
-            ctaIcon={<OpenInNewIcon fontSize="small" />}
-            comingSoonLabel={welcome.comingSoon}
-          />
         </Box>
 
         <Box sx={{ mt: 3 }}>
-          <WelcomeDwSystemCard
-            content={welcome.dwSystem}
-            icon={<ComputerIcon fontSize="large" />}
-            ctaIcon={<OndemandVideoIcon fontSize="small" />}
-            comingSoonLabel={welcome.comingSoon}
-          />
+          <WelcomeDwSystemCard content={welcome.dwSystem} icon={<ComputerIcon fontSize="large" />} />
+        </Box>
+
+        <Box sx={{ mt: 3 }}>
+          <WelcomeMaterialsFeed locale={locale} dictionary={welcome.materialsFeed} />
         </Box>
 
         <WelcomeClosing content={welcome.closing} />

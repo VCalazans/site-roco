@@ -4,10 +4,12 @@ import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import CloseIcon from "@mui/icons-material/Close";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ImageIcon from "@mui/icons-material/Image";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import PeopleIcon from "@mui/icons-material/People";
@@ -44,7 +46,9 @@ export type PortalNavKey =
   | "products"
   | "representatives"
   | "welcome"
-  | "hero";
+  | "hero"
+  | "materials"
+  | "roles";
 
 export type PortalNavItem = {
   key: PortalNavKey;
@@ -86,6 +90,8 @@ const NAV_ICONS: Record<PortalNavKey, ComponentType<{ fontSize?: "small" }>> = {
   representatives: PeopleIcon,
   welcome: WavingHandIcon,
   hero: ImageIcon,
+  materials: LibraryBooksIcon,
+  roles: AdminPanelSettingsIcon,
 };
 
 function DrawerHeader({

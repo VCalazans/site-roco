@@ -1,8 +1,10 @@
 import { router } from "../init";
 import { healthRouter } from "./health";
 import { heroSlidesRouter } from "./hero-slides";
+import { materialsRouter } from "./materials";
 import { productsRouter } from "./products";
 import { representativesRouter } from "./representatives";
+import { rolesRouter } from "./roles";
 import { siteSettingsRouter } from "./site-settings";
 import { syncRouter } from "./sync";
 
@@ -14,6 +16,8 @@ export const appRouter = router({
   sync: syncRouter,
   heroSlides: heroSlidesRouter,
   siteSettings: siteSettingsRouter,
+  materials: materialsRouter,
+  roles: rolesRouter,
 });
 
 export type AppRouter = typeof appRouter;

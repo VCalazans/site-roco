@@ -659,21 +659,6 @@
         "body": "In the ROCO catalog you will find our entire product portfolio, with technical specifications, applications and differentials that help you serve your customers.",
         "cta": "Download ROCO Catalog"
       },
-      "contacts": {
-        "title": "ROCO key contacts",
-        "body": "To facilitate your daily communication, we provide a complete list of the most relevant ROCO contacts, including strategic departments for commercial support, logistics, marketing and administrative services.",
-        "cta": "Download ROCO Contacts"
-      },
-      "commercialPolicy": {
-        "title": "ROCO Commercial Policy",
-        "body": "Here you will find ROCO's commercial policy, with all guidelines, rules and conditions that guide our market performance. Reading it is essential to ensure alignment and transparency in negotiations.",
-        "cta": "Download Commercial Policy"
-      },
-      "logistics": {
-        "title": "Logistics Organizational Rules",
-        "body": "This section brings together all rules and guidelines related to logistics, including deadlines, billing, shipping and operational processes. This information ensures greater efficiency and predictability in customer service.",
-        "cta": "Download Logistics Rules"
-      },
       "dwSystem": {
         "title": "DW System",
         "subtitle": "Everything you need to know",
@@ -684,19 +669,119 @@
           "Issue orders",
           "Browse the complete product portfolio"
         ],
-        "outro": "Watch the video below for a complete step-by-step guide on how to use the system.",
-        "cta": "Watch the video"
+        "outro": "Watch the video below for a complete step-by-step guide on how to use the system."
       },
-      "library": {
-        "title": "Technical Videos and Support Materials",
-        "body": "Whenever you need, check out our portfolio of technical videos, training materials and support content. These materials were developed to ease your daily work and strengthen your sales arguments.",
-        "cta": "Access Content Library"
+      "materialsFeed": {
+        "title": "Materials for you",
+        "subtitle": "Access support materials published by ROCO to help your work as a representative.",
+        "empty": "No materials published yet.",
+        "downloadLabel": "Download",
+        "watchLabel": "Watch",
+        "publishedOn": "Published on {date}"
       },
       "closing": {
         "paragraph1": "This page brings together everything you need to start your journey as a ROCO representative with confidence and clarity. Whenever a question or need arises, come back here.",
         "paragraph2": "More than products, we believe in relationships, partnership and constant evolution. Welcome to the team."
       },
       "comingSoon": "Coming soon to portal"
+    },
+    "roles": {
+      "title": "Profiles and Permissions",
+      "subtitle": "Create and manage custom access profiles and define permissions per module.",
+      "tabs": {
+        "profiles": "Profiles",
+        "matrix": "Permission matrix",
+        "users": "Users"
+      },
+      "table": {
+        "name": "Name",
+        "slug": "Slug",
+        "description": "Description",
+        "usersCount": "Users",
+        "system": "System",
+        "actions": "Actions"
+      },
+      "badges": {
+        "system": "System profile",
+        "custom": "Custom profile"
+      },
+      "form": {
+        "createTitle": "New profile",
+        "editTitle": "Edit profile",
+        "fields": {
+          "name": "Name",
+          "slug": "Slug",
+          "slugHelper": "Slug cannot be changed after creation.",
+          "description": "Description"
+        },
+        "actions": {
+          "save": "Save",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        }
+      },
+      "actions": {
+        "newProfile": "New profile"
+      },
+      "deleteConfirm": {
+        "title": "Delete profile?",
+        "message": "This action cannot be undone.",
+        "blockedMessage": "This profile cannot be deleted — it is a system profile or has users assigned.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      },
+      "matrix": {
+        "title": "Permission matrix",
+        "subtitle": "Select a profile and mark the desired permissions for each module.",
+        "selectRole": "Select a profile",
+        "adminLockedNote": "The Administrator profile has full access. It is not editable on this screen.",
+        "saveButton": "Save permissions",
+        "savedMessage": "Permissions updated successfully.",
+        "modules": {
+          "products": "Products",
+          "product_images": "Product images",
+          "representatives": "Representatives",
+          "categories": "Categories",
+          "sync": "ERP Sync",
+          "users": "Users",
+          "audit": "Audit",
+          "onboarding": "Onboarding",
+          "hero_slides": "Home hero",
+          "materials": "Materials",
+          "roles": "Profiles and permissions"
+        },
+        "actionsLabels": {
+          "create": "Create",
+          "read": "Read",
+          "update": "Update",
+          "delete": "Delete",
+          "publish": "Publish",
+          "review": "Review",
+          "disable": "Disable",
+          "trigger": "Trigger",
+          "manage": "Manage"
+        }
+      },
+      "users": {
+        "title": "Users",
+        "searchPlaceholder": "Search by name or email",
+        "table": {
+          "name": "Name",
+          "email": "Email",
+          "roles": "Profiles",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "assignRole": "Assign profile",
+        "removeRole": "Remove profile"
+      },
+      "errors": {
+        "selfLockout": "This change would remove your own access to this screen.",
+        "adminImmutable": "The Administrator profile has full access and cannot be edited.",
+        "roleHasUsers": "This profile has users assigned — remove them before deleting.",
+        "cannotGrantAdmin": "Only an administrator can grant the Administrator profile to another user.",
+        "lastAdmin": "It is not possible to remove the last administrator in the system."
+      }
     },
     "errors": {
       "unauthorized": "You do not have permission to access this resource.",
@@ -737,6 +822,8 @@
         "upload": "Upload (R2)"
       },
       "media": {
+        "videoLabel": "Slide video",
+        "posterLabel": "Cover image (poster)",
         "posterAlt": "Slide image (poster)",
         "youtubeHelper": "Paste just the YouTube video ID (e.g. rqn-okkh0ww).",
         "uploadHelper": "Upload MP4 (up to 200 MB). Optionally upload a poster JPG/PNG.",
@@ -814,6 +901,71 @@
       },
       "loopWindowHelper": "Leave blank to play the whole video. Use to highlight only a segment (e.g. first 30s).",
       "autoAdvanceHelper": "0 = no rotation. When set, the slider transitions between slides every N seconds (crossfade)."
+    },
+    "materials": {
+      "title": "Materials",
+      "subtitle": "Manage support and shared content materials for representatives.",
+      "table": {
+        "title": "Title",
+        "category": "Category",
+        "type": "Type",
+        "publishedAt": "Published at",
+        "status": "Status",
+        "size": "Size",
+        "actions": "Actions"
+      },
+      "status": {
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "categories": {
+        "commercial_policy": "Commercial policy",
+        "logistics": "Logistics",
+        "contacts": "Contacts",
+        "training": "Training",
+        "other": "Other"
+      },
+      "form": {
+        "createTitle": "New material",
+        "editTitle": "Edit material",
+        "fields": {
+          "titlePt": "Title (PT)",
+          "titleEn": "Title (EN)",
+          "descriptionPt": "Description (PT)",
+          "descriptionEn": "Description (EN)",
+          "category": "Category",
+          "published": "Published",
+          "file": "File"
+        },
+        "upload": {
+          "dropzone": "Drag a file here or click to select",
+          "helper": "Accepted formats: PDF, MP4/WebM videos and JPG/PNG/WebP images.",
+          "maxSize": "Maximum size: {size}",
+          "accepted": "Accepted formats: PDF, MP4, WebM, JPG, PNG, WebP",
+          "remove": "Remove",
+          "replace": "Replace file",
+          "uploading": "Uploading...",
+          "uploadError": "Upload failed — please try again."
+        },
+        "actions": {
+          "save": "Save",
+          "cancel": "Cancel",
+          "delete": "Delete"
+        }
+      },
+      "actions": {
+        "newMaterial": "New material"
+      },
+      "empty": {
+        "title": "No materials yet",
+        "description": "Create the first material to share with your representatives."
+      },
+      "deleteConfirm": {
+        "title": "Delete material?",
+        "message": "This cannot be undone. The file will also be removed from R2.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      }
     }
   },
   "site": {

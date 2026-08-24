@@ -61,6 +61,18 @@ const PERMISSIONS: PermissionSeed[] = [
   { resource: "hero_slides", action: "read" },
   { resource: "hero_slides", action: "update" },
   { resource: "hero_slides", action: "delete" },
+  // Materiais de apoio compartilhados com representantes (2026-08-24):
+  // CRUD administrativo em /portal/materiais; `read` também é o que
+  // permite ao representante consultar o feed em /portal/boas-vindas.
+  { resource: "materials", action: "create" },
+  { resource: "materials", action: "read" },
+  { resource: "materials", action: "update" },
+  { resource: "materials", action: "delete" },
+  // Perfis e permissões dinâmicos (2026-08-24): única permissão-gate da
+  // tela /portal/perfis (perfis, matriz, usuários). Só `admin` a recebe
+  // por padrão (via "*") — um admin real pode delegá-la depois pela
+  // própria UI.
+  { resource: "roles", action: "manage" },
 ];
 
 const ROLES: { slug: string; name: string; description: string; isSystem: boolean }[] = [
@@ -103,12 +115,18 @@ const ROLE_PERMISSIONS: Record<string, PermissionSeed[] | "*"> = {
     { resource: "hero_slides", action: "read" },
     { resource: "hero_slides", action: "create" },
     { resource: "hero_slides", action: "update" },
+    // Materiais: mesma régua do hero — sem `delete` (só admin apaga).
+    { resource: "materials", action: "read" },
+    { resource: "materials", action: "create" },
+    { resource: "materials", action: "update" },
   ],
   representative: [
     { resource: "onboarding", action: "create" },
     { resource: "onboarding", action: "read" },
     { resource: "onboarding", action: "update" },
     { resource: "products", action: "read" },
+    // Permite consultar o feed de materiais em /portal/boas-vindas.
+    { resource: "materials", action: "read" },
   ],
   viewer: [{ resource: "products", action: "read" }],
 };

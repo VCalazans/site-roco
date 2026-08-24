@@ -277,18 +277,22 @@ export type PortalDictionary = {
     hero: { title: string; subtitle: string; description: string };
     about: { title: string; body: string };
     catalog: { title: string; body: string; cta: string };
-    contacts: { title: string; body: string; cta: string };
-    commercialPolicy: { title: string; body: string; cta: string };
-    logistics: { title: string; body: string; cta: string };
     dwSystem: {
       title: string;
       subtitle: string;
       intro: string;
       features: string[];
       outro: string;
-      cta: string;
     };
-    library: { title: string; body: string; cta: string };
+    materialsFeed: {
+      title: string;
+      subtitle: string;
+      empty: string;
+      downloadLabel: string;
+      watchLabel: string;
+      /** Placeholder literal `{date}` — usar `interpolate()`. */
+      publishedOn: string;
+    };
     closing: { paragraph1: string; paragraph2: string };
     comingSoon: string;
   };
@@ -310,6 +314,8 @@ export type PortalDictionary = {
     backToSite: string;
   };
   hero: PortalHeroDictionary;
+  materials: PortalMaterialsDictionary;
+  roles: PortalRolesDictionary;
 };
 
 /**
@@ -342,6 +348,8 @@ export type PortalHeroDictionary = {
   };
   kind: { youtube: string; upload: string };
   media: {
+    videoLabel: string;
+    posterLabel: string;
     posterAlt: string;
     youtubeHelper: string;
     uploadHelper: string;
@@ -408,4 +416,123 @@ export type PortalHeroDictionary = {
   carousel: { prev: string; next: string; of: string };
   loopWindowHelper: string;
   autoAdvanceHelper: string;
+};
+
+export type PortalMaterialsDictionary = {
+  title: string;
+  subtitle: string;
+  table: {
+    title: string;
+    category: string;
+    type: string;
+    publishedAt: string;
+    status: string;
+    size: string;
+    actions: string;
+  };
+  status: { published: string; draft: string };
+  categories: {
+    commercial_policy: string;
+    logistics: string;
+    contacts: string;
+    training: string;
+    other: string;
+  };
+  form: {
+    createTitle: string;
+    editTitle: string;
+    fields: {
+      titlePt: string;
+      titleEn: string;
+      descriptionPt: string;
+      descriptionEn: string;
+      category: string;
+      published: string;
+      file: string;
+    };
+    upload: {
+      dropzone: string;
+      helper: string;
+      /** Placeholder literal `{size}` — usar `interpolate()`. */
+      maxSize: string;
+      accepted: string;
+      remove: string;
+      replace: string;
+      uploading: string;
+      uploadError: string;
+    };
+    actions: { save: string; cancel: string; delete: string };
+  };
+  actions: { newMaterial: string };
+  empty: { title: string; description: string };
+  deleteConfirm: {
+    title: string;
+    message: string;
+    confirm: string;
+    cancel: string;
+  };
+};
+
+export type PortalRolesDictionary = {
+  title: string;
+  subtitle: string;
+  tabs: { profiles: string; matrix: string; users: string };
+  table: {
+    name: string;
+    slug: string;
+    description: string;
+    usersCount: string;
+    system: string;
+    actions: string;
+  };
+  badges: { system: string; custom: string };
+  form: {
+    createTitle: string;
+    editTitle: string;
+    fields: {
+      name: string;
+      slug: string;
+      slugHelper: string;
+      description: string;
+    };
+    actions: { save: string; cancel: string; delete: string };
+  };
+  actions: { newProfile: string };
+  deleteConfirm: {
+    title: string;
+    message: string;
+    blockedMessage: string;
+    confirm: string;
+    cancel: string;
+  };
+  matrix: {
+    title: string;
+    subtitle: string;
+    selectRole: string;
+    adminLockedNote: string;
+    saveButton: string;
+    savedMessage: string;
+    modules: Record<string, string>;
+    actionsLabels: Record<string, string>;
+  };
+  users: {
+    title: string;
+    searchPlaceholder: string;
+    table: {
+      name: string;
+      email: string;
+      roles: string;
+      status: string;
+      actions: string;
+    };
+    assignRole: string;
+    removeRole: string;
+  };
+  errors: {
+    selfLockout: string;
+    adminImmutable: string;
+    roleHasUsers: string;
+    cannotGrantAdmin: string;
+    lastAdmin: string;
+  };
 };

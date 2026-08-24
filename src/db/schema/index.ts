@@ -4,5 +4,6 @@ export * from "./catalog";
 export * from "./representatives";
 export * from "./audit";
 export * from "./hero-slides";
+export * from "./materials";
 export * from "./site-settings";
 export * from "./sync";

@@ -19,7 +19,19 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import { PortalFileUploader } from "@/modules/portal/components/shared/portal-file-uploader";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+
+/**
+ * Espelha `heroVideo` de `src/server/lib/upload-limits.ts` — só para
+ * pré-checagem de UX no client (o servidor é a fonte de verdade real).
+ */
+const HERO_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
+const HERO_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
+
+/** Espelha `heroPoster` de `src/server/lib/upload-limits.ts`. */
+const HERO_POSTER_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+const HERO_POSTER_MAX_BYTES = 10 * 1024 * 1024;
 
 type HeroFormDialogProps = {
   open: boolean;
@@ -189,6 +201,14 @@ export function HeroFormDialog({
     trpc.heroSlides.update.mutationOptions({ onSuccess: invalidate })
   );
 
+  // Upload 2-step do vídeo/pôster — `PortalFileUploader` orquestra
+  // presign → PUT → confirm; aqui só adaptamos a assinatura genérica ao
+  // parâmetro `poster` que o router `heroSlides` espera.
+  const presignVideoMutation = useMutation(trpc.heroSlides.presignUpload.mutationOptions());
+  const confirmVideoMutation = useMutation(trpc.heroSlides.confirmUpload.mutationOptions());
+  const presignPosterMutation = useMutation(trpc.heroSlides.presignUpload.mutationOptions());
+  const confirmPosterMutation = useMutation(trpc.heroSlides.confirmUpload.mutationOptions());
+
   const isEditing = Boolean(currentId);
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
@@ -270,19 +290,73 @@ export function HeroFormDialog({
               />
             ) : (
               <>
-                <TextField
-                  label="R2 Key (vídeo)"
-                  value={form.r2Key}
-                  onChange={(e) => setField("r2Key", e.target.value)}
-                  helperText={dictionary.media.uploadHelper}
-                  fullWidth
-                />
-                <TextField
-                  label="R2 Key (pôster)"
-                  value={form.r2PosterKey}
-                  onChange={(e) => setField("r2PosterKey", e.target.value)}
-                  fullWidth
-                />
+                <Typography variant="body2" color="text.secondary">
+                  {dictionary.media.uploadHelper}
+                </Typography>
+
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2">{dictionary.media.videoLabel}</Typography>
+                  <PortalFileUploader
+                    labels={{
+                      dropzone: dictionary.media.dropzone,
+                      maxSize: dictionary.media.maxSize,
+                      accepted: dictionary.media.accepted,
+                      remove: dictionary.media.remove,
+                      // Dicionário do hero não tem rótulos dedicados para
+                      // "substituir"/"enviando" — reaproveita o próprio texto
+                      // do dropzone e o genérico de carregamento (mesmo
+                      // padrão de reuso documentado em `product-form-dialog.tsx`;
+                      // ver relatório final).
+                      replace: dictionary.media.dropzone,
+                      uploading: commonDictionary.loading,
+                      uploadError: dictionary.media.uploadError,
+                    }}
+                    acceptedTypes={HERO_VIDEO_TYPES}
+                    maxSizeBytesFor={() => HERO_VIDEO_MAX_BYTES}
+                    presign={(input) =>
+                      presignVideoMutation.mutateAsync({ ...input, poster: false })
+                    }
+                    confirm={(input) =>
+                      confirmVideoMutation.mutateAsync({ ...input, poster: false })
+                    }
+                    onUploaded={(uploaded) => setField("r2Key", uploaded.key)}
+                    existingPreviewUrl={detailQuery.data?.videoUrl ?? null}
+                    existingKind="video"
+                  />
+                </Stack>
+
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2">{dictionary.media.posterLabel}</Typography>
+                  <PortalFileUploader
+                    labels={{
+                      dropzone: dictionary.media.dropzonePoster,
+                      // Sem rótulo dedicado no dicionário para o par
+                      // "tamanho máximo"/"formatos aceitos" do PÔSTER — os
+                      // únicos existentes (`dictionary.media.maxSize`/
+                      // `accepted`) descrevem o VÍDEO ("200 MB"/"MP4, WebM"),
+                      // reaproveitá-los aqui informaria números errados.
+                      // Deixados em branco (o componente omite a linha); ver
+                      // relatório final.
+                      maxSize: "",
+                      accepted: "",
+                      remove: dictionary.media.remove,
+                      replace: dictionary.media.dropzonePoster,
+                      uploading: commonDictionary.loading,
+                      uploadError: dictionary.media.uploadError,
+                    }}
+                    acceptedTypes={HERO_POSTER_TYPES}
+                    maxSizeBytesFor={() => HERO_POSTER_MAX_BYTES}
+                    presign={(input) =>
+                      presignPosterMutation.mutateAsync({ ...input, poster: true })
+                    }
+                    confirm={(input) =>
+                      confirmPosterMutation.mutateAsync({ ...input, poster: true })
+                    }
+                    onUploaded={(uploaded) => setField("r2PosterKey", uploaded.key)}
+                    existingPreviewUrl={detailQuery.data?.posterUrl ?? null}
+                    existingKind="image"
+                  />
+                </Stack>
               </>
             )}
             <TextField

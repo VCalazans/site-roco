@@ -55,7 +55,7 @@ export default async function PortalOnboardingPage({ params }: PageProps) {
   const basePath = `/${locale}/portal`;
   const navItems: PortalNavItem[] = buildPortalNavItems(
     basePath,
-    portal.shell.nav,
+    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title },
     session.user
   );
 

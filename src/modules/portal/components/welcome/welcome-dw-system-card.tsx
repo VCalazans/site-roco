@@ -9,30 +9,23 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type WelcomeDwSystemCardProps = {
   content: PortalDictionary["welcome"]["dwSystem"];
   icon: ReactNode;
-  ctaIcon: ReactNode;
-  comingSoonLabel: string;
 };
 
 /**
  * Card do Sistema DW — layout próprio (não o `WelcomeSectionCard` genérico)
  * porque tem uma lista de features (`dwSystem.features`, 4 itens) entre
- * intro/outro que os outros materiais não têm. O vídeo (`cta`) ainda não tem
- * asset no portal: botão desabilitado com `comingSoonLabel` como tooltip,
- * mesma regra dos demais materiais sem link real.
+ * intro/outro que os outros materiais não têm. O CTA de vídeo (`cta`, que
+ * era sempre desabilitado — "Em breve") saiu do dicionário: o vídeo do
+ * Sistema DW passa a ser só mais um item publicável no feed de materiais
+ * (`WelcomeMaterialsFeed`), como qualquer outro. Ver decisionLog 2026-08-24
+ * ("Materiais dinâmicos para representantes").
  */
-export function WelcomeDwSystemCard({
-  content,
-  icon,
-  ctaIcon,
-  comingSoonLabel,
-}: WelcomeDwSystemCardProps) {
+export function WelcomeDwSystemCard({ content, icon }: WelcomeDwSystemCardProps) {
   return (
     <Card variant="outlined">
       <CardContent>
@@ -63,15 +56,6 @@ export function WelcomeDwSystemCard({
           <Typography variant="body2" color="text.secondary">
             {content.outro}
           </Typography>
-
-          {/* Rótulo "Em breve" visível (Chip), não Tooltip — ver comentário em
-              `welcome-section-card.tsx` (hydration + acessibilidade touch). */}
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-            <Button variant="outlined" startIcon={ctaIcon} disabled>
-              {content.cta}
-            </Button>
-            <Chip label={comingSoonLabel} size="small" variant="outlined" />
-          </Stack>
         </Stack>
       </CardContent>
     </Card>

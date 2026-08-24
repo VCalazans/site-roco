@@ -13,6 +13,12 @@ type NavLabels = {
   representatives: string;
   welcome: string;
   hero: string;
+  /** Sem chave própria em `portal.shell.nav` — os call-sites passam
+   *  `portal.materials.title` (reaproveitado como rótulo de nav, mesmo
+   *  padrão de reuso já usado no projeto; ver decisionLog 2026-08-24). */
+  materials: string;
+  /** Idem, reaproveita `portal.roles.title`. */
+  roles: string;
 };
 
 /**
@@ -80,6 +86,26 @@ export function buildPortalNavItems(
       key: "hero",
       label: labels.hero,
       href: `${basePath}/hero`,
+    });
+  }
+
+  // Gate por `materials:create` (não `materials:read`): o representante
+  // tem só `read` para o feed somente-leitura embutido em
+  // `/portal/boas-vindas` (`WelcomeMaterialsFeed`) — nunca deveria ver o
+  // item de nav do CRUD administrativo. Ver decisionLog 2026-08-24.
+  if (can(user, "materials", "create")) {
+    items.push({
+      key: "materials",
+      label: labels.materials,
+      href: `${basePath}/materiais`,
+    });
+  }
+
+  if (can(user, "roles", "manage")) {
+    items.push({
+      key: "roles",
+      label: labels.roles,
+      href: `${basePath}/perfis`,
     });
   }
 

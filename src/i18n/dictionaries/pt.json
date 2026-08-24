@@ -659,21 +659,6 @@
         "body": "No catálogo ROCO você encontra todo o nosso portfólio de produtos, com especificações técnicas, aplicações e diferenciais que auxiliam no atendimento aos seus clientes.",
         "cta": "Baixar Catálogo ROCO"
       },
-      "contacts": {
-        "title": "Contatos relevantes da ROCO",
-        "body": "Para facilitar sua comunicação no dia a dia, disponibilizamos uma lista completa com os contatos mais relevantes da ROCO, incluindo setores estratégicos para suporte comercial, logística, marketing e administrativo.",
-        "cta": "Baixar Contatos da ROCO"
-      },
-      "commercialPolicy": {
-        "title": "Política Comercial da ROCO",
-        "body": "Aqui você encontra a política comercial da ROCO, com todas as diretrizes, regras e condições que norteiam nossa atuação no mercado. É fundamental a leitura para garantir alinhamento e transparência nas negociações.",
-        "cta": "Baixar Política Comercial"
-      },
-      "logistics": {
-        "title": "Regras Organizacionais de Logística",
-        "body": "Nesta seção estão reunidas todas as regras e orientações relacionadas à logística, incluindo prazos, faturamento, expedição e processos operacionais. Essas informações garantem mais eficiência e previsibilidade no atendimento aos clientes.",
-        "cta": "Baixar Regras de Logística"
-      },
       "dwSystem": {
         "title": "Sistema DW",
         "subtitle": "Tudo o que você precisa saber",
@@ -684,19 +669,119 @@
           "Emitir pedidos",
           "Consultar o portfólio completo de produtos"
         ],
-        "outro": "Confira no vídeo a seguir o passo a passo completo de utilização do sistema.",
-        "cta": "Assistir ao vídeo"
+        "outro": "Confira no vídeo a seguir o passo a passo completo de utilização do sistema."
       },
-      "library": {
-        "title": "Vídeos Técnicos e Conteúdos de Apoio",
-        "body": "Sempre que precisar, consulte nosso portfólio de vídeos técnicos, treinamentos e conteúdos de apoio. Esses materiais foram desenvolvidos para facilitar seu dia a dia e fortalecer suas argumentações comerciais.",
-        "cta": "Acessar Biblioteca de Conteúdos"
+      "materialsFeed": {
+        "title": "Materiais para você",
+        "subtitle": "Acesse os materiais de suporte publicados pela ROCO para auxiliar seu trabalho como representante.",
+        "empty": "Nenhum material publicado ainda.",
+        "downloadLabel": "Baixar",
+        "watchLabel": "Assistir",
+        "publishedOn": "Publicado em {date}"
       },
       "closing": {
         "paragraph1": "Esta página reúne tudo o que você precisa para iniciar sua jornada como representante ROCO com segurança e clareza. Sempre que surgir uma dúvida ou necessidade, volte aqui.",
         "paragraph2": "Mais do que produtos, acreditamos em relacionamento, parceria e evolução constante. Seja bem-vindo(a) ao time."
       },
       "comingSoon": "Em breve no portal"
+    },
+    "roles": {
+      "title": "Perfis e Permissões",
+      "subtitle": "Crie e gerencie perfis de acesso customizados e defina permissões por módulo.",
+      "tabs": {
+        "profiles": "Perfis",
+        "matrix": "Matriz de permissões",
+        "users": "Usuários"
+      },
+      "table": {
+        "name": "Nome",
+        "slug": "Slug",
+        "description": "Descrição",
+        "usersCount": "Usuários",
+        "system": "Sistema",
+        "actions": "Ações"
+      },
+      "badges": {
+        "system": "Perfil de sistema",
+        "custom": "Perfil customizado"
+      },
+      "form": {
+        "createTitle": "Novo perfil",
+        "editTitle": "Editar perfil",
+        "fields": {
+          "name": "Nome",
+          "slug": "Slug",
+          "slugHelper": "Slug não pode ser alterado depois de criado.",
+          "description": "Descrição"
+        },
+        "actions": {
+          "save": "Salvar",
+          "cancel": "Cancelar",
+          "delete": "Deletar"
+        }
+      },
+      "actions": {
+        "newProfile": "Novo perfil"
+      },
+      "deleteConfirm": {
+        "title": "Deletar perfil?",
+        "message": "Esta ação não pode ser desfeita.",
+        "blockedMessage": "Este perfil não pode ser excluído — é um perfil de sistema ou tem usuários atribuídos.",
+        "confirm": "Sim, deletar",
+        "cancel": "Cancelar"
+      },
+      "matrix": {
+        "title": "Matriz de permissões",
+        "subtitle": "Selecione um perfil e marque as permissões desejadas para cada módulo.",
+        "selectRole": "Selecione um perfil",
+        "adminLockedNote": "O perfil Administrador tem acesso total. Não é editável nesta tela.",
+        "saveButton": "Salvar permissões",
+        "savedMessage": "Permissões atualizadas com sucesso.",
+        "modules": {
+          "products": "Produtos",
+          "product_images": "Imagens de produto",
+          "representatives": "Representantes",
+          "categories": "Categorias",
+          "sync": "Sincronização ERP",
+          "users": "Usuários",
+          "audit": "Auditoria",
+          "onboarding": "Onboarding",
+          "hero_slides": "Hero da home",
+          "materials": "Materiais",
+          "roles": "Perfis e permissões"
+        },
+        "actionsLabels": {
+          "create": "Criar",
+          "read": "Ver",
+          "update": "Editar",
+          "delete": "Excluir",
+          "publish": "Publicar",
+          "review": "Revisar",
+          "disable": "Desabilitar",
+          "trigger": "Disparar",
+          "manage": "Gerenciar"
+        }
+      },
+      "users": {
+        "title": "Usuários",
+        "searchPlaceholder": "Buscar por nome ou e-mail",
+        "table": {
+          "name": "Nome",
+          "email": "E-mail",
+          "roles": "Perfis",
+          "status": "Status",
+          "actions": "Ações"
+        },
+        "assignRole": "Atribuir perfil",
+        "removeRole": "Remover perfil"
+      },
+      "errors": {
+        "selfLockout": "Esta alteração removeria seu próprio acesso a esta tela.",
+        "adminImmutable": "O perfil Administrador tem acesso total e não pode ser editado.",
+        "roleHasUsers": "Este perfil tem usuários atribuídos — remova-os antes de excluir.",
+        "cannotGrantAdmin": "Só um administrador pode conceder o perfil Administrador a outro usuário.",
+        "lastAdmin": "Não é possível remover o último administrador do sistema."
+      }
     },
     "errors": {
       "unauthorized": "Você não tem autorização para acessar este recurso.",
@@ -737,6 +822,8 @@
         "upload": "Upload (R2)"
       },
       "media": {
+        "videoLabel": "Vídeo do slide",
+        "posterLabel": "Imagem de capa (pôster)",
         "posterAlt": "Imagem do slide (pôster)",
         "youtubeHelper": "Cole apenas o ID do vídeo do YouTube (ex.: rqn-okkh0ww).",
         "uploadHelper": "Faça upload do MP4 (até 200 MB). Opcionalmente envie um pôster JPG/PNG.",
@@ -814,6 +901,71 @@
       },
       "loopWindowHelper": "Deixe em branco para tocar o vídeo inteiro. Use para destacar só um trecho (ex.: primeiros 30s).",
       "autoAdvanceHelper": "0 = sem rotação. Se setado, o slider transiciona entre slides a cada N segundos (crossfade)."
+    },
+    "materials": {
+      "title": "Materiais",
+      "subtitle": "Gerencie materiais de suporte e conteúdo compartilhado com representantes.",
+      "table": {
+        "title": "Título",
+        "category": "Categoria",
+        "type": "Tipo",
+        "publishedAt": "Publicado em",
+        "status": "Status",
+        "size": "Tamanho",
+        "actions": "Ações"
+      },
+      "status": {
+        "published": "Publicado",
+        "draft": "Rascunho"
+      },
+      "categories": {
+        "commercial_policy": "Política comercial",
+        "logistics": "Logística",
+        "contacts": "Contatos",
+        "training": "Treinamento",
+        "other": "Outro"
+      },
+      "form": {
+        "createTitle": "Novo material",
+        "editTitle": "Editar material",
+        "fields": {
+          "titlePt": "Título (PT)",
+          "titleEn": "Título (EN)",
+          "descriptionPt": "Descrição (PT)",
+          "descriptionEn": "Descrição (EN)",
+          "category": "Categoria",
+          "published": "Publicado",
+          "file": "Arquivo"
+        },
+        "upload": {
+          "dropzone": "Arraste um arquivo ou clique para selecionar",
+          "helper": "Formatos aceitos: PDF, vídeos MP4/WebM e imagens JPG/PNG/WebP.",
+          "maxSize": "Tamanho máximo: {size}",
+          "accepted": "Formatos aceitos: PDF, MP4, WebM, JPG, PNG, WebP",
+          "remove": "Remover",
+          "replace": "Substituir arquivo",
+          "uploading": "Enviando...",
+          "uploadError": "Erro ao fazer upload — tente novamente."
+        },
+        "actions": {
+          "save": "Salvar",
+          "cancel": "Cancelar",
+          "delete": "Deletar"
+        }
+      },
+      "actions": {
+        "newMaterial": "Novo material"
+      },
+      "empty": {
+        "title": "Nenhum material cadastrado",
+        "description": "Crie o primeiro material para compartilhar com seus representantes."
+      },
+      "deleteConfirm": {
+        "title": "Deletar material?",
+        "message": "Esta ação não pode ser desfeita. O arquivo também será removido do R2.",
+        "confirm": "Sim, deletar",
+        "cancel": "Cancelar"
+      }
     }
   },
   "site": {

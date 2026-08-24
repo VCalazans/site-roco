@@ -16,14 +16,13 @@ import {
   type HeroSlide,
 } from "@/db/schema/hero-slides";
 import { writeAuditLog } from "@/server/lib/audit";
+import {
+  getExtension,
+  isContentTypeAllowed,
+  isSizeWithinLimit,
+  type UploadField,
+} from "@/server/lib/upload-limits";
 import { permissionProcedure, router } from "../init";
-
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB — hero vídeos podem ser maiores que imagens
-const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
-const CONTENT_TYPE_EXTENSION: Record<(typeof ALLOWED_VIDEO_TYPES)[number], string> = {
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-};
 
 const MAX_HERO_SLIDES = Number(process.env.MAX_HERO_SLIDES ?? 20);
 
@@ -277,19 +276,55 @@ export const heroSlidesRouter = router({
       return { ok: true as const };
     }),
 
-  /** 2-step upload: presign → PUT → confirm. Mesmo padrão de produtos. */
+  /**
+   * 2-step upload: presign → PUT → confirm. Mesmo padrão de produtos.
+   *
+   * O `contentType`/teto de tamanho aceito depende do campo (`poster`):
+   * pôster aceita imagem (JPEG/PNG/WebP, 10 MB), vídeo aceita MP4/WebM
+   * (200 MB) — bug corrigido 2026-08-24 (antes os dois caminhos validavam
+   * contra os tipos de VÍDEO mesmo para o campo de pôster, tornando
+   * impossível fazer upload de um pôster). Ver `@/server/lib/upload-limits`.
+   */
   presignUpload: permissionProcedure("hero_slides", "create")
     .input(
-      z.object({
-        filename: z.string().trim().min(1).max(255),
-        contentType: z.enum(ALLOWED_VIDEO_TYPES),
-        sizeBytes: z.number().int().positive().max(MAX_VIDEO_BYTES),
-        /** Se `poster`=true, vai para `hero/posters/...`; senão `hero/videos/...`. */
-        poster: z.boolean().default(false),
-      })
+      z
+        .object({
+          filename: z.string().trim().min(1).max(255),
+          contentType: z.string().trim().min(1).max(100),
+          sizeBytes: z.number().int().positive(),
+          /** Se `poster`=true, vai para `hero/posters/...` e valida como
+           *  imagem; senão `hero/videos/...` e valida como vídeo. */
+          poster: z.boolean().default(false),
+        })
+        .superRefine((data, ctx) => {
+          const field: UploadField = data.poster ? "heroPoster" : "heroVideo";
+          if (!isContentTypeAllowed(field, data.contentType)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["contentType"],
+              message: data.poster
+                ? "Tipo de arquivo inválido para pôster (aceita JPEG/PNG/WebP)."
+                : "Tipo de arquivo inválido para vídeo (aceita MP4/WebM).",
+            });
+            return;
+          }
+          if (!isSizeWithinLimit(field, data.contentType, data.sizeBytes)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["sizeBytes"],
+              message: "Arquivo excede o tamanho máximo permitido para este campo.",
+            });
+          }
+        })
     )
     .mutation(async ({ input }) => {
-      const extension = CONTENT_TYPE_EXTENSION[input.contentType];
+      const field: UploadField = input.poster ? "heroPoster" : "heroVideo";
+      const extension = getExtension(field, input.contentType);
+      if (!extension) {
+        // Defensivo: o `superRefine` do input já bloqueia isto antes de
+        // chegar aqui, mas nunca gerar uma chave `hero/…/{uuid}.null`.
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Tipo de arquivo não suportado." });
+      }
       const subfolder = input.poster ? "posters" : "videos";
       const key = `hero/${subfolder}/${crypto.randomUUID()}.${extension}`;
 
@@ -311,17 +346,28 @@ export const heroSlidesRouter = router({
       z.object({
         key: z.string().trim().min(1),
         filename: z.string().trim().min(1).max(255),
-        contentType: z.enum(ALLOWED_VIDEO_TYPES),
+        contentType: z.string().trim().min(1).max(100),
         poster: z.boolean().default(false),
       })
     )
     .mutation(async ({ input }) => {
-      // Whitelist: chave precisa estar dentro de hero/videos ou hero/posters.
-      const ok =
-        input.key.startsWith("hero/videos/") || input.key.startsWith("hero/posters/");
-      if (!ok) {
+      const field: UploadField = input.poster ? "heroPoster" : "heroVideo";
+      if (!isContentTypeAllowed(field, input.contentType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: input.poster
+            ? "Tipo de arquivo inválido para pôster (aceita JPEG/PNG/WebP)."
+            : "Tipo de arquivo inválido para vídeo (aceita MP4/WebM).",
+        });
+      }
+
+      // Whitelist: chave precisa estar dentro do subfolder correspondente
+      // ao campo declarado (evita confirmar um pôster como vídeo ou vice-versa).
+      const expectedPrefix = input.poster ? "hero/posters/" : "hero/videos/";
+      if (!input.key.startsWith(expectedPrefix)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Referência de upload inválida." });
       }
+
       let sizeBytes: number;
       try {
         const head = await headObject(input.key);
@@ -330,7 +376,7 @@ export const heroSlidesRouter = router({
         console.error("[heroSlides.confirmUpload]", error);
         throw new TRPCError({ code: "BAD_REQUEST", message: "Upload não encontrado ou expirado." });
       }
-      if (sizeBytes <= 0 || sizeBytes > MAX_VIDEO_BYTES) {
+      if (!isSizeWithinLimit(field, input.contentType, sizeBytes)) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo inválido (tamanho)." });
       }
       return { key: input.key, sizeBytes };
