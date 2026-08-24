@@ -389,8 +389,11 @@ export const representativesRouter = router({
             userEmail: users.email,
             // Quem desabilitou (subquery — evita alias collision com o JOIN
             // principal de users). Retorna null se o user foi deletado ou
-            // se o disabled_by_user_id é null.
-            disabledByName: sql<string | null>`(SELECT name FROM users WHERE id = ${representatives.disabledByUserId})`,
+            // se o disabled_by_user_id é null. ⚠️ a tabela é `user`
+            // (singular, conforme schema Drizzle `pgTable("user", …)`) —
+            // NÃO `users` (o nome do model é plural no Drizzle, mas a
+            // tabela física é singular; usar `users` aqui gera 500).
+            disabledByName: sql<string | null>`(SELECT name FROM "user" WHERE id = ${representatives.disabledByUserId})`,
           })
           .from(representatives)
           .innerJoin(users, eq(users.id, representatives.userId))

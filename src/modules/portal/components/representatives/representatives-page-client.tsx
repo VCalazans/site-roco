@@ -261,10 +261,20 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
         </Paper>
       ) : null}
 
+      {/* Empty state: copy contextual por aba. Sem filtros, a frase certa
+          depende do status ativo — "aguardando revisão" em `submitted`,
+          genérica em outras tabs (não é correto dizer "novos cadastros
+          aparecerão aqui" na aba `approved`, por exemplo). */}
       {!listQuery.isLoading && items.length === 0 && !hasActiveFilters ? (
         <Paper variant="outlined" sx={{ p: 6, textAlign: "center" }}>
-          <Typography variant="h6">{dictionary.empty.title}</Typography>
-          <Typography color="text.secondary">{dictionary.empty.description}</Typography>
+          <Typography variant="h6">
+            {status === "submitted"
+              ? dictionary.empty.title
+              : `Nenhum representante ${portal.onboarding.status[status].toLowerCase()}.`}
+          </Typography>
+          <Typography color="text.secondary">
+            {status === "submitted" ? dictionary.empty.description : "Mude a aba acima para ver outros status."}
+          </Typography>
         </Paper>
       ) : null}
 

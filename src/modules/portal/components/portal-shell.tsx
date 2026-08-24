@@ -123,17 +123,54 @@ function NavList({
   comingSoonLabel,
   pathname,
   onNavigate,
+  collapsed = false,
 }: {
   navItems: PortalNavItem[];
   comingSoonLabel: string;
   pathname: string | null;
   onNavigate: () => void;
+  /**
+   * `true` no modo colapsado (WEG-style — só ícones, largura 72px). Omite o
+   * rótulo e o sublabel; centraliza o botão. O tooltip nativo do botão
+   * aparece no hover (acessibilidade sem desperdiçar 192px de coluna).
+   */
+  collapsed?: boolean;
 }) {
   return (
-    <List sx={{ flexGrow: 1 }}>
+    <List sx={{ flexGrow: 1, p: collapsed ? 0.5 : 0 }}>
       {navItems.map((item) => {
         const Icon = NAV_ICONS[item.key];
         const selected = pathname === item.href;
+
+        if (collapsed) {
+          return (
+            <ListItem
+              key={item.key}
+              disablePadding
+              sx={{ display: "flex", justifyContent: "center" }}
+            >
+              <Tooltip title={item.label} placement="right">
+                <ListItemButton
+                  component={Link}
+                  href={item.href}
+                  disabled={item.disabled}
+                  selected={selected}
+                  onClick={onNavigate}
+                  sx={{
+                    minHeight: 44,
+                    width: 44,
+                    borderRadius: 1,
+                    justifyContent: "center",
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 0, justifyContent: "center" }}>
+                    <Icon fontSize="small" />
+                  </ListItemIcon>
+                </ListItemButton>
+              </Tooltip>
+            </ListItem>
+          );
+        }
 
         return (
           <ListItem key={item.key} disablePadding>
@@ -314,6 +351,7 @@ export function PortalShell({
             comingSoonLabel={comingSoonLabel}
             pathname={pathname}
             onNavigate={() => setMobileOpen(false)}
+            collapsed={collapsed}
           />
         </Drawer>
 
@@ -332,6 +370,7 @@ export function PortalShell({
             comingSoonLabel={comingSoonLabel}
             pathname={pathname}
             onNavigate={() => {}}
+            collapsed={collapsed}
           />
         </Drawer>
       </Box>
