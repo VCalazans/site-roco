@@ -14,6 +14,11 @@
         "icon": ""
       },
       {
+        "label": "Produtos",
+        "href": "/produtos",
+        "icon": ""
+      },
+      {
         "label": "Ligamos pra você",
         "href": "#contato",
         "icon": "call"
