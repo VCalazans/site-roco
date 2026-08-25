@@ -7,3 +7,4 @@ export * from "./hero-slides";
 export * from "./materials";
 export * from "./site-settings";
 export * from "./sync";
+export * from "./contact";

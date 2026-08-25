@@ -16,6 +16,25 @@
 - **Pendências de infra**: bucket R2 separado sem acesso público para conteúdo privado (antes de produção).
 - Ver decisionLog 2026-08-24 (3 últimas entradas) para racional arquitetural completo. Commits ainda não feitos (decisão do usuário).
 
+## Sessão 2026-08-24 (parte 3) — Página `/contato` e fluxo de recebimento de orçamento
+- **Situação anterior**: site não tinha forma real de receber pedidos. 3 dos 6 itens do menu apontavam para `/contato` (404); botão "Solicite um orçamento" nas páginas de produto descartava contexto e mandava para PDF do catálogo. **Déficit crítico**: CRM da ROCO (RD Station) estava desconectado do site.
+- **Entregue (8 arquivos novos + 7 editados)**:
+  - **Rota `/contato`** (`src/app/[locale]/(site)/contato/page.tsx`): Server Component que lê `?produto=`/`?assunto=` de query params, resolve produto no servidor via `getPublicProductBySlug` (nunca aceita nome de produto cru do cliente — previne injeção). Form com fields: nome/e-mail/telefone obrigatórios, empresa/CNPJ opcionais, assunto (dropdown: call_back/quote/general), mensagem opcional, chip de contexto do produto (somente-leitura, removível), checkbox de consentimento LGPD obrigatório, honeypot.
+  - **Rota `POST /api/contact`** (Route Handler síncrono, sem fila): (1) rate limit IP+global (`productionSafe: true` — fail-closed), honeypot, validação zod; (2) INSERT em `contact_submissions` (migration 0007 — tracking de lead com status por canal); (3) dispara RD Station + Resend em paralelo via `Promise.allSettled` com timeout 8s (best-effort, nunca lança); (4) responde ao visitante `201 { ok: true }` assim que INSERT funciona, independente do resultado dos canais (failsafe: lead sempre gravado primeiro).
+  - **Tabela `contact_submissions`** (migration 0007): name, email, phone, company_name, cnpj, subject, product_slug, product_name_at_submit, consent_granted + consent_at (auditoria LGPD), rd_station_status/error, email_status/error, ip_address, submitted_at. UUID client_tracking_id UNIQUE = nossa dedupe (RD API não é idempotente).
+  - **RD Station (Conversions API)**: payload `{ event_type, event_family, payload: { conversion_identifier, name, email, personal_phone, company_name, cf_cnpj, cf_produto_interesse, client_tracking_id, legal_bases } }`. Campos customizados `cf_cnpj`/`cf_produto_interesse` **precisam ser criados à mão** pelo stakeholder no painel do RD UMA VEZ (pesquisa anterior descartou auto-criação — caminho seguro). Sucesso = 200 com `event_uuid`; erro = 400 array com `errors`.
+  - **Resend (e-mail transacional)**: notificação para time comercial (destino `CONTACT_NOTIFICATION_EMAIL` com fallback em `NEXT_PUBLIC_CONTACT_EMAIL`). Remetente verificado (`CONTACT_FROM_EMAIL`) — stakeholder configura domínio (ex.: `mail.roco.com.br`) antes do go-live.
+  - **Consolidação do menu (entrada 6 do decisionLog)**: nav de 6 para 4 itens (Home, Produtos, Portal ROCO, Contato). As 3 intenções anteriores (call_back/quote/general) viram opções de dropdown `subject` no form. Bug corrigido: link "Contato" agora prefixado com locale via `resolveDestination("#contato")` — item "ativo" funciona corretamente em `/{locale}/contato`.
+  - **Segurança**: anti-header-injection em `contact-submit.ts` — CONTROL_CHARS regex bloqueia `\r\n\0` em name/companyName/message/productSlug. Rate limit 8/10min IP + 40/5min global, ambos `productionSafe: true` (fail-closed). Honeypot campo "website".
+- **Testes**: 484 → 623 testes (+139: `contact-submit.test.ts`, `rd-station.test.ts`, `contact-email.test.ts` — cobertura 100% lógica pura). Lint ✓, build ✓ (tsc detectou 6 erros que vitest perdeu — sempre rodar `npm run build` como portão final).
+- **Arquivos novos**: `contact.ts` (schema), `contact-submit.ts` (zod puro + sanitização), `rd-station.ts`/`rd-station-send.ts` (payload + I/O), `contact-email.ts`/`contact-email-send.ts` (HTML + Resend), `contact-form.tsx` (client), `types.ts` (ContactDictionary), `route.ts` (POST /api/contact).
+- **Pendências para stakeholder provisionar**:
+  - **RD Station**: gerar API Key estático no painel (Integrações > API Key) → `RD_STATION_API_KEY`; criar campos customizados `cf_cnpj`/`cf_produto_interesse` (400 se faltar).
+  - **Resend**: domínio de envio verificado (ex.: `mail.roco.com.br`) → `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`.
+  - Sem as credenciais: lead gravado localmente, canais skipped/logados WARN — nenhum risco de perda, testável offline.
+- **Follow-ups registrados em progress.md**: endurecer `/api/contact` contra enumeração (captcha/honeypot + teto rígido), política de retenção `contact_submissions` (LGPD), reavaliar `getClientIp` confia em X-Forwarded-For (débito pré-existente, agora com superfície maior).
+- Ver decisionLog 2026-08-24 (4 últimas entradas: RD Station / Resend / consolidação menu / contact_submissions / fluxo síncrono) para racional completo.
+
 ## Sessão 2026-08-24 (parte 1) — Deploy destravado: migrations dentro do container
 
 - **Sintoma inicial (produção EasyPanel)**: build quebrava com `Invalid URL: ''` em

@@ -68,18 +68,17 @@ export function navLabelClass(
  * decidir o tom (`navLabelClass`) de cada item com base no `pathname` real, em
  * vez de um índice fixo.
  *
- * - Links de contato (`#contato`) nunca "ativam": abrem um modal, não navegam.
  * - O link "Home" resolve para `href === "/"` (`resolveDestination` não
  *   prefixa com o locale, ver `core/config/site.ts`); ele conta como ativo
  *   tanto na raiz nua (`/`) quanto na raiz do locale (`/pt`, `/en`), já que o
  *   middleware nunca deixa a home renderizar em outra profundidade.
  * - Todo outro href já sai locale-prefixado de `resolveDestination`
- *   (`/pt/representantes`, `/pt/produtos`…); conta como ativo em match exato
- *   ou em qualquer rota aninhada por baixo dele (`/pt/produtos/algum-slug`).
+ *   (`/pt/representantes`, `/pt/produtos`, `/pt/contato`…); conta como ativo
+ *   em match exato ou em qualquer rota aninhada por baixo dele
+ *   (`/pt/produtos/algum-slug`). O link de contato segue essa mesma regra
+ *   desde que `/contato` virou uma página real (não abre mais modal).
  */
 export function isNavLinkActive(href: string, pathname: string): boolean {
-  if (isContactLink(href)) return false;
-
   if (href === "/") {
     return pathname === "/" || /^\/[^/]+\/?$/.test(pathname);
   }
@@ -92,9 +91,4 @@ export function externalProps(href: string) {
   return href.startsWith("http")
     ? ({ target: "_blank", rel: "noopener noreferrer" } as const)
     : {};
-}
-
-/** A link whose href targets the contact anchor opens the contact modal. */
-export function isContactLink(href: string) {
-  return href.startsWith("#contato");
 }

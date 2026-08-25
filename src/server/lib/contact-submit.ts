@@ -14,6 +14,14 @@ import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { isValidPhoneBR } from "@/shared/lib/phone";
 
 /**
+ * CR, LF e NUL — nunca legítimos em texto de formulário; bloqueiam header
+ * injection em contextos que interpolam o valor sem escape (ex.: `subject`
+ * do e-mail de notificação em `contact-email.ts`, que monta o cabeçalho de
+ * assunto com `name` interpolado diretamente).
+ */
+const CONTROL_CHARS = /[\r\n\0]/;
+
+/**
  * Campo de texto opcional: string vazia (ou só espaços) vira `undefined`
  * antes da validação — mesmo padrão `draftField` do onboarding de
  * representantes (`src/server/trpc/routers/representatives.ts`), para que o
@@ -22,14 +30,24 @@ import { isValidPhoneBR } from "@/shared/lib/phone";
 function optionalTrimmedField(max: number) {
   return z.preprocess(
     (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z.string().trim().max(max).optional()
+    z
+      .string()
+      .trim()
+      .max(max)
+      .refine((value) => !CONTROL_CHARS.test(value), { message: "invalid_characters" })
+      .optional()
   );
 }
 
 export const CONTACT_SUBJECTS = ["call_back", "quote", "general"] as const;
 
 export const contactSchema = z.object({
-  name: z.string().trim().min(2).max(200),
+  name: z
+    .string()
+    .trim()
+    .min(2)
+    .max(200)
+    .refine((value) => !CONTROL_CHARS.test(value), { message: "invalid_characters" }),
   email: z.string().trim().toLowerCase().email().max(320),
   phone: z
     .string()

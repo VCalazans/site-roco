@@ -1,14 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import {
-  externalProps,
-  isContactLink,
-  isNavLinkActive,
-  type NavLink,
-} from "@/shared/lib/nav";
+import { externalProps, isNavLinkActive, type NavLink } from "@/shared/lib/nav";
 
 type NavItemsProps = {
   links: NavLink[];
@@ -31,9 +25,11 @@ type NavItemsProps = {
 };
 
 /**
- * The nav labels shared by the desktop bar and the mobile menu. A contact link
- * opens the modal instead of navigating; every other link is a plain anchor
- * (external hrefs open in a new tab). Styling is fully delegated to the caller.
+ * The nav labels shared by the desktop bar and the mobile menu. Every link is
+ * a plain anchor (external hrefs open in a new tab); hrefs already arrive
+ * locale-prefixed from `resolveDestination`, including the contact link
+ * (`/contato` is a real page since 2026-08-24 — it no longer opens a modal).
+ * Styling is fully delegated to the caller.
  *
  * SEM ícones desde 2026-08-12 (padrão WEG, pedido do stakeholder): os ícones
  * lucide por item (PhoneCall/Headset/Package) davam larguras e alturas ópticas
@@ -57,21 +53,6 @@ export function NavItems({
         const isActive = isNavLinkActive(link.href, pathname);
         const className = itemClassName(index, isActive);
         const style = itemStyle?.(index);
-
-        if (isContactLink(link.href)) {
-          return wrap(
-            <Link
-              key={link.label}
-              href="/contato"
-              onClick={onSelect}
-              className={className}
-              style={style}
-            >
-              {link.label}
-            </Link>,
-            link.label
-          );
-        }
 
         return wrap(
           <a

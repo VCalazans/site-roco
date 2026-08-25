@@ -261,6 +261,65 @@ a {
   text-shadow: 0 0 14px rgba(53, 217, 255, 0.45);
 }
 
+/* ---- .form-neon — inputs/labels dos forms públicos (representantes, contato) ----
+   Restaurado 2026-08-24: a limpeza do Mautic (commit 79d02de) removeu este
+   bloco inteiro porque ele vivia colado aos seletores `.mautic-form-wrap` no
+   mesmo grupo de regras — dano colateral, não intencional (`.form-neon`
+   nunca foi Mautic-specific; é usado por `register-form.tsx` e pelo novo
+   `contact-form.tsx`). Generalizado aqui sem nenhum seletor `.mautic-form-wrap`. */
+.form-neon label {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  font-size: var(--type-meta);
+  font-weight: 500;
+  color: #cdd8e2;
+}
+
+.form-neon input:not([type="checkbox"]),
+.form-neon textarea,
+.form-neon select {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.25rem;
+  font-size: var(--type-meta);
+  line-height: 1.5;
+  color: #f5f7fa;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.6rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-neon input::placeholder,
+.form-neon textarea::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.form-neon input:focus,
+.form-neon textarea:focus,
+.form-neon select:focus {
+  outline: 0;
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 0 3px rgba(53, 217, 255, 0.18);
+}
+
+/* Campo inválido (ex.: CNPJ com dígito verificador errado) — alternado via aria-invalid. */
+.form-neon input[aria-invalid="true"],
+.form-neon textarea[aria-invalid="true"],
+.form-neon select[aria-invalid="true"] {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 90, 90, 0.18);
+}
+
+.form-neon textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-neon select option {
+  color: #05070b;
+}
 
 /* ============================================================================
    .btn-neon-grad — pílula "tubo de neon" dual-tone, VAZADA (miolo transparente)

@@ -37,6 +37,9 @@ export const REPRESENTATIVES_SEGMENT = "representantes";
 /** Route segment of the product catalog listing/detail pages. */
 export const PRODUCTS_SEGMENT = "produtos";
 
+/** Route segment of the public contact page. */
+export const CONTACT_SEGMENT = "contato";
+
 /** Locale-prefixed path of the representative pre-registration page. */
 export function representativesPath(locale: string): string {
   return `/${locale}/${REPRESENTATIVES_SEGMENT}`;
@@ -45,6 +48,11 @@ export function representativesPath(locale: string): string {
 /** Locale-prefixed path of the product catalog listing page. */
 export function productsPath(locale: string): string {
   return `/${locale}/${PRODUCTS_SEGMENT}`;
+}
+
+/** Locale-prefixed path of the public contact page. */
+export function contactPath(locale: string): string {
+  return `/${locale}/${CONTACT_SEGMENT}`;
 }
 
 /** Filename suggested to the browser when the catalog PDF is downloaded. */
@@ -57,15 +65,14 @@ export function catalogPath(locale: string): string {
 
 /**
  * Resolve a dictionary href to its real destination. Copy in the dictionaries
- * uses stable placeholder anchors (`#produtos`, `#catalogo`, `#representantes`)
- * — here we swap them for the configured URLs, falling back to the internal
- * page while a destination is still undefined. Some dictionary entries (home
- * CTAs, footer columns) already write the literal locale-less path (`/produtos`,
- * `/representantes`) instead of the anchor placeholder; both spellings are
- * treated as aliases of the same destination so copy can use either without
- * producing a broken (non locale-prefixed) link. In-page anchors (`#contato`)
- * and routes (`/`) pass through untouched so the contact modal and internal
- * links keep working.
+ * uses stable placeholder anchors (`#produtos`, `#catalogo`, `#representantes`,
+ * `#contato`) — here we swap them for the configured URLs, falling back to the
+ * internal page while a destination is still undefined. Some dictionary
+ * entries (home CTAs, footer columns) already write the literal locale-less
+ * path (`/produtos`, `/representantes`) instead of the anchor placeholder;
+ * both spellings are treated as aliases of the same destination so copy can
+ * use either without producing a broken (non locale-prefixed) link. Bare
+ * routes (`/`) pass through untouched.
  */
 export function resolveDestination(href: string, locale: string): string {
   switch (href) {
@@ -77,6 +84,8 @@ export function resolveDestination(href: string, locale: string): string {
     case "#representantes":
     case "/representantes":
       return representativesPath(locale);
+    case "#contato":
+      return contactPath(locale);
     default:
       return href;
   }

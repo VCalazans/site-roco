@@ -1,5 +1,10 @@
 import type { MetadataRoute } from "next";
-import { CATALOG_SEGMENT, PRODUCTS_SEGMENT, REPRESENTATIVES_SEGMENT } from "@/core/config/site";
+import {
+  CATALOG_SEGMENT,
+  CONTACT_SEGMENT,
+  PRODUCTS_SEGMENT,
+  REPRESENTATIVES_SEGMENT,
+} from "@/core/config/site";
 import { locales } from "@/i18n/config";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://roco.com.br";
@@ -31,6 +36,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
       {
         url: `${siteUrl}/${locale}/${REPRESENTATIVES_SEGMENT}`,
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: priority * 0.8,
+      },
+      {
+        url: `${siteUrl}/${locale}/${CONTACT_SEGMENT}`,
         lastModified: new Date(),
         changeFrequency: "monthly" as const,
         priority: priority * 0.8,

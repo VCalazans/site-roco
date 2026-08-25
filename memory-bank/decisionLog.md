@@ -681,3 +681,119 @@ mecanismo novo de invalidação de sessão foi necessário. **Nota operacional**
 Entrada 2 — a permissão `roles:manage` só existe depois de rodar `npm run db:seed` em cada
 ambiente após o deploy.
 
+## 2026-08-24 — Integração RD Station via Conversions API (formulário de contato)
+**Decisão**: Página `/contato` envia leads ao RD Station via `POST https://api.rd.services/platform/conversions`
+usando a Conversions API (não-OAuth, API Key estática em env `RD_STATION_API_KEY` server-only).
+Autenticação: header `Authorization: Bearer <KEY>` — padrão recomendado pelo RD para integrações
+internas. Rate limit RD: 120 req/min (irrelevante no volume da ROCO). Sem SDK (pacote abandonado);
+implementação via `fetch` nativo + `zod`, padrão já usado em `representative-register.ts`.
+Payload: `{ event_type: "CONVERSION", event_family: "CDP", payload: { conversion_identifier,
+name, email, personal_phone, company_name, cf_cnpj, cf_produto_interesse, client_tracking_id,
+legal_bases } }`. Sucesso = 200 com `event_uuid`; erro validação = 400 com array `errors`.
+Campos customizados `cf_cnpj` e `cf_produto_interesse` precisam ser criados UMA VEZ à mão pelo
+stakeholder no painel do RD (pesquisa anterior descartou auto-criação via API — caminho seguro).
+`conversion_identifier` = `orcamento_produto` quando assunto é "Solicite um orçamento", ou
+`contato_geral` para demais. Gera `client_tracking_id` (UUID) no backend a cada submissão
+(deduplication nossa — API do RD não é idempotente). Produto opcionalmente resolvido servidor-side
+a partir do slug (via `getPublicProductBySlug`, nunca aceito cru do cliente — previne injeção de
+texto arbitrário no payload RD).
+**Alternativas**: (a) webhook direto ao RD sem fila — perde lead em falha de rede; (b) Zapier/Make —
+vendor lock-in + custo variável; (c) ignorar o RD nesta feature e usar só e-mail — rejeita requisito
+explícito de integração ao CRM.
+**Justificativa**: RD Station é o CRM da ROCO (stakeholder voltou a usar em 2026-08-23); Conversions API
+é o contrato padrão da plataforma para eventos de lead. O INSERT em `contact_submissions` (ver entrada 7)
+acontecer ANTES do envio garante que falha de rede não perde o lead — não há fila, envio é síncrono.
+**Impacto**: Env `RD_STATION_API_KEY` (server-only); novo módulo `src/server/lib/rd-station.ts`
+(schema puro testável, similar a `representative-register.ts`); rota `POST /api/contact` (Route Handler).
+Não afeta CSP (apenas HTTP POST, sem externa).
+
+## 2026-08-24 — Provedor de e-mail transacional: Resend via fetch nativo
+**Decisão**: Formulário `/contato` dispara notificação de e-mail via Resend (`https://api.resend.com/emails`,
+header `Authorization: Bearer RESEND_API_KEY`) — fetch nativo, sem novo SDK (padrão "fetch + zod"
+já consolidado em representative-register.ts e RD Station). Resend é stateless, sem refresh token,
+sem estado de sessão no banco.
+Alternativas descartadas: (a) Nodemailer + SMTP — descobre/gerencia credenciais SMTP (operação
+penosa, dependência de terceiro desconhecido), TLS/conexão persistente (overhead em serverless);
+(b) AWS SES — exigiria credenciais AWS SEPARADAS das do R2 (Cloudflare), verificação de domínio,
+saída de sandbox (dias) — mais fricção no go-live que Resend estateless.
+Envs novas: `RESEND_API_KEY` (server-only), `CONTACT_FROM_EMAIL` (remetente verificado no painel
+Resend), `CONTACT_NOTIFICATION_EMAIL` (destino do time comercial — fallback no código para
+`NEXT_PUBLIC_CONTACT_EMAIL` se vazio). Domínio verificado pelo stakeholder antes do go-live
+(ex.: `mail.roco.com.br` ou `roco.com.br`).
+Padrão de robustez: sem credencial, a função loga WARN e retorna "skipped" (nunca lança). Lead já
+foi gravado no banco (Entrada 7) — e-mail é best-effort, falha não apaga contato. Envio acontece
+no mesmo request, via `Promise.allSettled` com timeout de 8s (não há fila).
+**Alternativas**: (a) sem e-mail (só aviso no dashboard do portal) — perde noção de lead em tempo
+real; (b) Mailgun/SendGrid — mais setup, curva operacional equivalente.
+**Justificativa**: Stakeholder pediu "notificação de contato" + "best-effort"; Resend combina
+simplicidade (stateless, sem gerência de conexão) com confiabilidade (Resend é especialista em
+transacional, uptime 99.99%, integração Next.js idiomática).
+**Impacto**: Env vars `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`;
+novo módulo `src/server/lib/contact-email.ts` (schema puro). Não afeta CSP.
+
+## 2026-08-24 — Consolidação do menu (4 itens) + correção do bug de locale em `/contato`
+**Decisão**: Menu público **sai de 6 para 4 itens**: Home, Produtos, Portal ROCO, Contato. As 3 intenções
+que hoje ocupam 3 linhas do menu ("Ligamos pra você" / "Solicite um orçamento" / contato geral) viram
+opções de **dropdown `subject`** dentro do form da página `/contato` (enum: `call_back | quote | general`).
+Hoje `navigation.links` usa `isContactLink()` em `src/shared/lib/nav.ts` que renderiza
+`<Link href="/contato">` **sem prefixo de locale** — resquício de 2026-07-13 quando o link abria um
+modal (removido em 2026-08-23). A correção: `src/core/config/site.ts` ganha `CONTACT_SEGMENT = "contato"`,
+`contactPath(locale)` e novo `case "#contato": return contactPath(locale);` em `resolveDestination()`.
+Isso torna `isContactLink()` em nav-items.tsx/footer-link.tsx **obsoleta** (removida) — item "Contato"
+passa a se comportar como qualquer outro link de nav (fica "ativo" quando a pessoa está em
+`/{locale}/contato` — bug atual que nunca acontecia porque o item sempre renderizava sem prefix).
+**Alternativas**: (a) manter 6 itens com destinos diferentes — não atende ao pedido explícito "consolidar
+o menu"; (b) resolver o bug do locale SÓ em nav-items.tsx — deixaria a lacuna abrir de novo no footer
+via footer-link.tsx ou em futura página que use `#contato`, já que o padrão `resolveDestination()` é o
+lugar lógico/central para essa lógica.
+**Justificativa**: Simplificar navegação (menos visual clutter); centralizar resolve destino como já feito
+para `#produtos`/`#representantes` em 2026-07-19.
+**Impacto**: `src/i18n/dictionaries/{pt,en}.json` — `navigation.links` reduzido (4 items com `label` +
+`href="#contato"` mapeado via `resolveDestination`); `src/core/config/site.ts` ganha `contactPath()`;
+`src/shared/lib/nav.ts` remove `isContactLink()`; `src/shared/components/nav/nav-items.tsx` e
+`src/shared/components/footer/footer-link.tsx` usam `resolveDestination()` na rota comum, sem
+especialização; `src/app/sitemap.ts` ganha entrada `/contato`. Testes de `resolveDestination()` ganham
+case `#contato`.
+
+## 2026-08-24 — Nova tabela `contact_submissions` (migration 0007): lead gravado ANTES de qualquer canal
+**Decisão**: Tabela `contact_submissions(id, uuid client_tracking_id UNIQUE, name, email, phone,
+company_name, cnpj, subject, product_slug, product_name_at_submit, consent_granted BOOLEAN,
+consent_at, rd_station_status, rd_station_error, email_status, email_error, ip_address, submitted_at,
+updated_at)` — grava o lead da página `/contato` **ANTES** de disparar RD Station ou Resend. Status por
+canal (`rd_station_status`: pending/sent/failed/skipped; idem `email_status`) com mensagens de erro para
+diagnóstico. `client_tracking_id` = UUID gerado no backend a cada submissão (coluna UNIQUE, nossa chave
+de dedupe já que a API do RD não é idempotente). Produto resolvido servidor-side a partir do slug
+(via `getPublicProductBySlug`, nunca cru do cliente — previne injeção). `consent_granted` boolean +
+`consent_at` timestamp = trilha de auditoria LGPD do consentimento real que a pessoa marcou (checkbox
+obrigatório no formulário `/contato`, DISTINTO do `ConsentBanner` que trata de cookies/tracking do site
+como um todo — dois mecanismos por finalidade).
+**Alternativas**: (a) sem persistência, só dispara RD/e-mail direto — rejeitado, falha de rede perde o
+lead permanentemente; (b) reaproveitar a tabela `representatives` — rejeitado, é entidade de negócio
+completamente diferente (onboarding com RBAC/aprovação/documentos vs lead transiente de contato).
+**Justificativa**: Requisito explícito do pedido ("lead sempre gravado primeiro, canais são best-effort").
+**Impacto**: Migration `drizzle/0007_contact_submissions.sql` (executada automaticamente no boot via
+`scripts/migrate.mjs`). `src/db/schema/contact.ts` novo. Função de inserção + schema zod em
+`src/server/lib/contact-submit.ts` (testável, similar a `representative-register.ts`). Rota `POST /api/contact`
+(Route Handler) que (1) insere o lead, (2) dispara os dois canais em paralelo via `Promise.allSettled`, (3)
+retorna `201 { ok: true }` ao visitante assim que o INSERT tenha funcionado, independente do resultado
+dos canais (ver entrada 8 para detalhe de fluxo síncrono).
+
+## 2026-08-24 — Correção: envio de contato é síncrono na própria requisição, sem fila
+**Decisão**: Uma entrada anterior deste mesmo dia registrou por engano uma arquitetura de fila BullMQ
+para o envio ao RD Station/e-mail — NUNCA foi decidida e é revertida aqui antes de qualquer
+implementação a partir dela. O fluxo real: `POST /api/contact` (Route Handler comum, não tRPC) grava
+o lead em `contact_submissions` de forma síncrona; só então dispara `Promise.allSettled` com os dois
+canais (RD Station, Resend) em paralelo, cada um com timeout de 8s (via `AbortSignal.timeout(8000)`) e
+sem lançar exceção; atualiza a linha com o resultado de cada canal (`rd_station_status`/`email_status`
++ erro se houver); responde ao visitante `201 { ok: true }` uma vez que o INSERT tenha funcionado,
+independente do resultado dos canais (ambos são best-effort).
+**Justificativa**: O app roda como processo Node persistente (standalone/Docker), não serverless —
+esperar ~8s dentro da própria requisição é aceitável para um formulário público de baixo volume;
+BullMQ/Redis faz sentido para o `erp-sync` (webhook de alto volume, terceiro), não aqui. Menos
+infraestrutura para o mesmo requisito de "lead nunca se perde": a garantia já vem do INSERT
+acontecer ANTES de qualquer tentativa de envio. Falha de rede após o INSERT não apaga o contato,
+e o admin pode revisar o status dos canais em `contact_submissions` — não há fila/DLQ/retry nova.
+**Impacto**: Route Handler `src/app/api/contact/route.ts` com lógica síncrona (sem fila/worker/DLQ
+novos). Sem mudanças em migrations ou schema — a tabela `contact_submissions` (entrada 7) e os
+envs de RD/Resend (entradas 4–5) permanecem como projetados.
+

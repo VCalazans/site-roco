@@ -4,10 +4,12 @@ import {
   CATALOG_SEGMENT,
   REPRESENTATIVES_SEGMENT,
   PRODUCTS_SEGMENT,
+  CONTACT_SEGMENT,
   CATALOG_PDF_FILENAME,
   representativesPath,
   productsPath,
   catalogPath,
+  contactPath,
   resolveDestination,
 } from "./site";
 
@@ -23,6 +25,10 @@ describe("site config", () => {
 
     it("exports PRODUCTS_SEGMENT as 'produtos'", () => {
       expect(PRODUCTS_SEGMENT).toBe("produtos");
+    });
+
+    it("exports CONTACT_SEGMENT as 'contato'", () => {
+      expect(CONTACT_SEGMENT).toBe("contato");
     });
 
     it("exports CATALOG_PDF_FILENAME as expected", () => {
@@ -132,6 +138,30 @@ describe("site config", () => {
     });
   });
 
+  describe("contactPath", () => {
+    it("returns locale-prefixed path for Portuguese", () => {
+      expect(contactPath("pt")).toBe("/pt/contato");
+    });
+
+    it("returns locale-prefixed path for English", () => {
+      expect(contactPath("en")).toBe("/en/contato");
+    });
+
+    it("accepts any locale string", () => {
+      expect(contactPath("es")).toBe("/es/contato");
+      expect(contactPath("fr")).toBe("/fr/contato");
+    });
+
+    it("handles empty locale", () => {
+      expect(contactPath("")).toBe("//contato");
+    });
+
+    it("always returns a string starting with /", () => {
+      const result = contactPath("any");
+      expect(result).toMatch(/^\/.*contato$/);
+    });
+  });
+
   describe("resolveDestination", () => {
     describe("products anchor/path resolution", () => {
       it("treats #produtos and /produtos as aliases", () => {
@@ -196,11 +226,18 @@ describe("site config", () => {
       });
     });
 
-    describe("in-page anchors (pass-through)", () => {
-      it("passes through #contato unchanged", () => {
-        expect(resolveDestination("#contato", "pt")).toBe("#contato");
+    describe("contact anchor resolution", () => {
+      it("resolves #contato anchor to contactPath", () => {
+        expect(resolveDestination("#contato", "pt")).toBe("/pt/contato");
       });
 
+      it("resolves #contato for different locales", () => {
+        expect(resolveDestination("#contato", "pt")).toBe("/pt/contato");
+        expect(resolveDestination("#contato", "en")).toBe("/en/contato");
+      });
+    });
+
+    describe("unrelated in-page anchors (pass-through)", () => {
       it("passes through arbitrary anchors unchanged", () => {
         expect(resolveDestination("#section", "pt")).toBe("#section");
         expect(resolveDestination("#about", "en")).toBe("#about");

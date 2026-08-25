@@ -107,11 +107,32 @@
 - [x] Segurança: 2 achados ALTOS corrigidos (gate `materials.list`, r2Key omitido do JSON)
 - [x] i18n: 408 chaves portal.* verificadas programaticamente (paridade pt/en), bug `site`→`welcome` corrigido
 
+### Página `/contato` e fluxo de recebimento de orçamento (2026-08-24 parte 3)
+- [x] Rota pública `/{locale}/contato` (Server Component, resolve produto no servidor via `getPublicProductBySlug`)
+- [x] Form com campos: nome/e-mail/telefone obrigatórios, empresa/CNPJ opcionais, assunto (dropdown: call_back/quote/general),
+      mensagem opcional, chip de contexto de produto (somente-leitura, removível), checkbox consentimento LGPD obrigatório, honeypot
+- [x] Route Handler `POST /api/contact` (síncrono, sem fila): (1) rate limit IP+global `productionSafe: true` (fail-closed),
+      (2) INSERT `contact_submissions`, (3) Promise.allSettled RD Station + Resend paralelo (timeout 8s, best-effort),
+      (4) responde `201 { ok: true }` assim que INSERT funciona, independente dos canais
+- [x] Tabela `contact_submissions` (migration 0007): name, email, phone, company_name, cnpj, subject, product_slug,
+      product_name_at_submit, consent_granted + consent_at, rd_station_status/error, email_status/error, ip_address, submitted_at
+- [x] UUID client_tracking_id UNIQUE = nossa dedupe (RD API não é idempotente)
+- [x] RD Station Conversions API: `event_type` CONVERSION, custom fields `cf_cnpj`/`cf_produto_interesse` (criar à mão no painel RD)
+- [x] Resend (e-mail transacional): notificação para `CONTACT_NOTIFICATION_EMAIL` (fallback `NEXT_PUBLIC_CONTACT_EMAIL`)
+- [x] Consolidação do menu: 6 → 4 itens (Home, Produtos, Portal ROCO, Contato); 3 intenções agora opções em dropdown `subject`
+- [x] Bug corrigido: link "Contato" agora prefixado com locale via `resolveDestination("#contato")`
+- [x] Segurança anti-header-injection: CONTROL_CHARS regex bloqueia `\r\n\0` em name/companyName/message/productSlug
+- [x] 139 testes novos (contact-submit.test.ts, rd-station.test.ts, contact-email.test.ts) → 623 total
+
 ### Qualidade
-- [x] `npm run build` verde
-- [x] `npm run test` e `npm run test:coverage` funcionando (485 testes totais agora)
+- [x] `npm run build` verde (incluindo `tsc` completo — detectou 6 erros em .test.ts que vitest perdeu)
+- [x] `npm run test` e `npm run test:coverage` funcionando (623 testes totais agora)
 
 ## 🔄 Em Andamento
+- [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
+      real de receber pedidos. Entregue rota + form + integrações RD Station + Resend + rate limit +
+      segurança. 139 testes, 0 regressão. Pendências do stakeholder: provisionar RD Station API Key
+      e campos customizados, Resend domínio verificado.
 - [x] **Carga inicial de imagens de produto — CONCLUÍDA 2026-08-23**: token corrigido pelo
       stakeholder; `npm run db:import-images` subiu 613 imagens (336 MB) para 593 produtos no
       bucket `roco-test`, 0 falhas, chaves/registros no formato do portal; re-execução pula tudo
@@ -125,7 +146,8 @@
 - [ ] Segunda rodada de fotos: mapear 132 arquivos sem produto (faixas 1906–1919, 2237–2280,
       3068–3179 ausentes do catálogo + 11 nomes livres) e 144 produtos sem foto.
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
-- [ ] Provisionar infra prod (Postgres + Redis, Google OAuth, R2 bucket)
+- [ ] **Provisionar infra prod** (Alto): Postgres, Redis, Google OAuth, bucket R2 separado sem
+      acesso público, RD Station API Key + campos customizados, Resend domínio verificado.
 
 ## 🗺️ Roadmap Estratégico (avaliação multi-agente 2026-08-23)
 Análise de 5 áreas (conversão, portal/CRM, dados/integrações, SEO, segurança/LGPD) sobre o código
@@ -168,6 +190,9 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] **Vídeo do hero: trocar embed YouTube por MP4 self-hosted** (2026-08-12): pedir o arquivo ao
       stakeholder; remove youtube-nocookie da CSP `frame-src`, elimina tracking de terceiro (LGPD)
       e o player em conexões lentas. Avaliar `prefers-reduced-motion` (pôster já cobre fallback).
+- [ ] **Endurecer `/api/contact` contra enumeração/bot** (2026-08-24): honeypot + rate limit 8/10min
+      IP (rígido) é defesa inicial; hardening futuro: Turnstile/hCaptcha ou confirmação de e-mail
+      para throttle sem revelar se lead já existe (evita spam em lote).
 - [ ] **Endurecer register contra enumeração/spam** (revisão 2026-08-12): oráculo 409
       email_exists/cnpj_exists + teto global 60/5min permitem ~17k probes/dia (enumeração) e
       pré-cadastros falsos inundando a fila do admin (CNPJs válidos são geráveis; honeypot só
@@ -176,7 +201,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] Busca por nome de categoria na listagem `/produtos` (revisão 2026-08-12): a busca cobre
       nome (pt/en) + SKU; categoria só via filtro select. Placeholder já ajustado para não
       prometer o que não faz — implementar se o stakeholder quiser busca unificada.
-- [ ] Smoke test tracking Mautic no navegador (hits, cookies, CSP clean)
+- [ ] Smoke test tracking RD Station no navegador (pixel, tracking, CSP clean)
 - [x] ~~Confirmar certificação/selo GPTW~~ **RESOLVIDO 2026-08-23**: arte oficial com vigência
       fev 2026 – fev 2027 recebida e no rodapé (ver Riscos de Segurança)
 - [ ] Liberar `https://www.roco.com.br` nas "CORS Valid Domains" do Mautic (hoje só `roco.com.br`),
@@ -188,6 +213,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] Newsletter integrada (backlog futuro quando infra de e-mail definida)
 
 ## 🐛 Débitos Técnicos
+- **Retenção de `contact_submissions` (LGPD)** (2026-08-24): tabela contém dados pessoais (ip_address);
+  sem policy de retenção hoje (indefinida). Recomendação: definir prazo (ex.: 1 ano) e job de limpeza automática.
 - **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
   atualmente disabled; links precisam de upload/asset públicos.
 - **Funções puras não exportadas** (2026-08-11): `categoryName` em `products-explorer.tsx`
@@ -210,8 +237,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - Audit logs export/retention policy indefinida.
 
 ## ✅ Resolvido em 2026-08-24
+- **Página `/contato` e recebimento de orçamento — CONCLUÍDA**: site não tinha nenhuma forma real de receber pedidos até hoje. 3 dos 6 itens do menu apontavam para `/contato` (404); botão de orçamento descartava contexto e mandava para PDF. Fluxo novo: formulário público envia lead a RD Station (CRM da ROCO) via Conversions API + e-mail para time comercial via Resend, ambos best-effort; lead SEMPRE gravado em `contact_submissions` primeiro (síncrono, sem fila). Envio paralelo com timeout 8s. Rate limit 8/10min IP + 40/5min global, ambos `productionSafe: true` (fail-closed). Contexto de produto preservado via `?produto=` query param. 139 testes, 0 regressão. Ver decisionLog 2026-08-24 (RD Station, Resend, consolidação menu, contact_submissions, fluxo síncrono).
 - **Achado de segurança ALTO 1**: `materials.list` aceitava gate `materials:read` em vez de `materials:create` — representante conseguia ver rascunhos não publicados. CORRIGIDO: gate trocado para `permissionProcedure("materials","create")` (admin only).
 - **Achado de segurança ALTO 2**: `r2Key` bruta vazava no payload JSON de `materials.list`/`listPublished` — combinado com bucket R2 público (r2.dev), permitia montar URL pública contornando link presignado. CORRIGIDO: `withDownloadUrl` agora omite `r2Key` do retorno (expõe só `downloadUrl`). Componentes consumidores (`MaterialRow`, form edição) ajustados para patch parcial (reenviam `r2Key` só se arquivo trocado, senão omitem).
+- **Anti-header-injection em `/api/contact`**: CONTROL_CHARS regex (`[\r\n\0]`) bloqueia caracteres de controle em name/companyName/message/productSlug — previne injeção de cabeçalho de e-mail via Resend (mitiga risco teórico de header injection caso o backend do Resend não sanitize).
 
 ## ✅ Resolvido em 2026-08-23
 - **Sidebar colapsável do portal**: toggle no AppBar com persistência localStorage por usuário (larguras 260/72px); padrão `next/navigation` decidiu estado inicial para evitar hydration mismatch.
@@ -265,11 +294,23 @@ catálogo vivo via ERP → cotação como dado estruturado.
   (onboarding docs desde 2026-08-09), visível agora com conteúdo sensível novo (materiais comerciais)
   acessível a mais público (representantes vs admin). **Decisão pendente stakeholder**: bucket separado
   sem acesso público para conteúdo privado, antes de produção.
+- **Honeypot é única defesa anti-bot em `/api/contact`** (2026-08-24, Médio/backlog): mesmo padrão de risco
+  já aceito para `/api/representatives/register`. Taxa 8/10min IP + 40/5min global é rígida, porém honeypot
+  só funciona se bot preenche o campo — bots sofisticados saltam. **Hardening futuro**: Turnstile/hCaptcha
+  ou confirmação de e-mail antes do INSERT (mantendo 409 atrás do desafio).
+- **Sem política de retenção para `contact_submissions`** (2026-08-24, Médio/backlog): tabela contém `ip_address`/
+  `userAgent` (dados pessoais). Minimização presente (gravaremos só para logs/auditoria), mas retenção indefinida
+  é débito LGPD. Recomendação: definir prazo (ex.: 1 ano) e job de limpeza automática.
+- **`/api/contact` e `/api/representatives/register` sem `productionSafe: true` em paralelo** (2026-08-24, Médio/backlog):
+  `/api/contact` implementou com `productionSafe: true` (fail-closed), mas `/api/representatives/register` ainda
+  tem `productionSafe: false` (fail-open). Recomendação: fast-follow para passar a flag também em register (foi
+  mencionado como débito em 2026-08-23, ficou pendente).
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 485 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 623 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
-  +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits).
+  +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits;
+  +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
 - **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
   (nenhum achado crítico/alto novo introduzido).

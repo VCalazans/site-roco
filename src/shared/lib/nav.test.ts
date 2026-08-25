@@ -4,7 +4,6 @@ import {
   navLabelClass,
   isNavLinkActive,
   externalProps,
-  isContactLink,
   type NavLink,
 } from "./nav";
 
@@ -169,15 +168,17 @@ describe("nav utilities", () => {
   });
 
   describe("isNavLinkActive", () => {
-    describe("contact links (never active — they open a modal)", () => {
-      it("returns false for #contato regardless of pathname", () => {
-        expect(isNavLinkActive("#contato", "/pt")).toBe(false);
-        expect(isNavLinkActive("#contato", "/")).toBe(false);
-        expect(isNavLinkActive("#contato", "/pt/representantes")).toBe(false);
+    describe("contact link (real page since 2026-08-24 — behaves like any other link)", () => {
+      it("is active on an exact match", () => {
+        expect(isNavLinkActive("/pt/contato", "/pt/contato")).toBe(true);
       });
 
-      it("returns false for #contato-suffixed anchors", () => {
-        expect(isNavLinkActive("#contato-extra", "/pt")).toBe(false);
+      it("is active on nested routes below it", () => {
+        expect(isNavLinkActive("/pt/contato", "/pt/contato/obrigado")).toBe(true);
+      });
+
+      it("is NOT active on a different route", () => {
+        expect(isNavLinkActive("/pt/contato", "/pt/produtos")).toBe(false);
       });
     });
 
@@ -311,57 +312,6 @@ describe("nav utilities", () => {
       if (Object.keys(props).length > 0) {
         expect(Object.keys(props)).toEqual(expect.arrayContaining(["target", "rel"]));
       }
-    });
-  });
-
-  describe("isContactLink", () => {
-    it("returns true for #contato anchor", () => {
-      expect(isContactLink("#contato")).toBe(true);
-    });
-
-    it("returns true for #contato with trailing content", () => {
-      expect(isContactLink("#contato-extra")).toBe(true);
-    });
-
-    it("returns false for other anchors", () => {
-      expect(isContactLink("#about")).toBe(false);
-      expect(isContactLink("#top")).toBe(false);
-      expect(isContactLink("#section")).toBe(false);
-    });
-
-    it("returns false for relative paths", () => {
-      expect(isContactLink("/contato")).toBe(false);
-      expect(isContactLink("contato")).toBe(false);
-    });
-
-    it("returns false for external URLs", () => {
-      expect(isContactLink("https://example.com")).toBe(false);
-    });
-
-    it("returns false for empty string", () => {
-      expect(isContactLink("")).toBe(false);
-    });
-
-    it("case-sensitive matching", () => {
-      expect(isContactLink("#Contato")).toBe(false);
-      expect(isContactLink("#CONTATO")).toBe(false);
-    });
-
-    it("requires exact anchor prefix", () => {
-      expect(isContactLink("#con")).toBe(false);
-      expect(isContactLink("#contat")).toBe(false);
-    });
-
-    it("matches #contato at start only", () => {
-      expect(isContactLink("text#contato")).toBe(false);
-    });
-
-    it("handles URLs with query strings", () => {
-      expect(isContactLink("#contato?param=value")).toBe(true);
-    });
-
-    it("handles multiple fragments (pass-through test)", () => {
-      expect(isContactLink("#contato#section")).toBe(true);
     });
   });
 });
