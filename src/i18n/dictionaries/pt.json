@@ -19,22 +19,12 @@
         "icon": ""
       },
       {
-        "label": "Ligamos pra você",
-        "href": "#contato",
-        "icon": "call"
-      },
-      {
-        "label": "Solicite um orçamento",
-        "href": "#contato",
-        "icon": "headset"
-      },
-      {
         "label": "Portal ROCO",
         "href": "#representantes",
-        "icon": "sales"
+        "icon": ""
       },
       {
-        "label": "Entre em contato",
+        "label": "Contato",
         "href": "#contato",
         "icon": ""
       }
@@ -176,37 +166,51 @@
     }
   },
   "contact": {
-    "title": "Entre em contato",
-    "description": "Deixe seu contato no formulário abaixo que retornaremos assim que possível.",
-    "close": "Fechar",
-    "loading": "Carregando formulário…",
-    "unavailable": "Nosso formulário está temporariamente indisponível para manutenção. Fale com a gente pelo WhatsApp ou por e-mail que retornamos assim que possível.",
-    "noscript": "Ative o JavaScript no seu navegador para visualizar o formulário.",
-    "cnpjInvalid": "CNPJ inválido. Confira os números digitados.",
-    "cnpjPlaceholder": "00.000.000/0000-00",
-    "phonePlaceholder": "(00) 00000-0000",
+    "seo": {
+      "title": "Contato — ROCO",
+      "description": "Entre em contato com a ROCO para solicitar orçamentos, pedir ligação ou falar com nosso time comercial. Resposta rápida e profissional."
+    },
+    "headline": "Fale com a ROCO",
+    "subheadline": "Envie sua mensagem e nossa equipe comercial entrará em contato.",
+    "intro": "Seja para orçamentos, dúvidas sobre produtos ou qualquer outra necessidade, estamos à disposição para atendê-lo.",
     "form": {
-      "nome": "Nome",
-      "sobrenome": "Sobrenome",
-      "telefone": "Telefone",
-      "email": "Email",
-      "cnpj": "CNPJ",
-      "cidade": "Cidade",
-      "estado": "Estado",
-      "mensagem": "Mensagem",
-      "captcha": "Quanto é 27 + 15?",
+      "title": "Formulário de Contato",
+      "name": "Nome completo",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "companyName": "Empresa (opcional)",
+      "cnpj": "CNPJ (opcional)",
+      "subject": {
+        "label": "Assunto",
+        "options": {
+          "callBack": "Ligamos pra você",
+          "quote": "Solicite um orçamento",
+          "general": "Fale conosco"
+        }
+      },
+      "message": "Mensagem (opcional)",
+      "productContext": {
+        "label": "Qual produto você está interessado?",
+        "clear": "Remover"
+      },
+      "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
       "submit": "Enviar",
-      "submitting": "Por favor, aguarde...",
-      "errors": {
-        "nome": "Por favor, informe seu nome",
-        "sobrenome": "Por favor, informe seu sobrenome",
-        "telefone": "Por favor, informe seu telefone para contato",
-        "email": "Isso é obrigatório.",
-        "cnpj": "Por gentileza, preencha seu CNPJ",
-        "cidade": "Isso é obrigatório.",
-        "estado": "Isso é obrigatório.",
-        "captcha": "Isso é obrigatório."
-      }
+      "sending": "Enviando…"
+    },
+    "validation": {
+      "required": "Este campo é obrigatório.",
+      "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
+      "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
+      "invalidCnpj": "CNPJ inválido. Confira os números digitados.",
+      "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar."
+    },
+    "errors": {
+      "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+      "generic": "Não foi possível enviar sua mensagem agora. Tente novamente em instantes."
+    },
+    "success": {
+      "title": "Mensagem recebida!",
+      "message": "Obrigado pelo contato. Nossa equipe comercial analisará sua solicitação e retornará em breve."
     }
   },
   "whatsapp": {
@@ -944,13 +948,15 @@
         },
         "upload": {
           "dropzone": "Arraste um arquivo ou clique para selecionar",
-          "helper": "Formatos aceitos: PDF, vídeos MP4/WebM e imagens JPG/PNG/WebP.",
+          "helper": "Formatos aceitos: {formats}.",
           "maxSize": "Tamanho máximo: {size}",
-          "accepted": "Formatos aceitos: PDF, MP4, WebM, JPG, PNG, WebP",
+          "accepted": "Formatos aceitos: {formats}",
           "remove": "Remover",
           "replace": "Substituir arquivo",
           "uploading": "Enviando...",
-          "uploadError": "Erro ao fazer upload — tente novamente."
+          "uploadError": "Erro ao fazer upload — tente novamente.",
+          "errorType": "Formato não suportado. Aceitos: {formats}",
+          "errorSize": "Arquivo acima do limite. Máximo: {size}"
         },
         "actions": {
           "save": "Salvar",

@@ -18,7 +18,11 @@ import { useTRPC } from "@/core/trpc-client";
 import { PortalFileUploader } from "@/modules/portal/components/shared/portal-file-uploader";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
-import { getAllowedContentTypes, getMaxBytes } from "@/shared/lib/upload-limits";
+import {
+  getAllowedContentTypes,
+  getExtension,
+  getMaxBytes,
+} from "@/shared/lib/upload-limits";
 
 /**
  * Tipos e tetos DERIVADOS da tabela central (`@/shared/lib/upload-limits`),
@@ -41,6 +45,23 @@ const MATERIAL_TYPES = getAllowedContentTypes("material");
  * final para o racional completo.
  */
 const MATERIAL_MAX_SIZE_LABEL = "50/200 MB";
+
+/**
+ * Lista de formatos exibida ao usuário, DERIVADA das extensões da tabela
+ * central — nunca escrita à mão. A versão anterior era literal no dicionário
+ * ("PDF, MP4, WebM, JPG, PNG, WebP") e ficou mentindo assim que a tabela
+ * ganhou Office e ZIP: a tela dizia um conjunto e o sistema aceitava outro.
+ * `Set` porque dois content-types mapeiam para a mesma extensão (zip).
+ */
+const MATERIAL_FORMATS_LABEL = [
+  ...new Set(
+    MATERIAL_TYPES.map((type) => getExtension("material", type)).filter(
+      (ext): ext is string => Boolean(ext)
+    )
+  ),
+]
+  .join(", ")
+  .toUpperCase();
 
 const CATEGORY_OPTIONS = ["commercial_policy", "logistics", "contacts", "training", "other"] as const;
 
@@ -269,7 +290,15 @@ export function MaterialFormDialog({
               labels={{
                 dropzone: dictionary.form.upload.dropzone,
                 maxSize: interpolate(dictionary.form.upload.maxSize, { size: MATERIAL_MAX_SIZE_LABEL }),
-                accepted: dictionary.form.upload.accepted,
+                accepted: interpolate(dictionary.form.upload.accepted, {
+                  formats: MATERIAL_FORMATS_LABEL,
+                }),
+                errorType: interpolate(dictionary.form.upload.errorType, {
+                  formats: MATERIAL_FORMATS_LABEL,
+                }),
+                errorSize: interpolate(dictionary.form.upload.errorSize, {
+                  size: MATERIAL_MAX_SIZE_LABEL,
+                }),
                 remove: dictionary.form.upload.remove,
                 replace: dictionary.form.upload.replace,
                 uploading: dictionary.form.upload.uploading,

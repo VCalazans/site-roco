@@ -22,7 +22,19 @@ export type PortalFileUploaderLabels = {
   remove: string;
   replace: string;
   uploading: string;
+  /** Falha de rede/servidor — o caso em que não sabemos qual regra quebrou. */
   uploadError: string;
+  /**
+   * Rótulos específicos de REJEIÇÃO, opcionais.
+   *
+   * As três causas possíveis — formato não aceito, arquivo acima do teto e
+   * falha de rede — mostravam o MESMO texto genérico, e a pessoa não tinha
+   * como saber o que corrigir. Fornecer estes campos faz o componente dizer
+   * qual regra quebrou; sem eles o comportamento é o antigo (`uploadError`
+   * para tudo), então nada regride enquanto os chamadores não passarem a copy.
+   */
+  errorType?: string;
+  errorSize?: string;
 };
 
 export type PortalFileUploaderConfirmedFile = {
@@ -133,12 +145,16 @@ export function PortalFileUploader({
 
     setError(null);
 
+    // As duas rejeições abaixo dizem QUAL regra quebrou. `selected.type` pode
+    // vir vazio quando o sistema operacional não reconhece a extensão — nesse
+    // caso cai em "formato não aceito", que é o diagnóstico correto do ponto
+    // de vista de quem está enviando.
     if (!acceptedTypes.includes(selected.type)) {
-      setError(labels.uploadError);
+      setError(labels.errorType ?? labels.uploadError);
       return;
     }
     if (selected.size <= 0 || selected.size > maxSizeBytesFor(selected.type)) {
-      setError(labels.uploadError);
+      setError(labels.errorSize ?? labels.uploadError);
       return;
     }
 

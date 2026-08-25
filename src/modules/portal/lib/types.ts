@@ -452,14 +452,21 @@ export type PortalMaterialsDictionary = {
     };
     upload: {
       dropzone: string;
+      /** Placeholder literal `{formats}` — usar `interpolate()`. */
       helper: string;
       /** Placeholder literal `{size}` — usar `interpolate()`. */
       maxSize: string;
+      /** Placeholder literal `{formats}` — usar `interpolate()`. */
       accepted: string;
       remove: string;
       replace: string;
       uploading: string;
+      /** Falha de rede/servidor — quando não se sabe qual regra quebrou. */
       uploadError: string;
+      /** Rejeição por formato. Placeholder literal `{formats}`. */
+      errorType: string;
+      /** Rejeição por tamanho. Placeholder literal `{size}`. */
+      errorSize: string;
     };
     actions: { save: string; cancel: string; delete: string };
   };
