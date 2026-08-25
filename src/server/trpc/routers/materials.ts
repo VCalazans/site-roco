@@ -15,12 +15,12 @@ import {
   getAllowedContentTypes,
   getExtension,
   isSizeWithinLimit,
-} from "@/server/lib/upload-limits";
+} from "@/shared/lib/upload-limits";
 import { permissionProcedure, router } from "../init";
 
 /**
  * Tipos aceitos para materiais — DERIVADOS da tabela central em
- * `@/server/lib/upload-limits` (campo `"material"`).
+ * `@/shared/lib/upload-limits` (campo `"material"`).
  *
  * Antes esta lista era duplicada aqui como literal, apesar de o comentário já
  * afirmar que a origem era única. As duas listas divergiram na primeira vez

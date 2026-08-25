@@ -21,17 +21,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import { PortalFileUploader } from "@/modules/portal/components/shared/portal-file-uploader";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { getAllowedContentTypes, getMaxBytes } from "@/shared/lib/upload-limits";
 
 /**
- * Espelha `heroVideo` de `src/server/lib/upload-limits.ts` — só para
- * pré-checagem de UX no client (o servidor é a fonte de verdade real).
+ * Tipos e tetos DERIVADOS da tabela central (`@/shared/lib/upload-limits`),
+ * nunca copiados.
+ *
+ * Antes estas listas eram literais aqui, com um comentário afirmando que
+ * "espelhavam" o servidor. Espelho copiado à mão não espelha: quando a tabela
+ * central mudou, este arquivo continuou oferecendo a lista antiga — o seletor
+ * filtrava o arquivo e a pré-checagem o rejeitava antes de chegar ao servidor,
+ * que já aceitava. O módulo é puro (sem `server-only`), então client e servidor
+ * leem exatamente a mesma fonte.
  */
-const HERO_VIDEO_TYPES = ["video/mp4", "video/webm"] as const;
-const HERO_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
-
-/** Espelha `heroPoster` de `src/server/lib/upload-limits.ts`. */
-const HERO_POSTER_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-const HERO_POSTER_MAX_BYTES = 10 * 1024 * 1024;
+const HERO_VIDEO_TYPES = getAllowedContentTypes("heroVideo");
+const HERO_POSTER_TYPES = getAllowedContentTypes("heroPoster");
 
 type HeroFormDialogProps = {
   open: boolean;
@@ -312,7 +316,7 @@ export function HeroFormDialog({
                       uploadError: dictionary.media.uploadError,
                     }}
                     acceptedTypes={HERO_VIDEO_TYPES}
-                    maxSizeBytesFor={() => HERO_VIDEO_MAX_BYTES}
+                    maxSizeBytesFor={(contentType) => getMaxBytes("heroVideo", contentType) ?? 0}
                     presign={(input) =>
                       presignVideoMutation.mutateAsync({ ...input, poster: false })
                     }
@@ -345,7 +349,7 @@ export function HeroFormDialog({
                       uploadError: dictionary.media.uploadError,
                     }}
                     acceptedTypes={HERO_POSTER_TYPES}
-                    maxSizeBytesFor={() => HERO_POSTER_MAX_BYTES}
+                    maxSizeBytesFor={(contentType) => getMaxBytes("heroPoster", contentType) ?? 0}
                     presign={(input) =>
                       presignPosterMutation.mutateAsync({ ...input, poster: true })
                     }

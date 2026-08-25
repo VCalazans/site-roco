@@ -67,12 +67,28 @@ const nextConfig: NextConfig = {
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
 
-  // Cloudflare R2 (portal interno): o upload de imagens de produto e documentos
-  // de representante é um PUT presignado feito DIRETO do navegador para o
-  // endpoint da conta R2 (`connect-src`); as imagens públicas do catálogo são
-  // servidas do bucket público (`img-src`). Nada disso toca `script-src`.
+  // Cloudflare R2 (portal interno): o upload de imagens de produto, documentos
+  // de representante, mídia do hero e materiais é um PUT presignado feito
+  // DIRETO do navegador para o R2 (`connect-src`); as imagens públicas do
+  // catálogo são servidas do bucket público (`img-src`). Nada toca `script-src`.
+  //
+  // ATENÇÃO ao formato do host. O AWS SDK gera URL presignada em
+  // *virtual-hosted-style* — o bucket vira SUBDOMÍNIO:
+  //
+  //   https://<bucket>.<conta>.r2.cloudflarestorage.com/materials/…
+  //
+  // e não o *path-style* que se poderia supor
+  // (`https://<conta>.r2.cloudflarestorage.com/<bucket>/…`). Liberar só o host
+  // da conta bloqueava TODO upload vindo do navegador com
+  // "violates the following Content Security Policy directive: connect-src" —
+  // o que manteve o upload de documentos de representante quebrado desde que
+  // foi escrito, sem ninguém notar, porque nunca foi exercitado em navegador.
+  //
+  // O curinga cobre qualquer bucket DA MESMA CONTA (o `<conta>` continua fixo),
+  // então não precisa de `R2_BUCKET` como build-arg novo e continua não
+  // permitindo host de terceiro.
   const r2Endpoint = process.env.R2_ACCOUNT_ID
-    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com https://*.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
     : "";
   const r2Public = process.env.R2_PUBLIC_URL
     ? new URL(process.env.R2_PUBLIC_URL).origin

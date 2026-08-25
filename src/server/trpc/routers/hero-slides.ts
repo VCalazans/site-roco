@@ -21,7 +21,7 @@ import {
   isContentTypeAllowed,
   isSizeWithinLimit,
   type UploadField,
-} from "@/server/lib/upload-limits";
+} from "@/shared/lib/upload-limits";
 import { permissionProcedure, router } from "../init";
 
 const MAX_HERO_SLIDES = Number(process.env.MAX_HERO_SLIDES ?? 20);
@@ -283,7 +283,7 @@ export const heroSlidesRouter = router({
    * pôster aceita imagem (JPEG/PNG/WebP, 10 MB), vídeo aceita MP4/WebM
    * (200 MB) — bug corrigido 2026-08-24 (antes os dois caminhos validavam
    * contra os tipos de VÍDEO mesmo para o campo de pôster, tornando
-   * impossível fazer upload de um pôster). Ver `@/server/lib/upload-limits`.
+   * impossível fazer upload de um pôster). Ver `@/shared/lib/upload-limits`.
    */
   presignUpload: permissionProcedure("hero_slides", "create")
     .input(

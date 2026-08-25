@@ -18,34 +18,20 @@ import { useTRPC } from "@/core/trpc-client";
 import { PortalFileUploader } from "@/modules/portal/components/shared/portal-file-uploader";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
-
-/** Espelha `materialContentTypeSchema` de `src/server/trpc/routers/materials.ts`. */
-type MaterialContentType =
-  | "application/pdf"
-  | "video/mp4"
-  | "video/webm"
-  | "image/jpeg"
-  | "image/png"
-  | "image/webp";
+import { getAllowedContentTypes, getMaxBytes } from "@/shared/lib/upload-limits";
 
 /**
- * Espelha o campo `material` de `src/server/lib/upload-limits.ts` — só para
- * pré-checagem de UX no client (o servidor é a fonte de verdade real).
- * Limites diferem por tipo: documento/imagem 20 MB, vídeo 200 MB.
+ * Tipos e tetos DERIVADOS da tabela central (`@/shared/lib/upload-limits`),
+ * nunca copiados.
+ *
+ * Antes esta lista era literal aqui, com um comentário afirmando que
+ * "espelhava" o servidor. Espelho copiado à mão não espelha: quando a tabela
+ * central ganhou Office e ZIP, este arquivo continuou oferecendo só 6 tipos —
+ * o seletor filtrava o arquivo e a pré-checagem o rejeitava antes mesmo de
+ * chegar ao servidor, que já aceitava. O módulo é puro (sem `server-only`),
+ * então client e servidor leem exatamente a mesma fonte.
  */
-const MATERIAL_MAX_BYTES: Record<MaterialContentType, number> = {
-  "application/pdf": 20 * 1024 * 1024,
-  "video/mp4": 200 * 1024 * 1024,
-  "video/webm": 200 * 1024 * 1024,
-  "image/jpeg": 20 * 1024 * 1024,
-  "image/png": 20 * 1024 * 1024,
-  "image/webp": 20 * 1024 * 1024,
-};
-const MATERIAL_TYPES = Object.keys(MATERIAL_MAX_BYTES) as MaterialContentType[];
-
-function isMaterialContentType(value: string): value is MaterialContentType {
-  return Object.hasOwn(MATERIAL_MAX_BYTES, value);
-}
+const MATERIAL_TYPES = getAllowedContentTypes("material");
 /**
  * O dicionário só prevê um único placeholder `{size}` em
  * `materials.form.upload.maxSize`, mas o campo aceita tipos com limites
@@ -54,7 +40,7 @@ function isMaterialContentType(value: string): value is MaterialContentType {
  * "video" a partir de um componente sem acesso ao locale). Ver relatório
  * final para o racional completo.
  */
-const MATERIAL_MAX_SIZE_LABEL = "20/200 MB";
+const MATERIAL_MAX_SIZE_LABEL = "50/200 MB";
 
 const CATEGORY_OPTIONS = ["commercial_policy", "logistics", "contacts", "training", "other"] as const;
 
@@ -189,7 +175,7 @@ export function MaterialFormDialog({
       ...base,
       r2Key: form.newUpload.key,
       filename: form.newUpload.filename,
-      contentType: form.newUpload.contentType as MaterialContentType,
+      contentType: form.newUpload.contentType,
       sizeBytes: form.newUpload.sizeBytes,
     };
   }
@@ -201,7 +187,7 @@ export function MaterialFormDialog({
       ...buildBasePayload(),
       r2Key: newUpload.key,
       filename: newUpload.filename,
-      contentType: newUpload.contentType as MaterialContentType,
+      contentType: newUpload.contentType,
       sizeBytes: newUpload.sizeBytes,
     };
   }
@@ -290,19 +276,17 @@ export function MaterialFormDialog({
                 uploadError: dictionary.form.upload.uploadError,
               }}
               acceptedTypes={MATERIAL_TYPES}
-              maxSizeBytesFor={(contentType) =>
-                isMaterialContentType(contentType) ? MATERIAL_MAX_BYTES[contentType] : 0
-              }
+              maxSizeBytesFor={(contentType) => getMaxBytes("material", contentType) ?? 0}
               presign={(input) =>
                 presignMutation.mutateAsync({
                   ...input,
-                  contentType: input.contentType as MaterialContentType,
+                  contentType: input.contentType,
                 })
               }
               confirm={(input) =>
                 confirmMutation.mutateAsync({
                   ...input,
-                  contentType: input.contentType as MaterialContentType,
+                  contentType: input.contentType,
                 })
               }
               onUploaded={(uploaded) =>
