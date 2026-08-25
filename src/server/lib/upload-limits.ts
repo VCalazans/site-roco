@@ -26,7 +26,12 @@ export type UploadField = "heroVideo" | "heroPoster" | "material";
 
 const HERO_VIDEO_MAX_BYTES = 200 * 1024 * 1024; // hero vídeos podem ser maiores que imagens
 const HERO_POSTER_MAX_BYTES = 10 * 1024 * 1024; // mesmo teto usado para imagens de produto
-const MATERIAL_DOCUMENT_MAX_BYTES = 20 * 1024 * 1024;
+/**
+ * 50 MB (era 20). Catálogo comercial em PDF com fotos passa de 20 MB com
+ * facilidade, e apresentação em PowerPoint idem — o teto antigo barrava
+ * material legítimo e a tela não explicava o motivo.
+ */
+const MATERIAL_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024;
 const MATERIAL_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
 const MATERIAL_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 
@@ -41,8 +46,39 @@ const UPLOAD_LIMITS: Record<UploadField, Record<string, UploadLimit>> = {
     "image/png": { extension: "png", maxBytes: HERO_POSTER_MAX_BYTES },
     "image/webp": { extension: "webp", maxBytes: HERO_POSTER_MAX_BYTES },
   },
+  /**
+   * Biblioteca de material de vendas. A lista original tinha só PDF, vídeo e
+   * imagem — o que barrava justamente os formatos mais comuns do material
+   * comercial da ROCO: política comercial em Word, tabela de preços em Excel,
+   * apresentação institucional em PowerPoint, pacote de artes em ZIP.
+   *
+   * Os content-types do Office são longos porque o OOXML (arquivos `x`:
+   * docx/xlsx/pptx) usa um namespace próprio. Os formatos legados (`.doc`,
+   * `.xls`, `.ppt`) entram junto porque ainda circulam em indústria — um
+   * arquivo de 2010 na pasta do comercial não deve ser motivo de erro.
+   */
   material: {
     "application/pdf": { extension: "pdf", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+
+    // Word
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      { extension: "docx", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+    "application/msword": { extension: "doc", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+
+    // Excel
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      { extension: "xlsx", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+    "application/vnd.ms-excel": { extension: "xls", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+
+    // PowerPoint
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      { extension: "pptx", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+    "application/vnd.ms-powerpoint": { extension: "ppt", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+
+    // Pacotes (ex.: kit de artes, manuais com anexos)
+    "application/zip": { extension: "zip", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+    "application/x-zip-compressed": { extension: "zip", maxBytes: MATERIAL_DOCUMENT_MAX_BYTES },
+
     "video/mp4": { extension: "mp4", maxBytes: MATERIAL_VIDEO_MAX_BYTES },
     "video/webm": { extension: "webm", maxBytes: MATERIAL_VIDEO_MAX_BYTES },
     "image/jpeg": { extension: "jpg", maxBytes: MATERIAL_IMAGE_MAX_BYTES },

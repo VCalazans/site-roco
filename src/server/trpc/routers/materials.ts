@@ -11,23 +11,25 @@ import {
 import { db as dbClient } from "@/db";
 import { materials, type Material } from "@/db/schema/materials";
 import { writeAuditLog } from "@/server/lib/audit";
-import { getExtension, isSizeWithinLimit } from "@/server/lib/upload-limits";
+import {
+  getAllowedContentTypes,
+  getExtension,
+  isSizeWithinLimit,
+} from "@/server/lib/upload-limits";
 import { permissionProcedure, router } from "../init";
 
 /**
- * Tipos aceitos para materiais — origem única de verdade em
- * `@/server/lib/upload-limits` (campo `"material"`), reaproveitada por
- * `presignUpload`/`confirmUpload`/`create`/`update` neste router.
+ * Tipos aceitos para materiais — DERIVADOS da tabela central em
+ * `@/server/lib/upload-limits` (campo `"material"`).
+ *
+ * Antes esta lista era duplicada aqui como literal, apesar de o comentário já
+ * afirmar que a origem era única. As duas listas divergiram na primeira vez
+ * que a tabela central ganhou formatos novos (Office/ZIP), e o efeito prático
+ * seria o pior possível: o campo aceitaria o arquivo na tela e o zod o
+ * rejeitaria no envio. Duplicar este mapa é exatamente o que causou o bug do
+ * pôster do hero (ver decisionLog 2026-08-24) — derivar elimina a classe.
  */
-const MATERIAL_CONTENT_TYPES = [
-  "application/pdf",
-  "video/mp4",
-  "video/webm",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-] as const;
-const materialContentTypeSchema = z.enum(MATERIAL_CONTENT_TYPES);
+const materialContentTypeSchema = z.enum(getAllowedContentTypes("material"));
 
 /**
  * URL de leitura temporária tolerante a R2 não configurado (dev) — mesmo

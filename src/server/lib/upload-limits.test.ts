@@ -34,7 +34,25 @@ describe("upload-limits", () => {
       expect(types).toContain("image/jpeg");
       expect(types).toContain("image/png");
       expect(types).toContain("image/webp");
-      expect(types.length).toBe(6);
+      // Office e ZIP entraram em 2026-08-24: a lista original barrava
+      // justamente os formatos mais comuns do material comercial
+      // (política em Word, tabela de preços em Excel, apresentação em
+      // PowerPoint, kit de artes em ZIP).
+      expect(types).toContain(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      );
+      expect(types).toContain(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      expect(types).toContain(
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      );
+      expect(types).toContain("application/msword");
+      expect(types).toContain("application/vnd.ms-excel");
+      expect(types).toContain("application/vnd.ms-powerpoint");
+      expect(types).toContain("application/zip");
+      expect(types).toContain("application/x-zip-compressed");
+      expect(types.length).toBe(14);
     });
 
     it("returns first element as required by tuple type [string, ...string[]]", () => {
@@ -103,7 +121,7 @@ describe("upload-limits", () => {
       it("returns limit for pdf", () => {
         const limit = getUploadLimit("material", "application/pdf");
         expect(limit?.extension).toBe("pdf");
-        expect(limit?.maxBytes).toBe(20 * 1024 * 1024);
+        expect(limit?.maxBytes).toBe(50 * 1024 * 1024);
       });
 
       it("returns limit for mp4 video (200MB)", () => {
@@ -220,8 +238,17 @@ describe("upload-limits", () => {
         expect(getMaxBytes("heroPoster", "image/jpeg")).toBe(10 * 1024 * 1024);
       });
 
-      it("returns 20MB for material pdf", () => {
-        expect(getMaxBytes("material", "application/pdf")).toBe(20 * 1024 * 1024);
+      it("returns 50MB for material pdf", () => {
+        expect(getMaxBytes("material", "application/pdf")).toBe(50 * 1024 * 1024);
+      });
+
+      it("returns 50MB for material office documents", () => {
+        expect(
+          getMaxBytes(
+            "material",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          )
+        ).toBe(50 * 1024 * 1024);
       });
 
       it("returns 200MB for material video (mp4)", () => {
@@ -363,8 +390,10 @@ describe("upload-limits", () => {
       });
 
       it("pdf: rejects size over limit", () => {
-        const max = 20 * 1024 * 1024;
+        const max = 50 * 1024 * 1024;
         expect(isSizeWithinLimit("material", "application/pdf", max + 1)).toBe(false);
+        // O teto antigo (20 MB) barrava catálogo comercial com fotos; hoje passa.
+        expect(isSizeWithinLimit("material", "application/pdf", 25 * 1024 * 1024)).toBe(true);
       });
 
       it("mp4 video: accepts size at limit (200MB)", () => {
@@ -478,11 +507,23 @@ describe("upload-limits", () => {
     it("material pdf upload: all checks pass", () => {
       const field: UploadField = "material";
       const contentType = "application/pdf";
-      const sizeBytes = 15 * 1024 * 1024; // 15MB, under 20MB limit
+      const sizeBytes = 15 * 1024 * 1024; // 15MB, under 50MB limit
 
       expect(isContentTypeAllowed(field, contentType)).toBe(true);
       expect(getExtension(field, contentType)).toBe("pdf");
-      expect(getMaxBytes(field, contentType)).toBe(20 * 1024 * 1024);
+      expect(getMaxBytes(field, contentType)).toBe(50 * 1024 * 1024);
+      expect(isSizeWithinLimit(field, contentType, sizeBytes)).toBe(true);
+    });
+
+    it("material spreadsheet upload: all checks pass", () => {
+      const field: UploadField = "material";
+      const contentType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      const sizeBytes = 4 * 1024 * 1024;
+
+      expect(isContentTypeAllowed(field, contentType)).toBe(true);
+      expect(getExtension(field, contentType)).toBe("xlsx");
+      expect(getMaxBytes(field, contentType)).toBe(50 * 1024 * 1024);
       expect(isSizeWithinLimit(field, contentType, sizeBytes)).toBe(true);
     });
 
