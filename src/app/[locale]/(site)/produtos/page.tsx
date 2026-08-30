@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ProductsExplorer } from "@/modules/products/components/products-explorer";
-import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublicCategoryList, getPublicProductList } from "@/server/lib/public-products";
 import { SiteHeader } from "@/shared/components/nav";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -58,10 +57,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
   const dictionary = await getDictionary(locale);
   const { navigation, products } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   // Initial load via direct import (SSR, sem HTTP) — buscas/filtros
   // subsequentes no cliente usam `GET /api/products` (ver `ProductsExplorer`).

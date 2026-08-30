@@ -2,17 +2,27 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ContactForm } from "@/modules/contact/components/contact-form";
 import { getContactDictionary } from "@/modules/contact/lib/types";
-import { CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
+import { contactPath } from "@/core/config/site";
+import { SELECTABLE_CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import { getPublicProductBySlug } from "@/server/lib/public-products";
-import { resolveDestination } from "@/core/config/site";
+import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { SiteHeader } from "@/shared/components/nav";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { normalizeLeadOrigin } from "@/shared/lib/lead-origin";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
-  searchParams: Promise<{ produto?: string; assunto?: string }>;
+  searchParams: Promise<{
+    produto?: string;
+    assunto?: string;
+    /** Seção do site que originou o clique — ver `@/shared/lib/lead-origin`. */
+    origem?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+  }>;
 };
 
 export const dynamicParams = false;
@@ -33,23 +43,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: contact.seo.title,
     description: contact.seo.description,
+    // Cada CTA chega com um `?origem=` diferente, e cada querystring é uma
+    // URL distinta para o crawler. O canônico aponta sempre para a página
+    // limpa (a mesma que está no sitemap).
+    alternates: { canonical: contactPath(locale) },
   };
 }
 
+/**
+ * Só os assuntos que existem no dropdown: `?assunto=catalog` (usado pela
+ * página de catálogo, que reaproveita a mesma rota de API) não pode
+ * pré-selecionar uma opção que este formulário não renderiza.
+ */
 function resolveDefaultSubject(assunto: string | undefined) {
-  return (CONTACT_SUBJECTS as readonly string[]).includes(assunto ?? "")
-    ? (assunto as (typeof CONTACT_SUBJECTS)[number])
+  return (SELECTABLE_CONTACT_SUBJECTS as readonly string[]).includes(assunto ?? "")
+    ? (assunto as (typeof SELECTABLE_CONTACT_SUBJECTS)[number])
     : undefined;
 }
 
 /**
  * Página pública de contato — destino do clique de maior intenção comercial
  * do site: "Solicite um orçamento" no detalhe do produto (`?produto=slug&
- * assunto=quote`) e os itens de nav "Contato"/"Portal ROCO"/"Ligamos pra
- * você" (via `resolveDestination("#contato", locale)`). Quando `produto` é
- * um slug válido, o nome/SKU reais são resolvidos AQUI, no servidor (o
- * cliente nunca envia um nome de produto cru) e passados como contexto
- * somente-leitura para o form.
+ * assunto=quote`), o item "Contato" da nav e os links do rodapé (via
+ * `resolveDestination("#contato", locale, origem)`).
+ *
+ * Tudo que chega pela URL é resolvido/validado AQUI, no servidor, e desce
+ * como prop somente-leitura para o form — o cliente nunca é a autoridade:
+ *  - `produto` vira nome/SKU reais do catálogo (nunca um nome cru do body);
+ *  - `origem` é conferida contra a lista fechada de seções do site;
+ *  - `utm_*` são saneadas (trim, teto, sem caractere de controle).
+ * A rota `POST /api/contact` revalida os três de novo, por princípio.
  */
 export default async function ContactPage({ params, searchParams }: PageProps) {
   const { locale } = await params;
@@ -58,16 +81,14 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  const { produto, assunto } = await searchParams;
+  const query = await searchParams;
+  const { produto, assunto, origem } = query;
 
   const dictionary = await getDictionary(locale);
   const contact = getContactDictionary(dictionary);
   const { navigation } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   let productContext: { slug: string; name: string; sku: string } | null = null;
   if (produto) {
@@ -86,6 +107,15 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
   }
 
   const defaultSubject = resolveDefaultSubject(assunto);
+
+  // Rastreio de aquisição validado AQUI, no servidor: origem fora da lista
+  // fechada e UTM malformada são descartadas antes de chegar ao formulário
+  // (o servidor valida de novo na rota — o cliente nunca é a autoridade).
+  // A campanha vem da querystring desta página OU do cookie de primeira parte
+  // gravado no pouso (`resolveLeadUtm`) — quem clica um anúncio quase nunca
+  // cai direto no formulário.
+  const origin = normalizeLeadOrigin(origem);
+  const utm = await resolveLeadUtm(query);
 
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
@@ -114,6 +144,8 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
           locale={locale}
           productContext={productContext}
           defaultSubject={defaultSubject}
+          origin={origin}
+          utm={utm}
         />
       </main>
     </div>

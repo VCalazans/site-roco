@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RegisterForm } from "@/modules/representatives/components/register-form";
 import { getRepresentativesDictionary } from "@/modules/representatives/lib/types";
-import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { SiteHeader } from "@/shared/components/nav";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -51,10 +50,7 @@ export default async function RepresentativesPage({ params }: PageProps) {
   const representatives = getRepresentativesDictionary(dictionary);
   const { navigation } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">

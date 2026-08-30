@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { cookies, headers } from "next/headers";
-import { productsPath, resolveDestination } from "@/core/config/site";
+import { productsPath } from "@/core/config/site";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { SiteHeader } from "@/shared/components/nav";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 /**
  * Not-found boundary for `/{locale}/produtos/[slug]`.
@@ -56,10 +56,7 @@ export default async function ProductNotFound() {
   const dictionary = await getDictionary(locale);
   const { navigation, products } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">

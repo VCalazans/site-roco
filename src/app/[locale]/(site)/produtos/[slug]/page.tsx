@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetailView } from "@/modules/products/components/product-detail-view";
-import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublicProductBySlug, getPublicProductList } from "@/server/lib/public-products";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale; slug: string }>;
@@ -55,10 +54,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const dictionary = await getDictionary(locale);
   const { navigation, products } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   const product = await getPublicProductBySlug(slug);
 

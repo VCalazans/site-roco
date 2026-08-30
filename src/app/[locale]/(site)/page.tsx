@@ -9,7 +9,7 @@ import { resolveDestination } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getFeaturedProducts, getPublicCategoryList, getPublicProductList } from "@/server/lib/public-products";
-import { visibleNavLinks } from "@/shared/lib/nav";
+import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -47,10 +47,7 @@ export default async function HomePage({ params }: PageProps) {
   const dictionary = await getDictionary(locale);
   const { home, navigation, products } = dictionary;
 
-  const navLinks = visibleNavLinks(navigation.links).map((link) => ({
-    ...link,
-    href: resolveDestination(link.href, locale),
-  }));
+  const navLinks = siteNavLinks(navigation.links, locale);
 
   const heroFallback = {
     eyebrow: home.hero.eyebrow,
@@ -58,11 +55,11 @@ export default async function HomePage({ params }: PageProps) {
     description: home.hero.description,
     primaryCta: {
       ...home.hero.primaryCta,
-      href: resolveDestination(home.hero.primaryCta.href, locale),
+      href: resolveDestination(home.hero.primaryCta.href, locale, "home-hero"),
     },
     secondaryCta: {
       ...home.hero.secondaryCta,
-      href: resolveDestination(home.hero.secondaryCta.href, locale),
+      href: resolveDestination(home.hero.secondaryCta.href, locale, "home-hero"),
     },
     sceneAlt: home.hero.sceneAlt,
     scrollCue: home.hero.scrollCue,
@@ -88,26 +85,26 @@ export default async function HomePage({ params }: PageProps) {
       />
       <HomeAbout
         content={home.about}
-        ctaHref={resolveDestination(home.about.cta.href, locale)}
+        ctaHref={resolveDestination(home.about.cta.href, locale, "home-sobre")}
         stats={{ totalProducts: productStats.total, totalCategories: categoryList.length }}
       />
       <HomeCategories
         content={home.categories}
         categorySlugs={categoryList.map((category) => category.slug)}
         locale={locale}
-        ctaHref={resolveDestination(home.categories.cta.href, locale)}
+        ctaHref={resolveDestination(home.categories.cta.href, locale, "home-categorias")}
       />
       <HomeFeatured
         content={home.featured}
         items={featuredProducts}
         locale={locale}
-        ctaHref={resolveDestination(home.featured.cta.href, locale)}
+        ctaHref={resolveDestination(home.featured.cta.href, locale, "home-destaques")}
         cardContent={products.card}
         badgeLabels={products.badges}
       />
       <HomePortalCta
         content={home.portalCta}
-        ctaHref={resolveDestination(home.portalCta.cta.href, locale)}
+        ctaHref={resolveDestination(home.portalCta.cta.href, locale, "home-portal")}
       />
     </>
   );
