@@ -74,7 +74,7 @@ export default async function PortalWelcomePage({ params }: PageProps) {
 
   const navItems: PortalNavItem[] = buildPortalNavItems(
     basePath,
-    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title },
+    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title, settings: portal.settings.title },
     session.user
   );
   const isRepresentative = session.user.roles?.includes(REPRESENTATIVE_ROLE_SLUG) ?? false;

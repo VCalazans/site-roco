@@ -14,6 +14,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import PeopleIcon from "@mui/icons-material/People";
 import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
@@ -48,7 +49,8 @@ export type PortalNavKey =
   | "welcome"
   | "hero"
   | "materials"
-  | "roles";
+  | "roles"
+  | "settings";
 
 export type PortalNavItem = {
   key: PortalNavKey;
@@ -92,6 +94,7 @@ const NAV_ICONS: Record<PortalNavKey, ComponentType<{ fontSize?: "small" }>> = {
   hero: ImageIcon,
   materials: LibraryBooksIcon,
   roles: AdminPanelSettingsIcon,
+  settings: SettingsIcon,
 };
 
 function DrawerHeader({

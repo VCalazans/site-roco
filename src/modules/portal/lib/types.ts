@@ -316,6 +316,7 @@ export type PortalDictionary = {
   hero: PortalHeroDictionary;
   materials: PortalMaterialsDictionary;
   roles: PortalRolesDictionary;
+  settings: PortalSettingsDictionary;
 };
 
 /**
@@ -541,5 +542,21 @@ export type PortalRolesDictionary = {
     roleHasUsers: string;
     cannotGrantAdmin: string;
     lastAdmin: string;
+  };
+};
+
+export type PortalSettingsDictionary = {
+  title: string;
+  subtitle: string;
+  form: {
+    saved: string;
+    save: string;
+    errors: {
+      required: string;
+      saveFailed: string;
+    };
+  };
+  errors: {
+    loadFailed: string;
   };
 };

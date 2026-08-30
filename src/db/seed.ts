@@ -19,6 +19,9 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { users } from "./schema/auth";
+import {
+  siteSettings,
+} from "./schema/site-settings";
 import { permissions, roles, rolePermissions, userRoles } from "./schema/rbac";
 
 type PermissionSeed = { resource: string; action: string };
@@ -229,6 +232,9 @@ async function main() {
       );
     }
 
+    console.log("[seed] Upsert de configurações do site...");
+    await seedSiteSettings(pool);
+
     console.log("[seed] Concluído.");
   } finally {
     await pool.end();
@@ -239,3 +245,69 @@ main().catch((error: unknown) => {
   console.error("[seed] Falhou:", error);
   process.exitCode = 1;
 });
+
+/**
+ * Seed de dados públicos do site: telefone, e-mail, endereço e redes sociais.
+ * Idempotente — usa `ON CONFLICT DO UPDATE` para manter o valor existente
+ * quando o seed rodar em produção (o admin pode ter alterado na UI).
+ *
+ * Para rodar isoladamente:
+ *   npx tsx src/db/seed-site-settings.ts
+ *
+ * Para incluir no seed principal, chame `seedSiteSettings(pool)` dentro de `main()`.
+ */
+async function seedSiteSettings(pool: Pool) {
+  const db = drizzle(pool);
+
+  const entries = [
+    {
+      key: "contact.phone",
+      value: "554733352012",
+      description: "WhatsApp da matriz em Blumenau",
+    },
+    {
+      key: "contact.email",
+      value: "vendas@roco.com.br",
+      description: "E-mail público de contato",
+    },
+    {
+      key: "contact.address.matriz",
+      value: "Rua Amsterdam, 853 - Itoupavazinha, Blumenau - SC, CEP 89070-490",
+      description: "Endereço da matriz",
+    },
+    {
+      key: "contact.address.filial",
+      value:
+        "Gaspar — Santa Catarina. Unidade fabril às margens da BR-470. Atendimento centralizado pelos canais da matriz em Blumenau.",
+      description: "Descrição da filial",
+    },
+    {
+      key: "social.links",
+      value: JSON.stringify({ whatsapp: "https://wa.me/554733352012" }),
+      description: "Links das redes sociais (JSON)",
+    },
+  ];
+
+  for (const entry of entries) {
+    await db
+      .insert(siteSettings)
+      .values({
+        key: entry.key,
+        value: entry.value,
+        type: "string",
+        description: entry.description,
+        isPublic: true,
+      })
+      .onConflictDoUpdate({
+        target: siteSettings.key,
+        set: {
+          value: entry.value,
+          description: entry.description,
+        },
+      });
+    console.log(`[seed] site_setting: ${entry.key}`);
+  }
+}
+
+// Para rodar isoladamente (só as configurações do site):
+//   DATABASE_URL=... npx tsx --eval "import './seed.ts'; seedSiteSettings(new (await import('pg')).Pool({connectionString:process.env.DATABASE_URL!}))"

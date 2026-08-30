@@ -5,13 +5,19 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbClient } from "@/db";
 import {
+  ALL_PUBLIC_SETTING_KEYS,
   SITE_SETTING_CATALOG_PDF_URL,
+  SITE_SETTING_CONTACT_EMAIL,
+  SITE_SETTING_CONTACT_PHONE,
+  SITE_SETTING_CONTACT_ADDRESS_MATRIZ,
+  SITE_SETTING_CONTACT_ADDRESS_FILIAL,
+  SITE_SETTING_SOCIAL_LINKS,
   siteSettings,
 } from "@/db/schema/site-settings";
 import { writeAuditLog } from "@/server/lib/audit";
 import { permissionProcedure, router } from "../init";
 
-const SETTING_KEYS = [SITE_SETTING_CATALOG_PDF_URL] as const;
+const SETTING_KEYS = ALL_PUBLIC_SETTING_KEYS;
 const settingKeySchema = z.enum(SETTING_KEYS);
 
 const settingValueSchema = z.object({

@@ -19,6 +19,8 @@ type NavLabels = {
   materials: string;
   /** Idem, reaproveita `portal.roles.title`. */
   roles: string;
+  /** Idem, reaproveita `portal.settings.title`. */
+  settings: string;
 };
 
 /**
@@ -106,6 +108,16 @@ export function buildPortalNavItems(
       key: "roles",
       label: labels.roles,
       href: `${basePath}/perfis`,
+    });
+  }
+
+  // Configurações do site: acessível a qualquer usuário com role `admin`
+  // (equivalente a `users:manage` — não há permissão granular separada).
+  if (user?.roles?.includes(ADMIN_ROLE_SLUG)) {
+    items.push({
+      key: "settings",
+      label: labels.settings,
+      href: `${basePath}/configuracoes`,
     });
   }
 

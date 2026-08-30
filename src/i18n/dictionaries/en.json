@@ -27,6 +27,11 @@
         "label": "Contact",
         "href": "#contato",
         "icon": ""
+      },
+      {
+        "label": "We call you",
+        "href": "/contact?assunto=call_back&origem=menu",
+        "icon": ""
       }
     ]
   },
@@ -1001,6 +1006,21 @@
         "message": "This cannot be undone. The file will also be removed from R2.",
         "confirm": "Yes, delete",
         "cancel": "Cancel"
+      }
+    },
+    "settings": {
+      "title": "Site Settings",
+      "subtitle": "Contact data and social links shown on the public site.",
+      "form": {
+        "saved": "Saved!",
+        "save": "Save",
+        "errors": {
+          "required": "This field is required.",
+          "saveFailed": "Failed to save. Please try again."
+        }
+      },
+      "errors": {
+        "loadFailed": "Failed to load settings."
       }
     }
   },

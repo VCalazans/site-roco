@@ -4,6 +4,11 @@ import { unstable_cache } from "next/cache";
 import { db as dbClient } from "@/db";
 import {
   SITE_SETTING_CATALOG_PDF_URL,
+  SITE_SETTING_CONTACT_EMAIL,
+  SITE_SETTING_CONTACT_PHONE,
+  SITE_SETTING_CONTACT_ADDRESS_MATRIZ,
+  SITE_SETTING_CONTACT_ADDRESS_FILIAL,
+  SITE_SETTING_SOCIAL_LINKS,
   siteSettings,
 } from "@/db/schema/site-settings";
 import { getPublicUrl } from "@/core/storage/r2";
@@ -64,3 +69,48 @@ const cachedReadSetting = (key: string) =>
     ["site-settings", key],
     { revalidate: 60, tags: ["site-settings"] }
   )();
+
+export type SocialLinks = {
+  instagram?: string;
+  linkedin?: string;
+  youtube?: string;
+  whatsapp?: string;
+};
+
+/**
+ * Dados de contato da empresa, lidos do banco com fallback para string vazia.
+ * Chamado pelo rodapé do site público.
+ */
+export async function getContactInfo(): Promise<{
+  phone: string;
+  email: string;
+  addressMatriz: string;
+  addressFilial: string;
+}> {
+  const [phone, email, addressMatriz, addressFilial] = await Promise.all([
+    cachedReadSetting(SITE_SETTING_CONTACT_PHONE),
+    cachedReadSetting(SITE_SETTING_CONTACT_EMAIL),
+    cachedReadSetting(SITE_SETTING_CONTACT_ADDRESS_MATRIZ),
+    cachedReadSetting(SITE_SETTING_CONTACT_ADDRESS_FILIAL),
+  ]);
+  return {
+    phone: phone ?? "",
+    email: email ?? "",
+    addressMatriz: addressMatriz ?? "",
+    addressFilial: addressFilial ?? "",
+  };
+}
+
+/**
+ * Links das redes sociais, lidos do banco. Cada campo é opcional — se não
+ * existir, o ícone correspondente não é renderizado no rodapé.
+ */
+export async function getSocialLinks(): Promise<SocialLinks> {
+  const raw = await cachedReadSetting(SITE_SETTING_SOCIAL_LINKS);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as SocialLinks;
+  } catch {
+    return {};
+  }
+}

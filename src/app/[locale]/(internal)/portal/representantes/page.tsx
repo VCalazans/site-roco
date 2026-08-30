@@ -59,7 +59,7 @@ export default async function PortalRepresentativesPage({ params }: PageProps) {
 
   const navItems: PortalNavItem[] = buildPortalNavItems(
     basePath,
-    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title },
+    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title, settings: portal.settings.title },
     session.user
   );
 

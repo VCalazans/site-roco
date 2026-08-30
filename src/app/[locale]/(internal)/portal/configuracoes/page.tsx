@@ -4,7 +4,7 @@ import {
   PortalShell,
   type PortalNavItem,
 } from "@/modules/portal/components/portal-shell";
-import { MaterialsPageClient } from "@/modules/portal/components/materials/materials-page-client";
+import { SettingsPageClient } from "@/modules/portal/components/settings/settings-page-client";
 import { buildPortalNavItems } from "@/modules/portal/lib/nav-items";
 import { logoutAction } from "@/modules/portal/lib/logout-action";
 import { can } from "@/modules/portal/lib/permissions";
@@ -25,28 +25,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const dictionary = await getDictionary(locale);
   const portal = getPortalDictionary(dictionary);
   return {
-    title: `${portal.materials.title} — ${portal.shell.appName}`,
+    title: `${portal.settings.title} — ${portal.shell.appName}`,
     robots: { index: false, follow: false },
   };
 }
 
-/**
- * Rota `/{locale}/portal/materiais` — CRUD administrativo de materiais de
- * apoio compartilhados com representantes. Gate por `materials:create`
- * (não `materials:read`): o representante tem `read` só para consultar o
- * feed embutido em `/portal/boas-vindas` (`WelcomeMaterialsFeed`), nunca
- * deveria cair nesta tela de gestão. Ver decisionLog 2026-08-24
- * ("Materiais dinâmicos para representantes").
- */
-export default async function PortalMaterialsPage({ params }: PageProps) {
+export default async function PortalSettingsPage({ params }: PageProps) {
   const { locale } = await params;
   if (!locales.includes(locale)) {
     notFound();
   }
   const basePath = `/${locale}/portal`;
-  const session = await requirePortalSession(locale, `${basePath}/materiais`);
+  const session = await requirePortalSession(locale, `${basePath}/configuracoes`);
 
-  if (!can(session.user, "materials", "create")) {
+  // Só admins acessam esta página (mesma lógica de buildPortalNavItems).
+  const isAdmin = session.user.roles?.includes("admin") ?? false;
+  if (!isAdmin) {
     redirect(basePath);
   }
 
@@ -75,11 +69,7 @@ export default async function PortalMaterialsPage({ params }: PageProps) {
       user={session.user}
       logoutAction={logoutAction}
     >
-      <MaterialsPageClient
-        portal={portal}
-        canWrite={can(session.user, "materials", "update")}
-        canDelete={can(session.user, "materials", "delete")}
-      />
+      <SettingsPageClient labels={portal.settings} />
     </PortalShell>
   );
 }

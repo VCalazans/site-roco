@@ -27,6 +27,11 @@
         "label": "Contato",
         "href": "#contato",
         "icon": ""
+      },
+      {
+        "label": "Ligamos pra você",
+        "href": "/contato?assunto=call_back&origem=menu",
+        "icon": ""
       }
     ]
   },
@@ -1001,6 +1006,21 @@
         "message": "Esta ação não pode ser desfeita. O arquivo também será removido do R2.",
         "confirm": "Sim, deletar",
         "cancel": "Cancelar"
+      }
+    },
+    "settings": {
+      "title": "Configurações do Site",
+      "subtitle": "Dados de contato e redes sociais exibidos no site público.",
+      "form": {
+        "saved": "Salvo!",
+        "save": "Salvar",
+        "errors": {
+          "required": "Este campo é obrigatório.",
+          "saveFailed": "Erro ao salvar. Tente novamente."
+        }
+      },
+      "errors": {
+        "loadFailed": "Erro ao carregar as configurações."
       }
     }
   },
