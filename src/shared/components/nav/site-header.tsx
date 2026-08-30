@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/core/lib/utils";
+import type { Locale } from "@/i18n/config";
+import {
+  LanguageSwitcher,
+  type LanguageSwitcherLabels,
+} from "@/shared/components/nav/language-switcher";
 import { MobileMenu } from "@/shared/components/nav/mobile-menu";
 import { NavItems } from "@/shared/components/nav/nav-items";
+import { PortalLoginLink } from "@/shared/components/nav/portal-login-link";
 import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
 /**
@@ -23,6 +29,14 @@ type SiteHeaderProps = {
   brand: string;
   links: NavLink[];
   menuLabels: { open: string; close: string };
+  /** Locale da rota — alimenta o seletor de idioma e o link do portal. */
+  locale: Locale;
+  /** Rótulos dos dois controles da direita (dicionário, nunca hardcode). */
+  controls: {
+    language: LanguageSwitcherLabels;
+    /** Nome acessível do botão de login (só ícone na barra). */
+    portalLogin: string;
+  };
 };
 
 /**
@@ -39,7 +53,13 @@ type SiteHeaderProps = {
  * anterior também flutuava sobre ele), então a troca absolute→fixed não move
  * nenhum layout — só mantém a barra visível durante a rolagem.
  */
-export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
+export function SiteHeader({
+  brand,
+  links,
+  menuLabels,
+  locale,
+  controls,
+}: SiteHeaderProps) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -70,29 +90,77 @@ export function SiteHeader({ brand, links, menuLabels }: SiteHeaderProps) {
           <Image
             src={LOGO}
             alt={brand}
-            width={300}
-            height={122}
+            // Dimensões INTRÍNSECAS do arquivo (306×133). Estavam declaradas
+            // como 300×122: antes de decodificar o PNG o navegador reserva
+            // altura×(w/h) do que foi declarado, então a faixa reservava
+            // 98,4px de largura e encolhia para 92,0px ao carregar — ~6px de
+            // CLS no elemento mais estável da página.
+            width={306}
+            height={133}
             priority
             className="h-8 w-auto md:h-10"
           />
         </Link>
 
-        {/* Lista horizontal em LINHA ÚNICA. O corte é em `lg`, não `md`:
-            entre 768 e 1023px os rótulos desta nav ficam espremidos contra o
-            logotipo, e espremer é pior que colapsar. */}
-        <nav aria-label={brand} className="hidden lg:block">
-          <ul className="flex items-center gap-6 xl:gap-9">
-            <NavItems
-              links={links}
-              itemClassName={(_index, isActive) => navLabelClass(isActive, "bar")}
-              wrapItem={(node, key) => <li key={key}>{node}</li>}
-            />
-          </ul>
-        </nav>
+        {/* Bloco da direita: nav + divisor + controles (idioma, login). Fica
+            num flex próprio para que o divisor tenha vizinhos previsíveis e
+            para que os controles não escapem para o meio da barra quando a
+            nav colapsa. */}
+        <div className="flex items-center gap-3 lg:gap-4">
+          {/* Lista horizontal em LINHA ÚNICA. O corte segue em `lg`, agora com
+              medida e não por impressão: com os DOIS controles novos, o
+              conjunto (5 rótulos + divisor + seletor + botão) mede 728px em pt
+              e 709px em en a 1024px, contra 868px disponíveis — folga de 140px
+              (pt) / 159px (en). A barra só deixaria de caber abaixo de ~900px,
+              e mesmo a tradução mais longa que se cogitou para o 5º item
+              ("REQUEST A CALLBACK") ainda sobra 98px. Subir para `xl` seria
+              esconder uma barra que cabe.
+              Larguras medidas com as métricas reais do arquivo Inter servido
+              pelo `next/font` (hmtx + HVAR em wght 500), a 14px e 0.04em. */}
+          <nav aria-label={brand} className="hidden lg:block">
+            <ul className="flex items-center gap-6 xl:gap-9">
+              <NavItems
+                links={links}
+                itemClassName={(_index, isActive) => navLabelClass(isActive, "bar")}
+                wrapItem={(node, key) => <li key={key}>{node}</li>}
+              />
+            </ul>
+          </nav>
 
-        {/* Abaixo de `lg`: colapsa no hambúrguer (painel full-width) */}
-        <div className="lg:hidden">
-          <MobileMenu links={links} labels={menuLabels} />
+          {/* Divisor sutil separando NAVEGAÇÃO (onde ir) de CONTROLES (idioma,
+              entrar). Só existe quando a nav está visível — no mobile não há
+              o que separar. */}
+          <span
+            aria-hidden
+            className="hidden h-5 w-px bg-white/15 lg:block"
+          />
+
+          <div className="flex items-center gap-2">
+            {/* Seletor de idioma: pílula de texto no desktop; no mobile ele
+                vive DENTRO do painel do hambúrguer (ver `MobileMenu`), porque
+                é uma ação rara e ocuparia largura de barra que o logotipo e os
+                dois botões já consomem. */}
+            <LanguageSwitcher
+              locale={locale}
+              labels={controls.language}
+              variant="bar"
+              className="hidden lg:inline-flex"
+            />
+
+            {/* Login fica na barra em TODOS os tamanhos — é destino de tarefa
+                de quem já é representante, e vale o toque único. */}
+            <PortalLoginLink locale={locale} label={controls.portalLogin} variant="bar" />
+
+            {/* Abaixo de `lg`: colapsa no hambúrguer (painel full-width) */}
+            <div className="lg:hidden">
+              <MobileMenu
+                links={links}
+                labels={menuLabels}
+                locale={locale}
+                languageLabels={controls.language}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

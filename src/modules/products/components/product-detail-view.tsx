@@ -64,6 +64,8 @@ export function ProductDetailView({
         brand={navigation.brand}
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        locale={locale}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
       />
 
       <main className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-24 sm:px-6 md:pt-32">

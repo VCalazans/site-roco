@@ -196,9 +196,72 @@
       `connectionTimeoutMillis` no pool (dispara por CPU travada e viraria LEAD PERDIDO) e subir o
       `max` do pool (banco ocioso em toda a bateria — mais conexões só disputam o mesmo core)
 
+### Chrome de navegação: escala da nav, seletor de idioma, login do portal e rodapé (2026-08-30)
+> ⚠️ NENHUMA verificação VISUAL nesta sessão — a extensão do navegador estava desconectada e
+> ninguém abriu a página. Tudo foi medido: métricas reais do arquivo Inter servido pelo
+> `next/font` para as larguras, e `curl` + parse do HTML servido para o resto. O julgamento
+> estético continua PENDENTE DE OLHO HUMANO.
+- [x] `--type-nav` deixa de escalar e fixa em **14px** (era clamp 14→17px); tracking 0.06em → 0.04em.
+      Caixa alta + tracking pesa mais que o mesmo corpo em caixa baixa — referência de mercado para
+      nav em versalete é 13–14px. Corrigido NO PAPEL da escala (`globals.css`), nunca por `className`
+      solto no header. O papel `nav` só é consumido pelo chrome de navegação: nenhuma página muda fora dele
+- [x] Mobile NÃO encolheu junto: o alvo de toque do painel vem do `py-3.5` (45,5px > 44px do WCAG
+      2.5.5), não do corpo da fonte. Removido um `text-ui` que nunca se aplicava ali (mesmo grupo
+      `font-size` do `cn()` — `text-nav` descartava em silêncio)
+- [x] Seletor de idioma PT ⇄ EN (`language-switcher.tsx` + módulo puro `shared/lib/locale-path.ts`):
+      troca o PRIMEIRO segmento do pathname preservando caminho, query e fragmento — não há rotas
+      traduzidas (`/pt/produtos` e `/en/produtos` compartilham o segmento). Padrão USWDS "two
+      languages": autônimo do idioma de DESTINO, sem bandeira, sem sigla, sem globo
+- [x] `<a>` cru (navegação de documento inteiro) de propósito: o `<html lang>` mora no root layout,
+      ACIMA de `[locale]`, e não re-renderizaria numa navegação client-side (SC 3.1.1). Confirmado
+      em `src/proxy.ts` que o cookie `NEXT_LOCALE` é regravado pelo MIDDLEWARE na requisição
+      seguinte — o componente não precisa escrevê-lo
+- [x] Sem `useSearchParams` (evita fronteira `<Suspense>` em toda página pré-renderizada): o `href`
+      renderizado leva só o CAMINHO e o clique lê a URL VIVA. Verificado: `/pt/produtos?...` renderiza
+      `href="/en/produtos"`, e `switchLocalePath` executada com query+hash preserva os dois
+- [x] Botão de login do portal (`portal-login-link.tsx`) → `/{locale}/portal/login`, com nome
+      acessível do dicionário. É OUTRO destino que o item de nav "Portal ROCO", que vai para
+      `/representantes` (pré-cadastro público) — quem já tem conta não tinha caminho nenhum
+- [x] Breakpoint de colapso MEDIDO e mantido em `lg` (1024px): 5 rótulos + divisor + seletor + botão
+      medem 728px (pt) / 709px (en) contra 868px disponíveis; só deixaria de caber abaixo de ~900px
+- [x] Rodapé em DUAS BANDAS sobre a mesma grade (antes: uma coluna `1.5fr` acumulava logo, tagline,
+      telefone, e-mail, os dois endereços e as redes). Desnível cai de 291–330px para 42–66px
+      (banda 1) e 27–66px (banda 2); pior caso antigo era ao GANHAR espaço — cruzando 1023→1024px a
+      coluna perdia 39% da largura e ficava mais ALTA
+- [x] Todo bloco de prosa do rodapé passa por `PROSE_BLOCK` (`max-w-xs`): antes só a tagline tinha
+      teto, e eram os dois endereços sem limite que empurravam a coluna para 10 linhas
+- [x] Matriz e unidade fabril ganharam RÓTULO próprio (`footer.contact.{headquartersLabel,plantLabel}`)
+      — a descrição da filial era parágrafo solto sob o endereço da matriz e lia como erro
+- [x] `footer.addressLabel` removido dos dois dicionários: era código morto desde a entrada dos
+      endereços dinâmicos (nenhum componente o lia)
+
+### Correções da revisão adversarial do pacote acima (2026-08-30)
+- [x] **Menu mobile trancava a rolagem ao cruzar o breakpoint** (alta): `lg:hidden` é `display:none`,
+      que NÃO desmonta o React — `open` ficava preso, o cleanup nunca rodava e o body seguia com
+      `overflow:hidden`. Botão, backdrop e painel estão todos no subárvore escondido, então não
+      sobrava controle visível para destravar: TODA rota de `(site)` ficava sem rolagem. Reproduz
+      girando um iPad com o menu aberto ou arrastando a janela de 1000→1100px. Corrigido com
+      `matchMedia("(min-width: 64rem)")` fechando o painel. A trava de scroll é DESTA branch — a
+      armadilha inteira é nova em relação à `main`
+- [x] **`aria-label` do seletor anulava o `<span lang>`**: `aria-label` (passo 2C do accname) encerra
+      a computação antes do conteúdo (2F), então o autônimo era lido com os fonemas do idioma errado
+      — exatamente o que o docblock do componente afirmava ter resolvido. Nome passa a vir do
+      CONTEÚDO (`sr-only` + `<span lang>`); string resultante byte-idêntica, sem regressão de 2.5.3
+- [x] **Telefone do rodapé abria WhatsApp chamando-se "(47) 3335-2012"** com ícone `Phone`: o MESMO
+      href aparecia duas vezes no rodapé com nomes diferentes (3.2.4) e sem propósito determinável
+      pelo nome (2.4.4). Ganhou `aria-label` composto com `footer.socialNames.whatsapp` e o
+      `WhatsappIcon` do próprio arquivo. NÃO virou `tel:` — o seed descreve o número como canal de
+      WhatsApp, não linha de voz. A duplicação é nova: o `readSetting` antigo derrubava o bloco de
+      redes com `String(v)` sobre o jsonb
+- [x] **"Ligamos pra você" no RODAPÉ apontava para o mesmo destino de "Fale conosco"**: a migração
+      para o placeholder `#ligamos` cobriu a nav e esqueceu o rodapé, então o lead chegava ao RD
+      Station como `contato_geral` em vez de `ligamos_pra_voce`. Verificado depois da correção que
+      `/pt/contato?assunto=call_back&origem=rodape` renderiza `<option value="call_back" selected>`.
+      Rótulo EN uniformizado ("We call you" na nav vs "We'll call you" no rodapé)
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo — detectou 6 erros em .test.ts que vitest perdeu)
-- [x] `npm run test` e `npm run test:coverage` funcionando (934 testes totais agora)
+- [x] `npm run test` e `npm run test:coverage` funcionando (976 testes totais agora)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -282,6 +345,20 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] Uploads órfãos no R2 (presign sem confirm) — job de limpeza futuro
 
 ### Site (pós-MVP home/produtos)
+- [ ] **Dados de `site_settings` não têm dimensão de locale** (2026-08-30, Médio): os endereços e a
+      descrição da unidade fabril vêm do banco em PORTUGUÊS e renderizam assim na versão em inglês,
+      sem `lang="pt"` (WCAG SC 3.1.2, "Language of Parts") — o rodapé está em toda página de `(site)`.
+      Não tem correção local: a tabela é chave-valor sem coluna de idioma. Opções: chaves por locale
+      (`contact.address.matriz.en`) ou valor `jsonb` `{pt, en}` com fallback. Achado da revisão
+      adversarial de 2026-08-30, REFUTADO como regressão daquele pacote (é byte-idêntico desde
+      `692ae7c`) e registrado aqui como dívida.
+- [ ] **Item de nav ativo distinguido só por matiz** (2026-08-30, Baixo): o único diferencial do
+      item ativo é o tom ciano (1,20:1 contra o inativo) — 1.4.1 pede um segundo canal. Sugestão:
+      filete/underline sob o item ativo, que já existe como linguagem no filete dual-tone da barra.
+      Não bloqueia: `aria-current="page"` já cobre leitor de tela.
+- [ ] **Endereços do banco sem `overflow-wrap`** (2026-08-30, Baixo): um token muito longo colado no
+      admin (URL, CEP grudado) estouraria a coluna de prosa do rodapé. `PROSE_BLOCK` limita a
+      MEDIDA, não quebra palavra — só o e-mail tem `break-words` hoje.
 - [ ] **Vídeo do hero: trocar embed YouTube por MP4 self-hosted** (2026-08-12): pedir o arquivo ao
       stakeholder; remove youtube-nocookie da CSP `frame-src`, elimina tracking de terceiro (LGPD)
       e o player em conexões lentas. Avaliar `prefers-reduced-motion` (pôster já cobre fallback).
@@ -439,7 +516,9 @@ catálogo vivo via ERP → cotação como dado estruturado.
   mencionado como débito em 2026-08-23, ficou pendente).
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 934 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 976 testes (28 arquivos), 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+  (+42 testes 2026-08-30 chrome de navegação: `locale-path`, `phone`, casos novos de `nav` e
+  `resolveDestination`/`#ligamos`.)
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
   +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits;
   +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email;

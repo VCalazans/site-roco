@@ -81,6 +81,10 @@ export default async function HomePage({ params }: PageProps) {
         fallback={heroFallback}
         navLinks={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        navControls={{
+          language: navigation.language,
+          portalLogin: navigation.portalLogin,
+        }}
         locale={locale}
       />
       <HomeAbout

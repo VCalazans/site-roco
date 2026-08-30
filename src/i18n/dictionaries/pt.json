@@ -30,10 +30,14 @@
       },
       {
         "label": "Ligamos pra você",
-        "href": "/contato?assunto=call_back&origem=menu",
+        "href": "#ligamos",
         "icon": ""
       }
-    ]
+    ],
+    "language": {
+      "action": "Mudar idioma"
+    },
+    "portalLogin": "Entrar no Portal ROCO"
   },
   "home": {
     "brand": "ROCO",
@@ -282,13 +286,23 @@
           },
           {
             "label": "Ligamos pra você",
-            "href": "#contato"
+            "href": "#ligamos"
           }
         ]
       }
     ],
+    "contact": {
+      "title": "Fale com a ROCO",
+      "headquartersLabel": "Matriz",
+      "plantLabel": "Unidade fabril"
+    },
     "socialLabel": "Siga a ROCO",
-    "addressLabel": "Blumenau e Gaspar — Santa Catarina, Brasil",
+    "socialNames": {
+      "instagram": "ROCO no Instagram",
+      "linkedin": "ROCO no LinkedIn",
+      "youtube": "ROCO no YouTube",
+      "whatsapp": "ROCO no WhatsApp"
+    },
     "certifications": {
       "title": "Certificações e selos",
       "items": [

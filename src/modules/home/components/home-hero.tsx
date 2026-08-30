@@ -19,6 +19,11 @@ type HomeHeroProps = {
   };
   navLinks: NavLink[];
   menuLabels: { open: string; close: string };
+  /** Rótulos dos controles da barra (idioma, login) — ver `SiteHeader`. */
+  navControls: {
+    language: { action: string };
+    portalLogin: string;
+  };
   locale: import("@/i18n/config").Locale;
 };
 
@@ -29,14 +34,27 @@ type HomeHeroProps = {
  * (dev sem seed, ou admin esvaziou tudo), renderiza o conteúdo do
  * dicionário original + pôster estático.
  */
-export async function HomeHero({ brand, fallback, navLinks, menuLabels, locale }: HomeHeroProps) {
+export async function HomeHero({
+  brand,
+  fallback,
+  navLinks,
+  menuLabels,
+  navControls,
+  locale,
+}: HomeHeroProps) {
   const slides = (await getCachedActiveHeroSlides(locale)).map((slide) =>
     resolveSlideCtas(slide, locale)
   );
 
   return (
     <>
-      <SiteHeader brand={brand} links={navLinks} menuLabels={menuLabels} />
+      <SiteHeader
+        brand={brand}
+        links={navLinks}
+        menuLabels={menuLabels}
+        locale={locale}
+        controls={navControls}
+      />
       <HeroSlider
         slides={slides}
         copy={{

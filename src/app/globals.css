@@ -24,8 +24,9 @@
      não existe como aplicar o tamanho sem levar o resto junto — é o que
      impede a escala de se partir de novo em valores soltos pelos className.
 
-     Os quatro primeiros são fluidos entre 414px e ~1600px de viewport; os
-     quatro últimos são fixos (UI não deve escalar com a tela).
+     Os TRÊS primeiros (h1/h2/lede) são fluidos entre 414px e ~1600px de
+     viewport; os CINCO últimos (nav/body/ui/meta/micro) são fixos — UI e
+     chrome não devem escalar com a tela.
      --------------------------------------------------------------------- */
   --type-font-sans: var(--font-inter), system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -34,7 +35,28 @@
   --type-h1: clamp(1.75rem, 1.35rem + 1.65vw, 3rem); /* 28 → 48 */
   --type-h2: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem); /* 17 → 20 */
   --type-lede: clamp(0.875rem, 0.815rem + 0.25vw, 1.0625rem); /* 14 → 17 */
-  --type-nav: clamp(0.875rem, 0.82rem + 0.24vw, 1.0625rem); /* 14 → 17 */
+  /* Rótulo de MENU (caixa alta) — barra fixa do `SiteHeader` e painel mobile.
+     FIXO em 14px, sem `clamp`, por três medidas (2026-08-30):
+     1. PESO ÓPTICO. Caixa alta se lê pela cap-height, não pelo `font-size`:
+        Inter tem sCapHeight = 1490/2048 = 0,7275em. A rampa antiga desenhava
+        letras de 11,34px @1024 e 12,34px em monitor ≥1617px, contra 8,73px do
+        `text-body` (16px minúsculo) — o item de menu gritava 41% mais alto que
+        o CORPO da página. A 14px a cap-height cai para 10,19px (+17% sobre o
+        corpo): continua o elemento mais firme da faixa, sem competir com a
+        headline. É a queixa do stakeholder ("fonte da nav grande demais"), que
+        NÃO era falta de espaço — a barra de 5 itens nunca estourou.
+     2. O `clamp` escalava na direção ERRADA. Ele é indexado à viewport, mas o
+        container é `max-w-7xl` e para de crescer em 1280px: entre 1280 e
+        1617px a fonte crescia 0,81px enquanto o espaço disponível ficava
+        congelado em 1124px. Era o único papel da escala com esse defeito.
+     3. O MOBILE praticamente não muda: o piso do clamp já era 14px e a parte
+        fluida resolvia 14,06px num telefone de 390px. A queda real é só no
+        desktop (15,58 → 14 em 1024px; 17 → 14 acima de 1617px). O alvo de
+        toque do painel mobile vem do `py-3.5` do item, não do tamanho da
+        fonte: 14 × 1,25 + 28 = 45,5px, acima dos 44px do WCAG 2.5.5 (AAA).
+     Referência de mercado medida no pixel em `docs/referencia weg/home/`:
+     a nav da WEG é caixa alta a ~14px com tracking ≈ 0. */
+  --type-nav: 0.875rem; /* 14 — FIXO (chrome de navegação) */
   --type-body: 1rem; /* 16 */
   --type-ui: 0.9375rem; /* 15 */
   --type-meta: 0.875rem; /* 14 */
@@ -50,7 +72,14 @@
   --type-lede-tracking: 0em;
   --type-lede-weight: 500;
   --type-nav-leading: 1.25;
-  --type-nav-tracking: 0em;
+  /* O tracking do papel `nav` vive AQUI, não num `tracking-[…]` solto no
+     className (era `0.06em` em `navLabelClass` até 2026-08-30) — o papel tem
+     de carregar os quatro eixos, senão a escala volta a se partir em valores
+     avulsos. Calibrado para caixa alta a 14px: 0,06em foram medidos contra
+     glifos de ~17px e, no tamanho novo, somariam 38,6px de ar nos 5 rótulos
+     em português; 0,04em somam 25,8px e aproximam a barra da referência WEG
+     (tracking medido lá: 0,006–0,017em). */
+  --type-nav-tracking: 0.04em;
   --type-nav-weight: 500;
   --type-body-leading: 1.5;
   --type-body-tracking: 0em;

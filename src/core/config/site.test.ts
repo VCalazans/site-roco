@@ -237,6 +237,36 @@ describe("site config", () => {
       });
     });
 
+    describe('"Ligamos pra você" (#ligamos)', () => {
+      it("resolve para a página de contato do locale, com o assunto pré-selecionado", () => {
+        expect(resolveDestination("#ligamos", "pt")).toBe(
+          "/pt/contato?assunto=call_back"
+        );
+      });
+
+      it("usa o MESMO segmento nos dois locales (não existe /en/contact)", () => {
+        expect(resolveDestination("#ligamos", "en")).toBe(
+          "/en/contato?assunto=call_back"
+        );
+      });
+
+      it("ainda recebe a origem, apesar de já chegar com querystring", () => {
+        // Regressão: `capturesLeads` comparava a string inteira contra
+        // `contactPath(locale)` e este destino cairia fora.
+        expect(resolveDestination("#ligamos", "pt", "menu")).toBe(
+          "/pt/contato?assunto=call_back&origem=menu"
+        );
+      });
+
+      it("é uma rota interna (não abre em nova aba nem some do locale)", () => {
+        for (const locale of ["pt", "en"]) {
+          const href = resolveDestination("#ligamos", locale, "menu");
+          expect(href.startsWith(`/${locale}/`)).toBe(true);
+          expect(href).not.toContain("/contact");
+        }
+      });
+    });
+
     describe("unrelated in-page anchors (pass-through)", () => {
       it("passes through arbitrary anchors unchanged", () => {
         expect(resolveDestination("#section", "pt")).toBe("#section");

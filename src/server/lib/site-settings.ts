@@ -32,7 +32,26 @@ async function readSetting(
     .limit(1);
   if (!row) return null;
   const v = row.value as unknown;
-  return typeof v === "string" ? v : v == null ? null : String(v);
+  if (v == null) return null;
+  if (typeof v === "string") return v;
+  // Objeto/array: TEM de voltar a ser JSON, nunca `String(v)`.
+  //
+  // O valor faz uma volta a mais entre gravação e leitura: quem escreve manda
+  // uma STRING (o seed manda `JSON.stringify({...})`; o `set` do tRPC valida
+  // `z.string()`), a coluna é `jsonb` e o driver do Drizzle serializa de novo —
+  // então o banco guarda um *JSON string*. Na leitura o node-postgres já
+  // devolve o conteúdo e o `mapFromDriverValue` do jsonb faz `JSON.parse` mais
+  // uma vez, entregando aqui um OBJETO.
+  //
+  // Com `String(v)` isso virava literalmente "[object Object]", o
+  // `JSON.parse` de `getSocialLinks` lançava e o `catch` devolvia `{}`: a
+  // linha de redes sociais do rodapé NUNCA renderizou desde que foi escrita
+  // (verificado no HTML servido pelo container em 2026-08-30). As chaves de
+  // texto simples sobreviviam por acidente, porque as duas transformações se
+  // cancelam — `contact.phone` inclusive volta como NUMBER e cai no
+  // `String(v)` final.
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
 }
 
 /**

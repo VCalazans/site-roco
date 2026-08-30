@@ -1112,3 +1112,147 @@ novo `server/lib/event-loop-monitor.ts` (singleton em `globalThis`, HMR-safe, ti
 novo `server/lib/pg-error.ts` (`isStatementTimeout`, 15 testes); `register-workers.ts` exporta
 `getWorkerRuntimeState()`; `db/index.ts` exporta `DB_POOL_MAX_CONNECTIONS` para o health distinguir
 "pool saturado" de "banco fora do ar" sem repetir o número. Testes: 914 → 934.
+
+## 2026-08-30 — Chrome de navegação: escala de nav fixa em 14px, seletor de idioma, login separado de "Portal ROCO" e rodapé em duas bandas
+
+**Decisão**: quatro mudanças na moldura de navegação do site público (`(site)`, Tailwind-only),
+mais as correções da revisão adversarial que se seguiu (última seção desta entrada).
+
+**(a) `--type-nav` deixa de escalar e fixa em 14px.** Era
+`clamp(0.875rem, 0.82rem + 0.24vw, 1.0625rem)` — 14px em telas pequenas subindo a **17px** no
+desktop. Os rótulos da nav são CAIXA ALTA com tracking positivo, e é aí que a conta engana: caixa
+alta não tem descendentes nem variação de altura-x, então cada rótulo lê como um bloco de altura
+constante, e o tracking multiplica a largura por caractere. 17px em versalete com espaçamento pesa
+visualmente muito mais que 17px em caixa baixa — a referência de mercado para nav em caixa alta é
+13–14px. O tracking também caiu de 0.06em para **0.04em** pelo mesmo motivo. A escala continua sendo
+a FONTE ÚNICA (`:root` → `@theme inline` em `globals.css`): a correção mora no papel `nav`, não num
+`className` de tamanho solto no header — que é exatamente o que a arquitetura da escala existe para
+impedir. O papel `nav` só é consumido pelo chrome de navegação (barra, painel mobile, seletor de
+idioma), então nenhuma página muda fora do header. O MOBILE é papel à parte e NÃO encolheu: o alvo
+de toque do painel vem do `py-3.5` (14px × leading 1.25 + 28px = 45,5px, acima dos 44px do WCAG
+2.5.5), não do tamanho da fonte — havia inclusive um `text-ui` no painel que nunca se aplicava,
+porque `text-ui` e `text-nav` caem no mesmo grupo `font-size` do `cn()` e o segundo descartava o
+primeiro em silêncio.
+
+**(b) Seletor de idioma PT ⇄ EN — troca do PRIMEIRO SEGMENTO do pathname.** Não existem rotas
+traduzidas: `CONTACT_SEGMENT` é `"contato"` nos dois locales, e `/pt/produtos` e `/en/produtos`
+compartilham o mesmo segmento. Logo trocar de idioma é trocar o primeiro segmento e preservar TODO
+o resto — caminho, querystring e fragmento (`switchLocalePath`, `src/shared/lib/locale-path.ts`,
+com testes próprios). Padrão de UI: USWDS "two languages" — um link que mostra o idioma de DESTINO
+no PRÓPRIO idioma de destino ("English" numa página pt), sem bandeira (o W3C é explícito: bandeiras
+são países, não idiomas), sem sigla de duas letras (alvo de tradução automática do navegador) e sem
+globo (o rodapé já usa o globo do lucide para outra coisa).
+Três detalhes que não são estética:
+  - **`<a>` cru, navegação de documento inteiro, de propósito.** O `<html lang>` é emitido no root
+    layout, ACIMA do segmento `[locale]` e COMPARTILHADO por `/pt/*` e `/en/*`; numa navegação
+    client-side do App Router os layouts compartilhados não re-renderizam, então a página trocaria
+    de idioma com o `lang` antigo grudado (SC 3.1.1). O `<a>` resolve por construção.
+  - **O cookie `NEXT_LOCALE` NÃO é gravado pelo componente** — confirmado lendo `src/proxy.ts`: o
+    middleware o regrava na requisição seguinte, e a navegação de documento inteiro garante que
+    essa requisição aconteça. Sem isso o seletor precisaria escrever o cookie por conta própria.
+  - **Sem `useSearchParams`**, que obrigaria fronteira `<Suspense>` em toda página pré-renderizada.
+    O `href` renderizado carrega só o CAMINHO; o clique simples lê a URL VIVA (`window.location`) —
+    o que ainda captura o que o `history.replaceState` do explorador de produtos escreveu, invisível
+    para `useSearchParams`. Clique com modificador (nova aba) cai no href cru, sem os filtros: é a
+    degradação aceitável; o inverso (href com query congelada no SSR) mentiria.
+
+**(c) Acesso ao login do portal, separado do item "Portal ROCO".** O item de nav "Portal ROCO"
+aponta para `/{locale}/representantes` — PRÉ-CADASTRO público, que não é login. Quem já é
+representante não tinha nenhum caminho para `/{locale}/portal/login` a partir do site. Entra um
+botão só de ícone (`LogIn` do lucide) com nome acessível vindo do dicionário
+(`navigation.portalLogin`), na barra em TODOS os tamanhos — é destino de tarefa de quem já tem
+conta e vale o toque único.
+
+**(d) Rodapé reorganizado em DUAS BANDAS sobre a mesma grade.** Antes: UMA coluna de `1.5fr`
+acumulava logo + tagline + telefone + e-mail + endereço da matriz + descrição da filial + redes, ao
+lado de três colunas de 1–2 links. Medido com as métricas reais do Inter servido pelo `next/font`,
+o desnível era de 291–330px em toda largura — e o pior caso era ao GANHAR espaço: cruzando
+1023→1024px a coluna perdia 39% da largura e ficava mais ALTA. Agora: banda 1 = marca + 3 colunas
+de links; banda 2 = contato (canais, matriz, unidade fabril, redes), cada bloco com RÓTULO próprio
+— a descrição da filial era um parágrafo solto colado sob o endereço da matriz e lia como
+continuação dele, ou como erro. Todo bloco de prosa passou a compartilhar a constante `PROSE_BLOCK`
+(`max-w-xs`), um teto que não depende do container; antes só a tagline tinha limite, e eram
+justamente os dois endereços sem teto que empurravam a coluna para 10 linhas. Desnível final:
+42–66px (banda 1) e 27–66px (banda 2). `footer.addressLabel` ("Blumenau e Gaspar — Santa Catarina,
+Brasil") era CÓDIGO MORTO desde a entrada dos endereços dinâmicos — nenhum componente o lia — e foi
+removido dos dois dicionários.
+
+**Alternativas**: (a) resolver o tamanho da nav com `className` no header — rejeitado, fura a escala
+e reabre a divergência que ela existe para fechar; (b) `<select>` nativo de idioma — destoa do tema
+dark neon e força um `onChange` com navegação programática, perdendo o "abrir em nova aba"; rotas
+traduzidas por locale (`/en/products`) — fora de escopo e exigiria mapa de segmentos + sitemap
+duplo; (c) reaproveitar o item "Portal ROCO" para o login — rejeitado, são públicos diferentes
+(candidato a representante vs. representante com conta); (d) manter 4 colunas e só apertar a
+primeira — rejeitado, o desnível cresce justamente quando há mais espaço.
+
+**Justificativa**: pedido explícito do stakeholder em 2026-08-30 (fonte da nav grande demais,
+rodapé quebrando, falta de seletor de idioma e de acesso ao login). `localeNames` já existia em
+`src/i18n/config.ts` desde a fundação do projeto e nunca havia sido usado.
+
+**Impacto**: componentes novos `src/shared/components/nav/{language-switcher,portal-login-link}.tsx`
+e módulo puro `src/shared/lib/locale-path.ts` (com testes); `site-header.tsx` ganha o bloco de
+controles à direita da nav, separado por um divisor; `mobile-menu.tsx` hospeda o seletor de idioma
+abaixo de `lg` (ação rara, e a barra de 320px já divide espaço entre logotipo, login e hambúrguer);
+dicionários ganham `navigation.language.action`, `navigation.portalLogin` e
+`footer.contact.{title,headquartersLabel,plantLabel}`, e perdem `footer.addressLabel`.
+**O breakpoint de colapso segue em `lg` (1024px), agora por MEDIDA e não por impressão**: com os
+dois controles novos o conjunto (5 rótulos + divisor + seletor + botão) mede 728px em pt e 709px em
+en a 1024px, contra 868px disponíveis — folga de 140/159px; a barra só deixaria de caber abaixo de
+~900px. Subir para `xl` seria esconder uma barra que cabe.
+
+### Correções da revisão adversarial deste mesmo pacote (2026-08-30)
+
+**(1) O menu mobile trancava a rolagem da página ao cruzar o breakpoint.** `MobileMenu` é escondido
+por CSS (`<div className="lg:hidden">` no `SiteHeader`), e `display:none` **não desmonta o React**:
+`open` ficava preso em `true`, o cleanup do efeito nunca rodava e o `<body>` seguia com
+`overflow:hidden`. Como o botão, o backdrop e o painel estão TODOS dentro do subárvore escondido,
+não sobrava nenhum controle visível para destravar — TODA rota de `(site)` ficava sem rolagem.
+Reproduz girando um iPad de retrato para paisagem com o menu aberto (1024px é exatamente o iPad Pro
+em retrato), ou arrastando a janela do desktop de 1000 → 1100px. Correção: o efeito passa a
+observar `window.matchMedia("(min-width: 64rem)")` e fecha o painel ao cruzar. Escolhida em vez de
+uma classe `max-lg:overflow-hidden` porque esta dependeria do scanner do Tailwind v4 gerar o
+utilitário a partir de um literal em `.tsx`. **A trava de scroll entrou nesta mesma branch**, então
+a armadilha inteira é nova em relação à `main` — não é dívida herdada.
+
+**(2) O `aria-label` do seletor de idioma anulava o `<span lang>`.** Pelo algoritmo de nome
+acessível, `aria-label` (passo 2C) encerra a computação antes do conteúdo da subárvore (passo 2F):
+o `<span lang="en">` nunca era consultado e o nome virava uma string plana no idioma do DOCUMENTO —
+"English" pronunciado com fonemas portugueses, exatamente o que o docblock do componente afirmava
+ter resolvido. Marcação morta prometendo o que não entregava. Correção: remover o `aria-label` e
+deixar o nome vir do CONTEÚDO (`<span class="sr-only">` com a ação + `<span lang>` com o autônimo).
+O nome acessível resultante é BYTE-IDÊNTICO ao anterior ("Mudar idioma: English"), então não há
+regressão de WCAG 2.5.3 (Label in Name). `aria-labelledby` teria o mesmo defeito — também achata
+para string única. O separador vive DENTRO do texto `sr-only` porque dois `<span>` adjacentes são
+conteúdo "phrasing" e a composição do nome não insere espaço entre eles.
+
+**(3) O telefone do rodapé abria o WhatsApp com o nome acessível "(47) 3335-2012" e ícone de
+telefone.** O mesmo `href` (`wa.me/…`) aparecia DUAS vezes no rodapé com nomes diferentes — uma como
+o número (ícone `Phone` do lucide, `aria-hidden`) e outra como "ROCO no WhatsApp" no bloco de redes.
+Isso é 3.2.4 (Identificação Consistente) e 2.4.4 (propósito do link pelo nome). A duplicação é NOVA
+nesta branch: o `readSetting` anterior fazia `String(v)` sobre o jsonb → `"[object Object]"` → o
+`JSON.parse` lançava → `{}`, e o bloco de redes nunca renderizava. Correção: `aria-label` composto
+("ROCO no WhatsApp: (47) 3335-2012", reaproveitando `footer.socialNames.whatsapp`, que já existia
+nos dois locales) e troca do ícone `Phone` pelo `WhatsappIcon` já desenhado no arquivo. **NÃO virou
+`tel:`**: `src/db/seed.ts` descreve `contact.phone` como canal de WhatsApp da matriz, não linha de
+voz — discar poderia dar em nada.
+
+**(4) "Ligamos pra você" no RODAPÉ apontava para o mesmo destino de "Fale conosco".** Este pacote
+criou o placeholder `#ligamos` justamente porque o caminho literal no dicionário estava quebrado
+(404 em EN, sem prefixo de locale em PT), e migrou o item da NAV — o link do RODAPÉ com o rótulo
+idêntico ficou em `#contato`. Dois links de rótulos diferentes e destino byte-idêntico, e o de
+callback perdia a intenção: o lead chegava ao RD Station como `contato_geral` em vez de
+`ligamos_pra_voce`. Correção: `footer.columns[2].links[1].href` → `"#ligamos"` nos dois dicionários.
+Aproveitado para uniformizar o rótulo EN, que aparecia como "We call you" na nav e "We'll call you"
+no rodapé — mesmo item com dois nomes na mesma página.
+
+**Não corrigido, e por quê**: a descrição da unidade fabril renderiza em PORTUGUÊS na versão em
+inglês, sem `lang="pt"` (SC 3.1.2). É real, mas PRÉ-EXISTE a este pacote byte a byte (vem de
+`692ae7c`) e não tem correção local: `site_settings` é chave-valor SEM dimensão de locale, então
+hoje não existe caminho para traduzir o dado. Fica em `progress.md` como backlog, pelo mesmo
+critério com que a revisão de 2026-08-25 recusou o achado do "fail-closed sem Redis".
+
+**Verificação**: TUDO por medida e por HTML servido — **não houve verificação visual nesta sessão**
+(a extensão do navegador estava desconectada; ninguém abriu a página). Larguras de barra calculadas
+com as métricas reais do arquivo Inter servido pelo `next/font` (hmtx + HVAR em wght 500); o resto
+por `curl` + parse dos anchors, cabeçalhos e `<option>` do HTML real. O julgamento estético do
+resultado continua PENDENTE DE OLHO HUMANO.

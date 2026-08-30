@@ -64,6 +64,8 @@ export default async function ProductNotFound() {
         brand={navigation.brand}
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        locale={locale}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
       />
       <main className="relative z-10 mx-auto flex min-h-[70svh] max-w-2xl flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
         <h1 className="font-display text-h1 text-white">{products.detail.notFoundTitle}</h1>

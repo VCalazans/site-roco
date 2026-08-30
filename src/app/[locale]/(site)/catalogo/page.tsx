@@ -117,6 +117,8 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
         brand={navigation.brand}
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        locale={locale}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
       />
 
       <main className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">

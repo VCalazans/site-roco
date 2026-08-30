@@ -64,6 +64,15 @@ export function siteNavLinks<T extends NavLink>(links: readonly T[], locale: str
  * LINHA ÚNICA sempre (rótulo quebrado desalinha a barra); quando não couber,
  * o menu colapsa no hambúrguer (abaixo de `lg`) em vez de quebrar.
  *
+ * TAMANHO E TRACKING vêm INTEIROS do papel `nav` da escala (`--type-nav*` em
+ * `globals.css`) — aqui não há mais `tracking-[0.06em]` solto. O papel carrega
+ * os quatro eixos (tamanho 14px fixo, leading 1.25, tracking 0.04em, peso
+ * 500); a régua e o porquê estão no comentário de `--type-nav`. Reintroduzir
+ * um `text-*`/`tracking-*` avulso aqui parte a escala de novo — e, pior,
+ * `cn()` classifica `text-nav` no grupo `font-size`, então um segundo
+ * utilitário de tamanho na mesma chamada faria um dos dois sumir em silêncio
+ * (foi o que aconteceu com o `text-ui` do painel mobile).
+ *
  * @param isActive Se o link corresponde à rota atual (ver `isNavLinkActive`).
  * @param variant `"bar"` é o item da barra horizontal;
  *                `"menu"` alinha à esquerda e ocupa a largura toda (painel).
@@ -72,7 +81,7 @@ export function navLabelClass(
   isActive: boolean,
   variant: "bar" | "menu" = "bar"
 ): string {
-  const base = "text-nav whitespace-nowrap uppercase tracking-[0.06em] transition-colors";
+  const base = "text-nav whitespace-nowrap uppercase transition-colors";
   const shape = variant === "bar" ? "" : "w-full text-left";
   const tone = isActive
     ? "text-neon-cyan-bright"
@@ -109,6 +118,26 @@ export function isNavLinkActive(href: string, pathname: string): boolean {
   }
 
   return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+/**
+ * O índice do item que deve ser marcado como página atual — o PRIMEIRO que
+ * casa com a rota, e só ele. `-1` quando nenhum casa.
+ *
+ * Existe porque dois itens do menu podem apontar para a MESMA página com
+ * intenções diferentes: "Contato" (`/pt/contato`) e "Ligamos pra você"
+ * (`/pt/contato?assunto=call_back`). Como `isNavLinkActive` compara caminhos —
+ * e tem de comparar, senão o `?origem=menu` já quebraria o realce —, em
+ * `/pt/contato` os DOIS acendiam em ciano e recebiam `aria-current="page"`,
+ * o que lê como defeito na barra e dá ao leitor de tela duas "páginas atuais"
+ * num mesmo conjunto. Vence o primeiro do dicionário, que é a seção; o atalho
+ * de intenção vem depois e fica neutro.
+ */
+export function activeNavIndex(
+  links: readonly NavLink[],
+  pathname: string
+): number {
+  return links.findIndex((link) => isNavLinkActive(link.href, pathname));
 }
 
 /** O caminho de um href, sem querystring nem fragmento. */

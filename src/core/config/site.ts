@@ -43,6 +43,21 @@ export const PRODUCTS_SEGMENT = "produtos";
 /** Route segment of the public contact page. */
 export const CONTACT_SEGMENT = "contato";
 
+/**
+ * Segmentos do login do portal interno. Não são traduzidos (o route group
+ * `(internal)` é o mesmo nos dois locales) e espelham `PROTECTED_SECTIONS` /
+ * `PORTAL_LOGIN_SEGMENT` do `src/proxy.ts` — se algum dia a rota mudar lá,
+ * muda aqui junto, senão o botão de login da barra passa a cair no gate de
+ * sessão e a pessoa é redirecionada para… o login.
+ */
+export const PORTAL_SEGMENT = "portal";
+export const PORTAL_LOGIN_SEGMENT = "login";
+
+/** Locale-prefixed path of the portal login page (`/pt/portal/login`). */
+export function portalLoginPath(locale: string): string {
+  return `/${locale}/${PORTAL_SEGMENT}/${PORTAL_LOGIN_SEGMENT}`;
+}
+
 /** Locale-prefixed path of the representative pre-registration page. */
 export function representativesPath(locale: string): string {
   return `/${locale}/${REPRESENTATIVES_SEGMENT}`;
@@ -97,8 +112,15 @@ export function resolveDestination(
   // produtos, nem — principalmente — para uma URL de terceiro configurada
   // via `NEXT_PUBLIC_PRODUCTS_URL`/`NEXT_PUBLIC_CATALOG_URL`, onde vazaria
   // taxonomia interna e poderia colidir com um parâmetro do destino.
+  //
+  // Compara só o CAMINHO: desde `#ligamos` um destino interno pode chegar
+  // aqui já com querystring (`/pt/contato?assunto=call_back`), e comparar a
+  // string inteira faria esse caso cair fora — o item perderia a origem sem
+  // erro nenhum.
+  const destinationPath = destination.split("#")[0].split("?")[0];
   const capturesLeads =
-    destination === contactPath(locale) || destination === catalogPath(locale);
+    destinationPath === contactPath(locale) ||
+    destinationPath === catalogPath(locale);
 
   return capturesLeads ? withLeadOrigin(destination, origin) : destination;
 }
@@ -117,6 +139,21 @@ function resolveHref(href: string, locale: string): string {
     case "#contato":
     case "/contato":
       return contactPath(locale);
+    // "Ligamos pra você": a MESMA página de contato, com o assunto
+    // pré-selecionado no dropdown (`resolveDefaultSubject` em
+    // `app/[locale]/(site)/contato/page.tsx`).
+    //
+    // Existe como placeholder porque o dicionário trazia o caminho literal
+    // `/contato?assunto=call_back&origem=menu` — que `resolveDestination` não
+    // reescreve. Consequências reais, medidas no container em 2026-08-30:
+    // em EN o dicionário escrevia `/contact?...` e a rota NÃO existe
+    // (`CONTACT_SEGMENT` é "contato" nos dois locales), então o 5º item do
+    // menu levava a 404; em PT o link saía sem prefixo de locale, dependendo
+    // do redirect 307 do middleware e nunca casando com o `pathname` em
+    // `isNavLinkActive` — o item jamais ficava ativo nem recebia
+    // `aria-current="page"`.
+    case "#ligamos":
+      return `${contactPath(locale)}?assunto=call_back`;
     default:
       return href;
   }

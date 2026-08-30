@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/core/lib/utils";
+import type { Locale } from "@/i18n/config";
+import {
+  LanguageSwitcher,
+  type LanguageSwitcherLabels,
+} from "@/shared/components/nav/language-switcher";
 import { NavItems } from "@/shared/components/nav/nav-items";
 import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
@@ -11,6 +16,8 @@ type MobileMenuProps = {
   links: NavLink[];
   /** aria-label for the toggle when the menu is closed / open. */
   labels: { open: string; close: string };
+  locale: Locale;
+  languageLabels: LanguageSwitcherLabels;
 };
 
 /**
@@ -23,7 +30,12 @@ type MobileMenuProps = {
  * `top-16 md:top-20` espelha a altura da faixa do header (h-16 / md:h-20);
  * se a altura da barra mudar lá, precisa mudar aqui junto.
  */
-export function MobileMenu({ links, labels }: MobileMenuProps) {
+export function MobileMenu({
+  links,
+  labels,
+  locale,
+  languageLabels,
+}: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -34,6 +46,22 @@ export function MobileMenu({ links, labels }: MobileMenuProps) {
     };
     document.addEventListener("keydown", onKey);
 
+    // Fecha ao CRUZAR o breakpoint `lg`. O wrapper deste componente no
+    // `SiteHeader` é `lg:hidden` — `display:none` esconde, mas NÃO desmonta o
+    // React: sem este listener, `open` fica preso em `true`, o cleanup abaixo
+    // nunca roda e o body permanece com `overflow:hidden`. Como o botão, o
+    // backdrop e o painel estão TODOS dentro do subárvore escondido, não sobra
+    // nenhum controle visível para destravar — a página inteira de `(site)`
+    // fica sem rolagem (reproduz girando um iPad de retrato para paisagem com
+    // o menu aberto, ou arrastando a janela do desktop de 1000 → 1100px).
+    // 64rem = o `lg` do Tailwind; se o corte da barra mudar no `SiteHeader`,
+    // precisa mudar aqui junto.
+    const desktop = window.matchMedia("(min-width: 64rem)");
+    const onBreakpoint = () => {
+      if (desktop.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", onBreakpoint);
+
     // Trava o scroll da página enquanto o painel está aberto — sem isso o
     // conteúdo rola por baixo do backdrop e o menu "escapa" do dedo no toque.
     const previousOverflow = document.body.style.overflow;
@@ -41,6 +69,7 @@ export function MobileMenu({ links, labels }: MobileMenuProps) {
 
     return () => {
       document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onBreakpoint);
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
@@ -85,18 +114,39 @@ export function MobileMenu({ links, labels }: MobileMenuProps) {
               <NavItems
                 links={links}
                 onSelect={close}
+                // O alvo de toque vem do `py-3.5`, NÃO do tamanho da fonte:
+                // 14px × leading 1.25 + 28px de padding = 45,5px, acima dos
+                // 44px do WCAG 2.5.5 (AAA). Havia um `text-ui` aqui que nunca
+                // se aplicou — `text-ui` e `text-nav` estão no mesmo grupo
+                // `font-size` de `cn()` (ver `@/core/lib/utils`), então o
+                // segundo descartava o primeiro em silêncio. Removido para o
+                // painel medir o que parece medir.
                 itemClassName={(_index, isActive) =>
                   cn(
-                    "rounded-xl px-4 py-3.5 text-ui hover:bg-white/5 active:bg-white/10",
+                    "rounded-xl px-4 py-3.5 hover:bg-white/5 active:bg-white/10",
                     navLabelClass(isActive, "menu")
                   )
                 }
               />
 
-              {/* Filete dual-tone fechando o painel, eco do filete da faixa. */}
+              {/* Filete dual-tone separando NAVEGAÇÃO dos CONTROLES — mesmo
+                  papel do divisor vertical da barra desktop. */}
               <div
                 aria-hidden
-                className="mt-2 h-px w-full bg-gradient-to-r from-neon-cyan/50 via-white/10 to-neon-amber/50"
+                className="my-2 h-px w-full bg-gradient-to-r from-neon-cyan/50 via-white/10 to-neon-amber/50"
+              />
+
+              {/* Seletor de idioma: no mobile ele mora AQUI e não na barra.
+                  Trocar de idioma é ação rara (uma vez por visitante, no
+                  máximo), enquanto a barra de 320px já divide o espaço entre
+                  logotipo, botão de login e hambúrguer; dentro do painel ele
+                  ainda ganha um alvo de toque full-width, maior que qualquer
+                  pílula que coubesse lá fora. */}
+              <LanguageSwitcher
+                locale={locale}
+                labels={languageLabels}
+                variant="menu"
+                onSelect={close}
               />
             </motion.div>
           </>

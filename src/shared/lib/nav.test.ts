@@ -4,6 +4,7 @@ import {
   siteNavLinks,
   navLabelClass,
   isNavLinkActive,
+  activeNavIndex,
   externalProps,
   type NavLink,
 } from "./nav";
@@ -112,6 +113,17 @@ describe("nav utilities", () => {
         expect(result).toContain("whitespace-nowrap");
         expect(result).toContain("uppercase");
         expect(result).toContain("transition-colors");
+      });
+
+      it("não declara tamanho nem tracking avulsos — os quatro eixos vêm do papel `nav`", () => {
+        // Ver `--type-nav*` em globals.css. Um `tracking-[…]` ou um segundo
+        // `text-*` aqui parte a escala; pior, `cn()` classifica `text-nav` no
+        // grupo `font-size` e faria um dos dois sumir sem erro.
+        for (const result of [navLabelClass(true, "bar"), navLabelClass(false, "menu")]) {
+          expect(result).not.toMatch(/\btracking-/);
+          expect(result).not.toMatch(/\btext-(xs|sm|base|lg|xl|\[)/);
+          expect(result.match(/\btext-(h1|h2|lede|nav|body|ui|meta|micro)\b/g)).toHaveLength(1);
+        }
       });
 
       it("applies different colors depending on active state, regardless of item position", () => {
@@ -235,6 +247,45 @@ describe("nav utilities", () => {
           isNavLinkActive("/pt/representantes", "/en/representantes")
         ).toBe(false);
       });
+    });
+  });
+
+  describe("activeNavIndex", () => {
+    // A nav real depois de `siteNavLinks(navigation.links, "pt")`.
+    const BAR: NavLink[] = [
+      { label: "Home", href: "/" },
+      { label: "Produtos", href: "/pt/produtos" },
+      { label: "Portal ROCO", href: "/pt/representantes" },
+      { label: "Contato", href: "/pt/contato?origem=menu" },
+      { label: "Ligamos pra você", href: "/pt/contato?assunto=call_back&origem=menu" },
+    ];
+
+    it("marca UM único item quando dois levam à mesma página", () => {
+      // Antes desta função, "Contato" e "Ligamos pra você" acendiam juntos em
+      // /pt/contato — dois `aria-current="page"` no mesmo conjunto.
+      expect(activeNavIndex(BAR, "/pt/contato")).toBe(3);
+      expect(BAR.filter((link) => isNavLinkActive(link.href, "/pt/contato"))).toHaveLength(2);
+    });
+
+    it("vence o PRIMEIRO do dicionário (a seção, não o atalho de intenção)", () => {
+      const invertida = [BAR[4], BAR[3]];
+      expect(activeNavIndex(invertida, "/pt/contato")).toBe(0);
+    });
+
+    it("marca a seção certa nas demais rotas", () => {
+      expect(activeNavIndex(BAR, "/pt")).toBe(0);
+      expect(activeNavIndex(BAR, "/pt/produtos")).toBe(1);
+      expect(activeNavIndex(BAR, "/pt/produtos/valvula")).toBe(1);
+      expect(activeNavIndex(BAR, "/pt/representantes")).toBe(2);
+    });
+
+    it("devolve -1 quando nenhuma rota casa", () => {
+      expect(activeNavIndex(BAR, "/pt/portal/login")).toBe(-1);
+      expect(activeNavIndex([], "/pt")).toBe(-1);
+    });
+
+    it("é locale-sensível", () => {
+      expect(activeNavIndex(BAR, "/en/produtos")).toBe(-1);
     });
   });
 

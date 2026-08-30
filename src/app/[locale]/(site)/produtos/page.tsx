@@ -72,6 +72,8 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
         brand={navigation.brand}
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
+        locale={locale}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
       />
 
       {/* Faixa decorativa com a cena extraída de

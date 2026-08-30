@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { externalProps, isNavLinkActive, type NavLink } from "@/shared/lib/nav";
+import { activeNavIndex, externalProps, type NavLink } from "@/shared/lib/nav";
 
 type NavItemsProps = {
   links: NavLink[];
@@ -47,11 +47,15 @@ export function NavItems({
 }: NavItemsProps) {
   const wrap = wrapItem ?? ((node: ReactNode) => node);
   const pathname = usePathname();
+  // UM único item marcado como página atual — ver `activeNavIndex`. Dois itens
+  // podem levar à mesma página com intenções diferentes ("Contato" e "Ligamos
+  // pra você" vão ambos para `/contato`) e acender os dois lê como defeito.
+  const activeIndex = activeNavIndex(links, pathname);
 
   return (
     <>
       {links.map((link, index) => {
-        const isActive = isNavLinkActive(link.href, pathname);
+        const isActive = index === activeIndex;
         const className = itemClassName(index, isActive);
         const style = itemStyle?.(index);
 

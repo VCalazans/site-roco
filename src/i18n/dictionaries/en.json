@@ -29,11 +29,15 @@
         "icon": ""
       },
       {
-        "label": "We call you",
-        "href": "/contact?assunto=call_back&origem=menu",
+        "label": "We'll call you",
+        "href": "#ligamos",
         "icon": ""
       }
-    ]
+    ],
+    "language": {
+      "action": "Change language"
+    },
+    "portalLogin": "Sign in to the ROCO Portal"
   },
   "home": {
     "brand": "ROCO",
@@ -282,13 +286,23 @@
           },
           {
             "label": "We'll call you",
-            "href": "#contato"
+            "href": "#ligamos"
           }
         ]
       }
     ],
+    "contact": {
+      "title": "Talk to ROCO",
+      "headquartersLabel": "Headquarters",
+      "plantLabel": "Manufacturing plant"
+    },
     "socialLabel": "Follow ROCO",
-    "addressLabel": "Blumenau and Gaspar — Santa Catarina, Brazil",
+    "socialNames": {
+      "instagram": "ROCO on Instagram",
+      "linkedin": "ROCO on LinkedIn",
+      "youtube": "ROCO on YouTube",
+      "whatsapp": "ROCO on WhatsApp"
+    },
     "certifications": {
       "title": "Certifications and seals",
       "items": [
