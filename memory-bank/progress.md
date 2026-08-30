@@ -161,6 +161,19 @@
       middleware na URL de ENTRADA e lido pelas páginas de captura (`resolveLeadUtm`); redirect de
       locale passou a preservar a querystring
 
+### Contato dinâmico + footer completo + nav "Ligamos pra você" (2026-08-25)
+- [x] Schema: 5 chaves `site_settings` (contact.phone, contact.email, contact.address.matriz,
+      contact.address.filial, social.links)
+- [x] Server lib: `getContactInfo()` e `getSocialLinks()` cacheados (revalidate 60s) — rodapé público
+- [x] tRPC router `siteSettings` expõe `list` (admin) e `set` (com validação de chave permitida)
+- [x] Footer: telefone com `wa.me`, e-mail, endereço matriz + filial, ícones Instagram/LinkedIn/YouTube
+      (SVG inline) + WhatsApp (Globe lucide) — cada ícone só aparece se link existir no banco
+- [x] Nav: "Ligamos pra você" como 5o item em pt/en, link `/contato?assunto=call_back&origem=menu`
+- [x] Portal `/portal/configuracoes`: admin-editable, 5 campos (MUI v9 Grid v2), seed idempotente
+- [x] Seed: `npm run db:seed` agora também upsert dos dados ROCO (não sobrescreve edição do admin)
+- [x] Ícones sociais: SVG inline Instagram/LinkedIn/YouTube (não existem em lucide-react)
+- [x] Bug fix em `site-settings.ts`: `cachedReadSetting()()` → `cachedReadSetting` (invocação duplicada)
+
 ### Capacidade e observabilidade (2026-08-25)
 > Origem: teste de carga real no container. UM processo Node, UM event loop — renderizar página
 > satura ~1 core (120% de CPU com 30 SSR concorrentes; home de 15–27 ms para p50 122 ms / p90 432 ms,
