@@ -10,7 +10,12 @@
  * investigação manual.
  */
 import "server-only";
-import type { RdStationConversionPayload } from "./rd-station";
+import {
+  classifyRdStationValidationError,
+  hasCustomFields,
+  stripCustomFields,
+  type RdStationConversionPayload,
+} from "./rd-station";
 
 export type RdStationSendResult = { ok: boolean; eventUuid?: string; error?: string };
 
@@ -24,6 +29,17 @@ const RD_STATION_TIMEOUT_MS = 8_000;
  * barulho — mesmo espírito do stub `RdStationTracking`
  * (`src/shared/components/analytics/rdstation-tracking.tsx`), que também
  * fica desligado até as credenciais existirem.
+ *
+ * DEGRADAÇÃO GRACIOSA (2026-08-25): um campo customizado que ainda não
+ * existe no painel do RD faz a API responder 400 e a conversão INTEIRA se
+ * perde — não só aquele campo. Como `cf_cnpj`, `cf_produto_interesse` e
+ * `cf_origem` são criados À MÃO pelo stakeholder, esquecer um deles
+ * derrubaria TODOS os leads. Então, num 400 que aparente ser de campo
+ * (ou que não dê para classificar), tentamos UMA vez mais com apenas os
+ * campos padrão. O desfecho fica distinguível em
+ * `contact_submissions.rd_station_error` (`validation_retry_ok` /
+ * `validation_retry_failed`), para o time saber que o painel precisa de
+ * ajuste mesmo com o lead tendo chegado.
  */
 export async function sendRdStationConversion(
   payload: RdStationConversionPayload
@@ -36,6 +52,55 @@ export async function sendRdStationConversion(
     return { ok: false, error: "missing_api_key" };
   }
 
+  const first = await postConversion(payload, apiKey);
+
+  if (first.kind === "ok") {
+    return { ok: true, eventUuid: first.eventUuid };
+  }
+
+  if (first.kind === "validation") {
+    const classification = classifyRdStationValidationError(first.body);
+    console.error(
+      `[rd-station] Conversão rejeitada (400, classificação: ${classification}).`,
+      first.body
+    );
+
+    // "other" = o RD apontou um problema que NÃO é de campo customizado
+    // (e-mail inválido, telefone ausente...) — reenviar sem os `cf_*` daria
+    // no mesmo 400, então não insistimos.
+    if (classification === "other" || !hasCustomFields(payload)) {
+      return { ok: false, error: "validation" };
+    }
+
+    const retry = await postConversion(stripCustomFields(payload), apiKey);
+    if (retry.kind === "ok") {
+      console.error(
+        "[rd-station] Conversão aceita SEM os campos customizados — crie cf_cnpj/cf_produto_interesse/cf_origem no painel do RD Station (ver .env.example)."
+      );
+      return { ok: true, eventUuid: retry.eventUuid, error: "validation_retry_ok" };
+    }
+
+    console.error("[rd-station] Retry sem campos customizados também falhou.", retry.kind);
+    return { ok: false, error: "validation_retry_failed" };
+  }
+
+  return { ok: false, error: first.error };
+}
+
+type PostOutcome =
+  | { kind: "ok"; eventUuid?: string }
+  | { kind: "validation"; body: unknown }
+  | { kind: "failed"; error: string };
+
+/**
+ * Uma tentativa de POST. A API Key vai na QUERYSTRING (contrato da
+ * Conversions API — não existe `Authorization: Bearer` para API Key neste
+ * endpoint), por isso a URL montada NUNCA pode entrar em log.
+ */
+async function postConversion(
+  payload: RdStationConversionPayload,
+  apiKey: string
+): Promise<PostOutcome> {
   try {
     const response = await fetch(
       `${RD_STATION_CONVERSIONS_URL}?api_key=${encodeURIComponent(apiKey)}`,
@@ -49,23 +114,28 @@ export async function sendRdStationConversion(
 
     if (response.ok) {
       const body = (await response.json().catch(() => null)) as { event_uuid?: string } | null;
-      return { ok: true, eventUuid: body?.event_uuid };
+      return { kind: "ok", eventUuid: body?.event_uuid };
     }
 
     if (response.status === 400) {
-      // Log estruturado: é o principal sinal de diagnóstico se os campos
-      // customizados (cf_cnpj, cf_produto_interesse) ainda não existirem no
-      // painel do RD Station — o corpo traz o array `errors` explicando qual
-      // campo o RD rejeitou.
-      const body = (await response.json().catch(() => null)) as { errors?: unknown } | null;
-      console.error("[rd-station] Conversão rejeitada (400).", body?.errors ?? body);
-      return { ok: false, error: "validation" };
+      // O corpo traz `errors` (array OU objeto, conforme a página da doc)
+      // explicando qual campo o RD rejeitou — é o insumo do retry.
+      const body = await response.json().catch(() => null);
+      return { kind: "validation", body };
+    }
+
+    if (response.status === 429) {
+      // Diagnóstico distinto de "rede fora": o RD devolve teto e tempo de
+      // espera no corpo. Irrelevante no volume da ROCO, mas colapsar isso em
+      // "network" mandaria o time investigar a coisa errada.
+      console.error("[rd-station] Rate limit da Conversions API (429).");
+      return { kind: "failed", error: "rate_limited" };
     }
 
     console.error(`[rd-station] Resposta inesperada da Conversions API: ${response.status}`);
-    return { ok: false, error: "network" };
+    return { kind: "failed", error: "network" };
   } catch (error) {
     console.error("[rd-station] Falha ao enviar conversão.", error);
-    return { ok: false, error: "network" };
+    return { kind: "failed", error: "network" };
   }
 }

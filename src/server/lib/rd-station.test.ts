@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   buildRdStationConversionPayload,
+  classifyRdStationValidationError,
+  hasCustomFields,
+  stripCustomFields,
   type RdStationConversionMeta,
 } from "./rd-station";
 import type { ContactInput } from "./contact-submit";
@@ -39,12 +42,30 @@ describe("buildRdStationConversionPayload", () => {
       expect(payload.payload.conversion_identifier).toBe("orcamento_produto");
     });
 
-    it("maps 'call_back' subject to 'contato_geral'", () => {
+    it("maps 'call_back' subject to 'ligamos_pra_voce'", () => {
       const input = createContactInput({ subject: "call_back" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("contato_geral");
+      expect(payload.payload.conversion_identifier).toBe("ligamos_pra_voce");
+    });
+
+    it("maps 'catalog' subject to 'download_catalogo'", () => {
+      const input = createContactInput({ subject: "catalog" });
+      const meta = createMeta();
+      const payload = buildRdStationConversionPayload(input, meta);
+
+      expect(payload.payload.conversion_identifier).toBe("download_catalogo");
+    });
+
+    it("gives every subject its own identifier", () => {
+      const identifiers = (["quote", "catalog", "call_back", "general"] as const).map(
+        (subject) =>
+          buildRdStationConversionPayload(createContactInput({ subject }), createMeta()).payload
+            .conversion_identifier
+      );
+
+      expect(new Set(identifiers).size).toBe(identifiers.length);
     });
 
     it("maps 'general' subject to 'contato_geral'", () => {
@@ -204,12 +225,14 @@ describe("buildRdStationConversionPayload", () => {
       expect(payload.payload.legal_bases[0].status).toBe("granted");
     });
 
-    it("sets legal_bases status to 'not_provided' when consent is false", () => {
+    it("sets legal_bases status to 'declined' when consent is false", () => {
       const input = createContactInput({ consent: false as unknown as true });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.legal_bases[0].status).toBe("not_provided");
+      // Só "granted"/"declined" existem no enum documentado — um valor fora
+      // dele arriscaria um 400, que derruba a conversão inteira.
+      expect(payload.payload.legal_bases[0].status).toBe("declined");
     });
   });
 
@@ -283,10 +306,11 @@ describe("buildRdStationConversionPayload", () => {
   });
 
   describe("all subjects mapped correctly", () => {
-    const subjects: Array<"quote" | "call_back" | "general"> = [
+    const subjects: Array<"quote" | "call_back" | "general" | "catalog"> = [
       "quote",
       "call_back",
       "general",
+      "catalog",
     ];
 
     subjects.forEach((subject) => {
@@ -299,6 +323,214 @@ describe("buildRdStationConversionPayload", () => {
         expect(payload).toHaveProperty("event_family", "CDP");
         expect(payload.payload.conversion_identifier).toBeTruthy();
       });
+    });
+  });
+});
+
+describe("rastreio de aquisição no payload do RD Station", () => {
+  describe("cf_origem (seção interna do site)", () => {
+    it("sends the origin as a CUSTOM field", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ origin: "produto-detalhe" }),
+        createMeta()
+      );
+      expect(payload.payload.cf_origem).toBe("produto-detalhe");
+    });
+
+    it("omits cf_origem when there is no origin", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      expect(payload.payload).not.toHaveProperty("cf_origem");
+    });
+
+    it("never puts the origin in traffic_source (that slot belongs to UTM)", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ origin: "home-hero" }),
+        createMeta()
+      );
+      expect(payload.payload).not.toHaveProperty("traffic_source");
+    });
+  });
+
+  describe("traffic_* (campanha externa)", () => {
+    it("maps the three UTM values to the STANDARD traffic fields", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign: "catalogo-2026",
+        }),
+        createMeta()
+      );
+      expect(payload.payload.traffic_source).toBe("google");
+      expect(payload.payload.traffic_medium).toBe("cpc");
+      expect(payload.payload.traffic_campaign).toBe("catalogo-2026");
+    });
+
+    it("omits each traffic field independently", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ utmSource: "newsletter" }),
+        createMeta()
+      );
+      expect(payload.payload.traffic_source).toBe("newsletter");
+      expect(payload.payload).not.toHaveProperty("traffic_medium");
+      expect(payload.payload).not.toHaveProperty("traffic_campaign");
+    });
+
+    it("carries origin AND campaign together without overwriting each other", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ origin: "rodape", utmSource: "google" }),
+        createMeta()
+      );
+      expect(payload.payload.cf_origem).toBe("rodape");
+      expect(payload.payload.traffic_source).toBe("google");
+    });
+  });
+
+  describe("stripCustomFields (fallback do retry gracioso)", () => {
+    it("drops every custom field", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ origin: "menu" }),
+        createMeta()
+      );
+      const stripped = stripCustomFields(payload);
+
+      expect(stripped.payload).not.toHaveProperty("cf_cnpj");
+      expect(stripped.payload).not.toHaveProperty("cf_produto_interesse");
+      expect(stripped.payload).not.toHaveProperty("cf_origem");
+      expect(Object.keys(stripped.payload).some((key) => key.startsWith("cf_"))).toBe(false);
+    });
+
+    it("KEEPS the fields that matter (name, email, phone)", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      const stripped = stripCustomFields(payload);
+
+      expect(stripped.payload.name).toBe("João Silva");
+      expect(stripped.payload.email).toBe("joao@example.com");
+      expect(stripped.payload.personal_phone).toBe(VALID_PHONE);
+      expect(stripped.payload.conversion_identifier).toBe("orcamento_produto");
+      expect(stripped.payload.client_tracking_id).toBe("uuid-123-456-789");
+      expect(stripped.payload.legal_bases).toHaveLength(1);
+    });
+
+    it("keeps the STANDARD traffic fields (they need no panel setup)", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ utmSource: "google", utmMedium: "cpc" }),
+        createMeta()
+      );
+      const stripped = stripCustomFields(payload);
+
+      expect(stripped.payload.traffic_source).toBe("google");
+      expect(stripped.payload.traffic_medium).toBe("cpc");
+    });
+
+    it("preserves the envelope", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      const stripped = stripCustomFields(payload);
+
+      expect(stripped.event_type).toBe("CONVERSION");
+      expect(stripped.event_family).toBe("CDP");
+    });
+
+    it("does not mutate the original payload", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      stripCustomFields(payload);
+      expect(payload.payload.cf_cnpj).toBe(VALID_CNPJ);
+    });
+
+    it("is a no-op on a payload that has no custom field", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ cnpj: undefined }),
+        createMeta({ productName: undefined, productSku: undefined })
+      );
+      expect(hasCustomFields(payload)).toBe(false);
+      expect(stripCustomFields(payload)).toEqual(payload);
+    });
+  });
+
+  describe("hasCustomFields", () => {
+    it("is true when any custom field is present", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      expect(hasCustomFields(payload)).toBe(true);
+    });
+
+    it("is true when only the origin is custom", () => {
+      const payload = buildRdStationConversionPayload(
+        createContactInput({ cnpj: undefined, origin: "menu" }),
+        createMeta({ productName: undefined, productSku: undefined })
+      );
+      expect(hasCustomFields(payload)).toBe(true);
+    });
+
+    it("is false after stripping", () => {
+      const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+      expect(hasCustomFields(stripCustomFields(payload))).toBe(false);
+    });
+  });
+
+  describe("classifyRdStationValidationError", () => {
+    it("classifies INVALID_FIELDS in the ARRAY form of the body", () => {
+      const body = {
+        errors: [
+          {
+            error_type: "INVALID_FIELDS",
+            error_message: "Payload contains fields that do not exist: (cf_origem)",
+          },
+        ],
+      };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("classifies INVALID_FIELDS in the OBJECT form of the body", () => {
+      const body = {
+        errors: {
+          error_type: "INVALID_FIELDS",
+          error_message: "Payload contains fields that do not exist: (cf_origem)",
+        },
+      };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("classifies by a path pointing at a custom field", () => {
+      const body = { errors: [{ error_type: "CANNOT_BE_NULL", path: "cf_produto_interesse" }] };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("classifies by a message naming a custom field", () => {
+      const body = { errors: [{ error_message: "unknown attribute cf_cnpj" }] };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("classifies an unrelated validation error as 'other'", () => {
+      const body = { errors: [{ error_type: "INVALID_EMAIL", error_message: "email is invalid" }] };
+      expect(classifyRdStationValidationError(body)).toBe("other");
+    });
+
+    it("classifies a custom-field error mixed with others as 'custom_field'", () => {
+      const body = {
+        errors: [
+          { error_type: "INVALID_EMAIL", error_message: "email is invalid" },
+          { error_type: "INVALID_FIELDS", error_message: "fields do not exist" },
+        ],
+      };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("returns 'unknown' for an unrecognisable body (caller still retries)", () => {
+      expect(classifyRdStationValidationError(null)).toBe("unknown");
+      expect(classifyRdStationValidationError(undefined)).toBe("unknown");
+      expect(classifyRdStationValidationError("Bad Request")).toBe("unknown");
+      expect(classifyRdStationValidationError({})).toBe("unknown");
+      expect(classifyRdStationValidationError({ errors: [] })).toBe("unknown");
+    });
+
+    it("reads an error sitting loose at the root of the body", () => {
+      const body = { error_type: "INVALID_FIELDS", error_message: "fields do not exist" };
+      expect(classifyRdStationValidationError(body)).toBe("custom_field");
+    });
+
+    it("never throws on a hostile body", () => {
+      expect(() => classifyRdStationValidationError({ errors: [null, 1, "x"] })).not.toThrow();
+      expect(classifyRdStationValidationError({ errors: [null, 1, "x"] })).toBe("unknown");
     });
   });
 });

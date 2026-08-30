@@ -156,9 +156,31 @@
     "description": "Descubra uma ampla variedade de produtos, desde hidrossanitários a soluções de hidráulica, reparos para registros e torneiras, instalações a gás, conexões, flexíveis e acessórios complementares, tudo projetado para atender às necessidades dos seus clientes. Baixe agora nosso catálogo exclusivo e ofereça produtos de qualidade.",
     "sceneAlt": "Catálogo de produtos ROCO impresso sobre uma superfície com iluminação neon",
     "formTitle": "Preencha os dados para receber o catálogo",
+    "fields": {
+      "name": "Nome completo",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "companyName": "Empresa (opcional)"
+    },
+    "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
     "submit": "Baixar Catálogo",
+    "sending": "Enviando…",
     "privacyNotice": "Ao informar meus dados, estou ciente das diretrizes da",
     "privacyLabel": "Política de Privacidade",
+    "validation": {
+      "required": "Este campo é obrigatório.",
+      "nameTooShort": "Informe seu nome completo.",
+      "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
+      "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
+      "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar.",
+      "invalid": "Confira este campo e tente novamente."
+    },
+    "errors": {
+      "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+      "validation": "Confira os dados informados e tente novamente.",
+      "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
+      "generic": "Não foi possível enviar seus dados agora. Tente novamente em instantes."
+    },
     "success": {
       "title": "Tudo certo!",
       "description": "Seu download começou automaticamente. Se não iniciar, use o botão abaixo.",
@@ -202,10 +224,13 @@
       "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
       "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
       "invalidCnpj": "CNPJ inválido. Confira os números digitados.",
-      "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar."
+      "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar.",
+      "invalid": "Confira este campo e tente novamente."
     },
     "errors": {
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+      "validation": "Confira os dados informados e tente novamente.",
+      "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
       "generic": "Não foi possível enviar sua mensagem agora. Tente novamente em instantes."
     },
     "success": {

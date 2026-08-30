@@ -43,7 +43,7 @@ export function SiteFooter({ content, brand, locale }: SiteFooterProps) {
                 {column.links.map((link) => (
                   <li key={link.label}>
                     <FooterLink
-                      href={resolveDestination(link.href, locale)}
+                      href={resolveDestination(link.href, locale, "rodape")}
                       className="text-meta text-white/60 transition hover:text-neon-cyan-bright"
                     >
                       {link.label}

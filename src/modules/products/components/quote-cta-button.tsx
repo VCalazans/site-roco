@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CONTACT_SEGMENT } from "@/core/config/site";
+import { withLeadOrigin } from "@/shared/lib/lead-origin";
 import type { Locale } from "@/i18n/config";
 
 type Props = {
@@ -29,10 +30,15 @@ type Props = {
  * quando `/contato` ainda não existia como página).
  */
 export function QuoteCtaButton({ label, locale, productSlug, href, target = "contact" }: Props) {
+  // A origem só entra no caminho interno: no WhatsApp o destino é de
+  // terceiro (`wa.me`), onde taxonomia nossa não tem o que fazer.
   const finalHref =
     target === "whatsapp"
       ? (href ?? "")
-      : `/${locale}/${CONTACT_SEGMENT}?produto=${encodeURIComponent(productSlug)}&assunto=quote`;
+      : withLeadOrigin(
+          `/${locale}/${CONTACT_SEGMENT}?produto=${encodeURIComponent(productSlug)}&assunto=quote`,
+          "produto-detalhe"
+        );
 
   return (
     <Link

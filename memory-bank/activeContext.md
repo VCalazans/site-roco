@@ -2,7 +2,162 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-24
+2026-08-25
+
+
+## Sessão 2026-08-25 (parte 2) — Capacidade: pool, webhook, worker e `/api/health`
+
+### De onde veio
+Teste de carga real no container local, não teoria. Números que orientam TODA decisão daqui:
+- Site e portal são **UM processo Node, UM event loop**. Renderizar página satura ~1 core: **120% de
+  CPU com 30 requisições SSR concorrentes**, e a home — que serve com ZERO queries, 100% cacheada —
+  foi de **15–27 ms para p50 122 ms / p90 432 ms**, com **NENHUM erro HTTP**. Este é o modo de falha
+  do sistema: LENTIDÃO SEM ERRO.
+- **Postgres nunca foi o gargalo**: no máximo 10 conexões, todas `active=0`, contra
+  `max_connections=100`, até 500 requisições concorrentes. O gargalo é CPU.
+- **`/_next/image` é o endpoint mais caro**: 440% de CPU com 96 otimizações simultâneas (sharp em
+  threads nativas). Resolve-se com CDN — CONFIGURAÇÃO do stakeholder, fora do escopo do pacote.
+
+### O que entrou (4 mudanças)
+1. **Pool** (`src/db/index.ts`): `statement_timeout: 15_000` + `max: 10` explícito (documenta a
+   intenção; 10 já era o default). ⚠️ O `statement_timeout` conta **espera por lock**, então o
+   `INSERT` do lead em `/api/contact` ganhou **um** retry no SQLSTATE `57014` — sem ele, um
+   `CREATE INDEX` de migration rodando no boot mataria leads enquanto o container antigo serve.
+2. **Webhook do ERP**: teto de 10 MB checado ANTES do `json()` (header + leitura contada em bytes,
+   que vale também quando o header mente ou não vem). Sem `.max(N)` em `products` de propósito.
+3. **`WORKERS_ENABLED`**: desliga o worker BullMQ sem tirar o `REDIS_URL` (que também é o backend do
+   rate limit fail-closed de `/api/contact` — tirar o Redis desligaria a captação de leads junto).
+4. **`GET /api/health`**: sem token, `{status:"ok"}` + 200 (liveness); com `x-health-token`, métricas.
+
+### Correções da revisão (4 achados procedentes, 1 improcedente)
+- **Histograma cego** (o mais grave): era acumulado desde o boot, então com 24 h de uptime — o estado
+  normal — o p90/p99 diluía para o piso DURANTE a saturação, e o `maxMs` monotônico ficava alto para
+  sempre. Agora `window` (janela de 60 s, zerada por timer `unref`-ado) + `cumulative`. Verificado no
+  dev: sob 14 SSR concorrentes `window` foi a p99 70,8 / max 160,9 ms; 70 s depois, ocioso, `window`
+  voltou ao piso (12,6 ms) enquanto `cumulative.maxMs` seguia 160,9 — a cegueira, reproduzida.
+- **`?db=1` acusava o banco errado**: como o pool (corretamente) não tem `connectionTimeoutMillis`,
+  `connect()` fica pendente para sempre quando não há slot — a rota reportava 503 "banco fora" com o
+  banco impecável e deixava uma query órfã somando `waitingCount` a cada chamada (o health check
+  inflando a própria métrica). Agora: pré-checagem de saturação, timeout próprio de aquisição com
+  devolução do client atrasado, e `release` no `finally` da query. **Saturação nunca vira 503.**
+- **Worker sumia em silêncio**: com a flag desligada e sem consumidor em lugar nenhum, o webhook
+  segue respondendo `202 { queued: true }` ao ERP e a fila nunca é consumida. `/api/health` agora
+  publica `workers: { running, reason }`; o `.env.example` foi corrigido (competing consumers são
+  seguros no BullMQ; a razão da flag é isolar CPU, e env é por SERVIÇO, não por réplica).
+- **Token de métricas**: comparava o valor CRU contra um guard que trimava — `\n` colado de painel
+  fazia a rota mentir em silêncio. Agora compara trimado, com WARN no servidor (1/min) separando
+  "env ausente" de "token inválido". A resposta ao chamador segue idêntica (nunca 401).
+- **Improcedente**: fazer o caminho PÚBLICO reprovar. O diagnóstico é certo (ele não detecta
+  migration quebrada, porque o `CMD` usa `||` de propósito), mas a correção mexeria no Dockerfile e a
+  própria recomendação admite documentar. Ficou documentado em 3 lugares + backlog.
+
+### Portões e fumaça
+- lint ✓ · **934 testes ✓** (+20 nesta rodada: `pg-error` 15, `summarizeHistogram` 5) · build ✓.
+- ⚠️ O container `site-roco` estava PARADO (a porta 3000 do host está com o API de OUTRO projeto,
+  `ocrim-roteirizacao`). Subi só `site-roco-postgres` (5433) e `site-roco-redis` (6380) e validei em
+  `npm run dev -p 3100`: `/pt` e `/pt/produtos` 200; `/api/health` sem token e com token ERRADO
+  devolvem exatamente `{"status":"ok"}`; com token, métricas completas; `?db=1` ok em 1–3 ms com
+  `waiting: 0` em 5 polls seguidos; `POST /api/contact` 201 com a linha gravada (retry do INSERT
+  refatorado sem regressão — a linha de teste foi apagada depois). Dev server derrubado ao fim.
+
+### ⛔ Duas recomendações REFUTADAS (não "consertar" achando que foi esquecimento)
+1. `connectionTimeoutMillis` no pool — é um `setTimeout` cru no mesmo event loop saturado: dispara
+   por CPU travada, não por pool cheio. E em `/api/contact` converteria "lead salvo, resposta lenta"
+   em **LEAD PERDIDO** (o `catch` do INSERT responde 500 e aborta; o app não tem `error.tsx`).
+2. Subir o `max` do pool (20/50/100) — o banco ficou ocioso até 500 concorrentes. Mais conexões só
+   colocam mais trabalho disputando o mesmo core. Capacidade vem de réplicas e CDN.
+
+### Pendente do stakeholder
+- **CDN na frente de `/_next/image`** (maior alavanca de capacidade).
+- `HEALTH_METRICS_TOKEN` em produção (sem ela, nenhuma métrica é exposta a ninguém).
+- Serviço worker dedicado antes de escalar para 2+ réplicas web.
+
+## Sessão 2026-08-25 — Rastreio de origem do lead, formulário do catálogo e revisão adversarial
+
+### O que a feature entregou
+- **Origem do lead (`?origem=`)**: módulo puro novo `src/shared/lib/lead-origin.ts` com lista
+  FECHADA de 10 seções (`home-hero`, `home-sobre`, `home-categorias`, `home-destaques`,
+  `home-portal`, `produtos-listagem`, `produto-detalhe`, `catalogo`, `menu`, `rodape`).
+  `resolveDestination(href, locale, origin)` anexa o parâmetro SOMENTE quando o destino resolvido
+  é `/contato` ou `/catalogo` (nunca a home, listagem ou URL externa de env). Vai ao RD Station em
+  `cf_origem` e ao e-mail interno com rótulo humano (`LEAD_ORIGIN_LABELS`, `Record` tipado — origem
+  nova sem rótulo quebra o build).
+- **UTM**: `utm_source`/`utm_medium`/`utm_campaign` saneados (trim, 120 chars, sem CR/LF/NUL) →
+  campos PADRÃO `traffic_source`/`traffic_medium`/`traffic_campaign` (não exigem nada no painel do
+  RD). Origem = seção INTERNA; UTM = campanha EXTERNA; complementares, nunca se sobrescrevem.
+- **4 `conversion_identifier`**: `orcamento_produto` / `download_catalogo` / `ligamos_pra_voce` /
+  `contato_geral` (antes `call_back` e `general` colapsavam num só).
+- **Retry gracioso do RD**: `cf_*` inexistente no painel faz o RD devolver 400 e perder a conversão
+  INTEIRA. No 400 de campo (ou não classificável) reenvia UMA vez sem os `cf_*` e marca
+  `contact_submissions.rd_station_error = validation_retry_ok` — o lead entra e o time descobre que
+  o painel precisa de ajuste.
+- **Formulário volta ao `/catalogo`**: PDF atrás de nome/e-mail/telefone/empresa + consentimento
+  LGPD + honeypot, reaproveitando `POST /api/contact` com `subject: "catalog"`. Tailwind puro
+  (`.form-neon`), sem MUI no `(site)`.
+- **Migration `0008_contact_origin_utm.sql`**: colunas `origin`/`utm_source`/`utm_medium`/
+  `utm_campaign` + valor `catalog` no enum `contact_subject`. Aplicada limpa no Postgres local
+  (journal com 9 linhas, 4 valores no enum, 4 colunas novas conferidas).
+
+### Revisão adversarial — 4 achados confirmados, todos corrigidos
+1. **Catálogo refém do Redis** — com `productionSafe: true` (fail-closed), Redis fora derrubava
+   100% das submissões e, como o form virou o único caminho de UI, matava o CTA de catálogo em todo
+   o site (antes era `<a download>` e não dependia de backend). O painel de erro passa a exibir o
+   link do PDF: perde-se o lead, nunca o download.
+2. **Balde global compartilhado derrubava lead legítimo** — `contact:global` (40/5min) era cobrado
+   ANTES do parse e em `Promise.all` com o teto de IP, então lixo, honeypot e request já barrada por
+   IP consumiam o orçamento dos DOIS funis. Reproduzido: 41 POSTs de corpo vazio de um IP → balde em
+   41 → lead legítimo de outro IP recebia 429. Agora IP primeiro, global só depois de honeypot +
+   `safeParse`, teto 40 → 200. Reverificado: mesmo flood deixa o balde VAZIO e o lead responde 201.
+3. **400 virava "tente novamente em instantes"** — o array `fields` era descartado e nenhum campo
+   era marcado. Corrigido nos dois formulários (erro por campo com `aria-invalid`/`aria-describedby`,
+   banner novo só quando o campo não é renderizado ali). Junto: o regex de e-mail duplicado deu lugar
+   a `contactSchema.shape.email` (aceitava `joao@empresa.c`/`user@exa_mple.com`, que o zod reprova),
+   e `message` deixou de ser bloqueado por CR/LF — é um `<textarea>`, apertar Enter reprovava a
+   submissão inteira. `name`/`companyName`/`productSlug` continuam fechados a CR/LF (vão ao header
+   `Subject`); `message` só bloqueia NUL.
+4. **UTM nunca chegava ao RD** — era lida só no `searchParams` das páginas de formulário e nada a
+   propagava (links internos são limpos; o redirect de locale descartava a querystring). Agora o
+   middleware grava `roco_utm` (JSON, httpOnly, SameSite=Lax, 30 dias) na URL de ENTRADA e as páginas
+   leem querystring → cookie (`resolveLeadUtm`). O redirect de locale passou a preservar
+   `request.nextUrl.search`.
+
+### Achado EXTRA da verificação de fumaça (não veio da revisão) — o mais grave da sessão
+**O middleware NUNCA rodou.** `proxy.ts` estava na RAIZ do repo, mas o Next procura o proxy no mesmo
+nível de `app/` — que aqui mora em `src/app`. O arquivo era compilado e nunca registrado
+(`middleware-manifest.json` com `"middleware": {}`). Sintomas vivos em produção: `/contato`,
+`/produtos`, `/portal` sem prefixo de locale davam **404** em vez de redirecionar; `NEXT_LOCALE`
+nunca era gravado; o guard de sessão de `/portal`/`/admin` nunca executava (o que protegia essas
+rotas era só o `requireAuth()` das páginas — por isso passou despercebido). Movido para
+`src/proxy.ts` com aviso no topo. Sem isso a correção (4) seria inerte. Depois da mudança o build
+imprime `ƒ Proxy (Middleware)`.
+
+### Portões e verificação
+- `npm run lint` ✓ · `npm run test` ✓ **847 testes** (baseline pré-feature: 623) · `npm run build` ✓.
+- Fumaça em `npm run dev` na porta 3100 (3000 ocupada pelo container): `/pt`, `/en`, `/pt/contato`,
+  `/pt/contato?origem=menu`, `/pt/contato?origem=lixo-invalido`, `/pt/catalogo`, `/en/catalogo`,
+  `/pt/produtos` → todos **200**. Origem inválida não quebra a página (cai em `undefined`/fallback).
+- Middleware conferido: `/contato` → 307 `/pt/contato`; `/pt/portal` → 307 login; `/pt/portal/login`
+  → 200; `/pt/admin` → 307 login; `/api/products` → 200 (matcher segue pulando `/api`).
+- Propagação de UTM ponta a ponta: pouso em `/pt?utm_source=google&utm_medium=cpc&utm_campaign=…`
+  grava o cookie; `/pt/catalogo` SEM UTM na URL renderiza a campanha; outro visitante vê a dele;
+  visitante sem cookie não vê nenhuma (sem contaminação cruzada).
+- API conferida contra o banco: mensagem multilinha → 201 (antes 400); e-mail inválido → 400
+  `{"error":"validation","fields":["email"]}`; NUL em `message` → 400 `fields:["message"]`; honeypot
+  → 201 sem gravar; `subject: "catalog"` → 201; linha gravada com `origin`/`utm_*` preenchidos.
+  Redis parado → **503 `{"error":"unavailable"}`** (não mais 429 "muitas tentativas"); Redis de volta
+  → 201. Linhas de teste removidas do Postgres local ao fim.
+
+### Pendências do stakeholder (bloqueiam o valor da feature, não o deploy)
+1. **RD Station**: gerar a API Key (`RD_STATION_API_KEY`) e criar TRÊS campos personalizados no
+   painel — `cf_cnpj`, `cf_produto_interesse` e **`cf_origem`** (novo). Sem eles o retry gracioso
+   entrega o lead, mas sem CNPJ/produto/origem, e grava `validation_retry_ok` na coluna
+   `rd_station_error`. Conferir essa coluna depois do go-live.
+2. **Resend**: domínio verificado + `RESEND_API_KEY`, `CONTACT_FROM_EMAIL`,
+   `CONTACT_NOTIFICATION_EMAIL`.
+3. **REDIS_URL em produção é obrigatória**: com `productionSafe: true` nos dois limites de
+   `/api/contact`, sem Redis a rota responde 503 e NENHUM lead entra (o download do catálogo
+   continua acessível pelo link do painel de erro, mas a captura para). A documentação antiga que
+   dizia "sem Redis o rate limit desliga (fail-open)" não vale mais para esta rota.
 
 ## Sessão 2026-08-24 (parte 2) — Upload de mídia, materiais dinâmicos e RBAC editável
 - **Pedido do stakeholder (3 partes)**: (1) upload de arquivo real (não chave bruta do R2) na config de mídia da home; (2) admin compartilha materiais com representantes via timeline, sempre upload (nunca URL externa); (3) admin cria perfis de acesso e aplica permissões por módulo dinamicamente.

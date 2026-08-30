@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   contactSchema,
   CONTACT_SUBJECTS,
+  SELECTABLE_CONTACT_SUBJECTS,
   HONEYPOT_FIELD,
   type ContactInput,
 } from "./contact-submit";
+import { LEAD_ORIGINS } from "@/shared/lib/lead-origin";
 
 /** CNPJ numérico válido (dígitos verificadores corretos). */
 const VALID_CNPJ = "11.222.333/0001-81";
@@ -364,7 +366,7 @@ describe("contactSchema", () => {
     });
 
     it("exposes CONTACT_SUBJECTS as the enum values", () => {
-      expect(CONTACT_SUBJECTS).toEqual(["call_back", "quote", "general"]);
+      expect(CONTACT_SUBJECTS).toEqual(["call_back", "quote", "general", "catalog"]);
     });
   });
 
@@ -414,6 +416,38 @@ describe("contactSchema", () => {
         message: "A".repeat(2000),
       });
       expect(result.success).toBe(true);
+    });
+
+    // O campo é um `<textarea>`: apertar Enter é o comportamento normal de
+    // quem escreve um pedido de orçamento. Bloquear CR/LF aqui reprovava a
+    // submissão inteira com 400 e o visitante lia "tente novamente em
+    // instantes" sem ter o que corrigir. `message` só entra no CORPO do
+    // e-mail (escapado, dentro de `<pre>`), nunca num cabeçalho.
+    it("accepts line breaks (it is a textarea, not a header)", () => {
+      const parsed = contactSchema.parse({
+        ...VALID_INPUT,
+        message: "Olá,\nPreciso de orçamento.\r\n\r\nObrigado.",
+      });
+      expect(parsed.message).toBe("Olá,\nPreciso de orçamento.\r\n\r\nObrigado.");
+    });
+
+    it("still rejects a NUL byte in the message", () => {
+      const result = contactSchema.safeParse({
+        ...VALID_INPUT,
+        message: "Orçamento\0",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    // A fronteira: os campos que VÃO para o cabeçalho do e-mail continuam
+    // fechados a CR/LF (`name` é interpolado no Subject).
+    it("keeps rejecting line breaks in fields that reach the email header", () => {
+      expect(
+        contactSchema.safeParse({ ...VALID_INPUT, name: "João\r\nBcc: alvo@x.com" }).success
+      ).toBe(false);
+      expect(
+        contactSchema.safeParse({ ...VALID_INPUT, companyName: "ACME\nX: 1" }).success
+      ).toBe(false);
     });
   });
 
@@ -582,6 +616,106 @@ describe("contactSchema", () => {
       };
       const parsed = contactSchema.parse(input);
       expect(parsed).toEqual(input);
+    });
+  });
+});
+
+describe("contactSchema — rastreio de aquisição (origem + UTM)", () => {
+  describe("origin field", () => {
+    it("accepts a value from the closed list", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, origin: "produto-detalhe" });
+      expect(parsed.origin).toBe("produto-detalhe");
+    });
+
+    it("accepts every origin of the closed list", () => {
+      for (const origin of LEAD_ORIGINS) {
+        const parsed = contactSchema.parse({ ...VALID_INPUT, origin });
+        expect(parsed.origin).toBe(origin);
+      }
+    });
+
+    it("DROPS an origin outside the list instead of failing the whole lead", () => {
+      const result = contactSchema.safeParse({ ...VALID_INPUT, origin: "forjada-pelo-visitante" });
+      expect(result.success).toBe(true);
+      expect(result.success && result.data.origin).toBeUndefined();
+    });
+
+    it("drops an origin carrying injected content", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, origin: "menu\r\nBcc: x@y.com" });
+      expect(parsed.origin).toBeUndefined();
+    });
+
+    it("drops a non-string origin", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, origin: 42 });
+      expect(parsed.origin).toBeUndefined();
+    });
+
+    it("accepts an omitted origin", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT });
+      expect(parsed.origin).toBeUndefined();
+    });
+
+    it("trims whitespace around a valid origin", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, origin: "  rodape " });
+      expect(parsed.origin).toBe("rodape");
+    });
+  });
+
+  describe("utm fields", () => {
+    it("accepts the three standard UTM values", () => {
+      const parsed = contactSchema.parse({
+        ...VALID_INPUT,
+        utmSource: "google",
+        utmMedium: "cpc",
+        utmCampaign: "catalogo-2026",
+      });
+      expect(parsed.utmSource).toBe("google");
+      expect(parsed.utmMedium).toBe("cpc");
+      expect(parsed.utmCampaign).toBe("catalogo-2026");
+    });
+
+    it("truncates a UTM value at the cap instead of rejecting the lead", () => {
+      const result = contactSchema.safeParse({ ...VALID_INPUT, utmSource: "a".repeat(400) });
+      expect(result.success).toBe(true);
+      expect(result.success && result.data.utmSource).toHaveLength(120);
+    });
+
+    it("drops a UTM value carrying a control character", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, utmCampaign: "verao\r\nX: 1" });
+      expect(parsed.utmCampaign).toBeUndefined();
+    });
+
+    it("converts an empty UTM value to undefined", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, utmMedium: "   " });
+      expect(parsed.utmMedium).toBeUndefined();
+    });
+
+    it("keeps origin and UTM independent of each other", () => {
+      const parsed = contactSchema.parse({
+        ...VALID_INPUT,
+        origin: "home-hero",
+        utmSource: "instagram",
+      });
+      expect(parsed.origin).toBe("home-hero");
+      expect(parsed.utmSource).toBe("instagram");
+    });
+  });
+
+  describe("catalog subject", () => {
+    it("accepts the subject used by the catalog form", () => {
+      const parsed = contactSchema.parse({ ...VALID_INPUT, subject: "catalog" });
+      expect(parsed.subject).toBe("catalog");
+    });
+
+    it("keeps 'catalog' OUT of the visitor-selectable list", () => {
+      expect(SELECTABLE_CONTACT_SUBJECTS).toEqual(["call_back", "quote", "general"]);
+      expect((SELECTABLE_CONTACT_SUBJECTS as readonly string[]).includes("catalog")).toBe(false);
+    });
+
+    it("keeps every selectable subject inside the full enum", () => {
+      for (const subject of SELECTABLE_CONTACT_SUBJECTS) {
+        expect((CONTACT_SUBJECTS as readonly string[]).includes(subject)).toBe(true);
+      }
     });
   });
 });

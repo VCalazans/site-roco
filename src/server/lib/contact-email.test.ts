@@ -372,10 +372,11 @@ describe("buildContactNotificationEmail", () => {
   });
 
   describe("specific subject types", () => {
-    const subjectTypes: Array<"call_back" | "quote" | "general"> = [
+    const subjectTypes: Array<"call_back" | "quote" | "general" | "catalog"> = [
       "call_back",
       "quote",
       "general",
+      "catalog",
     ];
 
     subjectTypes.forEach((subject) => {
@@ -431,6 +432,102 @@ describe("buildContactNotificationEmail", () => {
       const result = buildContactNotificationEmail(input, {});
 
       expect(result.html).toContain("&amp;amp;");
+    });
+  });
+});
+
+describe("buildContactNotificationEmail — origem e campanha", () => {
+  describe("subject label of the new 'catalog' intent", () => {
+    it("names the catalog download in the subject line", () => {
+      const result = buildContactNotificationEmail(createContactInput({ subject: "catalog" }), {});
+      expect(result.subject).toContain("Download do catálogo");
+    });
+
+    it("names it in the body as well", () => {
+      const result = buildContactNotificationEmail(createContactInput({ subject: "catalog" }), {});
+      expect(result.text).toContain("Assunto: Download do catálogo");
+    });
+
+    it("keeps the four intents distinguishable", () => {
+      const labels = (["call_back", "quote", "general", "catalog"] as const).map(
+        (subject) => buildContactNotificationEmail(createContactInput({ subject }), {}).subject
+      );
+      expect(new Set(labels).size).toBe(labels.length);
+    });
+  });
+
+  describe("origin line", () => {
+    it("spells out the site section in plain Portuguese", () => {
+      const result = buildContactNotificationEmail(
+        createContactInput({ origin: "produto-detalhe" }),
+        {}
+      );
+      expect(result.text).toContain("Origem no site: Detalhe de produto");
+    });
+
+    it("labels the hero section", () => {
+      const result = buildContactNotificationEmail(createContactInput({ origin: "home-hero" }), {});
+      expect(result.text).toContain("Origem no site: Home — primeira dobra (hero)");
+    });
+
+    it("omits the line entirely when there is no origin", () => {
+      const result = buildContactNotificationEmail(createContactInput(), {});
+      expect(result.text).not.toContain("Origem no site");
+    });
+
+    it("never leaks the raw slug to the sales team", () => {
+      const result = buildContactNotificationEmail(createContactInput({ origin: "rodape" }), {});
+      expect(result.text).toContain("Origem no site: Rodapé");
+      expect(result.text).not.toContain("Origem no site: rodape");
+    });
+  });
+
+  describe("campaign (UTM) line", () => {
+    it("renders the three UTM values on one labelled line", () => {
+      const result = buildContactNotificationEmail(
+        createContactInput({
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign: "catalogo-2026",
+        }),
+        {}
+      );
+      expect(result.text).toContain(
+        "Campanha (UTM): origem google · mídia cpc · campanha catalogo-2026"
+      );
+    });
+
+    it("renders only the parts that exist", () => {
+      const result = buildContactNotificationEmail(
+        createContactInput({ utmSource: "instagram" }),
+        {}
+      );
+      expect(result.text).toContain("Campanha (UTM): origem instagram");
+      expect(result.text).not.toContain("mídia");
+    });
+
+    it("omits the line entirely when there is no campaign", () => {
+      const result = buildContactNotificationEmail(createContactInput(), {});
+      expect(result.text).not.toContain("Campanha (UTM)");
+    });
+
+    it("shows origin and campaign as separate lines", () => {
+      const result = buildContactNotificationEmail(
+        createContactInput({ origin: "menu", utmSource: "google" }),
+        {}
+      );
+      const lines = result.text.split("\n");
+      expect(lines).toContain("Origem no site: Menu de navegação");
+      expect(lines).toContain("Campanha (UTM): origem google");
+    });
+
+    it("escapes campaign text in the HTML body", () => {
+      const result = buildContactNotificationEmail(
+        createContactInput({ utmCampaign: "promo <b>2026</b>" }),
+        {}
+      );
+      expect(result.html).toContain("&lt;b&gt;");
+      expect(result.html).not.toContain("<b>2026</b>");
     });
   });
 });

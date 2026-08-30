@@ -42,9 +42,15 @@ export type ContactDictionary = {
     invalidPhone: string;
     invalidCnpj: string;
     consentRequired: string;
+    /** Reprovação de FORMATO vinda do servidor (`{ fields: [...] }`). */
+    invalid: string;
   };
   errors: {
     rateLimited: string;
+    /** 400 cujo campo culpado este formulário nem renderiza. */
+    validation: string;
+    /** 503 do rate limiter fail-closed — falha nossa, não repetição da pessoa. */
+    unavailable: string;
     generic: string;
   };
   success: {

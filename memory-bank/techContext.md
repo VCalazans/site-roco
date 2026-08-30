@@ -67,8 +67,22 @@ npm run dev        # http://localhost:3000
 ### Redis / Fila ERP
 | Variável                     | Obrig. | Descrição                                  |
 |------------------------------|:------:|--------------------------------------------|
-| REDIS_URL                    | não    | Redis: `redis://host:port` (sem-op se vazio) |
+| REDIS_URL                    | **sim em produção** | Redis: `redis://host:port`. Em dev pode faltar (limites fail-open). Em PRODUÇÃO é requisito duro: os dois limites de `POST /api/contact` são `productionSafe: true` (fail-closed), então SEM Redis a rota responde 503 e nenhum lead de `/contato` ou `/catalogo` é capturado. |
 | ERP_WEBHOOK_SECRET           | não    | Secret timing-safe do webhook `/api/webhooks/erp` |
+
+### Operação: workers e observabilidade (2026-08-25)
+| Variável                     | Obrig. | Descrição                                  |
+|------------------------------|:------:|--------------------------------------------|
+| WORKERS_ENABLED              | não    | Desliga o worker BullMQ in-process **só** com o valor exato `false` (default LIGADO — nenhum ambiente muda por omissão). Serve para ISOLAR CPU (o worker processa no mesmo event loop que renderiza página), não para evitar "job duplicado" (o BullMQ entrega cada job a um único worker). Env é por SERVIÇO, não por réplica: a receita ao escalar é serviço web com `false` + serviço worker dedicado com a flag ligada. ⚠️ Desligar sem ter consumidor em lugar nenhum é falha SILENCIOSA — `POST /api/webhooks/erp` segue respondendo 202 e a fila nunca é consumida; confira `workers` em `/api/health`. |
+| HEALTH_METRICS_TOKEN         | não    | Libera as métricas detalhadas de `GET /api/health` (header `x-health-token`, comparado em tempo constante; espaços/quebras de linha em volta são ignorados). Sem a env, as métricas não existem para ninguém e a rota responde só `{status:"ok"}`. Token errado devolve essa MESMA resposta — nunca 401, que confirmaria a existência do segredo. Motivo de proteger: `waiting` do pool e atraso do event loop são um oráculo de saturação. |
+
+**`GET /api/health` em uma linha**: sem token = LIVENESS incondicional (200 enquanto o processo
+aceita HTTP) — é o que a probe da plataforma deve usar, e ele **não** detecta migration quebrada
+(o `CMD` do Dockerfile usa `||` de propósito). Com token = uptime, atraso do event loop em janela
+de 60 s **e** acumulado (o acumulado sozinho fica cego depois de horas de uptime), contadores do
+pool e estado do worker. `?db=1` adiciona um `select 1`: pool cheio devolve
+`database.status = "pool_saturated"` com **200** (saturação nunca reprova health check, senão o
+orquestrador mata justamente o container ocupado); só falha real de conexão vira `degraded` + 503.
 
 ### Cloudflare R2 (Imagens/Documentos)
 | Variável                     | Obrig. | Descrição                                  |
@@ -197,7 +211,9 @@ site com fotos). Ordem para produção:
    `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED` (prod: ligado por padrão — decisão LGPD pendente).
 3. **Envs runtime** (`.env` de produção): `DATABASE_URL`, `AUTH_SECRET` (≥32), `AUTH_URL`,
    `PORTAL_ADMIN_EMAIL`/`PORTAL_ADMIN_PASSWORD` (≥12 — exigido pelo seed), `REDIS_URL`
-   (SEM ele rate limit é fail-open!), `ERP_WEBHOOK_SECRET`, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
+   (⚠️ atualizado 2026-08-25: rate limit é fail-open só nas rotas antigas; em `POST /api/contact`
+   é **fail-closed**, então sem Redis a captura de lead de `/contato` e `/catalogo` para de
+   funcionar — 503), `ERP_WEBHOOK_SECRET`, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
    `R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_URL`, `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`
    (quando o stakeholder criar — sem eles o login Google falha ao clicar; credenciais funcionam).
 4. **Carga inicial — UM COMANDO da máquina local** (2026-08-24): `npm run db:bootstrap-producao`.

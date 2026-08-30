@@ -4,6 +4,7 @@
  * the same nav; page-specific geometry stays with the page (see
  * `@/modules/home/lib/hero-layout`).
  */
+import { resolveDestination } from "@/core/config/site";
 
 /** A labelled destination — used by nav links and page CTAs. */
 export type Cta = { label: string; href: string };
@@ -30,6 +31,23 @@ export type NavLink = {
  */
 export function visibleNavLinks<T extends NavLink>(links: readonly T[]): T[] {
   return links.filter((link) => !link.hidden);
+}
+
+/**
+ * A nav pronta para renderizar: itens visíveis, com os placeholders do
+ * dicionário (`#contato`, `#representantes`…) já resolvidos para a rota real
+ * do locale e marcados com a origem `"menu"`.
+ *
+ * Existe porque a nav NÃO vive no layout — cada página monta a sua, e antes
+ * disto o mesmo `.map(resolveDestination)` estava copiado em seis páginas.
+ * Seis cópias significam seis lugares onde esquecer a origem (ou o locale)
+ * passa despercebido; aqui é um lugar só.
+ */
+export function siteNavLinks<T extends NavLink>(links: readonly T[], locale: string): T[] {
+  return visibleNavLinks(links).map((link) => ({
+    ...link,
+    href: resolveDestination(link.href, locale, "menu"),
+  }));
 }
 
 /**
@@ -77,13 +95,25 @@ export function navLabelClass(
  *   em match exato ou em qualquer rota aninhada por baixo dele
  *   (`/pt/produtos/algum-slug`). O link de contato segue essa mesma regra
  *   desde que `/contato` virou uma página real (não abre mais modal).
+ *
+ * O href pode carregar querystring/fragmento (`/pt/contato?origem=menu` —
+ * ver `@/shared/lib/lead-origin`), e o `pathname` NUNCA tem; sem descartar
+ * essa cauda antes de comparar, o item "Contato" jamais ficaria ativo e
+ * perderia o `aria-current="page"` — regressão de a11y, não só de cor.
  */
 export function isNavLinkActive(href: string, pathname: string): boolean {
-  if (href === "/") {
+  const path = hrefPathname(href);
+
+  if (path === "/") {
     return pathname === "/" || /^\/[^/]+\/?$/.test(pathname);
   }
 
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+/** O caminho de um href, sem querystring nem fragmento. */
+function hrefPathname(href: string): string {
+  return href.split("#")[0].split("?")[0];
 }
 
 /** Open external (http) links in a new tab; leave internal links as-is. */

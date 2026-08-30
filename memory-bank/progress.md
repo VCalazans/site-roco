@@ -124,9 +124,68 @@
 - [x] Segurança anti-header-injection: CONTROL_CHARS regex bloqueia `\r\n\0` em name/companyName/message/productSlug
 - [x] 139 testes novos (contact-submit.test.ts, rd-station.test.ts, contact-email.test.ts) → 623 total
 
+### Rastreio de origem do lead + formulário do catálogo (2026-08-25)
+- [x] Módulo puro `src/shared/lib/lead-origin.ts`: lista FECHADA de 10 seções do site (`LEAD_ORIGINS`),
+      `LEAD_ORIGIN_PARAM = "origem"`, `normalizeLeadOrigin` (valor forjado → `undefined` → NULL),
+      `withLeadOrigin` (preserva querystring/fragmento, idempotente, sem `decodeURIComponent`)
+- [x] `resolveDestination(href, locale, origin)` anexa `?origem=` SÓ nas duas páginas internas de
+      captura (`/contato`, `/catalogo`) — nunca home, listagem ou URL externa de env
+- [x] Todas as CTAs cobertas: nav, rodapé, hero, vitrines da home, listagem/detalhe de produto
+      (incl. `quote-cta-button.tsx`, que montava a URL à mão)
+- [x] UTM (`utm_source`/`utm_medium`/`utm_campaign`) saneada → campos PADRÃO `traffic_*` do RD
+      (sem configuração no painel); origem = seção INTERNA, UTM = campanha EXTERNA
+- [x] 4 `conversion_identifier`: `orcamento_produto`/`download_catalogo`/`ligamos_pra_voce`/`contato_geral`
+- [x] Retry gracioso do RD: 400 de campo customizado → reenvia UMA vez sem os `cf_*` e marca
+      `rd_station_error = validation_retry_ok` (lead entra; time descobre que falta criar `cf_*`)
+- [x] `/{locale}/catalogo` volta a ter formulário de captura (nome/e-mail/telefone/empresa +
+      consentimento LGPD + honeypot), reaproveitando `POST /api/contact` com `subject: "catalog"`
+- [x] Migration `0008_contact_origin_utm.sql`: colunas `origin`/`utm_source`/`utm_medium`/`utm_campaign`
+      + valor `catalog` no enum `contact_subject` (aplicada limpa sobre as 7 anteriores)
+
+### Correções da revisão adversarial (2026-08-25)
+- [x] **Middleware nunca rodou** — `proxy.ts` estava na RAIZ, mas o Next o procura no nível de `app/`
+      (aqui `src/app`). Movido para `src/proxy.ts`. Antes: `/contato`/`/produtos`/`/portal` sem locale
+      davam 404, `NEXT_LOCALE` nunca era gravado e o guard de sessão de `/portal`/`/admin` não
+      executava (só o `requireAuth()` das páginas protegia). Build agora imprime `ƒ Proxy (Middleware)`
+- [x] Painel de erro do formulário do catálogo exibe o link do PDF: falha nossa (Redis fora, 5xx)
+      perde o lead, nunca o download — antes o CTA de catálogo morria junto com o Redis
+- [x] Teto global de `/api/contact` cobrado só após honeypot + `safeParse`, e 40 → 200/5min
+      (é backstop de DOIS funis). Flood de lixo não derruba mais lead legítimo de outro IP
+- [x] `RateLimitResult.unavailable` separa 429 `rate_limited` (teto estourado) de 503 `unavailable`
+      (limitador fora do ar) — a primeira tentativa numa queda de Redis não é mais tratada como repetição
+- [x] 400 de validação vira erro POR CAMPO nos dois formulários (`fields` deixou de ser descartado)
+- [x] Espelho de e-mail client usa `contactSchema.shape.email` (fim do regex paralelo divergente)
+- [x] `message` aceita quebra de linha (`optionalMultilineField`, só NUL bloqueado) — é `<textarea>`;
+      `name`/`companyName`/`productSlug` seguem fechados a CR/LF (vão ao header `Subject`)
+- [x] UTM persistida em cookie de primeira parte `roco_utm` (httpOnly, SameSite=Lax, 30d) gravado pelo
+      middleware na URL de ENTRADA e lido pelas páginas de captura (`resolveLeadUtm`); redirect de
+      locale passou a preservar a querystring
+
+### Capacidade e observabilidade (2026-08-25)
+> Origem: teste de carga real no container. UM processo Node, UM event loop — renderizar página
+> satura ~1 core (120% de CPU com 30 SSR concorrentes; home de 15–27 ms para p50 122 ms / p90 432 ms,
+> ZERO erro HTTP). Postgres nunca foi gargalo (máx. 10 conexões, todas `active=0`, contra
+> `max_connections=100`, até 500 concorrentes). Maior alavanca: CDN na frente de `/_next/image`
+> (440% de CPU com 96 otimizações simultâneas) — pendente do stakeholder.
+- [x] `statement_timeout: 15_000` + `max: 10` explícito no pool (`src/db/index.ts`); verificado no
+      `pg` 8.23 que a opção chega ao servidor. Scripts pesados abrem pool próprio, não são afetados
+- [x] `INSERT` do lead em `/api/contact` tenta uma 2ª vez no SQLSTATE `57014`: o `statement_timeout`
+      conta espera por LOCK, então um `CREATE INDEX` de migration no boot mataria o lead
+- [x] Teto de 10 MB no corpo do webhook do ERP, ANTES do parse (header + leitura contada);
+      sem `.max(N)` em `products` — o `jobId` por minuto descartaria a 2ª página em silêncio
+- [x] `WORKERS_ENABLED` desliga o worker BullMQ sem tirar o `REDIS_URL` (que também é o rate limit
+      fail-closed de `/api/contact`). Default LIGADO; só o valor exato `false` desliga
+- [x] `GET /api/health`: sem token só `{status:"ok"}` + 200 (liveness); com `x-health-token`
+      (tempo constante) uptime, atraso do event loop em JANELA de 60 s + acumulado, contadores do
+      pool e `workers: {running, reason}`. `?db=1` opcional distingue `pool_saturated` (200) de
+      falha real de conexão (503) e não deixa waiter residual no pool
+- [x] Duas recomendações REFUTADAS e registradas no decisionLog para ninguém "consertar" depois:
+      `connectionTimeoutMillis` no pool (dispara por CPU travada e viraria LEAD PERDIDO) e subir o
+      `max` do pool (banco ocioso em toda a bateria — mais conexões só disputam o mesmo core)
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo — detectou 6 erros em .test.ts que vitest perdeu)
-- [x] `npm run test` e `npm run test:coverage` funcionando (623 testes totais agora)
+- [x] `npm run test` e `npm run test:coverage` funcionando (934 testes totais agora)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -146,8 +205,14 @@
 - [ ] Segunda rodada de fotos: mapear 132 arquivos sem produto (faixas 1906–1919, 2237–2280,
       3068–3179 ausentes do catálogo + 11 nomes livres) e 144 produtos sem foto.
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
-- [ ] **Provisionar infra prod** (Alto): Postgres, Redis, Google OAuth, bucket R2 separado sem
-      acesso público, RD Station API Key + campos customizados, Resend domínio verificado.
+- [ ] **Provisionar infra prod** (Alto): Postgres, **Redis (obrigatório — sem ele `/api/contact`
+      responde 503 e nenhum lead entra)**, Google OAuth, bucket R2 separado sem acesso público,
+      RD Station API Key + campos customizados, Resend domínio verificado.
+- [ ] **RD Station: criar `cf_origem` no painel** (Alto, stakeholder — 2026-08-25): junto com
+      `cf_cnpj` e `cf_produto_interesse`, em Configurações > Campos personalizados. A API Key não
+      cria campo (só OAuth). Se faltar, o retry gracioso ainda entrega o lead, porém SEM CNPJ,
+      produto e origem, e grava `validation_retry_ok` em `contact_submissions.rd_station_error` —
+      conferir essa coluna depois do go-live.
 
 ## 🗺️ Roadmap Estratégico (avaliação multi-agente 2026-08-23)
 Análise de 5 áreas (conversão, portal/CRM, dados/integrações, SEO, segurança/LGPD) sobre o código
@@ -176,6 +241,23 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] **Bucket R2 separado para conteúdo privado** (Alto, infra): criar bucket sem acesso público para
       materiais/documentos de representante (hoje compartilhado com bucket público hero/produtos).
       Mitiga risco de exposição via r2.dev — ver Riscos de Segurança (TOCTOU e bucket compartilhado).
+- [ ] **CDN na frente de `/_next/image`** (Alto, MAIOR alavanca de capacidade, 2026-08-25): é o
+      endpoint mais caro do sistema — 440% de CPU com 96 otimizações simultâneas (sharp em threads
+      nativas), no MESMO container que renderiza página. Cache de borda resolve; é CONFIGURAÇÃO do
+      stakeholder (Cloudflare já está no caminho), não código.
+- [ ] **`HEALTH_METRICS_TOKEN` em produção** (2026-08-25): sem a env, `/api/health` não expõe métrica
+      nenhuma a ninguém — o incidente de saturação volta a ser invisível. Gerar um segredo e apontar
+      o monitoramento para `GET /api/health` com o header `x-health-token` (o healthcheck da
+      PLATAFORMA continua sem token, no caminho de liveness).
+- [ ] **Serviço worker dedicado antes de escalar para 2+ réplicas web** (2026-08-25): a receita é
+      SERVIÇO web com `WORKERS_ENABLED=false` + SERVIÇO worker com a flag ligada. Env é por serviço,
+      não por réplica. Desligar a flag sem ter consumidor em lugar nenhum é falha SILENCIOSA (o
+      webhook do ERP segue respondendo 202) — conferir `workers` em `/api/health` depois de mexer.
+- [ ] **Readiness de verdade (migration quebrada)** (2026-08-25, Médio): `/api/health` sem token é
+      LIVENESS incondicional e responde 200 mesmo com o banco sem tabela — o `CMD` do Dockerfile usa
+      `||` de propósito para o servidor subir mesmo com `scripts/migrate.mjs` falhando (foi o
+      incidente `42P01`). Um sinal do passo de migração (marcador em disco lido pela rota) fecharia
+      isso; hoje a checagem é olhar as linhas `[migrate]` no log do container.
 
 ### Portal (pós-launch inicial)
 - [ ] **Rate limiting** (ALTO): webhook, presign, /api/products, login via @upstash/ratelimit
@@ -236,6 +318,29 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
 - Audit logs export/retention policy indefinida.
 
+## ✅ Resolvido em 2026-08-25
+- **Rastreio de origem do lead — CONCLUÍDO**: até aqui o lead que chegava ao RD Station só distinguia
+  orçamento de contato geral e não carregava NENHUM sinal de qual seção do site o produziu. Agora leva
+  origem interna (`cf_origem`, lista fechada de 10 seções) + campanha externa (`traffic_*`), quatro
+  `conversion_identifier` por intenção de negócio, e `/catalogo` — que desde a saída do Mautic era
+  download direto sem capturar nada — volta a ter formulário. Migration 0008 aplicada.
+- **BUG GRAVE PRÉ-EXISTENTE: o middleware nunca rodou** (descoberto na verificação de fumaça, não na
+  revisão). `proxy.ts` na raiz do repo enquanto `app/` mora em `src/app` → compilado, nunca registrado
+  (`middleware-manifest.json` com `"middleware": {}`). Toda URL sem prefixo de locale dava 404
+  (`/contato`, `/produtos`, `/portal`), `NEXT_LOCALE` nunca era gravado e o guard de sessão de
+  `/portal`/`/admin` não executava. Movido para `src/proxy.ts` (com aviso no topo). Verificado:
+  `/contato` → 307 `/pt/contato`, `/pt/portal` → 307 login, `/pt/portal/login` → 200, `/api/products` → 200.
+- **Catálogo deixou de ser refém do Redis**: com o formulário novo, uma queda de Redis (rate limit
+  fail-closed) matava o CTA de catálogo em todo o site. O painel de erro passa a exibir o link do PDF.
+- **Flood de lixo não derruba mais lead legítimo**: o balde global era cobrado antes do parse e em
+  paralelo ao de IP; 41 POSTs de corpo vazio de um IP bloqueavam todo mundo por 5 min. Ordem corrigida
+  (IP → honeypot → schema → global) e teto 40 → 200. Reverificado contra o servidor real.
+- **400 deixou de virar "tente novamente em instantes"**: `fields` agora vira erro por campo nos dois
+  formulários; o regex de e-mail duplicado deu lugar a `contactSchema.shape.email`; e `message` aceita
+  quebra de linha (era `<textarea>` que reprovava qualquer Enter).
+- **UTM passou a sobreviver à navegação**: cookie `roco_utm` gravado pelo middleware no pouso e lido nas
+  páginas de captura; o redirect de locale parou de descartar a querystring.
+
 ## ✅ Resolvido em 2026-08-24
 - **Página `/contato` e recebimento de orçamento — CONCLUÍDA**: site não tinha nenhuma forma real de receber pedidos até hoje. 3 dos 6 itens do menu apontavam para `/contato` (404); botão de orçamento descartava contexto e mandava para PDF. Fluxo novo: formulário público envia lead a RD Station (CRM da ROCO) via Conversions API + e-mail para time comercial via Resend, ambos best-effort; lead SEMPRE gravado em `contact_submissions` primeiro (síncrono, sem fila). Envio paralelo com timeout 8s. Rate limit 8/10min IP + 40/5min global, ambos `productionSafe: true` (fail-closed). Contexto de produto preservado via `?produto=` query param. 139 testes, 0 regressão. Ver decisionLog 2026-08-24 (RD Station, Resend, consolidação menu, contact_submissions, fluxo síncrono).
 - **Achado de segurança ALTO 1**: `materials.list` aceitava gate `materials:read` em vez de `materials:create` — representante conseguia ver rascunhos não publicados. CORRIGIDO: gate trocado para `permissionProcedure("materials","create")` (admin only).
@@ -295,9 +400,23 @@ catálogo vivo via ERP → cotação como dado estruturado.
   acessível a mais público (representantes vs admin). **Decisão pendente stakeholder**: bucket separado
   sem acesso público para conteúdo privado, antes de produção.
 - **Honeypot é única defesa anti-bot em `/api/contact`** (2026-08-24, Médio/backlog): mesmo padrão de risco
-  já aceito para `/api/representatives/register`. Taxa 8/10min IP + 40/5min global é rígida, porém honeypot
-  só funciona se bot preenche o campo — bots sofisticados saltam. **Hardening futuro**: Turnstile/hCaptcha
-  ou confirmação de e-mail antes do INSERT (mantendo 409 atrás do desafio).
+  já aceito para `/api/representatives/register`. Taxa 8/10min IP + 200/5min global (teto global subiu em
+  2026-08-25 porque virou backstop de DOIS funis públicos), porém honeypot só funciona se bot preenche o
+  campo — bots sofisticados saltam. **Hardening futuro**: Turnstile/hCaptcha ou confirmação de e-mail antes
+  do INSERT (mantendo 409 atrás do desafio).
+- **`REDIS_URL` virou requisito duro de PRODUÇÃO para captar lead** (2026-08-25, Alto/operacional): os dois
+  limites de `/api/contact` são `productionSafe: true` (fail-closed) e a rota é o único caminho de captura
+  de `/contato` E `/catalogo`. Sem Redis a rota responde 503 e NENHUM lead entra (o PDF do catálogo continua
+  acessível pelo link do painel de erro). A documentação antiga que dizia "sem REDIS_URL o rate limit
+  desliga (fail-open)" NÃO vale mais para esta rota — vale só para as que continuam fail-open.
+- **Guard de `/portal`/`/admin` dependeu só do `requireAuth()` das páginas até 2026-08-25** (histórico): o
+  middleware nunca executou porque `proxy.ts` estava na raiz e o Next o procura no nível de `app/`
+  (`src/app` aqui). Corrigido movendo para `src/proxy.ts`. Nenhuma exposição conhecida — as páginas do
+  portal já validavam a sessão por conta própria —, mas a camada de defesa anunciada no systemPatterns
+  estava ausente. Ao mexer nesse arquivo, conferir: `curl -I http://host/contato` tem que dar 307, não 404.
+- **Cookie `roco_utm`** (2026-08-25, Baixo/LGPD): primeira parte, `httpOnly`, `SameSite=Lax`, 30 dias, sem
+  dado pessoal (só o rótulo de campanha que o anunciante pôs na URL). Entra na mesma decisão de
+  consentimento já pendente do `ConsentBanner`.
 - **Sem política de retenção para `contact_submissions`** (2026-08-24, Médio/backlog): tabela contém `ip_address`/
   `userAgent` (dados pessoais). Minimização presente (gravaremos só para logs/auditoria), mas retenção indefinida
   é débito LGPD. Recomendação: definir prazo (ex.: 1 ano) e job de limpeza automática.
@@ -307,10 +426,13 @@ catálogo vivo via ERP → cotação como dado estruturado.
   mencionado como débito em 2026-08-23, ficou pendente).
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 623 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 934 testes, 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
   +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits;
-  +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email).
+  +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email;
+  +224 testes 2026-08-25 rastreio de origem: lead-origin, catalog-form, site/nav, rd-station,
+  contact-email, contact-submit; +87 testes 2026-08-25 capacidade: request-size, timing-safe,
+  workers-enabled, event-loop-metrics/summarizeHistogram, pg-error).
 - **Build**: verde. **Lint**: verde (ESLint flat config).
 - **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
   (nenhum achado crítico/alto novo introduzido).
@@ -326,6 +448,14 @@ catálogo vivo via ERP → cotação como dado estruturado.
   scrim WCAG atrás do rótulo dos cards — contraste ~1:1 medido em 2 das 6 artes, alt decorativo ""
   nos cards — nome acessível do link ficava verboso, EN "Connections"→"Fittings" + description).
   Verificadores mediram contraste por pixel nas artes reais e reproduziram o URIError via tsx.
+- **Revisão adversarial multi-agente** (2026-08-25): sobre o diff do rastreio de origem do lead.
+  4 achados confirmados / 2 refutados (fail-closed sem Redis "novo neste diff" — o `productionSafe`
+  vinha de 53dd8ea e o PDF segue servido de `public/`; painel de sucesso sem gestão de foco — padrão
+  byte-idêntico ao `register-form.tsx` pré-existente, e a copy já instrui a usar o botão). Os 4
+  confirmados corrigidos no mesmo dia + 1 achado EXTRA vindo da verificação de fumaça, mais grave que
+  todos: o middleware nunca havia rodado (`proxy.ts` na raiz). Verificação feita contra servidor real
+  (curl + Postgres + Redis), não por leitura: flood de 41 requisições, queda e volta do Redis,
+  propagação de UTM entre páginas e isolamento entre visitantes.
 - **Revisão de segurança** (2026-08-24): feature RBAC + materiais dinâmicos auditada internamente.
   2 achados ALTOS confirmados + corrigidos (gate `materials.list`, r2Key omitido do JSON).
   3 riscos Médio/backlog identificados (TOCTOU `unassignUserRole`, admin-equivalência de `roles:manage`,

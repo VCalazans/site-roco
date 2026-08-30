@@ -5,13 +5,23 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
-import { CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
+import { contactSchema, SELECTABLE_CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import type { ContactDictionary } from "@/modules/contact/lib/types";
+import type { LeadOrigin } from "@/shared/lib/lead-origin";
 import type { Locale } from "@/i18n/config";
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/**
+ * O PRÓPRIO campo do schema do servidor, não um regex paralelo: um espelho
+ * aproximado aceitava endereços que o zod reprova (`joao@empresa.c`), e o
+ * visitante recebia 400 traduzido como "tente novamente em instantes".
+ */
+const emailField = contactSchema.shape.email;
 
-type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
+/** Só os assuntos escolhíveis no dropdown — `catalog` é do form do catálogo. */
+type ContactSubject = (typeof SELECTABLE_CONTACT_SUBJECTS)[number];
+
+/** Campanha externa lida da URL pelo Server Component (`utm_*`). */
+export type ContactUtm = { source?: string; medium?: string; campaign?: string };
 
 type TextFieldName = "name" | "email" | "phone" | "companyName" | "cnpj" | "message";
 type FieldName = TextFieldName | "subject";
@@ -30,6 +40,11 @@ type ContactFormProps = {
   productContext?: ContactProductContext | null;
   /** Assunto pré-selecionado (`?assunto=` resolvido pelo Server Component). */
   defaultSubject?: ContactSubject;
+  /** Seção do site que originou o clique (`?origem=`), já validada contra a
+   *  lista fechada pelo Server Component. */
+  origin?: LeadOrigin;
+  /** Campanha externa (`?utm_*=`), já sanitizada pelo Server Component. */
+  utm?: ContactUtm;
 };
 
 function emptyForm(defaultSubject: ContactSubject): FormState {
@@ -55,13 +70,22 @@ function emptyForm(defaultSubject: ContactSubject): FormState {
  *
  * Diferenças daquele form: CNPJ é OPCIONAL aqui (o form atende pessoa
  * física também — só valida o dígito verificador se preenchido); o assunto
- * é um select com as 3 opções fixas do servidor (`CONTACT_SUBJECTS`, mesma
- * fonte usada pela validação — nunca duplicado à mão); e o produto de
+ * é um select com as 3 opções fixas do servidor
+ * (`SELECTABLE_CONTACT_SUBJECTS`, mesma fonte usada pela validação — nunca
+ * duplicado à mão; `catalog` fica de fora porque quem o define é o
+ * formulário do catálogo, não o visitante); e o produto de
  * origem aparece como um chip somente-leitura acima do assunto, nunca um
  * campo editável (o nome/SKU exibidos vieram do servidor, resolvidos pelo
  * slug — o cliente não pode inventar um nome de produto).
  */
-export function ContactForm({ content, locale, productContext, defaultSubject }: ContactFormProps) {
+export function ContactForm({
+  content,
+  locale,
+  productContext,
+  defaultSubject,
+  origin,
+  utm,
+}: ContactFormProps) {
   const [form, setForm] = useState<FormState>(() => emptyForm(defaultSubject ?? "general"));
   const [errors, setErrors] = useState<FormErrors>({});
   const [consent, setConsent] = useState(false);
@@ -97,13 +121,46 @@ export function ContactForm({ content, locale, productContext, defaultSubject }:
     setErrors((current) => ({ ...current, consent: undefined }));
   }
 
+  /**
+   * Traduz o array `fields` de um 400 em erros POR CAMPO. Sem isto o `fields`
+   * era descartado e qualquer reprovação do servidor virava "tente novamente
+   * em instantes" — mensagem de falha transitória, sem marcar campo nenhum,
+   * para um erro permanente que só o visitante podia corrigir.
+   *
+   * `name`/`companyName`/`message` caem numa mensagem de formato (`invalid`),
+   * não em "campo obrigatório": quando o servidor os reprova, é por caractere
+   * de controle ou tamanho, nunca por ausência.
+   */
+  function serverFieldErrors(fields: unknown): FormErrors {
+    if (!Array.isArray(fields)) return {};
+    const v = content.validation;
+    const map: Record<string, [keyof FormErrors, string]> = {
+      name: ["name", v.invalid],
+      email: ["email", v.invalidEmail],
+      phone: ["phone", v.invalidPhone],
+      companyName: ["companyName", v.invalid],
+      cnpj: ["cnpj", v.invalidCnpj],
+      message: ["message", v.invalid],
+      subject: ["subject", v.invalid],
+      consent: ["consent", v.consentRequired],
+    };
+
+    const found: FormErrors = {};
+    for (const raw of fields) {
+      if (typeof raw !== "string") continue;
+      const mapped = map[raw];
+      if (mapped) found[mapped[0]] = mapped[1];
+    }
+    return found;
+  }
+
   function validate(): FormErrors {
     const found: FormErrors = {};
     const v = content.validation;
 
     if (!form.name.trim()) found.name = v.required;
     if (!form.email.trim()) found.email = v.required;
-    else if (!EMAIL_PATTERN.test(form.email.trim())) found.email = v.invalidEmail;
+    else if (!emailField.safeParse(form.email.trim()).success) found.email = v.invalidEmail;
     if (!form.phone.trim()) found.phone = v.required;
     else if (!isValidPhoneBR(form.phone)) found.phone = v.invalidPhone;
     if (form.cnpj.trim() && !isValidCNPJ(form.cnpj)) found.cnpj = v.invalidCnpj;
@@ -134,6 +191,12 @@ export function ContactForm({ content, locale, productContext, defaultSubject }:
           subject: form.subject,
           message: form.message.trim() || undefined,
           ...(context ? { productSlug: context.slug } : {}),
+          // Rastreio de aquisição: origem (seção do site) + campanha (UTM).
+          // O servidor revalida os dois — aqui é só transporte.
+          ...(origin ? { origin } : {}),
+          ...(utm?.source ? { utmSource: utm.source } : {}),
+          ...(utm?.medium ? { utmMedium: utm.medium } : {}),
+          ...(utm?.campaign ? { utmCampaign: utm.campaign } : {}),
           locale,
           consent: true,
           website: honeypot,
@@ -145,9 +208,27 @@ export function ContactForm({ content, locale, productContext, defaultSubject }:
         return;
       }
 
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string; fields?: unknown }
+        | null;
+
+      if (body?.error === "validation") {
+        const flagged = serverFieldErrors(body.fields);
+        setErrors(flagged);
+        // Banner só quando o servidor reprovou algo que este formulário nem
+        // renderiza — senão a pessoa ficaria sem nenhuma pista.
+        setServerError(
+          Object.keys(flagged).length > 0 ? null : content.errors.validation
+        );
+        setPhase("idle");
+        return;
+      }
+
       const messages: Record<string, string> = {
         rate_limited: content.errors.rateLimited,
+        // 503 do rate limiter fail-closed (Redis fora) — não é repetição da
+        // pessoa; dizer que foi manda o suporte investigar a coisa errada.
+        unavailable: content.errors.unavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
@@ -271,12 +352,16 @@ export function ContactForm({ content, locale, productContext, defaultSubject }:
         <label className={cn(fieldClass, "sm:col-span-2")}>
           {content.form.subject.label}
           <select value={form.subject} onChange={handleSubjectChange}>
-            {CONTACT_SUBJECTS.map((subject) => (
+            {SELECTABLE_CONTACT_SUBJECTS.map((subject) => (
               <option key={subject} value={subject}>
                 {subjectLabels[subject]}
               </option>
             ))}
           </select>
+          {/* O select só oferece valores válidos, mas se o servidor reprovar
+              o assunto a pessoa precisa ver ONDE — senão `serverFieldErrors`
+              marcaria um campo mudo e ela ficaria sem pista nenhuma. */}
+          {fieldError("subject")}
         </label>
 
         <label className={cn(fieldClass, "sm:col-span-2")}>

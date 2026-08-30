@@ -27,9 +27,10 @@ type NavItemsProps = {
 /**
  * The nav labels shared by the desktop bar and the mobile menu. Every link is
  * a plain anchor (external hrefs open in a new tab); hrefs already arrive
- * locale-prefixed from `resolveDestination`, including the contact link
- * (`/contato` is a real page since 2026-08-24 — it no longer opens a modal).
- * Styling is fully delegated to the caller.
+ * locale-prefixed — and, for the lead-capture pages, tagged with the
+ * `?origem=menu` of `siteNavLinks` (`@/shared/lib/nav`) — including the
+ * contact link (`/contato` is a real page since 2026-08-24 — it no longer
+ * opens a modal). Styling is fully delegated to the caller.
  *
  * SEM ícones desde 2026-08-12 (padrão WEG, pedido do stakeholder): os ícones
  * lucide por item (PhoneCall/Headset/Package) davam larguras e alturas ópticas

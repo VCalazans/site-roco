@@ -25,7 +25,20 @@
  */
 import { boolean, index, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
-export const contactSubjectEnum = pgEnum("contact_subject", ["call_back", "quote", "general"]);
+/**
+ * Valor NOVO sempre no FIM da lista: no meio, o drizzle-kit gera o recreate
+ * completo do tipo (bem mais arriscado) em vez de um `ALTER TYPE … ADD
+ * VALUE`. E a migration que adiciona um valor NUNCA pode usá-lo no mesmo
+ * arquivo (backfill/DEFAULT): o migrator do Drizzle roda todas as migrations
+ * pendentes numa ÚNICA transação, e o Postgres proíbe usar um valor de enum
+ * ainda não commitado — o rollback derrubaria todas as pendentes.
+ */
+export const contactSubjectEnum = pgEnum("contact_subject", [
+  "call_back",
+  "quote",
+  "general",
+  "catalog",
+]);
 
 export const contactSubmissions = pgTable(
   "contact_submissions",
@@ -42,6 +55,16 @@ export const contactSubmissions = pgTable(
     /** Snapshot resolvido no servidor — ver comentário de topo do arquivo. */
     productName: text("product_name"),
     productSku: text("product_sku"),
+    /**
+     * ORIGEM: seção do site de onde partiu o clique (`?origem=`, lista
+     * fechada em `@/shared/lib/lead-origin`). Valor fora da lista é gravado
+     * como NULL — nunca confiamos no que vem da URL.
+     */
+    origin: text("origin"),
+    /** CAMPANHA externa (`utm_*`) — complementar à origem, nunca a substitui. */
+    utmSource: text("utm_source"),
+    utmMedium: text("utm_medium"),
+    utmCampaign: text("utm_campaign"),
     locale: varchar("locale", { length: 5 }).notNull(),
     clientTrackingId: uuid("client_tracking_id").notNull().unique(),
     consentGranted: boolean("consent_granted").notNull().default(false),

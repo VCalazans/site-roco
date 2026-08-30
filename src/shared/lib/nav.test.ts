@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   visibleNavLinks,
+  siteNavLinks,
   navLabelClass,
   isNavLinkActive,
   externalProps,
@@ -312,6 +313,88 @@ describe("nav utilities", () => {
       if (Object.keys(props).length > 0) {
         expect(Object.keys(props)).toEqual(expect.arrayContaining(["target", "rel"]));
       }
+    });
+  });
+});
+
+describe("nav com origem de lead", () => {
+  const DICTIONARY_LINKS: NavLink[] = [
+    { label: "Home", href: "/" },
+    { label: "Produtos", href: "/produtos" },
+    { label: "Portal ROCO", href: "#representantes" },
+    { label: "Contato", href: "#contato" },
+    { label: "Parked", href: "#contato", hidden: true },
+  ];
+
+  describe("siteNavLinks", () => {
+    it("resolves the dictionary placeholders to real locale-prefixed routes", () => {
+      const links = siteNavLinks(DICTIONARY_LINKS, "pt");
+      expect(links.map((link) => link.label)).toEqual([
+        "Home",
+        "Produtos",
+        "Portal ROCO",
+        "Contato",
+      ]);
+      expect(links[2].href).toBe("/pt/representantes");
+    });
+
+    it("tags the contact link with the 'menu' origin", () => {
+      const links = siteNavLinks(DICTIONARY_LINKS, "pt");
+      expect(links[3].href).toBe("/pt/contato?origem=menu");
+    });
+
+    it("does not tag links that are not lead-capture pages", () => {
+      const links = siteNavLinks(DICTIONARY_LINKS, "pt");
+      expect(links[0].href).toBe("/");
+      expect(links[1].href).not.toContain("origem=");
+      expect(links[2].href).not.toContain("origem=");
+    });
+
+    it("still drops hidden items", () => {
+      expect(siteNavLinks(DICTIONARY_LINKS, "pt")).toHaveLength(4);
+    });
+
+    it("keeps every other property of the item", () => {
+      const links = siteNavLinks([{ label: "Contato", href: "#contato", icon: "phone" }], "en");
+      expect(links[0]).toEqual({ label: "Contato", href: "/en/contato?origem=menu", icon: "phone" });
+    });
+
+    it("applies the locale it was given", () => {
+      expect(siteNavLinks(DICTIONARY_LINKS, "en")[3].href).toBe("/en/contato?origem=menu");
+    });
+
+    it("does not mutate the input array", () => {
+      const original = structuredClone(DICTIONARY_LINKS);
+      siteNavLinks(DICTIONARY_LINKS, "pt");
+      expect(DICTIONARY_LINKS).toEqual(original);
+    });
+  });
+
+  describe("isNavLinkActive com querystring no href", () => {
+    it("stays active when the href carries an origin (regressão de a11y)", () => {
+      expect(isNavLinkActive("/pt/contato?origem=menu", "/pt/contato")).toBe(true);
+    });
+
+    it("stays active on a nested route below a tagged href", () => {
+      expect(isNavLinkActive("/pt/produtos?origem=menu", "/pt/produtos/valvula")).toBe(true);
+    });
+
+    it("stays active when the href carries a fragment", () => {
+      expect(isNavLinkActive("/pt/contato#form", "/pt/contato")).toBe(true);
+    });
+
+    it("stays active when the href carries both query and fragment", () => {
+      expect(isNavLinkActive("/pt/contato?origem=menu#form", "/pt/contato")).toBe(true);
+    });
+
+    it("does not turn unrelated routes active", () => {
+      expect(isNavLinkActive("/pt/contato?origem=menu", "/pt/produtos")).toBe(false);
+      expect(isNavLinkActive("/pt/contato?origem=menu", "/pt/contatos")).toBe(false);
+    });
+
+    it("keeps the home rule working when the href is tagged", () => {
+      expect(isNavLinkActive("/?origem=menu", "/pt")).toBe(true);
+      expect(isNavLinkActive("/?origem=menu", "/pt/contato")).toBe(false);
     });
   });
 });

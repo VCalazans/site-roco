@@ -295,3 +295,93 @@ describe("site config", () => {
     });
   });
 });
+
+describe("resolveDestination — origem de lead (3º parâmetro)", () => {
+  describe("destinos que capturam lead", () => {
+    it("tags the contact page with the origin", () => {
+      expect(resolveDestination("#contato", "pt", "menu")).toBe("/pt/contato?origem=menu");
+    });
+
+    it("tags the contact page in every locale", () => {
+      expect(resolveDestination("#contato", "en", "rodape")).toBe("/en/contato?origem=rodape");
+    });
+
+    it("tags the catalog page when it falls back to the internal route", () => {
+      const destination = resolveDestination("#catalogo", "pt", "home-hero");
+      // Só vale quando NEXT_PUBLIC_CATALOG_URL está vazia (padrão do repo).
+      if (siteLinks.catalog) {
+        expect(destination).toBe(siteLinks.catalog);
+      } else {
+        expect(destination).toBe("/pt/catalogo?origem=home-hero");
+      }
+    });
+
+    it("treats /contato as an alias of #contato", () => {
+      expect(resolveDestination("/contato", "pt", "menu")).toBe(
+        resolveDestination("#contato", "pt", "menu")
+      );
+    });
+
+    it("treats /catalogo as an alias of #catalogo", () => {
+      expect(resolveDestination("/catalogo", "pt", "rodape")).toBe(
+        resolveDestination("#catalogo", "pt", "rodape")
+      );
+    });
+
+    it("locale-prefixes the bare /contato spelling (it used to link locale-less)", () => {
+      expect(resolveDestination("/contato", "en")).toBe("/en/contato");
+    });
+  });
+
+  describe("destinos que NÃO capturam lead", () => {
+    it("leaves the home untouched", () => {
+      expect(resolveDestination("/", "pt", "menu")).toBe("/");
+    });
+
+    it("leaves the product listing untouched", () => {
+      expect(resolveDestination("#produtos", "pt", "menu")).toBe(
+        resolveDestination("#produtos", "pt")
+      );
+      expect(resolveDestination("#produtos", "pt", "menu")).not.toContain("origem=");
+    });
+
+    it("leaves the representatives page untouched", () => {
+      expect(resolveDestination("#representantes", "pt", "home-portal")).toBe(
+        "/pt/representantes"
+      );
+    });
+
+    it("leaves an unrelated anchor untouched", () => {
+      expect(resolveDestination("#section", "pt", "menu")).toBe("#section");
+    });
+
+    it("leaves an arbitrary route untouched", () => {
+      expect(resolveDestination("/pt/sobre", "pt", "menu")).toBe("/pt/sobre");
+    });
+
+    it("leaves an external URL untouched (never leaks internal taxonomy)", () => {
+      expect(resolveDestination("https://exemplo.com/catalogo.pdf", "pt", "rodape")).toBe(
+        "https://exemplo.com/catalogo.pdf"
+      );
+    });
+  });
+
+  describe("compatibilidade da assinatura", () => {
+    it("behaves exactly as before when the origin is omitted", () => {
+      for (const href of ["#contato", "#catalogo", "#produtos", "#representantes", "/", "/x"]) {
+        expect(resolveDestination(href, "pt", undefined)).toBe(resolveDestination(href, "pt"));
+      }
+    });
+
+    it("never appends the param twice", () => {
+      const once = resolveDestination("#contato", "pt", "menu");
+      expect(resolveDestination(once, "pt", "rodape")).toBe(once);
+    });
+
+    it("produces a destination the URLSearchParams parser reads back", () => {
+      const href = resolveDestination("#contato", "pt", "produto-detalhe");
+      const query = new URLSearchParams(href.slice(href.indexOf("?")));
+      expect(query.get("origem")).toBe("produto-detalhe");
+    });
+  });
+});

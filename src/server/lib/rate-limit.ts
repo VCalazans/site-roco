@@ -28,6 +28,14 @@ export interface RateLimitResult {
   remaining: number;
   /** Segundos até a janela expirar (0 quando `allowed` é `true`). */
   retryAfterSeconds: number;
+  /**
+   * `true` quando a recusa veio do FAIL-CLOSED (Redis ausente ou fora do ar),
+   * não de um teto de fato estourado. Sem esta distinção, a primeira
+   * tentativa de um visitante numa janela de instabilidade do Redis é
+   * respondida com "muitas tentativas em sequência" — acusando-o de uma
+   * repetição que não houve e mandando o suporte investigar a coisa errada.
+   */
+  unavailable?: boolean;
 }
 
 declare global {
@@ -100,7 +108,12 @@ export async function checkRateLimit(
       console.error(
         "[rate-limit] REDIS indisponível em rota productionSafe — bloqueando request.",
       );
-      return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: opts.windowSeconds,
+        unavailable: true,
+      };
     }
     return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
   }
@@ -118,7 +131,12 @@ export async function checkRateLimit(
     // em conflito — não usamos WATCH aqui, então isto é defensivo).
     if (!results) {
       if (failClosed) {
-        return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+        return {
+          allowed: false,
+          remaining: 0,
+          retryAfterSeconds: opts.windowSeconds,
+          unavailable: true,
+        };
       }
       return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
     }
@@ -141,7 +159,12 @@ export async function checkRateLimit(
   } catch (error) {
     console.error("[rate-limit] Falha ao checar limite — fail-" + (failClosed ? "closed" : "open") + ".", error);
     if (failClosed) {
-      return { allowed: false, remaining: 0, retryAfterSeconds: opts.windowSeconds };
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: opts.windowSeconds,
+        unavailable: true,
+      };
     }
     return { allowed: true, remaining: opts.max, retryAfterSeconds: 0 };
   }

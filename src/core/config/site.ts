@@ -5,13 +5,16 @@
  * time, so they must be present when `next build` runs). Fallbacks keep the
  * buttons working even when a var is not set in a given environment.
  */
+import { withLeadOrigin, type LeadOrigin } from "@/shared/lib/lead-origin";
+
 export const siteLinks = {
   /** "Conheça nossos Produtos" — empty until the products URL is defined. */
   products: process.env.NEXT_PUBLIC_PRODUCTS_URL || "",
   /**
    * "Baixar Catálogo" — when empty the CTA points at this site's own catalog
-   * page (`/{locale}/catalogo`), which gates the PDF behind the Mautic form.
-   * Set it only to send visitors somewhere else instead (it bypasses the gate).
+   * page (`/{locale}/catalogo`), which gates the PDF behind the lead form.
+   * Set it only to send visitors somewhere else instead (it bypasses the
+   * gate — and, with it, the lead capture and the origin tracking).
    */
   catalog: process.env.NEXT_PUBLIC_CATALOG_URL || "",
   /** The catalog PDF itself, served from /public (must stay same-origin so the
@@ -73,18 +76,46 @@ export function catalogPath(locale: string): string {
  * both spellings are treated as aliases of the same destination so copy can
  * use either without producing a broken (non locale-prefixed) link. Bare
  * routes (`/`) pass through untouched.
+ *
+ * `origin` (optional) tags the destination with the site section the click
+ * came from (`?origem=`) — see `@/shared/lib/lead-origin`. It is appended
+ * ONLY when the resolved destination is one of this site's own lead-capture
+ * pages; every other destination (external URL from env, home, product
+ * listing) comes back untouched.
  */
-export function resolveDestination(href: string, locale: string): string {
+export function resolveDestination(
+  href: string,
+  locale: string,
+  origin?: LeadOrigin
+): string {
+  const destination = resolveHref(href, locale);
+
+  if (!origin) return destination;
+
+  // A origem só acompanha os destinos que SABEM lê-la: as duas páginas
+  // internas de captura de lead. Nunca vai para a home, para a listagem de
+  // produtos, nem — principalmente — para uma URL de terceiro configurada
+  // via `NEXT_PUBLIC_PRODUCTS_URL`/`NEXT_PUBLIC_CATALOG_URL`, onde vazaria
+  // taxonomia interna e poderia colidir com um parâmetro do destino.
+  const capturesLeads =
+    destination === contactPath(locale) || destination === catalogPath(locale);
+
+  return capturesLeads ? withLeadOrigin(destination, origin) : destination;
+}
+
+function resolveHref(href: string, locale: string): string {
   switch (href) {
     case "#produtos":
     case "/produtos":
       return siteLinks.products || productsPath(locale);
     case "#catalogo":
+    case "/catalogo":
       return siteLinks.catalog || catalogPath(locale);
     case "#representantes":
     case "/representantes":
       return representativesPath(locale);
     case "#contato":
+    case "/contato":
       return contactPath(locale);
     default:
       return href;

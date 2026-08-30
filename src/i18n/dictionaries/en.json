@@ -156,9 +156,31 @@
     "description": "Discover a wide range of products — from plumbing solutions to hydraulic systems, repair kits for valves and taps, gas installations, connections, hoses and complementary accessories — all engineered to meet your customers' needs. Download our exclusive catalog now and offer quality products.",
     "sceneAlt": "Printed ROCO product catalog on a surface with neon lighting",
     "formTitle": "Fill in your details to receive the catalog",
+    "fields": {
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyName": "Company (optional)"
+    },
+    "consent": "I agree to the processing of my personal data so that ROCO can contact me, in accordance with the Privacy Policy.",
     "submit": "Download Catalog",
+    "sending": "Sending…",
     "privacyNotice": "By submitting my details, I acknowledge the terms of the",
     "privacyLabel": "Privacy Policy",
+    "validation": {
+      "required": "This field is required.",
+      "nameTooShort": "Please enter your full name.",
+      "invalidEmail": "Invalid email. Please check the address.",
+      "invalidPhone": "Invalid phone number. Use the format (XX) 9XXXX-XXXX.",
+      "consentRequired": "You must agree to the processing of your data to continue.",
+      "invalid": "Please check this field and try again."
+    },
+    "errors": {
+      "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
+      "validation": "Please check the details you entered and try again.",
+      "unavailable": "The service is temporarily unavailable. Please try again shortly.",
+      "generic": "We could not submit your details right now. Please try again shortly."
+    },
     "success": {
       "title": "All set!",
       "description": "Your download has started automatically. If it doesn't, use the button below.",
@@ -202,10 +224,13 @@
       "invalidEmail": "Invalid email. Please check the address.",
       "invalidPhone": "Invalid phone number. Use the format (XX) 9XXXX-XXXX.",
       "invalidCnpj": "Invalid CNPJ. Please check the digits.",
-      "consentRequired": "You must agree to the processing of your data to continue."
+      "consentRequired": "You must agree to the processing of your data to continue.",
+      "invalid": "Please check this field and try again."
     },
     "errors": {
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
+      "validation": "Please check the details you entered and try again.",
+      "unavailable": "The service is temporarily unavailable. Please try again shortly.",
       "generic": "We could not send your message right now. Please try again shortly."
     },
     "success": {

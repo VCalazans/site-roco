@@ -1,5 +1,6 @@
+import { resolveDestination } from "@/core/config/site";
 import { SiteHeader } from "@/shared/components/nav";
-import { getCachedActiveHeroSlides } from "@/server/lib/hero-slides";
+import { getCachedActiveHeroSlides, type PublicHeroSlide } from "@/server/lib/hero-slides";
 import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
 import { HeroSlider } from "./hero-slider";
 
@@ -29,7 +30,9 @@ type HomeHeroProps = {
  * dicionário original + pôster estático.
  */
 export async function HomeHero({ brand, fallback, navLinks, menuLabels, locale }: HomeHeroProps) {
-  const slides = await getCachedActiveHeroSlides(locale);
+  const slides = (await getCachedActiveHeroSlides(locale)).map((slide) =>
+    resolveSlideCtas(slide, locale)
+  );
 
   return (
     <>
@@ -50,6 +53,34 @@ export async function HomeHero({ brand, fallback, navLinks, menuLabels, locale }
       />
     </>
   );
+}
+
+/**
+ * Resolve os hrefs dos CTAs do slide — que são DADO, digitado em campo
+ * livre pelo marketing em `/portal/hero`, e até agora iam crus para o
+ * `<Link>`.
+ *
+ * Isso conserta dois bugs que estavam no ar: o CTA "Baixar Catálogo" do
+ * hero está gravado como `#catalogo`, então virava um link morto (só
+ * acrescentava a âncora à URL da home), e `/produtos` sem prefixo dependia
+ * de um redirect do `proxy.ts` para não quebrar o locale. Como o campo
+ * aceita URL externa, `resolveDestination` continua devolvendo intocado
+ * qualquer coisa que não seja um dos placeholders conhecidos — e só anexa a
+ * origem quando o destino é uma página interna de captura de lead.
+ */
+function resolveSlideCtas(slide: PublicHeroSlide, locale: string): PublicHeroSlide {
+  return {
+    ...slide,
+    primaryCta: slide.primaryCta
+      ? { ...slide.primaryCta, href: resolveDestination(slide.primaryCta.href, locale, "home-hero") }
+      : null,
+    secondaryCta: slide.secondaryCta
+      ? {
+          ...slide.secondaryCta,
+          href: resolveDestination(slide.secondaryCta.href, locale, "home-hero"),
+        }
+      : null,
+  };
 }
 
 // Re-export utilitários que o caller pode precisar (mantém compat com o

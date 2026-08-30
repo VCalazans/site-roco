@@ -11,6 +11,12 @@
  */
 import { z } from "zod";
 import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
+import {
+  LEAD_ORIGINS,
+  normalizeLeadOrigin,
+  normalizeUtmValue,
+  UTM_MAX_LENGTH,
+} from "@/shared/lib/lead-origin";
 import { isValidPhoneBR } from "@/shared/lib/phone";
 
 /**
@@ -20,6 +26,16 @@ import { isValidPhoneBR } from "@/shared/lib/phone";
  * assunto com `name` interpolado diretamente).
  */
 const CONTROL_CHARS = /[\r\n\0]/;
+
+/**
+ * Só NUL — para campos que NUNCA entram num cabeçalho, apenas no CORPO do
+ * e-mail (hoje: `message`). Bloquear `\r\n` neles seria over-block com custo
+ * real: o campo de mensagem é um `<textarea>`, então apertar Enter — o
+ * comportamento mais natural do mundo ao escrever um pedido de orçamento —
+ * reprovava a submissão inteira com 400 e o visitante lia "tente novamente em
+ * instantes" sem ter o que corrigir.
+ */
+const BODY_CONTROL_CHARS = /\0/;
 
 /**
  * Campo de texto opcional: string vazia (ou só espaços) vira `undefined`
@@ -39,7 +55,59 @@ function optionalTrimmedField(max: number) {
   );
 }
 
-export const CONTACT_SUBJECTS = ["call_back", "quote", "general"] as const;
+/**
+ * Igual a `optionalTrimmedField`, mas aceita quebras de linha — para o texto
+ * livre que só é interpolado no CORPO da notificação (`contact-email.ts`
+ * escapa o HTML e o renderiza dentro de um `<pre>`), nunca num cabeçalho.
+ */
+function optionalMultilineField(max: number) {
+  return z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z
+      .string()
+      .trim()
+      .max(max)
+      .refine((value) => !BODY_CONTROL_CHARS.test(value), { message: "invalid_characters" })
+      .optional()
+  );
+}
+
+/**
+ * Assuntos aceitos pela rota — espelham o enum `contact_subject` do banco
+ * (`src/db/schema/contact.ts`), e cada um vira um `conversion_identifier`
+ * distinto no RD Station (`buildRdStationConversionPayload`), para que o
+ * funil separe as quatro intenções de negócio.
+ *
+ * `catalog` NÃO aparece no dropdown de `/contato`: é definido pelo próprio
+ * formulário do catálogo (`/{locale}/catalogo`), que reaproveita esta mesma
+ * rota em vez de ter endpoint próprio. Use `SELECTABLE_CONTACT_SUBJECTS`
+ * para renderizar opções ao visitante.
+ */
+export const CONTACT_SUBJECTS = ["call_back", "quote", "general", "catalog"] as const;
+
+/** Assuntos que o visitante escolhe à mão no dropdown de `/contato`. */
+export const SELECTABLE_CONTACT_SUBJECTS = ["call_back", "quote", "general"] as const;
+
+export type ContactSubject = (typeof CONTACT_SUBJECTS)[number];
+export type SelectableContactSubject = (typeof SELECTABLE_CONTACT_SUBJECTS)[number];
+
+/**
+ * Origem (seção do site) e campanha (UTM) chegam da URL — entrada NÃO
+ * confiável. Ambas são DESCARTADAS em silêncio quando inválidas (viram
+ * `undefined` → `null` no banco) em vez de reprovarem o parse: um parâmetro
+ * de rastreio malformado jamais pode impedir a captura de um lead real.
+ */
+const leadOriginField = z.preprocess(
+  (value) => normalizeLeadOrigin(value),
+  z.enum(LEAD_ORIGINS).optional()
+);
+
+function utmField() {
+  return z.preprocess(
+    (value) => normalizeUtmValue(value),
+    z.string().max(UTM_MAX_LENGTH).optional()
+  );
+}
 
 export const contactSchema = z.object({
   name: z
@@ -68,8 +136,16 @@ export const contactSchema = z.object({
       .optional()
   ),
   subject: z.enum(CONTACT_SUBJECTS),
-  message: optionalTrimmedField(2000),
+  // Multilinha: `<textarea>` no formulário, e o valor só aparece no corpo do
+  // e-mail (escapado, dentro de `<pre>`) — nunca num cabeçalho.
+  message: optionalMultilineField(2000),
   productSlug: optionalTrimmedField(200),
+  /** Seção do site que originou o clique (`?origem=`) — ver `lead-origin`. */
+  origin: leadOriginField,
+  /** Campanha externa (`?utm_*=`) — vai aos campos padrão `traffic_*` do RD. */
+  utmSource: utmField(),
+  utmMedium: utmField(),
+  utmCampaign: utmField(),
   locale: z.enum(["pt", "en"]),
   consent: z.literal(true),
 });

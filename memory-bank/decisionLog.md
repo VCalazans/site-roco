@@ -797,3 +797,318 @@ e o admin pode revisar o status dos canais em `contact_submissions` — não há
 novos). Sem mudanças em migrations ou schema — a tabela `contact_submissions` (entrada 7) e os
 envs de RD/Resend (entradas 4–5) permanecem como projetados.
 
+
+## 2026-08-25 — Rastreio de origem de lead (`?origem=` + UTM), 4 `conversion_identifier`, retry gracioso do RD e volta do formulário no catálogo
+**Decisão**: Todo lead que chega ao RD Station passa a carregar DUAS dimensões de aquisição,
+complementares e que nunca se sobrescrevem:
+1. **ORIGEM** — a seção INTERNA do site de onde partiu o clique (`?origem=`, parâmetro
+   `LEAD_ORIGIN_PARAM`), com **lista FECHADA** de 10 valores em `src/shared/lib/lead-origin.ts`
+   (`home-hero`, `home-sobre`, `home-categorias`, `home-destaques`, `home-portal`,
+   `produtos-listagem`, `produto-detalhe`, `catalogo`, `menu`, `rodape`). Valor fora da lista
+   (visitante editou a URL, link antigo, bot) vira `undefined` → NULL no banco: é taxonomia
+   nossa, não texto livre de terceiro. Vai ao RD no campo CUSTOMIZADO `cf_origem` —
+   deliberadamente NÃO em `traffic_source`, que é território de UTM e colidiria com campanha
+   paga de verdade.
+2. **CAMPANHA EXTERNA (UTM)** — `utm_source`/`utm_medium`/`utm_campaign` lidos da URL, apenas
+   saneados (trim, teto de 120 chars, sem CR/LF/NUL), enviados nos campos **PADRÃO**
+   `traffic_source`/`traffic_medium`/`traffic_campaign` da Conversions API, que não exigem
+   nenhuma configuração no painel do RD.
+
+O ponto central de anexação é `resolveDestination(href, locale, origin)` em
+`src/core/config/site.ts`: a origem só acompanha o destino quando ele é uma das DUAS páginas
+internas de captura (`contactPath`/`catalogPath`) — nunca a home, a listagem de produtos ou uma
+URL de terceiro vinda de `NEXT_PUBLIC_PRODUCTS_URL`/`NEXT_PUBLIC_CATALOG_URL`, onde vazaria
+taxonomia interna e poderia colidir com um parâmetro do destino. `withLeadOrigin` preserva
+querystring e fragmento pré-existentes (o CTA do detalhe de produto já chega como
+`?produto=slug&assunto=quote`) e é idempotente (o primeiro emissor vence).
+
+**`conversion_identifier` vai a QUATRO valores**, um por intenção de negócio:
+`quote → orcamento_produto`, `catalog → download_catalogo`, `call_back → ligamos_pra_voce`,
+`general → contato_geral`. Antes `call_back` e `general` colapsavam em `contato_geral`. É string
+livre na API (ao contrário dos `cf_*`, não exige cadastro prévio), então separar custa zero e o
+funil do RD passa a distinguir as quatro. Nada estava em produção — o RD sequer tem credencial —,
+então não há histórico a preservar.
+
+**Retry gracioso do RD** (`rd-station-send.ts`): campo customizado que ainda não existe no painel
+faz a API responder 400 e a conversão INTEIRA se perde, não só aquele campo. Como
+`cf_cnpj`/`cf_produto_interesse`/`cf_origem` são criados À MÃO pelo stakeholder, esquecer UM
+derrubaria TODOS os leads. Num 400 que aparente ser de campo — ou que não dê para classificar
+(`classifyRdStationValidationError` → `custom_field` | `unknown`) —, reenviamos UMA vez só com os
+campos padrão. O desfecho fica distinguível em `contact_submissions.rd_station_error`
+(`validation_retry_ok` / `validation_retry_failed`), gravado MESMO no caminho feliz: é assim que o
+time descobre que falta criar um `cf_*` sem perder lead nenhum. Nome, e-mail e telefone valem mais
+que os campos extras.
+
+**Formulário volta ao catálogo**: `/{locale}/catalogo` volta a exigir dados antes de liberar o PDF
+(comportamento pré-Mautic que o próprio comentário em `site.ts` ainda descrevia). Campos: nome,
+e-mail, telefone, empresa (opcional), consentimento LGPD obrigatório e honeypot. Reaproveita
+`POST /api/contact` com `subject: "catalog"` — rate limit, gravação e os dois canais de saída já
+vivem lá, e uma rota própria seria uma segunda superfície pública para manter em dia. Tailwind
+puro (`.form-neon`), como todo o route group `(site)`.
+
+**Banco**: migration `drizzle/0008_contact_origin_utm.sql` — colunas `origin`, `utm_source`,
+`utm_medium`, `utm_campaign` (text, nullable) em `contact_submissions` e o valor `catalog` somado
+ao enum `contact_subject`. Aplicada limpa num banco que já tinha as 7 anteriores (journal com 9
+linhas, incluindo a 0000).
+
+**Alternativas**: (a) mandar a origem em `traffic_source` — rejeitado, sobrescreveria a campanha
+real de mídia paga; (b) origem como texto livre — rejeitado, poluiria o CRM e abriria injeção de
+conteúdo arbitrário no `cf_origem`; (c) rota `/api/catalog` própria para o formulário do catálogo
+— rejeitado, duplicaria rate limit, honeypot e persistência; (d) manter dois
+`conversion_identifier` — rejeitado, perde a intenção que o menu antes separava em itens distintos;
+(e) falhar alto quando um `cf_*` não existe — rejeitado, o custo é perder 100% dos leads até
+alguém notar.
+
+**Impacto**: módulo puro novo `src/shared/lib/lead-origin.ts` (sem `server-only`, sem I/O — é
+consumido por schema de servidor, resolução de destino e componentes client) com testes próprios;
+`src/modules/catalog/` novo (form client + lógica pura + tipos de dicionário); `contactSchema`
+ganha `origin`/`utmSource`/`utmMedium`/`utmCampaign`, todos DESCARTADOS em silêncio quando
+inválidos — um parâmetro de rastreio malformado jamais pode impedir a captura de um lead real.
+`LEAD_ORIGIN_LABELS` em `contact-email.ts` é um `Record` TIPADO: acrescentar origem sem dar rótulo
+quebra o build, em vez de mandar slug cru ao time comercial. **Pendência do stakeholder**: criar
+`cf_origem` no painel do RD, ao lado de `cf_cnpj` e `cf_produto_interesse` (documentado no
+`.env.example`).
+
+## 2026-08-25 — Achados da revisão adversarial: middleware que nunca rodou, balde global compartilhado, espelho de validação e propagação de UTM
+**Decisão**: Quatro correções sobre a feature acima, mais uma quinta descoberta ao verificá-las.
+
+**(0) `proxy.ts` sai da raiz e vai para `src/proxy.ts` — o middleware NUNCA rodou.** Descoberto na
+verificação de fumaça desta sessão: `curl /contato` respondia **404** em vez do redirect para
+`/pt/contato`, nenhuma resposta trazia o cookie `NEXT_LOCALE`, e
+`.next/server/middleware-manifest.json` saía com `"middleware": {}`. O Next procura o proxy "no
+mesmo nível de `app/`" — e aqui `app/` mora em `src/app`, então o arquivo na raiz era compilado
+mas nunca registrado. Consequências que estavam vivas em produção: (a) toda URL sem prefixo de
+locale dava 404 (`/contato`, `/produtos`, `/portal`); (b) a resolução de locale por
+Accept-Language/cookie nunca aconteceu; (c) o guard de sessão de `/portal`/`/admin` nunca executou
+— o que protegia essas rotas era só o `requireAuth()` dentro das páginas (defesa que seguiu
+funcionando, e por isso o problema passou despercebido). Depois da mudança o build imprime
+`ƒ Proxy (Middleware)` e o `functions-config-manifest.json` registra o matcher. Verificado:
+`/contato` → 307 `/pt/contato`, `/pt/portal` → 307 login, `/pt/portal/login` → 200,
+`/api/products` → 200 (o matcher segue pulando `/api`). O arquivo carrega um aviso no topo para
+ninguém devolvê-lo à raiz. **Sem isso a correção (4) abaixo seria inerte** — o cookie de UTM nunca
+seria gravado.
+
+**(1) Falha NOSSA não pode confiscar o catálogo.** Enquanto `/catalogo` era um `<a download>`, uma
+queda de Redis não afetava o download; com o formulário, o único caminho de UI passou a ser
+`POST /api/contact`, cujos limites são `productionSafe: true` (fail-closed). Redis fora = 100% das
+submissões negadas = CTA de catálogo morto em todos os pontos do site. O painel de erro do
+formulário passa a exibir o link do PDF ao lado da mensagem: **perde-se o lead, nunca o download**.
+É coerente com a premissa já declarada na própria página — "o gate é de MARKETING, não de acesso;
+o arquivo sempre foi público" (o portal interno o linka direto em `/downloads/…`). Alternativa
+rejeitada: afrouxar o `productionSafe` de `/contato`, que enfraqueceria uma rota pública de escrita
+para resolver um problema do catálogo.
+
+**(2) O balde GLOBAL passa a ser cobrado só de submissão plausível, e sobe para 200/5min.** Os dois
+formulários públicos dividem a chave única `contact:global`. A checagem rodava em `Promise.all` com
+a de IP e ANTES do parse, então requisição malformada, bot pego no honeypot e request JÁ barrada
+por IP incrementavam o contador do mesmo jeito (o `INCR` é incondicional). Reproduzido: 41 POSTs de
+corpo vazio de um único IP deixavam o balde em 41 e um lead legítimo de outro IP recebia 429 —
+estourar o balde saía mais barato do que usá-lo, e o visitante lia "muitas tentativas em sequência"
+sem ter tentado nada. Agora: teto por IP primeiro (é a chave que o abusador não compartilha, então
+cobra qualquer request), depois honeypot e `safeParse`, e só então o teto global. Teto de 40 → 200
+porque ele virou backstop de DOIS funis, um deles alvo de disparo de e-mail marketing. Verificado:
+o mesmo flood de 41 deixa o balde global VAZIO e o lead legítimo responde 201.
+
+**(3) Erro de validação vira erro POR CAMPO, e o espelho client deixa de divergir.** A rota devolve
+`{ error: "validation", fields: [...] }` e o array era descartado: qualquer 400 virava "Tente
+novamente em instantes" — mensagem de falha TRANSITÓRIA para um erro permanente que só o visitante
+podia corrigir, sem marcar campo nenhum. Ele reenviava o mesmo valor e lia a mesma frase. Três
+frentes: (a) os dois formulários passam a traduzir `fields` em erro por campo (`aria-invalid` +
+`aria-describedby` já derivam desse estado), caindo num banner novo só quando o campo culpado não é
+renderizado ali; (b) o regex de e-mail duplicado dá lugar ao PRÓPRIO campo do schema
+(`contactSchema.shape.email`) — o espelho aproximado aceitava `joao@empresa.c` e
+`user@exa_mple.com`, que o zod reprova, e `contact-submit` já estava no bundle client dos dois
+formulários, então não custa nada; (c) `message` deixa de ser bloqueado por CR/LF. Esta última era
+a instância de maior frequência: o campo é um `<textarea>` e apertar Enter — o gesto mais natural
+ao escrever um pedido de orçamento — reprovava a submissão inteira. `CONTROL_CHARS` (CR/LF/NUL)
+continua valendo para `name`/`companyName`/`productSlug`, que são interpolados no cabeçalho
+`Subject` do e-mail; `message` só entra no CORPO (escapado, dentro de `<pre>`) e passa a usar
+`BODY_CONTROL_CHARS` (só NUL). A fronteira está fixada em teste.
+
+**(4) UTM persistida em cookie de primeira parte.** A UTM só era lida no `searchParams` das duas
+páginas de formulário, e nada a propagava durante a navegação: `resolveDestination`/`siteNavLinks`
+montam caminhos limpos e o redirect de locale descartava a querystring inteira. Na prática ela só
+sobreviveria se o anúncio apontasse DIRETO para `/{locale}/contato` — o sintoma seria `traffic_*`
+sempre vazio e o marketing concluindo que a integração está quebrada. Agora o middleware captura os
+três parâmetros na URL de ENTRADA e grava `roco_utm` (JSON, `httpOnly`, `SameSite=Lax`, 30 dias,
+sem dado pessoal); as páginas de captura leem querystring → cookie nessa ordem (`resolveLeadUtm`,
+`src/server/lib/lead-utm.ts`). Último toque vence; URL sem campanha nunca apaga a anterior; cookie
+corrompido ou forjado vira objeto vazio e passa pelo mesmo saneamento da querystring. O redirect de
+locale passou a preservar `request.nextUrl.search` (`new URL(path, base)` descartava tudo), o que
+também conserta `/contato?produto=…` sem locale. Verificado ponta a ponta: pouso em
+`/pt?utm_source=google&utm_medium=cpc&utm_campaign=…` → `/pt/catalogo` SEM UTM na URL renderiza a
+campanha; visitante com outra campanha vê a dele; visitante sem cookie não vê nenhuma (sem
+contaminação cruzada).
+
+**Alternativas**: para (4), `sessionStorage` num client component do layout `(site)` — rejeitado,
+poria o cliente como fonte da atribuição, contrariando a doutrina declarada em `contato/page.tsx`
+("o cliente nunca é a autoridade"); e propagar a UTM link a link — rejeitado, exigiria enfiar a
+campanha em nav, rodapé, hero e CTAs de produto. Para (2), gravar o lead e só pular os canais
+quando o teto global estoura — adiado: os dois ajustes já eliminam o lockout reproduzido.
+
+**Impacto**: `src/proxy.ts` (movido, com aviso de localização no topo); `rate-limit.ts` ganha
+`RateLimitResult.unavailable` para separar "teto estourado" (429 `rate_limited`) de "limitador fora
+do ar" (503 `unavailable`) — sem isso a primeira tentativa de alguém numa janela de instabilidade
+do Redis era respondida acusando-o de repetição, e o suporte investigaria a coisa errada;
+`contact-submit.ts` ganha `optionalMultilineField`; dicionários ganham
+`{contact,catalog}.validation.invalid` e `{contact,catalog}.errors.{validation,unavailable}` (pt/en
+em paridade); `lead-origin.ts` ganha `captureUtm`/`readUtmCookie`/`serializeUtmCookie`, que dão a
+`UTM_PARAMS` o consumidor de produção que faltava.
+
+## 2026-08-25 — Capacidade: teto de query no pool, teto de corpo no webhook, flag do worker e `/api/health` (com DUAS recomendações REFUTADAS)
+
+**Decisão**: quatro mudanças cirúrgicas de capacidade/observabilidade, derivadas de um teste de
+carga real no container local, e o registro explícito de duas recomendações que foram REFUTADAS com
+prova e **não devem ser implementadas** (ver seção própria abaixo — não é esquecimento).
+
+**(1) Teto de duração de query no pool** (`src/db/index.ts`): `statement_timeout: 15_000` e
+`max: 10` EXPLÍCITO (10 já é o default do `pg-pool`; está escrito para registrar a intenção). Sem o
+teto o servidor roda com `statement_timeout = 0` — uma query descontrolada prende um dos 10 slots
+indefinidamente. Verificado no `pg` 8.23 (`getStartupConf()` em `pg/lib/client.js`) que a opção é de
+fato repassada ao servidor por conexão, e que nenhuma carga longa passa por este pool (`db:seed`,
+`db:import-*`, `scripts/migrate.mjs`, `bootstrap-producao` abrem cada um o seu `new Pool`).
+⚠️ **O relógio inclui espera por LOCK** — o Postgres conta do momento em que o comando chega ao
+servidor. Um `INSERT` trivial parado atrás de um `ACCESS EXCLUSIVE` (um `CREATE INDEX` de migration
+no boot de um container novo, com o antigo ainda servindo tráfego) morre com `57014` sem ter feito
+trabalho nenhum. Por isso o único ponto que não pode perder a escrita — o `INSERT` do lead em
+`POST /api/contact`, cujo `catch` responde 500 e aborta — tenta **uma** segunda vez nesse código
+específico (`isStatementTimeout`, `src/server/lib/pg-error.ts`). Sem esse retry, o teto
+reintroduziria por uma porta estreita a mesma falha "LEAD PERDIDO" usada para recusar o
+`connectionTimeoutMillis`.
+
+**(2) Teto de corpo no webhook do ERP** (`src/app/api/webhooks/erp/route.ts`): Route Handler não tem
+limite de corpo e `request.json()` bufferiza tudo antes de qualquer validação. Agora o
+`Content-Length` é checado ANTES do parse (10 MB, `checkContentLength`) e a leitura conta bytes e
+aborta no teto (`readBodyTextWithLimit`) — garantia válida também quando o header mente ou não vem
+(`Transfer-Encoding: chunked`). Header duplicado ("10, 20", assinatura de request smuggling) → 400.
+O segredo compartilhado já era verificado ANTES, então o risco coberto é ERP mal configurado, não
+atacante anônimo. **NÃO** foi posto `.max(N)` no `products`: o `jobId` é `erp-sync:YYYYMMDDHHMM`
+(um job por minuto, throttle deliberado) e o BullMQ descarta em silêncio job com `jobId` existente —
+forçar paginação converteria "um job grande" em PERDA SILENCIOSA da segunda página em diante.
+
+**(3) `WORKERS_ENABLED`** (`src/core/queue/{workers-enabled,register-workers}.ts`): desliga o worker
+BullMQ in-process apenas com o valor exato "false" (default LIGADO — nenhum ambiente muda por
+omissão). Antes, a única forma de não subir worker era não definir `REDIS_URL`, o que também derruba
+o rate limit fail-closed de `POST /api/contact` (503) — isto é, "desligar o worker" significava
+"desligar a captação de leads". A flag separa as duas coisas. Serve para **isolar CPU** (o worker
+processa no mesmo event loop que renderiza página); **não** para evitar "job duplicado", que não
+existe (o BullMQ entrega cada job a um único worker).
+
+**(4) `GET /api/health`** (novo): o modo de falha deste sistema é LENTIDÃO SEM ERRO, invisível sem
+métrica. Sem token responde só `{ status: "ok" }` + 200; com `x-health-token` (comparado em tempo
+constante pelo mesmo helper do webhook) devolve uptime, atraso do event loop, contadores do pool e
+estado do worker. `waitingCount` e atraso de event loop são um ORÁCULO DE SATURAÇÃO — por isso são
+autenticados. Token errado devolve a MESMA resposta de quem não mandou token (401 confirmaria que
+existe segredo e viabilizaria força bruta), com aviso apenas no log do servidor (throttle de 1/min).
+
+**Alternativas**:
+- Para (1): deixar sem teto — rejeitado, uma query presa esvazia o pool; teto menor (5 s) —
+  rejeitado, encosta demais no trabalho legítimo de lote (`inArray` do `assembleProducts`).
+- Para (2): limitar número de itens — rejeitado pelo throttle de `jobId` acima; ler só o header e
+  confiar nele — rejeitado, o cliente pode mentir.
+- Para (3): exigir container de worker desde já — fora de escopo; deixar `REDIS_URL` como único
+  interruptor — rejeitado, derruba a captação de leads junto.
+- Para (4): métricas públicas (Prometheus aberto) — rejeitado pelo oráculo de saturação; devolver
+  503 sob lentidão — rejeitado, o orquestrador mataria justamente o container ocupado, virando
+  lentidão temporária em queda (e crash loop no pior caso).
+
+**Justificativa (números medidos no teste de carga)**: site e portal são UM processo Node, UM event
+loop. Renderizar página satura ~1 core: **120% de CPU com 30 requisições SSR concorrentes**, com a
+home — que serve com ZERO queries, 100% cacheada — indo de **15–27 ms para p50 122 ms / p90 432 ms**,
+e **nenhum erro HTTP**. O Postgres **nunca foi o gargalo**: no máximo 10 conexões, todas com
+`active=0`, contra `max_connections=100`, até 500 requisições concorrentes. O endpoint mais caro é
+`/_next/image` (sharp em threads nativas): **440% de CPU com 96 otimizações simultâneas** — a maior
+alavanca de capacidade é **CDN na frente de `/_next/image`**, que é CONFIGURAÇÃO do stakeholder e
+está fora deste pacote.
+
+**⛔ DUAS RECOMENDAÇÕES REFUTADAS — não "consertar" isto depois achando que foi esquecimento**:
+1. **`connectionTimeoutMillis` no pool.** O timeout do `pg-pool` é um `setTimeout` cru que corre no
+   MESMO event loop saturado: ele dispara por CPU travada, não por pool cheio (reproduzido com o
+   pool ocioso). Pior: em `POST /api/contact` o `catch` do INSERT responde 500 e aborta sem retry,
+   então isso converteria "lead salvo, resposta lenta" em **LEAD PERDIDO** — e o app não tem nenhum
+   `error.tsx`, então o visitante veria a tela de erro crua do Next.
+2. **Subir o `max` do pool para 20/50/100.** Sem mecanismo: o banco ficou ocioso até 500
+   concorrentes. Mais conexões só colocariam mais trabalho disputando o mesmo core. Capacidade se
+   ganha com réplicas e CDN, não com pool maior.
+
+**Impacto**: envs novas `WORKERS_ENABLED` e `HEALTH_METRICS_TOKEN` (ambas opcionais, documentadas no
+`.env.example`; sem a segunda as métricas não existem para ninguém). Módulos puros novos e testados:
+`server/lib/request-size.ts`, `server/lib/timing-safe.ts` (reaproveitado pelo webhook — nunca
+duplicar comparação de segredo), `server/lib/event-loop-metrics.ts`, `server/lib/event-loop-monitor.ts`,
+`server/lib/pg-error.ts`, `core/queue/workers-enabled.ts`. `/api/health` está fora do matcher do
+proxy — conferido. **O que este endpoint NÃO detecta**: o caminho público é LIVENESS, incondicional
+por desenho; ele responde 200 mesmo com MIGRATION QUEBRADA, porque o `CMD` do Dockerfile usa `||` de
+propósito para o servidor subir mesmo se `scripts/migrate.mjs` falhar (o incidente
+`42P01 relation "products" does not exist` daria 200 aqui). Readiness de verdade exigiria um sinal
+do passo de migração — fica registrado como pendência, não como bug.
+
+## 2026-08-25 — Achados da revisão do pacote de capacidade: histograma cego, ping que acusa o banco errado e worker que some em silêncio
+
+**Decisão**: quatro correções sobre o pacote acima, todas verificadas no código real antes de mexer.
+
+**(1) O histograma do `/api/health` era ACUMULADO desde o boot — cego para o incidente EM CURSO.**
+Com `resolution` de 20 ms são ~50 amostras/s, ~4,3 milhões em 24 h de uptime (o estado normal de um
+container `restart: unless-stopped`); um incidente de 5 min são ~15 mil amostras (0,35%), longe de
+mover o p90 (precisa >10%) ou o p99 (precisa >1%). E o `max` acumulado é monotônico: um engasgo de
+GC da véspera o deixa alto para sempre, indistinguível de agora. Ou seja, o endpoint criado para
+tornar visível a LENTIDÃO SEM ERRO responderia "saudável" no meio dela. Agora são DOIS histogramas:
+`window` (zerado por timer `unref`-ado a cada 60 s — é o AGORA, e é por ele que se decide se há
+incidente) e `cumulative` (linha de base, e o `maxMs` histórico). O reset é por TEMPO e não por
+request de propósito: zerar na leitura faria um chamador estragar a leitura do outro. `window.seconds`
+acompanha o valor para o operador saber de quanto tempo é a janela lida. **Verificado no dev server**:
+sob 14 requisições SSR concorrentes, `window` foi a p99 70,8 ms / max 160,9 ms; 70 s depois, ocioso,
+`window.maxMs` voltou a 12,6 ms (piso do tick do Windows) enquanto `cumulative.maxMs` seguia 160,9 ms
+e o `cumulative.p90` já havia diluído de volta para o piso — exatamente a cegueira descrita.
+
+**(2) `?db=1` acusava o BANCO quando o problema era o POOL, e deixava resíduo.** O ping usava
+`db.execute` contra um `Promise.race` de 2 s. Como o pool (corretamente) não tem
+`connectionTimeoutMillis`, `connect()` empurra o pedido para `_pendingQueue` e ele fica pendente
+INDEFINIDAMENTE — não rejeita (verificado no código do `pg-pool`). Resultado: com os slots ocupados
+a rota reportava `reachable: false` + 503 com o banco impecável, E deixava uma query órfã na fila a
+cada chamada, somando `waitingCount` — o health check inflando a própria métrica que publica como
+"sinal de pressão real", e furando a fila na frente de requisição de visitante quando o slot
+liberasse. Agora: (a) se o pool está cheio e sem ocioso, nem tenta — responde `pool_saturated`;
+(b) a aquisição tem timeout próprio e o client que chega atrasado é devolvido na hora; (c) a query
+tem timeout próprio e o `release` mora no `finally` dela, nunca com comando em voo. **Saturação e
+timeout respondem 200**; só falha REAL de conexão (recusa/DNS/auth) vira `degraded` + 503 — mesmo
+argumento do caminho público. Verificado: 5 polls seguidos com `?db=1` mantiveram `waiting: 0` e
+`total: 1`, sem crescimento.
+
+**(3) `WORKERS_ENABLED=false` criava um buraco negro silencioso.** A flag desliga só o CONSUMIDOR:
+`POST /api/webhooks/erp` continua enfileirando e respondendo `202 { queued: true }`, o ERP registra
+sucesso em todo envio e ninguém processa — o catálogo para de sincronizar sem um único erro, e a
+evidência é a ausência de linhas em `sync_runs`, que ninguém monitora. (Com `REDIS_URL` ausente isso
+não acontecia: o webhook falhava alto, 503.) Agora o estado é observável: `getWorkerRuntimeState()`
+grava em `globalThis` (quem escreve é o `instrumentation.ts`, quem lê é o Route Handler — bundles
+diferentes do mesmo processo) e `/api/health` publica `workers: { running, reason }` no ramo
+autenticado; o log de boot com a flag desligada virou WARN e diz explicitamente que o webhook segue
+respondendo 202. **Verificado**: com `WORKERS_ENABLED=false` a rota devolve
+`workers: { running: false, reason: "disabled-by-flag" }`. O texto do `.env.example` também foi
+corrigido — ele descrevia *competing consumers* como defeito ("N réplicas = N consumidores
+concorrendo"), quando esse é o modo normal e seguro do BullMQ (reivindicação atômica, e ainda há o
+`jobId` por minuto deduplicando). O motivo real da flag é ISOLAR CPU, e a receita correta é um
+SERVIÇO web com a flag desligada + um SERVIÇO worker dedicado: env é definida por serviço, não por
+réplica, então "algumas réplicas com a flag" não existe.
+
+**(4) Falha de autenticação das métricas era indistinguível e o segredo esperado não era trimado.**
+O guard usava `expected.trim().length === 0` mas comparava o valor CRU — um `HEALTH_METRICS_TOKEN`
+colado em painel de deploy com quebra de linha no fim passava no guard e nunca casaria com header
+nenhum (valor de header HTTP não carrega `\n`), deixando a rota mentindo em silêncio. Agora compara
+contra `expected.trim()`, e há WARN **no servidor** (throttle de 1/min, nunca registra o valor
+recebido) distinguindo "env ausente" de "token inválido". A resposta ao chamador continua idêntica
+nos dois casos — log de servidor não é oráculo para quem tenta.
+
+**Improcedente, e por quê**: a recomendação de fazer o caminho PÚBLICO do health reprovar (readiness
+de verdade, com marcador de migration falha gravado pelo `CMD` do Dockerfile). O diagnóstico está
+certo — o caminho público é uma tautologia e não detecta migration quebrada — mas a correção mexeria
+no `CMD` do Dockerfile (que usa `||` deliberadamente para o servidor subir e permitir diagnóstico) e
+ela própria admite a alternativa de apenas registrar a limitação. Ficou documentado no `route.ts`, no
+`.env.example` e na entrada anterior deste log; a probe da plataforma deve continuar apontando para o
+caminho público, que é liveness por desenho.
+
+**Impacto**: `server/lib/event-loop-metrics.ts` ganha `summarizeHistogram` (puro, testado com duplo,
+inclusive `percentile()` que LANÇA em histograma vazio — health check nunca pode ser causa de 500);
+novo `server/lib/event-loop-monitor.ts` (singleton em `globalThis`, HMR-safe, timer `unref`-ado);
+novo `server/lib/pg-error.ts` (`isStatementTimeout`, 15 testes); `register-workers.ts` exporta
+`getWorkerRuntimeState()`; `db/index.ts` exporta `DB_POOL_MAX_CONNECTIONS` para o health distinguir
+"pool saturado" de "banco fora do ar" sem repetir o número. Testes: 914 → 934.
