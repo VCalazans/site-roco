@@ -16,48 +16,22 @@ runtime de hosts externos), para reduzir superfície de ataque e permitir CSP
 
 Usado por `src/shared/components/contact-form/mautic-embed.tsx`.
 
-## mautic-tracking.js
+## mautic-tracking.js — REMOVIDO em 2026-08-30
 
-Cópia do `mtc.js` — o script de tracking de visitantes do Mautic.
+O tracking de visitantes migrou do Mautic para o **RD Station** (decisão do
+stakeholder; o RD é a plataforma de marketing da ROCO). A cópia self-hosted do
+`mtc.js` foi apagada junto com o componente `MauticTracking` — manter um script
+de 100 KB servido publicamente sem nenhum consumidor é superfície de ataque sem
+contrapartida.
 
-- **Origem:** `https://mautic.roco.com.br/mtc.js`
-- **Baixado em:** 2026-08-04
-- **SHA-256:** `d4378644e5d4b619d642b7f509e580393a927946a150882a95501d6d4dc7f000`
-- **Tamanho:** 100.654 bytes
-- **Verificação:** inspecionado pelos mesmos indicadores de ClickFix / ofuscação
-  (`clipboard.writeText`, `execCommand`, `powershell`, `mshta`, `eval(`,
-  `new Function`, `atob`, `fromCharCode`, `unescape`, `document.write`) —
-  **zero** ocorrências. É o `mtc.js` padrão do Mautic.
-- **Domínios externos referenciados:** apenas `mautic.roco.com.br`; o resto são
-  URLs de crédito/documentação em comentários de bibliotecas embutidas
-  (`mediaelementjs.com`, `j.hn`, `w3.org`).
+O RD **não** é self-hospedado: a tag do painel é um loader que puxa cinco
+arquivos de duas CDNs em runtime, então a cópia congelaria e quebraria em
+silêncio na primeira atualização deles. Por isso os hosts do RD entraram no
+`script-src` da CSP — o trade-off está registrado em `next.config.ts` e no
+`decisionLog.md`.
 
-### Caminhos que injetariam script remoto (inertes neste site)
-
-O `mtc.js` tem dois trechos que chamam `MauticJS.insertScript()` apontando para
-`mautic.roco.com.br` — o que a CSP `script-src 'self'` bloquearia. Nenhum é
-alcançado aqui:
-
-| Trecho | Script remoto | Condição para rodar |
-|---|---|---|
-| `initGatedVideo()` | `2.jquery.js`, `froogaloop2.min.js` | Só se a página tiver `<video>` — a função retorna antes se `document.getElementsByTagName('video')` estiver vazio. |
-| Renderização de *Dynamic Web Content* | `media/js/mautic-form.js` | Só ao renderizar um slot DWC cujo conteúdo contenha `mauticform_wrapper`. |
-
-Se algum dia o site tiver `<video>` ou slots DWC, a CSP bloqueia o carregamento
-e o console acusa — reavalie antes de liberar.
-
-### Como os hits saem
-
-`POST` em `https://mautic.roco.com.br/mtc/event` (CORS) e, se falhar, fallback
-para o pixel `https://mautic.roco.com.br/mtracking.gif?…`. Por isso o domínio do
-Mautic precisa estar em `connect-src` **e** `img-src` na CSP do `next.config.ts`.
-
-Grava cookies de primeira parte (`mtc_id`, `mtc_sid`, `mautic_device_id`) e
-`localStorage` — relevante para LGPD, ver comentário em
-`src/shared/components/analytics/mautic-tracking.tsx`.
-
-Usado por `src/shared/components/analytics/mautic-tracking.tsx`.
-Liga/desliga via `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED`.
+⚠️ O `mautic-form.js` acima **continua em uso** pelo formulário de contato.
+Só o tracking saiu.
 
 ## Ao reextrair / atualizar
 

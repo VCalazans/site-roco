@@ -42,18 +42,37 @@ const nextConfig: NextConfig = {
 };
 
 /**
+ * Hosts do RD Station liberados na CSP.
+ *
+ * `d335luupugsy2.cloudfront.net` serve o loader e a maior parte da cadeia;
+ * `d1sag09wwfbul8.cloudfront.net` serve o `rdtracker.min.js`. Ambos foram
+ * levantados lendo o loader real (ver comentário em `script-src`), não
+ * presumidos a partir da documentação.
+ */
+const RD_STATION_SCRIPT_HOSTS =
+  "https://d335luupugsy2.cloudfront.net https://d1sag09wwfbul8.cloudfront.net";
+
+/**
+ * Destinos dos hits de tracking. Inclui os hosts de script (as CDNs também
+ * recebem beacons) mais `app.rdstation.com.br`, que é para onde a API de
+ * eventos do RD envia.
+ */
+const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br`;
+
+/**
  * Content-Security-Policy.
  *
- * Defesa central pós-incidente ClickFix (2026-07): `script-src 'self'` (sem o
- * domínio do Mautic) impede que qualquer script seja CARREGADO de fora do
- * próprio site. O formulário Mautic passa a rodar de uma cópia self-hosted
- * (`/vendor/mautic-form.js`) e só o POST de envio vai para o Mautic — coberto
- * por `connect-src`/`form-action`. Assim, mesmo que o servidor Mautic seja
- * reinfectado, o navegador bloqueia scripts de terceiros neste site.
+ * Defesa central pós-incidente ClickFix (2026-07): o `script-src` NÃO inclui o
+ * domínio do Mautic. O formulário Mautic — que continua sendo o único caminho
+ * de captação de lead nesta branch — roda de uma cópia self-hosted
+ * (`/vendor/mautic-form.js`) e só o POST de envio vai para o servidor do
+ * Mautic, coberto por `connect-src`/`form-action`/`frame-src`. Mesmo que
+ * aquele servidor seja reinfectado, o navegador não executa script dele aqui.
  *
- * O tracking de visitantes segue a mesma regra: cópia verificada do `mtc.js` em
- * `/vendor/mautic-tracking.js` (ver `src/shared/components/analytics/`), com os
- * hits saindo por `connect-src` (`/mtc/event`) ou `img-src` (`mtracking.gif`).
+ * O TRACKING de visitantes migrou do Mautic para o RD Station em 2026-08-30
+ * (decisão do stakeholder; o RD é a plataforma de marketing da ROCO). O
+ * `mtc.js` self-hospedado saiu junto com o componente `MauticTracking`, e as
+ * diretivas do Mautic que sobraram existem só para o FORMULÁRIO.
  *
  * `'unsafe-inline'` em script-src é necessário para os scripts inline de
  * hidratação do Next.js (sem nonce). Como o HTML do site é estático (sem ponto
@@ -72,14 +91,38 @@ function contentSecurityPolicy(): string {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    // RD Station (2026-08-30): AFROUXAMENTO DELIBERADO de `script-src 'self'`,
+    // decidido pelo stakeholder com o trade-off na mesa.
+    //
+    // O que a tag `<script src=".../<id>-loader.js">` do painel do RD realmente
+    // faz: ela é um LOADER que cria `<script>` em runtime para outros CINCO
+    // arquivos, em DOIS hosts —
+    //   d335luupugsy2.cloudfront.net → o próprio loader, lead-tracking,
+    //     traffic-source-cookie, rd-js-integration e scout/bundle.js
+    //   d1sag09wwfbul8.cloudfront.net → rdtracker.min.js
+    // Liberar só o host do loader deixaria a cadeia quebrada no meio, sem erro
+    // visível fora do console. Por isso os DOIS hosts entram.
+    //
+    // ⚠️ Isto reabre parcialmente o vetor fechado após o ClickFix (2026-07):
+    // um comprometimento da CDN do RD passa a poder executar script NESTA
+    // origem. A alternativa era self-hospedar as cópias (padrão adotado com o
+    // Mautic em `public/vendor/`), rejeitada aqui porque o RD atualiza esses
+    // arquivos sem aviso — a cópia congelaria e quebraria o tracking em
+    // silêncio. Auditoria do loader em 2026-08-30 (SHA-256
+    // db41b8264d5077f687fa41f9172f9249aee569e53c0af51abb216ce388650976):
+    // zero indicadores de ClickFix (`clipboard.writeText`, `execCommand`,
+    // `powershell`, `mshta`, `eval(`, `new Function`, `atob`, `fromCharCode`,
+    // `unescape`, `document.write` — todos com 0 ocorrências).
+    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS}${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    // O domínio do Mautic entra aqui por causa do pixel de tracking
-    // (`mtracking.gif`): o `mtc.js` tenta primeiro um POST em `/mtc/event`
-    // (coberto por `connect-src`) e, se o CORS falhar, recorre a uma <img>.
-    `img-src 'self' data: blob: ${mautic}`,
+    // `d335luupugsy2.cloudfront.net`: o `scout/bundle.js` do RD (banner de
+    // consentimento) serve seus próprios assets de imagem do mesmo host.
+    // O domínio do Mautic permanece por causa do formulário.
+    `img-src 'self' data: blob: ${RD_STATION_SCRIPT_HOSTS} ${mautic}`,
     "font-src 'self'",
-    `connect-src 'self' ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
+    // RD Station: sem isto o script CARREGA mas nenhum hit chega ao RD —
+    // falha silenciosa, visível só no console.
+    `connect-src 'self' ${RD_STATION_CONNECT_HOSTS} ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,
     `form-action 'self' ${mautic}`,
     // O SDK do Mautic posta o formulário num iframe oculto e lê a resposta JSON
     // via postMessage — sem esta diretiva o iframe é bloqueado por `default-src`

@@ -1,1 +1,1 @@
-export { MauticTracking } from "./mautic-tracking";
+export { RdStationTracking } from "./rdstation-tracking";
