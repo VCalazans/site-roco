@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import { cn } from "@/core/lib/utils";
+import { useRdLeadForward } from "./use-rd-lead-forward";
 import { useMauticEnhancements, type EnhancementCopy } from "./use-mautic-enhancements";
 
 /**
@@ -72,6 +73,13 @@ type MauticEmbedProps = {
    * pílula vazada não teria o que revelar.
    */
   submitStyle?: "solid" | "neon";
+  /**
+   * Intenção do lead — define o `conversion_identifier` no RD Station.
+   * Resolvida no SERVIDOR a partir deste rótulo, nunca aceita crua do cliente.
+   */
+  leadSubject?: "catalog" | "general";
+  /** Seção que hospeda o formulário — vira `cf_origem` no RD. */
+  leadOrigin?: "catalogo" | "menu" | "home";
 };
 
 /**
@@ -109,6 +117,8 @@ export function MauticEmbed({
   containerRef,
   variant = "default",
   submitStyle = "solid",
+  leadSubject = "general",
+  leadOrigin,
 }: MauticEmbedProps) {
   const localRef = useRef<HTMLDivElement>(null);
   const formRef = containerRef ?? localRef;
@@ -116,6 +126,15 @@ export function MauticEmbed({
 
   // Máscara + validação de CNPJ (mesma lógica do embed original).
   useMauticEnhancements(formRef, active, enhancement);
+
+  // Encaminha ao RD Station o lead que o Mautic aceitar. Só observa — não
+  // altera o envio do formulário, que continua indo para o Mautic.
+  useRdLeadForward({
+    formAlias: MAUTIC_FORM_ALIAS,
+    containerRef: formRef,
+    subject: leadSubject,
+    origin: leadOrigin,
+  });
 
   // Carrega o SDK self-hosted na primeira vez que o form fica ativo.
   useEffect(() => {

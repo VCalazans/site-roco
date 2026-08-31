@@ -113,6 +113,8 @@ export function ContactModal({ isOpen, onClose, content }: ContactModalProps) {
           <MauticEmbed
             active={isOpen}
             variant="compact"
+            leadSubject="general"
+            leadOrigin="menu"
             content={content.form}
             enhancement={{
               cnpjInvalid: content.cnpjInvalid,

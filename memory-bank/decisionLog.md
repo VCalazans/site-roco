@@ -126,3 +126,59 @@ de locale e absorve a dupla invocação de efeitos do StrictMode. (3) **LGPD em 
 grava cookies de primeira parte (`mtc_id`, `mtc_sid`, `mautic_device_id`) + `localStorage` e
 identifica o visitante, e **não há banner de consentimento** — decisão de opt-in ficou pendente com
 o stakeholder; a flag desliga tudo sem editar código se o jurídico exigir.
+
+## 2026-08-31 — Landing envia leads DIRETO ao RD Station, sem tirar o Mautic do caminho
+
+**Decisão**: a landing em produção passa a encaminhar ao RD Station todo lead que o formulário do
+Mautic aceitar. O formulário NÃO muda: continua postando para o Mautic exatamente como antes. O que
+entra é um observador — quando o Mautic confirma o sucesso, os valores capturados são enviados a
+`POST /api/rd-lead`, que fala com a Conversions API do RD do lado do SERVIDOR.
+
+**Por que uma rota, e não um POST do navegador direto para o RD**: a `RD_STATION_API_KEY` é
+credencial de servidor. Um `fetch` para `api.rd.services` feito do cliente a publicaria no
+código-fonte da página para qualquer visitante. O Route Handler existe para o envio sair "direto ao
+RD" sem expor a chave — é a única razão dele.
+
+**Por que MANTER o Mautic**: esta landing não tem banco (o `package.json` traz `next`, `react` e
+pouco mais — nada de Postgres, Drizzle ou Redis), então não existe aqui o "grava o lead primeiro,
+dispara os canais depois" do site novo. Sem o Mautic, uma indisponibilidade do RD faria o lead se
+perder de vez. Com ele, o RD é um canal ADICIONAL sobre uma captação que já funciona: se o
+encaminhamento falha, o lead continua no Mautic e o visitante nem fica sabendo (a rota responde 202
+mesmo quando o RD recusa — o motivo fica só no log).
+
+**Captura no SUBMIT, não no sucesso**: o SDK do Mautic limpa os campos ao concluir. Ler o formulário
+dentro do callback de sucesso devolveria strings vazias de forma intermitente — seria uma corrida
+contra o reset. Os valores são lidos na fase de CAPTURA do evento `submit`, antes de qualquer coisa
+acontecer, e guardados numa ref até a confirmação chegar. A detecção de sucesso reaproveita a dupla
+de sinais que `useCatalogDownload` já usava (callback `onResponseEnd` do SDK + classe
+`mauticform-post-success` como reserva), sempre ENCADEANDO o handler anterior: a página de catálogo
+tem dois observadores no mesmo formulário e nenhum pode apagar o outro.
+
+**Mapeamento de campos**: `nome`+`sobrenome` → `name`; `email` → `email`; `telefone` →
+`personal_phone`; `cidade` → `city`; `estado` → `state`; `cnpj` → `cf_cnpj`; `mensagem` →
+`cf_mensagem`; a seção → `cf_origem`. `city`/`state` vão nos campos PADRÃO de propósito: a conta tem
+um `cf_seu_estado`, mas duplicar num campo customizado o que a API já modela nativamente criaria
+duas fontes de verdade e ficaria fora dos relatórios nativos do RD. `conversion_identifier` usa os
+MESMOS valores do site novo (`download_catalogo`, `contato_geral`) para o histórico do RD não nascer
+partido em dois vocabulários.
+
+**Rate limit em MEMÓRIA**: janela fixa de 10 por IP a cada 10 min, com teto de chaves para IPs
+rotativos não fazerem a `Map` crescer sem limite. O site novo usa Redis; aqui não há nenhum, e a
+alternativa era deixar SEM limite uma rota pública que cria contato no CRM — spam de lead falso
+direto na base comercial. Reiniciar o processo só zera os contadores, falhando para o lado
+permissivo, que é o certo quando o custo de um falso positivo é perder lead real.
+
+**Alternativas**: (a) captura automática de formulário do RD (o script de monitoramento já está na
+página e o RD integra formulários sozinho) — rejeitada por não ser verificável daqui: o envio do
+Mautic é AJAX com o `submit` sequestrado pelo SDK, e não há como confirmar que o tracker o
+reconhece; a falha seria silenciosa; (b) substituir o Mautic pelo RD — rejeitada, deixaria a
+captação sem rede de segurança numa landing sem banco; (c) portar o `/api/contact` do site novo —
+impossível sem Postgres/Drizzle/Redis, que esta base não tem.
+
+**Impacto**: arquivos novos `src/server/lib/{rd-station,rd-station-send}.ts`,
+`src/app/api/rd-lead/route.ts`, `src/shared/components/contact-form/use-rd-lead-forward.ts`; props
+novas `leadSubject`/`leadOrigin` no `MauticEmbed`; env `RD_STATION_API_KEY` documentada no
+`.env.example`. CSP intocada — a chamada é para a própria origem, já coberta por `connect-src 'self'`.
+⚠️ **Ao mesclar o site novo nesta branch, os módulos `rd-station*` daqui devem ser DESCARTADOS** em
+favor dos de lá (que têm zod, testes e o schema de `contact-submit`), nunca mesclados: são o mesmo
+conceito escrito para dois contextos, e esta versão só existe porque a landing não tem backend.

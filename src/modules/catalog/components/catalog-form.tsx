@@ -93,6 +93,8 @@ export function CatalogForm({
         variant="compact"
         submitStyle="neon"
         containerRef={containerRef}
+        leadSubject="catalog"
+        leadOrigin="catalogo"
         content={content.form}
         enhancement={content.enhancement}
       />
