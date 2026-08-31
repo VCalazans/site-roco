@@ -1,32 +1,33 @@
 # Active Context — ROCO
 
 ## Sessão atual (2026-08-30)
-Chrome de navegação do site público: escala tipográfica da nav, seletor de idioma PT/EN,
-acesso direto ao login do portal e reorganização do rodapé — seguidos de uma revisão
-adversarial cujos 4 achados confirmados foram corrigidos na mesma sessão.
-Portões verdes: lint 0 erros (7 warnings pré-existentes em arquivos não tocados),
-**976 testes** em 28 arquivos (baseline 934), build verde com `ƒ Proxy (Middleware)` registrado.
-NÃO commitado — árvore suja de propósito.
+Carrinho de cotação multi-produto: implementação, testes, revisão de segurança e consolidação.
+**CONCLUÍDA, testada, revisada e APROVADA pelo stakeholder no navegador.** Portões verdes:
+lint 0 erros, **1098 testes** em 30 arquivos (+122, baseline 976), build verde com
+`ƒ /[locale]/carrinho` no manifest. **Zero regressão**. Commitado e pushado.
 
-## ⚠️ Verificação visual NÃO foi possível nesta sessão
-A extensão do navegador estava desconectada: ninguém abriu a página, ninguém tirou print.
-Tudo o que está afirmado sobre layout foi MEDIDO — larguras pelas métricas reais do arquivo
-Inter servido pelo `next/font` (hmtx + HVAR), e o resto por `curl` + parse do HTML servido
-por um dev server na porta 3512. **O julgamento estético continua pendente de olho humano**:
-proporção da barra com 5 itens + 2 controles, respiro das duas bandas do rodapé, e se 14px
-em caixa alta ficou pequeno demais para o gosto do stakeholder são coisas que só se decidem
-olhando.
+## Verificação de ponta a ponta (container local, build de produção)
+Migration `0009` aplicada; imagem rebuildada e container recriado. Envio real de carrinho com
+DOIS slugs válidos + UM inventado gravou **2 itens** (o inventado caiu fora, como projetado),
+com `product_name`/`product_sku` vindos do BANCO — não do payload, provando a doutrina "o
+cliente nunca é a autoridade". Carrinho só com slug inválido → `400 cart_empty`, nada gravado.
+`ON DELETE CASCADE` verificado: apagar a submissão levou os itens filhos junto, sem órfão.
+`rd_station_status`/`email_status` = `failed` é ESPERADO enquanto não houver credencial —
+o lead fica no banco de qualquer forma, que é a garantia do desenho.
+Interface conferida no HTML servido: ícone com `aria-label="Carrinho de Cotação"` na barra,
+21 botões de adicionar na listagem, `/pt/carrinho` e `/en/carrinho` em 200.
+Stakeholder abriu no navegador e aprovou o resultado visual.
 
 ## Estado do repositório
-- Branch: `feat/porta-mais-site` (não commitado; 68 commits à frente da `main` + esta árvore suja)
-- Arquivos novos ainda untracked: `shared/components/nav/{language-switcher,portal-login-link}.tsx`,
-  `shared/lib/locale-path.ts`, `shared/lib/{locale-path,phone}.test.ts`
-- Container local em :3000 serve o código COMMITADO — não reflete este trabalho. Para ver o
-  código novo é preciso `npm run dev` numa porta livre.
+- Branch: `feat/porta-mais-site` — árvore limpa, commitado e pushado
+- Carrinho: `src/modules/cart/`, `src/shared/lib/cart-store.ts`, `POST /api/contact`
+  com `subject: "cart"`, migration `drizzle/0009_youthful_gressill.sql`
+- Container local em :3000 serve o código ATUAL (rebuildado após o carrinho)
 
 ## Pending
-- **Olhar no navegador** (stakeholder): barra, seletor de idioma, botão de login e rodapé
+- **RD Station**: criar campo customizado `cf_produtos_carrinho` (ao lado de `cf_cnpj`,
+  `cf_produto_interesse`, `cf_origem`)
+- **API Keys** (stakeholder): provisionar RD Station API Key + Resend API Key
 - merge `feat/porta-mais-site` → `main` + push
 - seed em produção: `npm run db:seed` com `DATABASE_URL` de produção
-- Provisionar RD Station API Key (+ campo `cf_origem` no painel) e Resend API Key
-- Publicar o site em produção (main está 68 commits atrás)
+- Publicar o site em produção (main está ~70+ commits atrás)

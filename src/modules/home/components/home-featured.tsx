@@ -13,6 +13,7 @@ type HomeFeaturedProps = {
   ctaHref: string;
   cardContent: Dictionary["products"]["card"];
   badgeLabels: Dictionary["products"]["badges"];
+  cartLabels: Dictionary["cart"]["addButton"];
 };
 
 export function HomeFeatured({
@@ -22,6 +23,7 @@ export function HomeFeatured({
   ctaHref,
   cardContent,
   badgeLabels,
+  cartLabels,
 }: HomeFeaturedProps) {
   return (
     <section className="relative px-6 py-20 sm:py-24">
@@ -51,6 +53,7 @@ export function HomeFeatured({
                 href={`/${locale}/produtos/${item.slug}`}
                 content={cardContent}
                 badgeLabels={badgeLabels}
+                cartLabels={cartLabels}
                 priority={index < 2}
               />
             ))}

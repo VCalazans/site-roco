@@ -1256,3 +1256,226 @@ critério com que a revisão de 2026-08-25 recusou o achado do "fail-closed sem 
 com as métricas reais do arquivo Inter servido pelo `next/font` (hmtx + HVAR em wght 500); o resto
 por `curl` + parse dos anchors, cabeçalhos e `<option>` do HTML real. O julgamento estético do
 resultado continua PENDENTE DE OLHO HUMANO.
+
+## 2026-08-30 — Carrinho de cotação multi-produto: modelo de dados, RD Station, resolução server-side, hidratação, WhatsApp, nav e rate limit
+
+**Contexto**: pedido do stakeholder — "carrinho basico de montagem de produtos para envio de dúvidas,
+que será formatado para enviar ao e-mail/whatsapp/RD Station... de inicio pode ficar em cache no
+próprio navegador do usuário, mas que tenha um carrinho no próprio menu tbm". É um carrinho de
+COTAÇÃO/DÚVIDAS, não e-commerce: sem preço, sem checkout. A pessoa junta N produtos navegando e
+dispara UMA submissão com a lista inteira ao time comercial, reaproveitando o caminho de captura de
+lead já construído em `POST /api/contact` (INSERT síncrono ANTES dos canais, RD Station + Resend
+best-effort em paralelo, rate limit fail-closed) em vez de inventar um segundo caminho.
+
+**(1) Modelo de dados: tabela filha `contact_submission_items`, não jsonb nem texto livre.**
+`contact_submissions` guarda hoje UM produto em três colunas soltas (`product_slug`/`product_name`/
+`product_sku`). Para N itens, a decisão é uma tabela filha `contact_submission_items` (id uuid,
+`submission_id` FK `contact_submissions.id` com `onDelete: cascade`, `product_slug`, `product_name`
+— snapshot resolvido no servidor, nunca cru do cliente —, `product_sku`, `quantity` integer NOT NULL
+default 1, `sort_order` integer NOT NULL default 0 para preservar a ordem de montagem do carrinho,
+`created_at`). O `contact_subject` enum ganha o valor `"cart"` **no FIM da lista**
+(`["call_back","quote","general","catalog","cart"]`) — mesma regra já documentada no comentário de
+topo de `src/db/schema/contact.ts` (valor no meio força recriação completa do tipo pelo drizzle-kit).
+Migration nova `drizzle/0009_*.sql` (gerada por `npm run db:generate`), aplicada sobre a 0008 mais
+recente.
+**Alternativas**: (a) coluna `jsonb` com o snapshot da lista inteira — rejeitada: o projeto usa jsonb
+em UM único lugar (`site_settings`), e ali é DELIBERADAMENTE genérico (config chave-valor 1-por-site);
+para dado transacional e relacional como itens de um pedido de cotação, toda a base do projeto é
+tabela relacional normalizada (representatives, materials, hero_slides, contact_submissions em si) —
+uma tabela filha é o padrão da casa, não uma exceção; também abre a porta, de graça, a um relatório
+futuro (`GROUP BY product_slug` = produtos mais cotados), que jsonb exigiria migrar depois. (b)
+serializar a lista dentro de `message` (texto livre) — rejeitada de propósito: perde toda estrutura,
+inviabiliza validação de quantidade por item, e o próprio `message` já tem um contrato diferente (é
+o corpo livre opcional do formulário, não um payload estruturado).
+**Justificativa**: consistência com o restante do schema (tabelas relacionadas, nunca blobs para dado
+que tem forma própria); baixo custo (uma tabela pequena, sem índices além da FK); mantém intacto tudo
+que já existe para os 4 assuntos atuais (nenhuma coluna de `contact_submissions` muda de sentido).
+**Impacto**: `src/db/schema/contact.ts` ganha a tabela + o valor de enum; barrel `src/db/schema/
+index.ts` já reexporta `./contact` (sem mudança ali). Nova migration só ADITIVA (nenhuma coluna
+existente é alterada/removida).
+
+**(2) RD Station: campo customizado NOVO `cf_produtos_carrinho` (STRING) + `conversion_identifier`
+próprio — nenhum limite oficial documentado, ancorado no único número que a API do RD publica perto
+do assunto.** Pesquisa dedicada (WebFetch em `developers.rdstation.com/reference/conversao` e
+`/reference/post_platform-contacts-fields`) confirmou: a Conversions API não documenta NENHUM limite
+de tamanho para o VALOR de um campo `cf_*`; o único `data_type` com suporte a múltiplos valores é
+`STRING[]`, mas sem nenhum exemplo de uso via `POST platform/conversions` — arriscado adotar sem
+sandbox para validar. Decisão: criar `cf_produtos_carrinho` como `STRING` simples (não `STRING[]`),
+populado com a lista concatenada (`"SKU 123 - Produto A (x2); SKU 456 - Produto B (x1)"`), truncada
+em **1000 caracteres** com sufixo `"; (+ lista completa por e-mail)"` quando ultrapassa — o teto vem
+do único número real que a doc do RD publica nas vizinhanças (`label` do campo tem máx. 1000 chars;
+NÃO é prova de que o VALOR aceita exatamente isso, é o ponto de ancoragem disponível). Assunto `cart`
+ganha `conversion_identifier: "carrinho_cotacao"` (string livre, sem exigir cadastro prévio — mesmo
+padrão dos 4 identificadores existentes em `CONVERSION_IDENTIFIERS`).
+**Alternativas**: (a) reaproveitar `cf_produto_interesse` (já existente, single-product) também para
+o carrinho — rejeitada: o campo teria semântica inconsistente no painel do RD (às vezes "nome do
+produto", às vezes "lista de N produtos separada por ponto-e-vírgula"), dificultando relatório/filtro
+de quem consome o CRM depois; (b) `STRING[]` desde já — adiada por falta de exemplo documentado,
+reavaliar se o suporte/sandbox do RD confirmar o contrato; (c) não truncar — rejeitada, ausência de
+teto documentado é exatamente o motivo de definir um teto de engenharia, não de dispensá-lo.
+**Impacto**: `cf_produtos_carrinho` é UM CAMPO NOVO que o stakeholder precisa criar À MÃO no painel do
+RD (Configurações > Campos personalizados), ao lado de `cf_cnpj`/`cf_produto_interesse`/`cf_origem`
+já pendentes (nenhum dos quatro tem credencial provisionada ainda — RD Station API Key segue
+pendente). Baixo risco: o retry gracioso já existente em `rd-station-send.ts` (2026-08-25) já trata
+QUALQUER `cf_*` ausente removendo todos e reenviando — o carrinho herda essa proteção sem mudança de
+código ali. Números 1000/1900(ver item 5) são de ENGENHARIA, não contrato oficial — registrar para
+revisitar se o suporte de qualquer uma das duas plataformas confirmar um teto real.
+
+**(3) O servidor nunca confia na lista do carrinho — resolução em lote, nunca N idas ao banco por
+item avulso.** Nova função `getPublicProductsBySlugs(slugs: string[])` em `src/server/lib/
+public-products.ts`, reaproveitando `assembleProducts` (o mesmo helper já usado por listagem/detalhe)
+com `inArray(products.slug, slugs)` + os mesmos filtros `published && active` — UMA query com `IN`,
+não um loop de `getPublicProductBySlug`. `contactSchema` ganha `items: z.array(z.object({ slug:
+z.string(), quantity: z.number().int().min(1).max(9999) })).min(1).max(20)`, exigido só quando
+`subject === "cart"` (`superRefine`); os demais assuntos continuam com o `productSlug` singular de
+sempre, sem nenhuma mudança de contrato. Na rota, slug que não resolve (produto removido, despublicado,
+ou forjado) é DESCARTADO em silêncio da lista final — mesmo critério já aplicado ao `productSlug`
+singular hoje —, mas se a resolução zerar a lista inteira (todo mundo caiu), a rota responde 400
+`{ error: "cart_empty" }` ANTES de gravar qualquer linha: diferente do caso singular (onde um produto
+que sumiu só empobrece o contexto de um lead que ainda faz sentido), um carrinho sem nenhum item
+resolvido não é um lead, é um formulário vazio. Teto de 20 itens / 9999 unidades por item: bound de
+custo da query em lote (mesma ordem de grandeza de UMA página de `/produtos`, que já roda sem limite
+dedicado) e do tamanho das mensagens (RD/WhatsApp, ver itens 2 e 5).
+**Alternativas**: (a) resolver item a item com `getPublicProductBySlug` em loop — rejeitada, N
+round-trips ao Postgres por request quando uma única query com `IN` resolve tudo; (b) aceitar
+silenciosamente um carrinho vazio e mandar lead sem produto nenhum — rejeitada, um "orçamento" sem
+nenhum produto não ajuda o time comercial e confunde relatório; (c) sem teto de itens/quantidade —
+rejeitada, é o mecanismo real de bound de custo (ver item 7, que dispensa um rate-limit dedicado
+exatamente por causa deste teto).
+**Justificativa**: doutrina já escrita em `contato/page.tsx` — "o cliente nunca é a autoridade";
+estende o mesmo princípio de N=1 para N=20 sem introduzir uma classe nova de risco.
+**Impacto**: `src/server/lib/public-products.ts` ganha a função em lote; `src/server/lib/
+contact-submit.ts` ganha o campo `items` + validação condicional; `POST /api/contact` ganha o ramo de
+resolução em lote + INSERT do pai e dos filhos dentro de UMA transação (`db.transaction`), com o MESMO
+retry de `statement_timeout` (57014) já existente para o INSERT singular — o comentário de por que o
+retry existe (migration com `ACCESS EXCLUSIVE` lock no boot) vale idêntico para a transação do
+carrinho.
+
+**(4) Hidratação do badge: estende o padrão de `ConsentBanner`, mas com `subscribe` de verdade — não
+um no-op.** O `ConsentBanner` (2026-08-23) usa `useSyncExternalStore` com `subscribe` NO-OP porque o
+consentimento é escrito uma vez (aceitar/recusar) e cada instância só lê o próprio estado. O carrinho
+muda o tempo todo (adicionar de um card, remover na página do carrinho, zerar) e precisa notificar
+MÚLTIPLOS assinantes simultâneos (badge no header, painel/página do carrinho, botões "adicionar" em
+cada card) — um `subscribe` no-op deixaria o badge do header desatualizado depois de uma ação feita em
+outra parte da árvore. Decisão: `src/shared/lib/cart-store.ts` implementa um singleton de módulo com
+(a) estado em memória (fonte de verdade da aba), (b) um `Set` de listeners notificados por `emit()`
+toda vez que `add`/`remove`/`setQuantity`/`clear` grava no `localStorage` (chave versionada
+`roco_cart_v1` — versionar de propósito: uma mudança de shape futura não precisa migrar dado antigo,
+só trocar de chave, mesmo espírito das chaves versionadas já usadas no portal, ex.
+`SIDEBAR_COLLAPSE_STORAGE_KEY`), (c) listener do evento `storage` do `window` para sincronizar entre
+ABAS abertas do mesmo navegador (bônus de robustez: duas abas do catálogo não divergem em silêncio).
+`getSnapshot()` devolve sempre a MESMA referência de objeto até a próxima mutação (regra do "snapshot
+estável" do React — sem isso, `useSyncExternalStore` re-renderiza infinito). `getServerSnapshot()`
+devolve uma constante `EMPTY_CART` congelada — o badge nasce mostrando "vazio" no HTML do servidor e
+reconcilia no primeiro paint do cliente, o MESMO idioma visual que o `ConsentBanner` já usa para nunca
+piscar entre servidor e cliente. `localStorage` corrompido/forjado vira carrinho vazio, nunca lança —
+mesmo critério defensivo de `readUtmCookie`.
+**Alternativas**: (a) copiar o `subscribe` no-op do `ConsentBanner` tal qual — rejeitada, já
+demonstrado que não serve para múltiplos escritores; (b) Context API + Provider React — rejeitada,
+exigiria um provider novo envolvendo TODO o route group `(site)` só para um dado que já mora fora do
+React (localStorage), e o padrão da casa para estado externo já é `useSyncExternalStore`; (c) Zustand/
+Redux — rejeitada, dependência nova para um carrinho "básico" com 4 operações.
+**Impacto**: `src/shared/lib/cart-store.ts` (store + hooks `useCartItems`/`useCartCount`) — cross-cutting
+de propósito (nav no `shared/`, cards de produto no `shared/`, página do carrinho no `modules/cart/`
+todos precisam ler o mesmo estado), mesmo critério que já colocou `lead-origin.ts` em `shared/lib`.
+
+**(5) WhatsApp: link `wa.me` continua CLIENT-ONLY (o visitante envia, não a ROCO) e carrega um RESUMO,
+nunca a lista inteira.** Pesquisa dedicada (WebFetch em fontes técnicas — não há doc oficial da Meta/
+WhatsApp sobre limite de caracteres do parâmetro `?text=` de `wa.me`) encontrou dois números
+convergentes de fontes independentes e verificáveis: 2083 caracteres (limite legado Windows/IE,
+`support.microsoft.com/en-us/help/208427`) e 2046 caracteres (Chrome falha SILENCIOSAMENTE ao abrir
+uma Application Protocol URL maior que isso — exatamente o mecanismo acionado quando `wa.me` é aberto
+com o WhatsApp Desktop instalado; fonte: arquivo IEInternals da Microsoft, `learn.microsoft.com/en-us/
+archive/blogs/ieinternals/url-length-limits`). Nenhum dos dois é um contrato oficial do WhatsApp — são
+os números mais sólidos disponíveis na ausência de um. Decisão: usar **1900 caracteres da URL FINAL
+já codificada** (`https://wa.me/<numero>?text=<mensagem>`) como teto rígido de engenharia — abaixo dos
+dois números encontrados, com margem. Como acentuação/espaço/quebra de linha inflam a string 2-3x ao
+codificar, isso deixa ~600-700 caracteres de texto cru — insuficiente para 10-20 itens detalhados.
+Por isso a mensagem do WhatsApp NUNCA lista tudo: mostra contagem total + até os primeiros itens que
+couberem no teto + uma frase fixa ("lista completa enviada por e-mail/formulário"), function pura
+`buildWhatsappCartMessage` (testável, sem I/O) que remove itens do fim até a URL codificada caber no
+teto — mesmo padrão de "resumo + apontar para o canal completo" já usado em e-commerce para
+compartilhar carrinho por link. O clique no botão de WhatsApp continua sendo o PRÓPRIO visitante
+mandando a mensagem pelo seu WhatsApp (deep link `wa.me`, mesmo mecanismo do `WhatsAppFloat` já
+existente) — não uma integração de servidor com a Business API (custo/infra fora de escopo para um
+carrinho "básico").
+**Alternativas**: (a) confiar no limite de ~65.536 caracteres de mensagem pessoal do WhatsApp
+(número de consenso de comunidade, não documentado oficialmente) — rejeitada, esse teto só vale
+DEPOIS que a mensagem chega ao composer; a URL falha antes disso; (b) não truncar e deixar o link
+falhar silenciosamente em carrinhos grandes — rejeitada, é exatamente o sintoma que a pesquisa
+antecipou; (c) integrar WhatsApp Business API para a ROCO enviar a mensagem automaticamente —
+rejeitada, fora de escopo ("carrinho BÁSICO", sem infra de Business API hoje).
+**Justificativa**: sem contrato oficial, o critério de engenharia precisa ser conservador e
+documentado como tal, para ser revisitado se algum dia surgir confirmação oficial.
+**Impacto**: `src/modules/cart/lib/cart-whatsapp.ts` (função pura `buildWhatsappCartMessage`, testada
+com o teto `WA_ME_MAX_URL_LENGTH = 1900`); o botão de WhatsApp do carrinho é adicional ao envio por
+`/api/contact` (que já dispara e-mail + RD Station com a lista completa) — as três "vias" do pedido do
+stakeholder (e-mail, WhatsApp, RD Station) ficam cobertas, cada uma pelo canal apropriado: e-mail e RD
+recebem tudo (servidor, síncrono, best-effort); WhatsApp recebe um resumo (client-side, o visitante
+decide se manda).
+
+**(6) Carrinho no menu: ícone com badge sempre visível na barra (todos os breakpoints) + página
+dedicada `/{locale}/carrinho` (não drawer/modal).** O orçamento de largura da barra documentado em
+`site-header.tsx` (728px pt / 709px en usados contra 868px disponíveis a 1024px — folga de 140-159px)
+comporta um controle a mais: um botão redondo `size-10` (mesmo padrão de `PortalLoginLink`) com um
+badge numérico consome ~40-48px, bem dentro da folga registrada — mas a MEDIÇÃO PRECISA SER REFEITA
+depois do ícone entrar (não presumida): esta é uma tarefa explícita do `frontend`. O ícone fica no
+MESMO grupo de controles sempre visíveis (ao lado de `PortalLoginLink`), em TODOS os breakpoints —
+diferente do `LanguageSwitcher`, que só aparece na barra desktop e migra para dentro do painel
+hambúrguer no mobile —, porque o carrinho é um indicador de tarefa em andamento que a pessoa quer
+conferir a qualquer momento, e enterrá-lo dentro do hambúrguer contrariaria o pedido explícito do
+stakeholder ("carrinho no PRÓPRIO menu"). O ícone é um LINK simples para `/{locale}/carrinho` (sem
+dropdown/drawer próprio) — mantém o `SiteHeader`/`MobileMenu` sem estado novo de overlay. A página
+`/{locale}/carrinho` é uma rota de verdade (com `generateStaticParams` retornando só os locales, como
+`/contato` — o CARRINHO em si vive inteiramente no `localStorage` do cliente; só a submissão final
+passa pelo servidor), reaproveitando a mesma linguagem visual dos outros formulários (`form-neon`,
+glows dual-tone) e o mesmo tratamento de UTM/origem que `/contato`/`/catalogo` já têm
+(`resolveLeadUtm`, `normalizeLeadOrigin`). `core/config/site.ts` ganha `CART_SEGMENT = "carrinho"` +
+`cartPath(locale)`, entrando também no `capturesLeads` de `resolveDestination` e no `sitemap.ts`, pelo
+mesmo padrão de `/contato`/`/catalogo`. `LEAD_ORIGINS` (`shared/lib/lead-origin.ts`) ganha o valor
+`"carrinho"` — a origem de um lead de carrinho é o PRÓPRIO fluxo do carrinho (diferente de `/contato`/
+`/catalogo`, onde a origem descreve de ONDE a pessoa veio ATÉ a página; aqui o carrinho já é o
+funil inteiro, então a submissão é gravada com `origin: "carrinho"` diretamente, sem depender de
+querystring). Botões "adicionar ao carrinho" nos cards de produto (`ProductCard`, compartilhado entre
+home/listagem/relacionados) e no detalhe são Client Components pequenos (`AddToCartButton`) compostos
+DENTRO de `ProductCard`/`ProductDetailView`, que continuam Server Components — o mesmo limite já
+praticado no projeto (regra nº 8 do CLAUDE.md: interatividade isolada em `"use client"`, dados/i18n no
+server).
+**Alternativas**: (a) drawer/painel lateral que abre por cima da página — rejeitada, é o padrão de
+overlay que o projeto deliberadamente ABANDONOU em 2026-08-24 (o "Entre em contato" era modal e virou
+página própria; a razão registrada foi permitir link compartilhável, SEO e melhor UX mobile — as
+mesmas razões valem aqui: alguém pode querer voltar ao carrinho por link direto, ou o time comercial
+pode pedir para reabrir); (b) esconder o ícone dentro do hambúrguer no mobile — rejeitada, contraria o
+pedido explícito de visibilidade constante; (c) quantidade ajustável já no card da listagem (stepper)
+— rejeitada por ora ("carrinho BÁSICO", palavra do próprio stakeholder): adicionar sempre soma
+quantidade 1, ajuste fino (incrementar/remover) fica só na página do carrinho, reduzindo a superfície
+de interação nos componentes mais reutilizados do site.
+**Justificativa**: pedido explícito do stakeholder + consistência com a decisão já tomada (2026-08-24)
+de preferir páginas reais a overlays para fluxos de captura de lead.
+**Impacto**: novo módulo `src/modules/cart/` (página, formulário de envio reaproveitando o padrão de
+`ContactForm`, builders de mensagem); `src/shared/components/cart/` para as peças reusadas pela nav e
+pelos cards (`CartNavLink` com badge, `AddToCartButton`); `SiteHeader`/`MobileMenu` ganham o novo
+controle; `ProductCard`/`ProductDetailView`/`QuoteCtaButton` ganham o botão de adicionar ao lado do
+"Solicitar orçamento" (os dois caminhos continuam coexistindo: pedir orçamento de UM produto
+imediatamente, ou juntar vários no carrinho antes de mandar).
+
+**(7) Rate limit: reaproveita os limites já existentes de `/api/contact` — nenhum limitador dedicado
+novo.** A submissão do carrinho passa pelo MESMO `POST /api/contact` (mesmo `CONTACT_IP_RATE_LIMIT`
+8/10min por IP e `CONTACT_GLOBAL_RATE_LIMIT` 200/5min global, ambos já `productionSafe: true`,
+fail-closed). O custo extra de resolver até 20 produtos em lote (item 3) é UMA query com `IN` — mesma
+ordem de grandeza de uma única página de `/produtos` (que hoje não tem NENHUM rate limit dedicado e
+recebe tráfego bem maior). Avaliado e REJEITADO um limitador específico para o carrinho: o teto de 20
+itens/9999 unidades (item 3) já é o mecanismo real que limita o pior caso de custo por request — um
+rate-limit adicional resolveria um problema que o teto de itens já resolve, só que com mais uma
+chave/janela Redis para operar e depurar, sem modelo de ameaça novo que o justifique (mesmo espírito
+das duas recomendações REFUTADAS e registradas em 2026-08-25 para o pool do Postgres — não é
+esquecimento, é decisão).
+**Alternativas**: (a) limite dedicado mais apertado só para `subject: "cart"` — rejeitada pela
+ausência de um custo real diferenciado (ver acima); (b) cobrar o rate limit por item do carrinho (ex.:
+`max: 8` vira `max: 8 / itens`) — rejeitada, sobre-penalizaria quem manda MENOS carrinhos mas com MAIS
+itens, sem relação com o risco real (abuso é por REQUISIÇÃO, não por item).
+**Justificativa**: o teto estrutural (item 3) já bound o custo; um limitador a mais seria superfície
+operacional sem ganho de proteção mensurável.
+**Impacto**: nenhuma mudança em `src/server/lib/rate-limit.ts` nem nos limites de `route.ts` — só a
+validação de `items` (item 3) e o teto de tamanho de mensagem (itens 2 e 5) fazem o trabalho de bound
+de custo/abuso para este novo caminho.

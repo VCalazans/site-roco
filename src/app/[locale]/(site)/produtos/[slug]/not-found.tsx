@@ -54,7 +54,7 @@ async function resolveLocale(): Promise<Locale> {
 export default async function ProductNotFound() {
   const locale = await resolveLocale();
   const dictionary = await getDictionary(locale);
-  const { navigation, products } = dictionary;
+  const { navigation, products, cart } = dictionary;
 
   const navLinks = siteNavLinks(navigation.links, locale);
 
@@ -65,7 +65,7 @@ export default async function ProductNotFound() {
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
         locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
       />
       <main className="relative z-10 mx-auto flex min-h-[70svh] max-w-2xl flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
         <h1 className="font-display text-h1 text-white">{products.detail.notFoundTitle}</h1>

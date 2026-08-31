@@ -4,6 +4,8 @@ import {
   classifyRdStationValidationError,
   hasCustomFields,
   stripCustomFields,
+  buildCartProductsSummary,
+  CART_SUMMARY_MAX_LENGTH,
   type RdStationConversionMeta,
 } from "./rd-station";
 import type { ContactInput } from "./contact-submit";
@@ -531,6 +533,217 @@ describe("rastreio de aquisição no payload do RD Station", () => {
     it("never throws on a hostile body", () => {
       expect(() => classifyRdStationValidationError({ errors: [null, 1, "x"] })).not.toThrow();
       expect(classifyRdStationValidationError({ errors: [null, 1, "x"] })).toBe("unknown");
+    });
+  });
+});
+
+describe("buildCartProductsSummary", () => {
+  describe("formatting", () => {
+    it("formats a single item correctly", () => {
+      const items = [{ name: "Válvula Esfera", sku: "VE-001", quantity: 2 }];
+      const result = buildCartProductsSummary(items);
+      expect(result).toBe("SKU VE-001 - Válvula Esfera (x2)");
+    });
+
+    it("joins multiple items with '; ' separator", () => {
+      const items = [
+        { name: "Válvula Esfera", sku: "VE-001", quantity: 2 },
+        { name: "Conector Roscado", sku: "CR-002", quantity: 1 },
+      ];
+      const result = buildCartProductsSummary(items);
+      expect(result).toContain("; ");
+      expect(result).toBe("SKU VE-001 - Válvula Esfera (x2); SKU CR-002 - Conector Roscado (x1)");
+    });
+
+    it("handles quantities correctly", () => {
+      const items = [{ name: "Product", sku: "SKU", quantity: 9999 }];
+      const result = buildCartProductsSummary(items);
+      expect(result).toBe("SKU SKU - Product (x9999)");
+    });
+
+    it("returns empty string for empty items array", () => {
+      const result = buildCartProductsSummary([]);
+      expect(result).toBe("");
+    });
+  });
+
+  describe("truncation", () => {
+    it("does not truncate when list fits within max length", () => {
+      const items = [
+        { name: "Item 1", sku: "A", quantity: 1 },
+        { name: "Item 2", sku: "B", quantity: 1 },
+      ];
+      const result = buildCartProductsSummary(items, 500);
+      expect(result).not.toContain("(+ lista completa por e-mail)");
+      expect(result).toBe("SKU A - Item 1 (x1); SKU B - Item 2 (x1)");
+    });
+
+    it("truncates at item boundary when list exceeds max length", () => {
+      // Build a list where the second item pushes over the limit
+      const items = [
+        { name: "First Item With Long Name", sku: "LONG-SKU-001", quantity: 1 },
+        { name: "Second Item With Long Name", sku: "LONG-SKU-002", quantity: 1 },
+        { name: "Third Item With Long Name", sku: "LONG-SKU-003", quantity: 1 },
+      ];
+      const result = buildCartProductsSummary(items, 100);
+      // Should include at least first item, then suffix
+      expect(result).toContain("First Item");
+      expect(result).toContain("(+ lista completa por e-mail)");
+      // Should not include a partial item name
+      expect(result).not.toContain("Second Item With Long Name");
+    });
+
+    it("never truncates an item name in the middle", () => {
+      const items = [
+        { name: "Válvula Esfera Premium Importada", sku: "VEPI-001", quantity: 1 },
+        { name: "Conector Roscado Galvanizado", sku: "CRG-002", quantity: 1 },
+      ];
+      // Use a limit large enough for first item but not both
+      const result = buildCartProductsSummary(items, 150);
+      // First item should be complete (not truncated in the middle)
+      if (result.includes("lista completa")) {
+        // Truncation happened - verify first item is intact
+        expect(result).toContain("Válvula Esfera Premium Importada (x1)");
+        // Second item should not appear
+        expect(result).not.toContain("Conector Roscado Galvanizado");
+      } else {
+        // No truncation, both fit
+        expect(result).toContain("Válvula Esfera Premium Importada");
+        expect(result).toContain("Conector Roscado Galvanizado");
+      }
+    });
+
+    it("adds the truncation suffix when list is truncated", () => {
+      const items = Array.from({ length: 10 }, (_, i) => ({
+        name: `Item ${i}`,
+        sku: `SKU-${i}`,
+        quantity: 1,
+      }));
+      const result = buildCartProductsSummary(items, 100);
+      expect(result).toContain("(+ lista completa por e-mail)");
+    });
+
+    it("uses the correct truncation suffix", () => {
+      const items = [
+        { name: "A".repeat(500), sku: "SKU", quantity: 1 },
+        { name: "B".repeat(500), sku: "SKU", quantity: 1 },
+      ];
+      const result = buildCartProductsSummary(items, 100);
+      expect(result).toMatch(/\(.*lista completa por e-mail\)$/);
+    });
+
+    it("respects custom max length parameter", () => {
+      const items = Array.from({ length: 5 }, (_, i) => ({
+        name: `Product ${i}`,
+        sku: `P-${i}`,
+        quantity: i + 1,
+      }));
+      const smallMax = 50;
+      const largeMax = 500;
+      const smallResult = buildCartProductsSummary(items, smallMax);
+      const largeResult = buildCartProductsSummary(items, largeMax);
+      // Smaller max should truncate more
+      expect(smallResult.length).toBeLessThanOrEqual(smallMax + 30); // suffix is ~30 chars
+      expect(largeResult.length).toBeLessThanOrEqual(largeMax + 30);
+      // Smaller should have fewer items
+      const smallCount = (smallResult.match(/ - /g) || []).length;
+      const largeCount = (largeResult.match(/ - /g) || []).length;
+      expect(smallCount).toBeLessThanOrEqual(largeCount);
+    });
+
+    it("defaults to CART_SUMMARY_MAX_LENGTH when max not specified", () => {
+      const items = Array.from({ length: 20 }, (_, i) => ({
+        name: `Item ${i}`.repeat(3), // Longish names
+        sku: `SKU-${i}`,
+        quantity: 1,
+      }));
+      const result = buildCartProductsSummary(items);
+      // Should fit within the default constant
+      expect(result.length).toBeLessThanOrEqual(CART_SUMMARY_MAX_LENGTH + 50); // Margin for suffix
+    });
+
+    it("handles a max length that is very small (edge case)", () => {
+      const items = [
+        { name: "Very Long Product Name", sku: "VLPN", quantity: 1 },
+      ];
+      // Max smaller than a single item
+      const result = buildCartProductsSummary(items, 10);
+      expect(result).toContain("(+ lista completa por e-mail)");
+      // Should only have the suffix (first item didn't fit)
+    });
+
+    it("handles max length exactly matching first item (boundary)", () => {
+      const item = "SKU SKU - Product (x1)"; // 21 chars
+      const items = [{ name: "Product", sku: "SKU", quantity: 1 }];
+      const result = buildCartProductsSummary(items, item.length);
+      expect(result).toBe(item);
+      expect(result).not.toContain("(+ lista completa por e-mail)");
+    });
+
+    it("preserves order of items (first items appear before truncation)", () => {
+      const items = [
+        { name: "First", sku: "F", quantity: 1 },
+        { name: "Second", sku: "S", quantity: 1 },
+        { name: "Third", sku: "T", quantity: 1 },
+      ];
+      const result = buildCartProductsSummary(items, 50);
+      // If truncated, first item should definitely be there
+      if (result.includes("(+ lista completa por e-mail)")) {
+        expect(result).toContain("First");
+        // Last item might not be there if truncated
+      }
+    });
+  });
+
+  describe("special characters and escaping", () => {
+    it("preserves special characters in product names", () => {
+      const items = [{ name: "Válvula (Premium)", sku: "V-P/2026", quantity: 3 }];
+      const result = buildCartProductsSummary(items);
+      expect(result).toContain("Válvula (Premium)");
+      expect(result).toContain("V-P/2026");
+    });
+
+    it("does not escape or encode content", () => {
+      const items = [{ name: "Produto & Serviço", sku: "P&S-001", quantity: 1 }];
+      const result = buildCartProductsSummary(items);
+      expect(result).toContain("&");
+      expect(result).not.toContain("&amp;");
+    });
+  });
+
+  describe("cart with metadata in payload", () => {
+    it("cart payload includes the summary in cf_produtos_carrinho", () => {
+      const cartItems = [
+        { name: "Item 1", sku: "I1", quantity: 2 },
+        { name: "Item 2", sku: "I2", quantity: 1 },
+      ];
+      const input = createContactInput({ subject: "cart" });
+      const meta = createMeta({ cartItems });
+      const payload = buildRdStationConversionPayload(input, meta);
+      expect(payload.payload.cf_produtos_carrinho).toBeDefined();
+      expect(payload.payload.cf_produtos_carrinho).toContain("SKU I1 - Item 1 (x2)");
+      expect(payload.payload.cf_produtos_carrinho).toContain("SKU I2 - Item 2 (x1)");
+    });
+
+    it("cart payload omits cf_produtos_carrinho when cartItems is empty", () => {
+      const input = createContactInput({ subject: "cart" });
+      const meta = createMeta({ cartItems: [] });
+      const payload = buildRdStationConversionPayload(input, meta);
+      expect(payload.payload).not.toHaveProperty("cf_produtos_carrinho");
+    });
+
+    it("cart payload omits cf_produtos_carrinho when cartItems is undefined", () => {
+      const input = createContactInput({ subject: "cart" });
+      const meta = createMeta({ cartItems: undefined });
+      const payload = buildRdStationConversionPayload(input, meta);
+      expect(payload.payload).not.toHaveProperty("cf_produtos_carrinho");
+    });
+
+    it("cart conversion_identifier is 'carrinho_cotacao'", () => {
+      const input = createContactInput({ subject: "cart" });
+      const meta = createMeta({ cartItems: [{ name: "Item", sku: "SKU", quantity: 1 }] });
+      const payload = buildRdStationConversionPayload(input, meta);
+      expect(payload.payload.conversion_identifier).toBe("carrinho_cotacao");
     });
   });
 });

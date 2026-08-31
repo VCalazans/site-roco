@@ -30,6 +30,7 @@ describe("lead-origin", () => {
         "catalogo",
         "menu",
         "rodape",
+        "carrinho",
       ]);
     });
 

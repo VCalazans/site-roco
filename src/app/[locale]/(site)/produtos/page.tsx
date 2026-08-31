@@ -55,7 +55,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
   const dictionary = await getDictionary(locale);
-  const { navigation, products } = dictionary;
+  const { navigation, products, cart } = dictionary;
 
   const navLinks = siteNavLinks(navigation.links, locale);
 
@@ -73,7 +73,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
         locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
       />
 
       {/* Faixa decorativa com a cena extraída de
@@ -110,6 +110,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
         content={products.listing}
         cardContent={products.card}
         badgeLabels={products.badges}
+        cartLabels={cart.addButton}
       />
     </div>
   );

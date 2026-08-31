@@ -259,9 +259,32 @@
       `/pt/contato?assunto=call_back&origem=rodape` renderiza `<option value="call_back" selected>`.
       Rótulo EN uniformizado ("We call you" na nav vs "We'll call you" no rodapé)
 
+### Carrinho de Cotação Multi-Produto (2026-08-30)
+- [x] Store client-side singleton (`useSyncExternalStore`, `localStorage` chave `roco_cart_v1`)
+      em `src/shared/lib/cart-store.ts` com suporte a múltiplos assinantes simultâneos
+- [x] Ícone com badge na nav (`cart-nav-link.tsx`), tratamento visual equivalente ao login portal
+- [x] Botão "Adicionar ao Carrinho" (`add-to-cart-button.tsx`), Client Component isolado usado em
+      `ProductCard` (reestruturado: botão como irmão do `<Link>`, não aninhado) e detalhe de produto
+- [x] Página dedicada `/{locale}/carrinho`: listagem com stepper de quantidade, remover, esvaziar,
+      botão WhatsApp (mensagem resumida, client-only) e formulário de envio (nome/e-mail/telefone/empresa
+      + consentimento LGPD + honeypot) no padrão visual de `/contato`/`/catalogo`
+- [x] Backend: reaproveita 100% rota `POST /api/contact` — novo `subject: "cart"` + validação
+      `.superRefine` do array `items: {slug, quantity}[]` (obrigatório só para "cart")
+- [x] Tabela `contact_submission_items` (migration `drizzle/0009`) para persistir itens da cotação
+- [x] Resolução em lote via `getPublicProductsBySlugs` (servidor, nunca confia no client),
+      INSERT pai+filhos numa transação, nomes/SKUs resolvidos do banco
+- [x] RD Station: novo `conversion_identifier: "carrinho_cotacao"`, campo customizado `cf_produtos_carrinho`
+      (pendente criação manual no painel), e-mail lista itens por linha
+- [x] `origin` gravado sempre como `"carrinho"` (valor novo em `LEAD_ORIGINS`, lista fechada)
+- [x] Sem rate limit dedicado novo — reaproveita limites de `/api/contact` (query cost é mesmo
+      independente de 1 ou 20 itens)
+- [x] 122 testes novos (cart-store 28, product-card 18, cart-page 44, contact-submit/cart-cases 32)
+      → 1098 total. Build detectou 2 erros TS em testes, corrigidos. Lint: 0 erros novos.
+- [x] Revisão de segurança: 3 achados (1 Médio pré-existente, 2 Baixo/informativos novos)
+
 ### Qualidade
-- [x] `npm run build` verde (incluindo `tsc` completo — detectou 6 erros em .test.ts que vitest perdeu)
-- [x] `npm run test` e `npm run test:coverage` funcionando (976 testes totais agora)
+- [x] `npm run build` verde (incluindo `tsc` completo — detectou 2 erros em cart.test.ts)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1098 testes totais agora)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -514,11 +537,24 @@ catálogo vivo via ERP → cotação como dado estruturado.
   `/api/contact` implementou com `productionSafe: true` (fail-closed), mas `/api/representatives/register` ainda
   tem `productionSafe: false` (fail-open). Recomendação: fast-follow para passar a flag também em register (foi
   mencionado como débito em 2026-08-23, ficou pendente).
+- **`POST /api/contact` sem teto de tamanho de corpo** (2026-08-30, Médio/backlog): rota não aplica `checkContentLength`
+  ou `readBodyTextWithLimit` de `src/server/lib/request-size.ts` (usados no webhook do ERP desde 2026-08-25).
+  Pré-existente desde 2026-08-24 (endpoint de `/contato`), mas agora mais relevante com carrinho de até 20 itens
+  (payload estruturalmente maior). Recomendação: aplicar o mesmo padrão de teto de 10 MB + leitura limitada.
+- **Itens duplicados no carrinho não são mesclados no servidor** (2026-08-30, Baixo/qualidade): payload com dois
+  objetos `{slug: "X", quantity: 2}` gera DUAS linhas em `contact_submission_items` em vez de somar. Não é risco
+  de segurança (dados de negócio, não acesso), registrado como débito de qualidade. Mitigação client-side: `cart-store`
+  já deduplica e soma antes de enviar.
+- **Origem `"carrinho"` pode vazar para outros `subject`** (2026-08-30, Baixo/informativo): `LEAD_ORIGINS` foi expandido
+  com `"carrinho"` (lista fechada), mas rota só força hardcode quando `subject === "cart"` — os outros 4 assuntos
+  poderiam receber `?origem=carrinho` via URL. Não é brecha de segurança (origin/UTM são self-reported, não
+  confiáveis por desenho), registrado por completude de documentação.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 976 testes (28 arquivos), 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1098 testes (30 arquivos), 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+  (+122 testes 2026-08-30 carrinho: `cart-store` 28, `product-card` 18, `cart-page` 44, `contact-submit`/cart-cases 32.)
   (+42 testes 2026-08-30 chrome de navegação: `locale-path`, `phone`, casos novos de `nav` e
-  `resolveDestination`/`#ligamos`.)
+  `resolveDestination`/`#ligamas`.)
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
   +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits;
   +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email;

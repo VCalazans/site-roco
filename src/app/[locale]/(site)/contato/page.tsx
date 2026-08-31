@@ -86,7 +86,7 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
 
   const dictionary = await getDictionary(locale);
   const contact = getContactDictionary(dictionary);
-  const { navigation } = dictionary;
+  const { navigation, cart } = dictionary;
 
   const navLinks = siteNavLinks(navigation.links, locale);
 
@@ -131,7 +131,7 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
         locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
       />
 
       <main className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">

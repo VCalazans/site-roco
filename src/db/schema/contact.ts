@@ -23,7 +23,17 @@
  *    (disparados em paralelo, nenhum bloqueia o outro) — permite um job de
  *    retry futuro sem re-perguntar nada ao visitante.
  */
-import { boolean, index, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 /**
  * Valor NOVO sempre no FIM da lista: no meio, o drizzle-kit gera o recreate
@@ -38,6 +48,7 @@ export const contactSubjectEnum = pgEnum("contact_subject", [
   "quote",
   "general",
   "catalog",
+  "cart",
 ]);
 
 export const contactSubmissions = pgTable(
@@ -85,3 +96,42 @@ export const contactSubmissions = pgTable(
 );
 
 export type ContactSubmission = typeof contactSubmissions.$inferSelect;
+
+/**
+ * Itens de uma submissão de CARRINHO DE COTAÇÃO (`subject = "cart"`). Uma
+ * `contact_submissions` com vários produtos, em vez do par singular
+ * `productSlug`/`productName`/`productSku` usado pelos outros quatro
+ * assuntos — por isso vive em tabela própria (1:N), não em colunas extras.
+ *
+ * `productName`/`productSku` são SNAPSHOT resolvido no SERVIDOR a partir de
+ * `productSlug` — mesmo critério do par singular em `contactSubmissions`
+ * (ver comentário de topo do arquivo): o cliente manda slug + quantidade, o
+ * servidor resolve nome/SKU reais do catálogo antes de gravar. `quantity` é
+ * a única informação que vem do cliente sem resolução — o servidor nunca
+ * inventa quantidade.
+ *
+ * `onDelete: "cascade"`: apagar a submissão (ex.: expurgo de retenção LGPD
+ * futuro) apaga os itens junto — não há sentido em item órfão sem submissão.
+ */
+export const contactSubmissionItems = pgTable(
+  "contact_submission_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => contactSubmissions.id, { onDelete: "cascade" }),
+    productSlug: text("product_slug"),
+    /** Snapshot resolvido no servidor — nunca aceito cru do body. */
+    productName: text("product_name"),
+    productSku: text("product_sku"),
+    quantity: integer("quantity").notNull().default(1),
+    /** Preserva a ordem de montagem do carrinho (não é a ordem de exibição do catálogo). */
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("contact_submission_items_submission_id_idx").on(table.submissionId),
+  ]
+);
+
+export type ContactSubmissionItem = typeof contactSubmissionItems.$inferSelect;

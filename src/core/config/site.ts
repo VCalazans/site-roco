@@ -43,6 +43,9 @@ export const PRODUCTS_SEGMENT = "produtos";
 /** Route segment of the public contact page. */
 export const CONTACT_SEGMENT = "contato";
 
+/** Route segment of the quote-cart page. */
+export const CART_SEGMENT = "carrinho";
+
 /**
  * Segmentos do login do portal interno. Não são traduzidos (o route group
  * `(internal)` é o mesmo nos dois locales) e espelham `PROTECTED_SECTIONS` /
@@ -71,6 +74,11 @@ export function productsPath(locale: string): string {
 /** Locale-prefixed path of the public contact page. */
 export function contactPath(locale: string): string {
   return `/${locale}/${CONTACT_SEGMENT}`;
+}
+
+/** Locale-prefixed path of the quote-cart page. */
+export function cartPath(locale: string): string {
+  return `/${locale}/${CART_SEGMENT}`;
 }
 
 /** Filename suggested to the browser when the catalog PDF is downloaded. */
@@ -120,7 +128,8 @@ export function resolveDestination(
   const destinationPath = destination.split("#")[0].split("?")[0];
   const capturesLeads =
     destinationPath === contactPath(locale) ||
-    destinationPath === catalogPath(locale);
+    destinationPath === catalogPath(locale) ||
+    destinationPath === cartPath(locale);
 
   return capturesLeads ? withLeadOrigin(destination, origin) : destination;
 }

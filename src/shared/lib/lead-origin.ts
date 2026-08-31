@@ -40,6 +40,14 @@ export const LEAD_ORIGINS = [
   "catalogo",
   "menu",
   "rodape",
+  /**
+   * Origem fixa do formulário de carrinho de cotação (`subject: "cart"`) —
+   * diferente dos demais valores, nunca chega via querystring: a rota grava
+   * `"carrinho"` direto, porque a origem de um carrinho é o próprio fluxo do
+   * carrinho, não depende de qual página o visitante estava (ver
+   * `POST /api/contact`).
+   */
+  "carrinho",
 ] as const;
 
 export type LeadOrigin = (typeof LEAD_ORIGINS)[number];

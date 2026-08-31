@@ -5,6 +5,7 @@ import {
   SELECTABLE_CONTACT_SUBJECTS,
   HONEYPOT_FIELD,
   type ContactInput,
+  type ContactSubject,
 } from "./contact-submit";
 import { LEAD_ORIGINS } from "@/shared/lib/lead-origin";
 
@@ -365,8 +366,9 @@ describe("contactSchema", () => {
       expect(result.success).toBe(false);
     });
 
-    it("exposes CONTACT_SUBJECTS as the enum values", () => {
-      expect(CONTACT_SUBJECTS).toEqual(["call_back", "quote", "general", "catalog"]);
+    it("exposes CONTACT_SUBJECTS as the enum values including cart", () => {
+      expect(CONTACT_SUBJECTS).toContain("cart");
+      expect(CONTACT_SUBJECTS.length).toBe(5);
     });
   });
 
@@ -716,6 +718,239 @@ describe("contactSchema — rastreio de aquisição (origem + UTM)", () => {
       for (const subject of SELECTABLE_CONTACT_SUBJECTS) {
         expect((CONTACT_SUBJECTS as readonly string[]).includes(subject)).toBe(true);
       }
+    });
+  });
+
+  describe("cart subject and items validation (.superRefine)", () => {
+    it("accepts a cart with a single valid item", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "produto-1", quantity: 5 }],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.items).toHaveLength(1);
+        expect(result.data.items?.[0].quantity).toBe(5);
+      }
+    });
+
+    it("accepts a cart with multiple items", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [
+          { slug: "item-1", quantity: 1 },
+          { slug: "item-2", quantity: 10 },
+          { slug: "item-3", quantity: 99 },
+        ],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.items).toHaveLength(3);
+      }
+    });
+
+    it("rejects cart without items", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const itemsError = result.error.issues.find((issue) => issue.path.includes("items"));
+        expect(itemsError).toBeDefined();
+      }
+    });
+
+    it("rejects cart when items field is missing", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const itemsError = result.error.issues.find((issue) => issue.path.includes("items"));
+        expect(itemsError).toBeDefined();
+      }
+    });
+
+    it("rejects cart when items field is undefined", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: undefined,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects cart when items field is null", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: null,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects cart with 21 items (exceeds MAX_CART_ITEMS)", () => {
+      const items = Array.from({ length: 21 }, (_, i) => ({
+        slug: `item-${i}`,
+        quantity: 1,
+      }));
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items,
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts cart with exactly 20 items (MAX_CART_ITEMS)", () => {
+      const items = Array.from({ length: 20 }, (_, i) => ({
+        slug: `item-${i}`,
+        quantity: 1,
+      }));
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.items).toHaveLength(20);
+      }
+    });
+
+    it("rejects item with quantity 0", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "item-1", quantity: 0 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects item with negative quantity", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "item-1", quantity: -5 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects item with quantity exceeding MAX_CART_ITEM_QUANTITY (9999)", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "item-1", quantity: 10000 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts item with quantity exactly at MAX_CART_ITEM_QUANTITY (9999)", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "item-1", quantity: 9999 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects item with fractional quantity", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "item-1", quantity: 3.5 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects item with empty slug", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "", quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects item with slug longer than 200 characters", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "a".repeat(201), quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts item with slug exactly 200 characters", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "cart",
+        items: [{ slug: "a".repeat(200), quantity: 1 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects non-cart subject with items field present", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "quote",
+        items: [{ slug: "item-1", quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const itemsError = result.error.issues.find((issue) => issue.path.includes("items"));
+        expect(itemsError).toBeDefined();
+        expect(itemsError?.message).toContain("cart_items_not_allowed");
+      }
+    });
+
+    it("rejects general subject with items field present", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "general",
+        items: [{ slug: "item-1", quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects call_back subject with items field present", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "call_back",
+        items: [{ slug: "item-1", quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects catalog subject with items field present", () => {
+      const result = contactSchema.safeParse({
+        ...MINIMAL_VALID_INPUT,
+        subject: "catalog",
+        items: [{ slug: "item-1", quantity: 1 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts non-cart subjects without items field", () => {
+      const subjects: ContactSubject[] = ["quote", "general", "call_back", "catalog"];
+      for (const subject of subjects) {
+        const result = contactSchema.safeParse({
+          ...MINIMAL_VALID_INPUT,
+          subject,
+        });
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it("cart with items preserves .shape for client-side schema reuse", () => {
+      // Verify that .shape is still available after .superRefine
+      expect(contactSchema.shape).toBeDefined();
+      expect(contactSchema.shape.email).toBeDefined();
     });
   });
 });

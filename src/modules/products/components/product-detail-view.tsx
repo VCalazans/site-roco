@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import type { PublicProductItem } from "@/modules/products/lib/types";
 import { QuoteCtaButton } from "@/modules/products/components/quote-cta-button";
+import { AddToCartButton } from "@/shared/components/cart";
 import { SiteHeader } from "@/shared/components/nav";
 import type { NavLink } from "@/shared/lib/nav";
 import { ProductCard } from "@/shared/components/product-card";
@@ -28,6 +29,7 @@ type ProductDetailViewProps = {
   navigation: Dictionary["navigation"];
   products: Dictionary["products"];
   navLinks: NavLink[];
+  cart: Dictionary["cart"];
 };
 
 export function ProductDetailView({
@@ -37,6 +39,7 @@ export function ProductDetailView({
   navigation,
   products,
   navLinks,
+  cart,
 }: ProductDetailViewProps) {
   const name = locale === "en" && product.nameEn ? product.nameEn : product.namePt;
   const description = locale === "en" ? product.descriptionEn : product.descriptionPt;
@@ -65,7 +68,7 @@ export function ProductDetailView({
         links={navLinks}
         menuLabels={{ open: navigation.menu, close: navigation.close }}
         locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin }}
+        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
       />
 
       <main className="relative z-10 mx-auto max-w-7xl px-5 pb-20 pt-24 sm:px-6 md:pt-32">
@@ -192,7 +195,17 @@ export function ProductDetailView({
               )}
             </div>
 
-            <QuoteCtaButton label={products.detail.quoteCta} locale={locale} productSlug={product.slug} />
+            <div className="flex flex-wrap items-center gap-3">
+              <QuoteCtaButton label={products.detail.quoteCta} locale={locale} productSlug={product.slug} />
+              <AddToCartButton
+                slug={product.slug}
+                name={name}
+                sku={product.sku}
+                locale={locale}
+                labels={cart.addButton}
+                variant="detail"
+              />
+            </div>
           </div>
         </div>
 
@@ -209,6 +222,7 @@ export function ProductDetailView({
                   href={`/${locale}/produtos/${item.slug}`}
                   content={products.card}
                   badgeLabels={products.badges}
+                  cartLabels={cart.addButton}
                 />
               ))}
             </div>

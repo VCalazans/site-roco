@@ -20,6 +20,13 @@ export type RdStationConversionMeta = {
   /** Nome do produto, já RESOLVIDO no servidor — nunca aceito cru do body. */
   productName?: string;
   productSku?: string;
+  /**
+   * Itens do carrinho de cotação (`subject === "cart"`) — nome/SKU já
+   * RESOLVIDOS no servidor a partir dos slugs enviados, `quantity` é a
+   * única informação que vem direto do cliente. Ausente/vazio para os
+   * demais assuntos, que continuam usando só `productName`/`productSku`.
+   */
+  cartItems?: { name: string; sku: string; quantity: number }[];
 };
 
 /** Prefixo dos campos CUSTOMIZADOS — os que precisam existir no painel do RD. */
@@ -28,23 +35,62 @@ export const RD_CUSTOM_FIELD_PREFIX = "cf_";
 /**
  * Um `conversion_identifier` por INTENÇÃO DE NEGÓCIO. É string livre na API
  * (diferente dos `cf_*`, não exige cadastro prévio no painel), então separar
- * as quatro custa nada e o funil do RD passa a distinguir pedido de
- * orçamento, download de catálogo, pedido de ligação e contato geral — que
- * antes colapsavam em dois identificadores.
+ * as cinco custa nada e o funil do RD passa a distinguir pedido de
+ * orçamento, download de catálogo, pedido de ligação, contato geral e
+ * carrinho de cotação — que antes colapsavam em dois identificadores.
  */
 const CONVERSION_IDENTIFIERS: Record<ContactInput["subject"], string> = {
   quote: "orcamento_produto",
   catalog: "download_catalogo",
   call_back: "ligamos_pra_voce",
   general: "contato_geral",
+  cart: "carrinho_cotacao",
 };
+
+/**
+ * Teto de tamanho de `cf_produtos_carrinho` — o mesmo problema de URL/limite
+ * que motivou truncar UTMs em `lead-origin.ts`, aqui para o campo do RD:
+ * um carrinho com 20 itens de nome longo poderia produzir uma string bem
+ * maior que o razoável para um campo customizado. Quando trunca, um sufixo
+ * deixa claro que a lista completa está no e-mail de notificação (que NÃO
+ * tem este teto — ver `contact-email.ts`).
+ */
+export const CART_SUMMARY_MAX_LENGTH = 1000;
+const CART_SUMMARY_TRUNCATION_SUFFIX = "; (+ lista completa por e-mail)";
+
+/**
+ * Monta o resumo textual dos itens do carrinho para `cf_produtos_carrinho`.
+ * PURA, sem I/O — testável isoladamente.
+ *
+ * Formato por item: `"SKU {sku} - {nome} (x{qtd})"`, itens separados por
+ * `"; "`. Trunca em `max` caracteres cortando no limite de um item inteiro
+ * (nunca no meio de um nome) antes de acrescentar o sufixo de aviso.
+ */
+export function buildCartProductsSummary(
+  items: { name: string; sku: string; quantity: number }[],
+  max: number = CART_SUMMARY_MAX_LENGTH
+): string {
+  const parts = items.map((item) => `SKU ${item.sku} - ${item.name} (x${item.quantity})`);
+  const full = parts.join("; ");
+  if (full.length <= max) return full;
+
+  const budget = Math.max(0, max - CART_SUMMARY_TRUNCATION_SUFFIX.length);
+  let result = "";
+  for (const part of parts) {
+    const candidate = result ? `${result}; ${part}` : part;
+    if (candidate.length > budget) break;
+    result = candidate;
+  }
+  return `${result}${CART_SUMMARY_TRUNCATION_SUFFIX}`;
+}
 
 type RdStationLegalBase = { category: string; type: string; status: string };
 
 /**
  * Campos do payload. Os `cf_*` são CUSTOMIZADOS e precisam existir na conta
  * do RD Station antes do primeiro envio (`cf_cnpj`, `cf_produto_interesse`,
- * `cf_origem` — ver `.env.example`); os demais são PADRÃO da Conversions API
+ * `cf_origem`, `cf_produtos_carrinho` — ver `.env.example`); os demais são
+ * PADRÃO da Conversions API
  * e funcionam sem nenhuma configuração no painel — inclusive
  * `traffic_source`/`traffic_medium`/`traffic_campaign`, que são os slots
  * nativos de UTM.
@@ -58,6 +104,7 @@ export type RdStationConversionFields = {
   cf_cnpj?: string;
   cf_produto_interesse?: string;
   cf_origem?: string;
+  cf_produtos_carrinho?: string;
   traffic_source?: string;
   traffic_medium?: string;
   traffic_campaign?: string;
@@ -91,6 +138,10 @@ export function buildRdStationConversionPayload(
       ? `${meta.productName} — SKU ${meta.productSku}`
       : meta.productName
     : undefined;
+  const cfProdutosCarrinho =
+    meta.cartItems && meta.cartItems.length > 0
+      ? buildCartProductsSummary(meta.cartItems)
+      : undefined;
 
   return {
     event_type: "CONVERSION",
@@ -103,6 +154,7 @@ export function buildRdStationConversionPayload(
       ...(input.companyName ? { company_name: input.companyName } : {}),
       ...(input.cnpj ? { cf_cnpj: input.cnpj } : {}),
       ...(cfProdutoInteresse ? { cf_produto_interesse: cfProdutoInteresse } : {}),
+      ...(cfProdutosCarrinho ? { cf_produtos_carrinho: cfProdutosCarrinho } : {}),
       ...(input.origin ? { cf_origem: input.origin } : {}),
       ...(input.utmSource ? { traffic_source: input.utmSource } : {}),
       ...(input.utmMedium ? { traffic_medium: input.utmMedium } : {}),

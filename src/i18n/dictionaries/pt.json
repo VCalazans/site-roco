@@ -1038,6 +1038,66 @@
       }
     }
   },
+  "cart": {
+    "seo": {
+      "title": "Carrinho de Cotação — ROCO",
+      "description": "Organize seus produtos de interesse e envie uma solicitação de cotação à ROCO. Nossa equipe comercial entrará em contato para elaborar uma proposta personalizada."
+    },
+    "nav": {
+      "label": "Carrinho de Cotação",
+      "empty": "Carrinho vazio"
+    },
+    "addButton": {
+      "label": "Adicionar ao Carrinho",
+      "added": "Adicionado!"
+    },
+    "page": {
+      "headline": "Carrinho de Cotação",
+      "subheadline": "Organize os produtos de seu interesse e envie uma solicitação de cotação à ROCO.",
+      "emptyTitle": "Carrinho Vazio",
+      "emptyMessage": "Você ainda não adicionou nenhum produto. Navegue pelo catálogo e selecione os itens de seu interesse para criar uma cotação.",
+      "emptyCta": "Explorar Catálogo",
+      "itemsHeading": "Produtos Selecionados",
+      "quantityLabel": "Quantidade",
+      "removeItem": "Remover",
+      "clearCart": "Esvaziar Carrinho",
+      "clearCartConfirm": "Tem certeza que deseja remover todos os itens?",
+      "skuLabel": "Cód."
+    },
+    "form": {
+      "title": "Envie sua Solicitação de Cotação",
+      "name": "Nome completo",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "companyName": "Empresa (opcional)",
+      "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
+      "submit": "Solicitar Cotação",
+      "sending": "Enviando…"
+    },
+    "validation": {
+      "required": "Este campo é obrigatório.",
+      "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
+      "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
+      "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar.",
+      "invalid": "Confira este campo e tente novamente."
+    },
+    "errors": {
+      "validation": "Confira os dados informados e tente novamente.",
+      "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+      "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
+      "generic": "Não foi possível enviar sua solicitação agora. Tente novamente em instantes.",
+      "cartEmpty": "Nenhum produto de sua lista foi encontrado no catálogo. Eles podem ter sido removidos ou despublicados. Volte ao catálogo e selecione novos itens."
+    },
+    "success": {
+      "title": "Solicitação Recebida!",
+      "message": "Obrigado! Sua solicitação de cotação foi enviada com sucesso. Nossa equipe comercial analisará seus produtos de interesse e retornará em breve com um orçamento personalizado."
+    },
+    "whatsapp": {
+      "buttonLabel": "Enviar também por WhatsApp",
+      "messageIntro": "Olá! Gostaria de um orçamento para os seguintes produtos:",
+      "moreItemsSuffix": "+ {count} itens — lista completa enviada por e-mail"
+    }
+  },
   "site": {
     "consent": {
       "title": "Cookies e privacidade",

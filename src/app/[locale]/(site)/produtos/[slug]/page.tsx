@@ -52,7 +52,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   }
 
   const dictionary = await getDictionary(locale);
-  const { navigation, products } = dictionary;
+  const { navigation, products, cart } = dictionary;
 
   const navLinks = siteNavLinks(navigation.links, locale);
 
@@ -85,6 +85,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
       navigation={navigation}
       products={products}
       navLinks={navLinks}
+      cart={cart}
     />
   );
 }

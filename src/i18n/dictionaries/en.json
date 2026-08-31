@@ -1038,6 +1038,66 @@
       }
     }
   },
+  "cart": {
+    "seo": {
+      "title": "Quote Cart — ROCO",
+      "description": "Organize your products of interest and submit a quote request to ROCO. Our sales team will contact you to prepare a personalized proposal."
+    },
+    "nav": {
+      "label": "Quote Cart",
+      "empty": "Cart is empty"
+    },
+    "addButton": {
+      "label": "Add to Cart",
+      "added": "Added!"
+    },
+    "page": {
+      "headline": "Quote Cart",
+      "subheadline": "Organize the products you're interested in and submit a quote request to ROCO.",
+      "emptyTitle": "Empty Cart",
+      "emptyMessage": "You have not added any products yet. Browse the catalog and select the items you are interested in to create a quote.",
+      "emptyCta": "Browse Catalog",
+      "itemsHeading": "Selected Products",
+      "quantityLabel": "Quantity",
+      "removeItem": "Remove",
+      "clearCart": "Clear Cart",
+      "clearCartConfirm": "Are you sure you want to remove all items?",
+      "skuLabel": "Code"
+    },
+    "form": {
+      "title": "Submit Your Quote Request",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "companyName": "Company (optional)",
+      "consent": "I agree to the processing of my personal data so that ROCO can contact me, in accordance with the Privacy Policy.",
+      "submit": "Request Quote",
+      "sending": "Sending…"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "invalidEmail": "Invalid email. Please check the address.",
+      "invalidPhone": "Invalid phone number. Use the format (XX) 9XXXX-XXXX.",
+      "consentRequired": "You must agree to the processing of your data to continue.",
+      "invalid": "Please check this field and try again."
+    },
+    "errors": {
+      "validation": "Please check the details you entered and try again.",
+      "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
+      "unavailable": "The service is temporarily unavailable. Please try again shortly.",
+      "generic": "We could not submit your request right now. Please try again shortly.",
+      "cartEmpty": "None of the products in your list were found in the catalog. They may have been removed or unpublished. Go back to the catalog and select new items."
+    },
+    "success": {
+      "title": "Request Received!",
+      "message": "Thank you! Your quote request has been sent successfully. Our sales team will review your products of interest and get back to you shortly with a personalized quote."
+    },
+    "whatsapp": {
+      "buttonLabel": "Also send via WhatsApp",
+      "messageIntro": "Hi! I would like a quote for the following products:",
+      "moreItemsSuffix": "+ {count} more items — full list sent by email"
+    }
+  },
   "site": {
     "consent": {
       "title": "Cookies & Privacy",

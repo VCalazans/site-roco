@@ -22,6 +22,7 @@ type ProductsExplorerProps = {
   content: Dictionary["products"]["listing"];
   cardContent: Dictionary["products"]["card"];
   badgeLabels: Dictionary["products"]["badges"];
+  cartLabels: Dictionary["cart"]["addButton"];
 };
 
 function categoryName(category: PublicCategory, locale: Locale): string {
@@ -59,6 +60,7 @@ export function ProductsExplorer({
   content,
   cardContent,
   badgeLabels,
+  cartLabels,
 }: ProductsExplorerProps) {
   const pathname = usePathname();
 
@@ -293,6 +295,7 @@ export function ProductsExplorer({
               href={`/${locale}/produtos/${item.slug}`}
               content={cardContent}
               badgeLabels={badgeLabels}
+              cartLabels={cartLabels}
               priority={index < 4}
             />
           ))}

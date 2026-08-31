@@ -19,10 +19,11 @@ type HomeHeroProps = {
   };
   navLinks: NavLink[];
   menuLabels: { open: string; close: string };
-  /** Rótulos dos controles da barra (idioma, login) — ver `SiteHeader`. */
+  /** Rótulos dos controles da barra (idioma, carrinho, login) — ver `SiteHeader`. */
   navControls: {
     language: { action: string };
     portalLogin: string;
+    cart: string;
   };
   locale: import("@/i18n/config").Locale;
 };

@@ -18,6 +18,7 @@ const SUBJECT_LABELS: Record<ContactInput["subject"], string> = {
   quote: "Solicitação de orçamento",
   general: "Contato geral",
   catalog: "Download do catálogo",
+  cart: "Carrinho de cotação",
 };
 
 /**
@@ -41,6 +42,7 @@ const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   catalogo: "Página do catálogo",
   menu: "Menu de navegação",
   rodape: "Rodapé",
+  carrinho: "Carrinho de cotação",
 };
 
 /**
@@ -51,10 +53,21 @@ const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
  */
 export function buildContactNotificationEmail(
   input: ContactInput,
-  meta: { productName?: string; productSku?: string }
+  meta: {
+    productName?: string;
+    productSku?: string;
+    /** Itens do carrinho de cotação (`subject === "cart"`) — nome/SKU já
+     * resolvidos no servidor, `quantity` vinda do cliente. Quando presente,
+     * substitui a linha única "Produto de interesse" por uma linha por
+     * produto. Sem teto de tamanho aqui — diferente de `cf_produtos_carrinho`
+     * (RD Station), o e-mail não tem o mesmo problema de limite de campo. */
+    cartItems?: { name: string; sku: string; quantity: number }[];
+  }
 ): ContactEmailContent {
   const subjectLabel = SUBJECT_LABELS[input.subject];
   const subject = `[Site ROCO] Novo contato — ${subjectLabel} — ${input.name}`;
+
+  const hasCartItems = Boolean(meta.cartItems && meta.cartItems.length > 0);
 
   const lines = [
     `Assunto: ${subjectLabel}`,
@@ -63,9 +76,13 @@ export function buildContactNotificationEmail(
     `Telefone: ${input.phone}`,
     input.companyName ? `Empresa: ${input.companyName}` : null,
     input.cnpj ? `CNPJ: ${input.cnpj}` : null,
-    meta.productName
+    !hasCartItems && meta.productName
       ? `Produto de interesse: ${meta.productName}${meta.productSku ? ` (SKU ${meta.productSku})` : ""}`
       : null,
+    hasCartItems ? "Produtos do carrinho:" : null,
+    ...(hasCartItems
+      ? meta.cartItems!.map((item) => `- SKU ${item.sku}: ${item.name} (qtd: ${item.quantity})`)
+      : []),
     // Origem = seção INTERNA do site; campanha = tráfego EXTERNO. As duas
     // linhas são independentes: um lead pode ter as duas, uma, ou nenhuma.
     input.origin ? `Origem no site: ${LEAD_ORIGIN_LABELS[input.origin]}` : null,

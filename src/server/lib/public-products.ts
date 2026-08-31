@@ -250,6 +250,38 @@ export const getPublicProductBySlug = unstable_cache(
 );
 
 /**
+ * Detalhe público de VÁRIOS produtos por slug (`subject: "cart"` em
+ * `POST /api/contact` — resolve todos os itens do carrinho numa query só).
+ * Mesmos filtros de `getPublicProductBySlug` (`published && active`).
+ * Produtos não encontrados (slug expirado, despublicado, inventado) apenas
+ * NÃO aparecem no retorno — quem chama decide o que fazer com o que faltou
+ * (ex.: descartar do carrinho antes de gravar o lead).
+ *
+ * NÃO CACHEADA de propósito: o input é um array arbitrário de slugs montado
+ * pelo cliente (o carrinho é dele, não um filtro fixo como categoria/página).
+ * Cachear por essa chave cresceria o espaço do data cache em disco sem
+ * limite, controlado por quem monta a requisição — mesmo raciocínio já
+ * aplicado à busca livre de `getPublicProductList` acima.
+ */
+export async function getPublicProductsBySlugs(slugs: string[]) {
+  const uniqueSlugs = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+  if (uniqueSlugs.length === 0) return [];
+
+  const rows = await db
+    .select()
+    .from(products)
+    .where(
+      and(
+        inArray(products.slug, uniqueSlugs),
+        eq(products.published, true),
+        eq(products.active, true)
+      )
+    );
+
+  return assembleProducts(rows);
+}
+
+/**
  * Categorias ativas para os filtros da listagem pública. Chamada direto pelo
  * Server Component (sem passar por HTTP — módulo `server-only`), então não
  * ganha rota REST própria. Mesma tag `"products"` para invalidar junto do

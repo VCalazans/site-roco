@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
+import { CartNavLink } from "@/shared/components/cart";
 import {
   LanguageSwitcher,
   type LanguageSwitcherLabels,
@@ -31,11 +32,14 @@ type SiteHeaderProps = {
   menuLabels: { open: string; close: string };
   /** Locale da rota — alimenta o seletor de idioma e o link do portal. */
   locale: Locale;
-  /** Rótulos dos dois controles da direita (dicionário, nunca hardcode). */
+  /** Rótulos dos controles da direita (dicionário, nunca hardcode). */
   controls: {
     language: LanguageSwitcherLabels;
     /** Nome acessível do botão de login (só ícone na barra). */
     portalLogin: string;
+    /** Nome acessível do ícone do carrinho de cotação (só ícone na barra) —
+     *  `dictionary.cart.nav.label`. */
+    cart: string;
   };
 };
 
@@ -108,13 +112,18 @@ export function SiteHeader({
             nav colapsa. */}
         <div className="flex items-center gap-3 lg:gap-4">
           {/* Lista horizontal em LINHA ÚNICA. O corte segue em `lg`, agora com
-              medida e não por impressão: com os DOIS controles novos, o
-              conjunto (5 rótulos + divisor + seletor + botão) mede 728px em pt
-              e 709px em en a 1024px, contra 868px disponíveis — folga de 140px
-              (pt) / 159px (en). A barra só deixaria de caber abaixo de ~900px,
-              e mesmo a tradução mais longa que se cogitou para o 5º item
-              ("REQUEST A CALLBACK") ainda sobra 98px. Subir para `xl` seria
-              esconder uma barra que cabe.
+              medida e não por impressão: com os TRÊS controles (idioma,
+              carrinho, login), o conjunto (5 rótulos + divisor + seletor +
+              carrinho + login) mede 776px em pt e 757px em en a 1024px,
+              contra 868px disponíveis — folga de 92px (pt) / 111px (en).
+              Remedição 2026-08-30 ao acrescentar o ícone do carrinho:
+              partiu-se dos 728px/709px já medidos em 2026-07-19 (nav +
+              divisor + idioma + login) e somou-se só o DELTA do botão novo —
+              `size-10` (40px) mais UM gap adicional do flex `gap-2` que o
+              envolve (8px), pois ele entra como terceiro filho desse
+              contêiner, ANTES do login — 48px ao todo. A barra só deixaria
+              de caber abaixo de ~900px; subir o corte para `xl` esconderia
+              uma barra que ainda cabe com folga de duas dígitos.
               Larguras medidas com as métricas reais do arquivo Inter servido
               pelo `next/font` (hmtx + HVAR em wght 500), a 14px e 0.04em. */}
           <nav aria-label={brand} className="hidden lg:block">
@@ -146,6 +155,13 @@ export function SiteHeader({
               variant="bar"
               className="hidden lg:inline-flex"
             />
+
+            {/* Carrinho de cotação: fica na barra em TODOS os tamanhos, como
+                o login logo abaixo — não há painel "menu" dedicado para ele
+                (ver o comentário em `PortalLoginLink` sobre a variante
+                `"menu"`), porque não há nada a esconder abaixo de `lg`: o
+                ícone já é sempre visível ao lado do hambúrguer. */}
+            <CartNavLink locale={locale} label={controls.cart} />
 
             {/* Login fica na barra em TODOS os tamanhos — é destino de tarefa
                 de quem já é representante, e vale o toque único. */}

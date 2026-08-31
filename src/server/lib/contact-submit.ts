@@ -76,14 +76,15 @@ function optionalMultilineField(max: number) {
  * Assuntos aceitos pela rota — espelham o enum `contact_subject` do banco
  * (`src/db/schema/contact.ts`), e cada um vira um `conversion_identifier`
  * distinto no RD Station (`buildRdStationConversionPayload`), para que o
- * funil separe as quatro intenções de negócio.
+ * funil separe as cinco intenções de negócio.
  *
- * `catalog` NÃO aparece no dropdown de `/contato`: é definido pelo próprio
- * formulário do catálogo (`/{locale}/catalogo`), que reaproveita esta mesma
- * rota em vez de ter endpoint próprio. Use `SELECTABLE_CONTACT_SUBJECTS`
- * para renderizar opções ao visitante.
+ * `catalog` e `cart` NÃO aparecem no dropdown de `/contato`: são definidos
+ * pelos próprios formulários do catálogo (`/{locale}/catalogo`) e do
+ * carrinho de cotação, que reaproveitam esta mesma rota em vez de ter
+ * endpoint próprio. Use `SELECTABLE_CONTACT_SUBJECTS` para renderizar opções
+ * ao visitante.
  */
-export const CONTACT_SUBJECTS = ["call_back", "quote", "general", "catalog"] as const;
+export const CONTACT_SUBJECTS = ["call_back", "quote", "general", "catalog", "cart"] as const;
 
 /** Assuntos que o visitante escolhe à mão no dropdown de `/contato`. */
 export const SELECTABLE_CONTACT_SUBJECTS = ["call_back", "quote", "general"] as const;
@@ -109,7 +110,18 @@ function utmField() {
   );
 }
 
-export const contactSchema = z.object({
+/** Teto de itens por carrinho — limita o custo da resolução de slugs no servidor. */
+export const MAX_CART_ITEMS = 20;
+
+/** Teto de quantidade por item — bound de sanidade, não uma regra de estoque. */
+export const MAX_CART_ITEM_QUANTITY = 9999;
+
+const cartItemSchema = z.object({
+  slug: z.string().trim().min(1).max(200),
+  quantity: z.number().int().min(1).max(MAX_CART_ITEM_QUANTITY),
+});
+
+const contactObjectSchema = z.object({
   name: z
     .string()
     .trim()
@@ -140,6 +152,13 @@ export const contactSchema = z.object({
   // e-mail (escapado, dentro de `<pre>`) — nunca num cabeçalho.
   message: optionalMultilineField(2000),
   productSlug: optionalTrimmedField(200),
+  /**
+   * Itens do carrinho de cotação — só populado quando `subject === "cart"`
+   * (ver `.superRefine` abaixo). `slug`/`quantity` crus do cliente: o
+   * servidor resolve nome/SKU reais no `POST /api/contact` antes de gravar
+   * ou enviar a qualquer canal (mesmo critério de `productSlug` acima).
+   */
+  items: z.array(cartItemSchema).min(1).max(MAX_CART_ITEMS).optional(),
   /** Seção do site que originou o clique (`?origem=`) — ver `lead-origin`. */
   origin: leadOriginField,
   /** Campanha externa (`?utm_*=`) — vai aos campos padrão `traffic_*` do RD. */
@@ -148,6 +167,37 @@ export const contactSchema = z.object({
   utmCampaign: utmField(),
   locale: z.enum(["pt", "en"]),
   consent: z.literal(true),
+});
+
+/**
+ * `items` é OBRIGATÓRIO quando `subject === "cart"` (o carrinho não faz
+ * sentido vazio) e deve estar AUSENTE para os outros quatro assuntos — eles
+ * continuam usando o par singular `productSlug`/`productName`/`productSku`,
+ * cujo contrato fica intocado. `.superRefine` em vez de `z.discriminatedUnion`
+ * de propósito: preserva `.shape` no schema resultante (Zod v4 devolve `this`
+ * a partir de `.superRefine`, ao contrário do `ZodEffects` do Zod v3) — o
+ * espelho client (`contactSchema.shape.email`, ver `modules/contact` e
+ * `modules/catalog`) continua funcionando sem mudança.
+ */
+export const contactSchema = contactObjectSchema.superRefine((data, ctx) => {
+  if (data.subject === "cart") {
+    if (!data.items || data.items.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "cart_items_required",
+        path: ["items"],
+      });
+    }
+    return;
+  }
+
+  if (data.items !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      message: "cart_items_not_allowed",
+      path: ["items"],
+    });
+  }
 });
 
 /**

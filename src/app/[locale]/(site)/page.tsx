@@ -45,7 +45,7 @@ export default async function HomePage({ params }: PageProps) {
   }
 
   const dictionary = await getDictionary(locale);
-  const { home, navigation, products } = dictionary;
+  const { home, navigation, products, cart } = dictionary;
 
   const navLinks = siteNavLinks(navigation.links, locale);
 
@@ -84,6 +84,7 @@ export default async function HomePage({ params }: PageProps) {
         navControls={{
           language: navigation.language,
           portalLogin: navigation.portalLogin,
+          cart: cart.nav.label,
         }}
         locale={locale}
       />
@@ -105,6 +106,7 @@ export default async function HomePage({ params }: PageProps) {
         ctaHref={resolveDestination(home.featured.cta.href, locale, "home-destaques")}
         cardContent={products.card}
         badgeLabels={products.badges}
+        cartLabels={cart.addButton}
       />
       <HomePortalCta
         content={home.portalCta}
