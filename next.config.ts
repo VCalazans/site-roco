@@ -64,6 +64,24 @@ const nextConfig: NextConfig = {
  * Em desenvolvimento, libera `'unsafe-eval'` e `ws:`/localhost para o HMR do
  * Turbopack — em produção a política é restrita.
  */
+/**
+ * Hosts do RD Station liberados na CSP.
+ *
+ * `d335luupugsy2.cloudfront.net` serve o loader e a maior parte da cadeia;
+ * `d1sag09wwfbul8.cloudfront.net` serve o `rdtracker.min.js`. Ambos foram
+ * levantados lendo o loader real (ver comentário em `script-src`), não
+ * presumidos a partir da documentação.
+ */
+const RD_STATION_SCRIPT_HOSTS =
+  "https://d335luupugsy2.cloudfront.net https://d1sag09wwfbul8.cloudfront.net";
+
+/**
+ * Destinos dos hits de tracking. Inclui os hosts de script (as CDNs também
+ * recebem beacons) mais `app.rdstation.com.br`, que é para onde a API de
+ * eventos do RD envia.
+ */
+const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br`;
+
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -99,10 +117,38 @@ function contentSecurityPolicy(): string {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    // RD Station (2026-08-30): AFROUXAMENTO DELIBERADO de `script-src 'self'`,
+    // decidido pelo stakeholder com o trade-off na mesa.
+    //
+    // O que a tag `<script src=".../<id>-loader.js">` do painel do RD realmente
+    // faz: ela é um LOADER que cria `<script>` em runtime para outros CINCO
+    // arquivos, em DOIS hosts —
+    //   d335luupugsy2.cloudfront.net → o próprio loader, lead-tracking,
+    //     traffic-source-cookie, rd-js-integration e scout/bundle.js
+    //   d1sag09wwfbul8.cloudfront.net → rdtracker.min.js
+    // Liberar só o host do loader deixaria a cadeia quebrada no meio, sem erro
+    // visível fora do console. Por isso os DOIS hosts entram.
+    //
+    // ⚠️ Isto reabre parcialmente o vetor fechado após o ClickFix (2026-07):
+    // um comprometimento da CDN do RD passa a poder executar script NESTA
+    // origem. A alternativa era self-hospedar as cópias (padrão adotado com o
+    // Mautic em `public/vendor/`), rejeitada aqui porque o RD atualiza esses
+    // arquivos sem aviso — a cópia congelaria e quebraria o tracking em
+    // silêncio. Auditoria do loader em 2026-08-30 (SHA-256
+    // db41b8264d5077f687fa41f9172f9249aee569e53c0af51abb216ce388650976):
+    // zero indicadores de ClickFix (`clipboard.writeText`, `execCommand`,
+    // `powershell`, `mshta`, `eval(`, `new Function`, `atob`, `fromCharCode`,
+    // `unescape`, `document.write` — todos com 0 ocorrências).
+    //
+    // Os hosts entram SEMPRE (não condicionados à flag de tracking) porque a
+    // CSP é resolvida em BUILD-TIME e a flag é de runtime: condicionar deixaria
+    // a política dependente de quando a imagem foi buildada.
+    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS}${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     // R2 público (catálogo de imagens) + MAUTIC removido em 2026-08-23.
-    `img-src 'self' data: blob:${r2Public ? ` ${r2Public}` : ""}`,
+    // `d335luupugsy2.cloudfront.net`: o `scout/bundle.js` do RD (banner de
+    // consentimento) serve seus próprios assets de imagem do mesmo host.
+    `img-src 'self' data: blob: ${RD_STATION_SCRIPT_HOSTS}${r2Public ? ` ${r2Public}` : ""}`,
     // Vídeo do hero servido do R2 (slides `kind: "upload"` — ver
     // `hero-slider.tsx`). SEM esta diretiva o `<video>` cairia no
     // `default-src 'self'` e o navegador bloquearia o arquivo: o hero
@@ -110,7 +156,11 @@ function contentSecurityPolicy(): string {
     // YouTube não passam por aqui — são iframe, cobertos por `frame-src`.
     `media-src 'self' blob:${r2Public ? ` ${r2Public}` : ""}`,
     "font-src 'self'",
-    `connect-src 'self'${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
+    // RD Station: os hits de tracking (pageview, conversão, identificação do
+    // visitante) saem por XHR/fetch para a API do RD e para as CDNs acima.
+    // Sem isto o script CARREGA mas nenhum dado chega ao RD — falha silenciosa,
+    // visível só no console.
+    `connect-src 'self' ${RD_STATION_CONNECT_HOSTS}${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
     "form-action 'self'",
     // youtube-nocookie.com: mantido porque o admin pode criar slides YouTube
     // no carrossel do hero (home-slider.tsx) — o rationale de "enquadrar ≠
