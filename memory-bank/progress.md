@@ -307,11 +307,17 @@
 - [ ] **Provisionar infra prod** (Alto): Postgres, **Redis (obrigatório — sem ele `/api/contact`
       responde 503 e nenhum lead entra)**, Google OAuth, bucket R2 separado sem acesso público,
       RD Station API Key + campos customizados, Resend domínio verificado.
-- [ ] **RD Station: criar `cf_origem` no painel** (Alto, stakeholder — 2026-08-25): junto com
-      `cf_cnpj` e `cf_produto_interesse`, em Configurações > Campos personalizados. A API Key não
-      cria campo (só OAuth). Se faltar, o retry gracioso ainda entrega o lead, porém SEM CNPJ,
-      produto e origem, e grava `validation_retry_ok` em `contact_submissions.rd_station_error` —
-      conferir essa coluna depois do go-live.
+- [ ] **RD Station: criar `cf_origem` no painel** (Alto, stakeholder — atualizado 2026-08-31): dos
+      cinco `cf_*` que o código envia, a conta já tem `cf_cnpj`, `cf_produto_interesse`,
+      `cf_produtos_carrinho` e `cf_mensagem`; **falta só `cf_origem`**, em Configurações > Campos
+      personalizados. A API Key não cria campo (só OAuth).
+      ⚠️ **A redação anterior deste item estava errada** e prometia um alarme que não existe: ela
+      dizia que faltar um `cf_*` gravaria `validation_retry_ok` em `rd_station_error`. Sonda de
+      2026-08-31 provou o contrário — a Conversions API respondeu **HTTP 200 até para um campo
+      deliberadamente inventado**, ou seja, DESCARTA EM SILÊNCIO o que não conhece. Não há 400,
+      não há retry, não há coluna acusando nada. Sem os campos criados, CNPJ, produto, origem e
+      lista do carrinho simplesmente somem, sem rastro dos dois lados. A única conferência possível
+      é abrir um contato no painel do RD e olhar (a API Key não autoriza `GET /platform/contacts`).
 
 ## 🗺️ Roadmap Estratégico (avaliação multi-agente 2026-08-23)
 Análise de 5 áreas (conversão, portal/CRM, dados/integrações, SEO, segurança/LGPD) sobre o código

@@ -30,16 +30,31 @@ const RD_STATION_TIMEOUT_MS = 8_000;
  * (`src/shared/components/analytics/rdstation-tracking.tsx`), que também
  * fica desligado até as credenciais existirem.
  *
- * DEGRADAÇÃO GRACIOSA (2026-08-25): um campo customizado que ainda não
- * existe no painel do RD faz a API responder 400 e a conversão INTEIRA se
- * perde — não só aquele campo. Como `cf_cnpj`, `cf_produto_interesse` e
- * `cf_origem` são criados À MÃO pelo stakeholder, esquecer um deles
- * derrubaria TODOS os leads. Então, num 400 que aparente ser de campo
- * (ou que não dê para classificar), tentamos UMA vez mais com apenas os
- * campos padrão. O desfecho fica distinguível em
- * `contact_submissions.rd_station_error` (`validation_retry_ok` /
- * `validation_retry_failed`), para o time saber que o painel precisa de
- * ajuste mesmo com o lead tendo chegado.
+ * DEGRADAÇÃO GRACIOSA (2026-08-25) — com a premissa CORRIGIDA em 2026-08-31.
+ *
+ * A intenção original: um campo customizado inexistente no painel faria a API
+ * responder 400 e a conversão INTEIRA se perderia, então um 400 que aparente
+ * ser de campo (ou que não dê para classificar) reenvia UMA vez só com os
+ * campos padrão, marcando `validation_retry_ok` / `validation_retry_failed`
+ * em `contact_submissions.rd_station_error`.
+ *
+ * ⚠️ A premissa NÃO se confirma. Sonda executada em 2026-08-31 contra a conta
+ * real enviou uma conversão com `cf_campo_que_nao_existe_xyz` (nome inventado)
+ * e a API respondeu **HTTP 200 com `event_uuid`**, igual às dos quatro campos
+ * reais. Ou seja: a Conversions API não valida existência de campo
+ * personalizado — ela DESCARTA EM SILÊNCIO o que não reconhece.
+ *
+ * O que isso muda:
+ *  - Nenhum lead se perde por campo faltando. O risco que motivou este retry
+ *    não se materializa por essa causa.
+ *  - `validation_retry_ok` NÃO é o alarme de "falta criar `cf_*`" que a
+ *    redação anterior prometia — esse 400 nunca chega. Descobrir que um campo
+ *    não existe exige olhar um contato no painel do RD (a API Key não
+ *    autoriza `GET /platform/contacts`, que pede OAuth).
+ *
+ * O retry FICA: continua sendo a resposta certa para um 400 de validação de
+ * qualquer outra origem, e não custa nada enquanto não dispara. Ver
+ * decisionLog 2026-08-31.
  */
 export async function sendRdStationConversion(
   payload: RdStationConversionPayload

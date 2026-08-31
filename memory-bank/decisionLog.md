@@ -1479,3 +1479,91 @@ operacional sem ganho de proteção mensurável.
 **Impacto**: nenhuma mudança em `src/server/lib/rate-limit.ts` nem nos limites de `route.ts` — só a
 validação de `items` (item 3) e o teto de tamanho de mensagem (itens 2 e 5) fazem o trabalho de bound
 de custo/abuso para este novo caminho.
+
+## 2026-08-31 — Credencial do RD validada; e a premissa do "400 por campo customizado" está ERRADA
+
+**O que aconteceu**: a integração com o RD Station passou a funcionar de ponta a ponta. A chave
+anterior (32 chars hex) devolvia 401 em toda chamada; a nova (36 chars alfanuméricos, gerada em
+Integrações → API Keys) responde 200 com `event_uuid`. Verificado nos dois níveis: chamada direta à
+`POST https://api.rd.services/platform/conversions?api_key=…` e envio real por
+`POST /api/contact` (201 → linha em `contact_submissions` com `rd_station_status = "sent"` e
+`rd_station_event_uuid` preenchido). Nenhuma mudança de código foi necessária — o diagnóstico de que
+o 401 era da CREDENCIAL, não da integração, se confirmou.
+
+**Contexto de por que a chave errada apareceu**: o painel do RD expõe, em telas diferentes, um par
+"token público / token privado" que pertence à **API legada 1.3** (`www.rdstation.com.br/api/1.3/…`)
+e uma **API Key** que é a credencial da Conversions API atual (`api.rd.services`). São sistemas de
+autenticação distintos, não variações do mesmo segredo — usar o token da 1.3 na Conversions API dá
+401 sempre. A criação da API Key exige perfil Gestor ou Proprietário.
+
+**CORREÇÃO da entrada de 2026-08-25 — o retry gracioso resolve um problema que não existe.**
+Aquela entrada afirma: "campo customizado que ainda não existe no painel faz a API responder 400 e a
+conversão INTEIRA se perde". **Isso não se confirma nesta conta.** Sonda executada em 2026-08-31
+enviou cinco conversões, uma para cada um de `cf_campo_que_nao_existe_xyz` (nome deliberadamente
+inventado), `cf_cnpj`, `cf_produto_interesse`, `cf_origem` e `cf_produtos_carrinho`: **as cinco
+responderam HTTP 200 com `event_uuid`**, inclusive a do campo fictício. A Conversions API não valida
+a existência de campo personalizado — ela **descarta em silêncio** o que não reconhece.
+
+Consequências práticas:
+1. **Nenhum lead se perde por campo faltando** — o risco que motivou o retry nunca se materializa
+   por esta causa. O código do retry NÃO é removido: ele continua sendo a rede de segurança correta
+   para um 400 de validação de qualquer outra natureza, e o custo dele é zero enquanto não dispara.
+2. **`validation_retry_ok` deixa de ser o sinal de "falta criar `cf_*`"** que a entrada de 2026-08-25
+   prometia. Aquela coluna nunca vai acusar campo ausente, porque o RD nunca reclama. O sinal
+   REAL de que os campos existem é olhar um contato no painel do RD e ver os valores lá.
+3. **Criar os quatro `cf_*` no painel continua obrigatório**, e agora com urgência maior, não menor:
+   sem eles, CNPJ, produto de interesse, origem da seção e lista do carrinho são **descartados sem
+   deixar rastro em lugar nenhum** — nem erro na API, nem coluna no nosso banco, nem linha de log.
+   A falha é 100% silenciosa dos dois lados.
+
+**Limite da verificação**: a API Key só autoriza eventos de conversão — `GET /platform/contacts/…`
+responde 401 (`"The access token is missing"`, exige OAuth). Então **não foi possível confirmar por
+API quais campos de fato gravaram no contato**. A conferência de que os `cf_*` existem e estão sendo
+populados tem que ser feita a olho no painel do RD, abrindo um dos contatos de teste
+(`teste-rd-integracao@roco.com.br`, `sonda-campos@roco.com.br`).
+
+**Impacto**: nenhuma mudança de código. `.env` de desenvolvimento com `RD_STATION_API_KEY` válida;
+produção ainda precisa da sua. O e-mail transacional segue `not_configured` (Resend sem chave) — o
+lead é gravado e vai ao RD de qualquer forma, que é a garantia do desenho.
+
+## 2026-08-31 — `cf_mensagem`: a mensagem escrita pelo visitante passa a chegar ao RD
+
+**Decisão**: o campo livre `message` do formulário de contato passa a ser enviado ao RD Station no
+campo personalizado `cf_mensagem`, que **já existia na conta** (o stakeholder listou os campos
+cadastrados em 2026-08-31 e ele estava lá, sem consumidor nenhum do nosso lado).
+
+**Por que isto era uma lacuna real, e não um enfeite**: até aqui a mensagem era gravada em
+`contact_submissions.message` e interpolada no e-mail de notificação — e só. Como o Resend ainda
+está sem credencial (`email_status = "not_configured"` em todo lead), na prática **o texto que a
+pessoa escreveu não chegava a ninguém**: ficava numa coluna do Postgres que o time comercial não
+abre. Quem trabalha o lead vive no RD, e lá o motivo do contato simplesmente não aparecia.
+
+**Tratamento do valor** (`buildMessageSummary`, pura e testada):
+- **Achata espaços em branco** — quebras de linha e espaços repetidos viram um espaço só. O campo
+  personalizado do RD é exibido em UMA linha na ficha do contato, e o `<textarea>` produz quebras
+  com frequência (`optionalMultilineField` passou a aceitá-las de propósito em 2026-08-25).
+- **Teto de 1000 caracteres** (`MESSAGE_MAX_LENGTH`), mesmo número e mesmo raciocínio de
+  `CART_SUMMARY_MAX_LENGTH`: o schema aceita até 2000, mas campo de CRM não é corpo de e-mail.
+- **Corta no limite de PALAVRA**, nunca no meio dela, com sufixo `"… (mensagem completa por
+  e-mail)"` — o texto íntegro continua em `contact_submissions.message` e no e-mail, que não têm teto.
+- Omitido do payload quando não há mensagem (mesmo padrão condicional dos outros `cf_*`), e
+  derrubado por `stripCustomFields` no retry como qualquer campo customizado.
+
+**Alternativas**: (a) mandar no campo padrão de alguma anotação do RD — não existe slot padrão para
+texto livre na Conversions API; (b) preservar as quebras de linha — rejeitado, o campo é de uma
+linha e o resultado ficaria com espaçamento estranho na ficha; (c) mandar os 2000 caracteres sem
+teto — rejeitado pelo mesmo motivo já registrado para o carrinho (nenhum limite de valor de `cf_*`
+é documentado pelo RD, então o teto é decisão de engenharia, não contrato).
+
+**Campos da conta que continuam SEM uso, deliberadamente**: `cf_seu_telefone` e `cf_whatsapp` — o
+telefone já vai no campo PADRÃO `personal_phone`, que é melhor (não depende de cadastro e alimenta
+os relatórios nativos do RD). `cf_departamento`, `cf_tipo`, `cf_representante`, `cf_bairro`,
+`cf_seu_estado` e `cf_aniversario` não têm origem no formulário público. Duplicar dado em campo
+customizado só criaria duas fontes de verdade para a mesma informação.
+
+**Impacto**: `rd-station.ts` ganha `buildMessageSummary` + `MESSAGE_MAX_LENGTH` + o campo no tipo do
+payload; 9 testes novos (1098 → 1107). Uma fixture de teste precisou de ajuste: o payload "sem
+nenhum campo customizado" agora exige zerar também `message`. **Pendência que continua aberta**:
+`cf_origem` NÃO existe na conta (é o único dos quatro que o código envia e o painel não tem) —
+enquanto não for criado, a origem da seção do site é descartada em silêncio, pelo mecanismo
+documentado na entrada anterior.

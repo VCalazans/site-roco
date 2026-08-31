@@ -24,10 +24,23 @@ Stakeholder abriu no navegador e aprovou o resultado visual.
   com `subject: "cart"`, migration `drizzle/0009_youthful_gressill.sql`
 - Container local em :3000 serve o código ATUAL (rebuildado após o carrinho)
 
+## RD Station — VALIDADO em 2026-08-31
+Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
+`POST /api/contact` grava `rd_station_status = "sent"` com o uuid preenchido. O 401 anterior era
+credencial da API LEGADA 1.3 ("token público/privado"), sistema de autenticação diferente da
+Conversions API. Nenhuma mudança de código foi necessária.
+⚠️ Sonda revelou que o RD aceita campo personalizado INEXISTENTE com HTTP 200 — descarta em
+silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles NÃO aparece em erro
+nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
+
 ## Pending
-- **RD Station**: criar campo customizado `cf_produtos_carrinho` (ao lado de `cf_cnpj`,
-  `cf_produto_interesse`, `cf_origem`)
-- **API Keys** (stakeholder): provisionar RD Station API Key + Resend API Key
+- **RD Station (stakeholder)**: criar `cf_origem` no painel — é o ÚNICO campo que o código envia e
+  a conta não tem (conferido na lista de 2026-08-31). `cf_cnpj`, `cf_produto_interesse`,
+  `cf_produtos_carrinho` e `cf_mensagem` já existem. Sem `cf_origem`, a seção do site que gerou o
+  lead some sem aviso. Conferir abrindo `teste-campos-rd@roco.com.br` no painel do RD.
+- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
+  (hoje `email_status = "not_configured"` em todo lead).
+- `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
 - merge `feat/porta-mais-site` → `main` + push
 - seed em produção: `npm run db:seed` com `DATABASE_URL` de produção
 - Publicar o site em produção (main está ~70+ commits atrás)

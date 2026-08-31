@@ -84,12 +84,45 @@ export function buildCartProductsSummary(
   return `${result}${CART_SUMMARY_TRUNCATION_SUFFIX}`;
 }
 
+/**
+ * Teto de `cf_mensagem`. A mensagem livre aceita até 2000 caracteres no nosso
+ * schema (`contact-submit.ts`), mas o campo do RD é um campo de texto de CRM,
+ * não um corpo de e-mail — mesmo raciocínio de `CART_SUMMARY_MAX_LENGTH`.
+ * O texto íntegro continua em `contact_submissions.message` e no e-mail de
+ * notificação, que não têm este teto.
+ */
+export const MESSAGE_MAX_LENGTH = 1000;
+const MESSAGE_TRUNCATION_SUFFIX = "… (mensagem completa por e-mail)";
+
+/**
+ * Prepara a mensagem livre para `cf_mensagem`. PURA, sem I/O.
+ *
+ * Colapsa quebras de linha e espaços repetidos num único espaço: o campo
+ * customizado do RD é exibido em UMA linha na ficha do contato, e o
+ * `<textarea>` do formulário produz quebras com frequência (ver
+ * `optionalMultilineField`, que passou a aceitá-las de propósito em
+ * 2026-08-25). Trunca no limite de PALAVRA, nunca no meio dela.
+ */
+export function buildMessageSummary(
+  message: string,
+  max: number = MESSAGE_MAX_LENGTH
+): string {
+  const flat = message.replace(/\s+/g, " ").trim();
+  if (flat.length <= max) return flat;
+
+  const budget = Math.max(0, max - MESSAGE_TRUNCATION_SUFFIX.length);
+  const clipped = flat.slice(0, budget);
+  const lastSpace = clipped.lastIndexOf(" ");
+  const body = lastSpace > 0 ? clipped.slice(0, lastSpace) : clipped;
+  return `${body}${MESSAGE_TRUNCATION_SUFFIX}`;
+}
+
 type RdStationLegalBase = { category: string; type: string; status: string };
 
 /**
  * Campos do payload. Os `cf_*` são CUSTOMIZADOS e precisam existir na conta
  * do RD Station antes do primeiro envio (`cf_cnpj`, `cf_produto_interesse`,
- * `cf_origem`, `cf_produtos_carrinho` — ver `.env.example`); os demais são
+ * `cf_origem`, `cf_produtos_carrinho`, `cf_mensagem` — ver `.env.example`); os demais são
  * PADRÃO da Conversions API
  * e funcionam sem nenhuma configuração no painel — inclusive
  * `traffic_source`/`traffic_medium`/`traffic_campaign`, que são os slots
@@ -105,6 +138,7 @@ export type RdStationConversionFields = {
   cf_produto_interesse?: string;
   cf_origem?: string;
   cf_produtos_carrinho?: string;
+  cf_mensagem?: string;
   traffic_source?: string;
   traffic_medium?: string;
   traffic_campaign?: string;
@@ -142,6 +176,7 @@ export function buildRdStationConversionPayload(
     meta.cartItems && meta.cartItems.length > 0
       ? buildCartProductsSummary(meta.cartItems)
       : undefined;
+  const cfMensagem = input.message ? buildMessageSummary(input.message) : undefined;
 
   return {
     event_type: "CONVERSION",
@@ -155,6 +190,7 @@ export function buildRdStationConversionPayload(
       ...(input.cnpj ? { cf_cnpj: input.cnpj } : {}),
       ...(cfProdutoInteresse ? { cf_produto_interesse: cfProdutoInteresse } : {}),
       ...(cfProdutosCarrinho ? { cf_produtos_carrinho: cfProdutosCarrinho } : {}),
+      ...(cfMensagem ? { cf_mensagem: cfMensagem } : {}),
       ...(input.origin ? { cf_origem: input.origin } : {}),
       ...(input.utmSource ? { traffic_source: input.utmSource } : {}),
       ...(input.utmMedium ? { traffic_medium: input.utmMedium } : {}),

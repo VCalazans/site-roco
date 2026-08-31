@@ -5,6 +5,8 @@ import {
   hasCustomFields,
   stripCustomFields,
   buildCartProductsSummary,
+  buildMessageSummary,
+  MESSAGE_MAX_LENGTH,
   CART_SUMMARY_MAX_LENGTH,
   type RdStationConversionMeta,
 } from "./rd-station";
@@ -441,7 +443,9 @@ describe("rastreio de aquisição no payload do RD Station", () => {
 
     it("is a no-op on a payload that has no custom field", () => {
       const payload = buildRdStationConversionPayload(
-        createContactInput({ cnpj: undefined }),
+        // `message` entra aqui desde que `cf_mensagem` passou a ser enviado
+        // (2026-08-31): sem zerá-lo o payload ainda teria campo customizado.
+        createContactInput({ cnpj: undefined, message: undefined }),
         createMeta({ productName: undefined, productSku: undefined })
       );
       expect(hasCustomFields(payload)).toBe(false);
@@ -745,5 +749,72 @@ describe("buildCartProductsSummary", () => {
       const payload = buildRdStationConversionPayload(input, meta);
       expect(payload.payload.conversion_identifier).toBe("carrinho_cotacao");
     });
+  });
+});
+
+describe("buildMessageSummary", () => {
+  it("collapses newlines and repeated spaces into single spaces", () => {
+    expect(buildMessageSummary("Olá,\n\nPreciso  de   orçamento.\r\nObrigado.")).toBe(
+      "Olá, Preciso de orçamento. Obrigado."
+    );
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(buildMessageSummary("  texto  ")).toBe("texto");
+  });
+
+  it("leaves a message within the cap untouched", () => {
+    const message = "Gostaria de cotar 200 unidades.";
+    expect(buildMessageSummary(message)).toBe(message);
+  });
+
+  it("truncates at a word boundary and never exceeds the cap", () => {
+    const message = "palavra ".repeat(400).trim();
+    const result = buildMessageSummary(message);
+
+    expect(result.length).toBeLessThanOrEqual(MESSAGE_MAX_LENGTH);
+    expect(result.endsWith("… (mensagem completa por e-mail)")).toBe(true);
+    // Corte no limite de palavra: nunca sobra um fragmento como "palav".
+    expect(result).not.toMatch(/palav(?!ra)\w*…/);
+  });
+
+  it("respects a custom cap", () => {
+    expect(buildMessageSummary("a".repeat(200), 50).length).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("cf_mensagem field", () => {
+  it("includes cf_mensagem when the visitor wrote a message", () => {
+    const payload = buildRdStationConversionPayload(
+      createContactInput({ message: "Preciso de orçamento." }),
+      createMeta()
+    );
+
+    expect(payload.payload.cf_mensagem).toBe("Preciso de orçamento.");
+  });
+
+  it("omits cf_mensagem entirely when there is no message", () => {
+    const payload = buildRdStationConversionPayload(
+      createContactInput({ message: undefined }),
+      createMeta()
+    );
+
+    expect(payload.payload).not.toHaveProperty("cf_mensagem");
+  });
+
+  it("flattens a multiline message before sending", () => {
+    const payload = buildRdStationConversionPayload(
+      createContactInput({ message: "Linha um.\nLinha dois." }),
+      createMeta()
+    );
+
+    expect(payload.payload.cf_mensagem).toBe("Linha um. Linha dois.");
+  });
+
+  it("is dropped by stripCustomFields like every other cf_ field", () => {
+    const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
+    const stripped = stripCustomFields(payload);
+
+    expect(stripped.payload).not.toHaveProperty("cf_mensagem");
   });
 });
