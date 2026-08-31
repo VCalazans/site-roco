@@ -16,6 +16,12 @@ import { useEffect, useRef, type RefObject } from "react";
  * contra o reset. Então os valores são lidos na fase de CAPTURA do `submit`,
  * antes de qualquer coisa acontecer, e guardados numa ref até a confirmação.
  *
+ * NÃO DEPENDE DO MAUTIC SOBREVIVER: a ROCO decidiu sair dele, e amarrar o RD à
+ * confirmação daquele servidor faria o CRM parar de receber lead no dia em que
+ * ele for desligado — em silêncio, já que este encaminhamento não mostra erro.
+ * Por isso, além da confirmação, há um disparo por TEMPO: passada a janela sem
+ * resposta, o lead segue assim mesmo. Os dois caminhos são deduplicados.
+ *
  * DETECÇÃO DE SUCESSO: mesma dupla de sinais já usada por `useCatalogDownload`
  * — o callback `onResponseEnd` do SDK e, como reserva, a classe
  * `mauticform-post-success` no wrapper. O callback anterior é ENCADEADO e
@@ -30,6 +36,14 @@ type MauticWindow = Window & {
 };
 
 const SUCCESS_CLASS = "mauticform-post-success";
+
+/**
+ * Quanto esperar pela confirmação do Mautic antes de encaminhar assim mesmo.
+ * Generoso de propósito: o caminho normal deve vencer em toda submissão que dê
+ * certo, e este disparo é a exceção — servidor fora do ar, rede caída ou o
+ * Mautic desligado de vez.
+ */
+const MAUTIC_CONFIRMATION_TIMEOUT_MS = 10_000;
 
 /** Campos do formulário do Mautic → campos do lead enviado ao RD. */
 const FIELD_MAP = {
@@ -77,6 +91,7 @@ export function useRdLeadForward({
 }: UseRdLeadForwardOptions) {
   const captured = useRef<CapturedFields>({});
   const forwarded = useRef(false);
+  const fallbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -85,6 +100,26 @@ export function useRdLeadForward({
     const onSubmitCapture = () => {
       captured.current = readFields(container, formAlias);
       forwarded.current = false;
+
+      // REDE DE SEGURANÇA CONTRA O PRÓPRIO MAUTIC.
+      //
+      // O caminho normal é encaminhar quando o Mautic confirma o sucesso. Só
+      // que a ROCO decidiu SAIR do Mautic (decisionLog 2026-08-23): amarrar o
+      // RD à confirmação dele significaria que, no dia em que aquele servidor
+      // for desligado ou ficar fora do ar, o formulário para de dar sucesso e
+      // o RD deixa de receber lead NENHUM — sem erro em lugar algum, porque
+      // este encaminhamento é silencioso por desenho.
+      //
+      // Então: se a confirmação não chegar dentro da janela, encaminha assim
+      // mesmo. O `forwarded` garante que o caminho normal e este nunca mandem
+      // o mesmo lead duas vezes — vence quem chegar primeiro.
+      //
+      // TRADE-OFF ACEITO: um envio que o Mautic REJEITOU (captcha errado, por
+      // exemplo) também cai aqui e vira lead no RD. É deliberado — quem errou
+      // o captcha ainda digitou nome, e-mail e telefone de verdade, e um lead
+      // com captcha errado vale mais que lead nenhum.
+      clearTimeout(fallbackTimer.current);
+      fallbackTimer.current = setTimeout(forward, MAUTIC_CONFIRMATION_TIMEOUT_MS);
     };
     // Fase de CAPTURA: roda antes do handler do SDK, que é quem inicia o AJAX.
     container.addEventListener("submit", onSubmitCapture, true);
@@ -95,6 +130,7 @@ export function useRdLeadForward({
       // Sem nome ou e-mail não há lead a encaminhar — o servidor recusaria.
       if (!fields.nome || !fields.email) return;
       forwarded.current = true;
+      clearTimeout(fallbackTimer.current);
 
       const fullName = [fields.nome, fields.sobrenome].filter(Boolean).join(" ");
 
@@ -143,6 +179,7 @@ export function useRdLeadForward({
 
     return () => {
       container.removeEventListener("submit", onSubmitCapture, true);
+      clearTimeout(fallbackTimer.current);
       // Só desfaz o PRÓPRIO handler — outra montagem pode tê-lo substituído.
       if (slot.onResponseEnd === handler) slot.onResponseEnd = previous;
       observer?.disconnect();

@@ -139,6 +139,20 @@ credencial de servidor. Um `fetch` para `api.rd.services` feito do cliente a pub
 código-fonte da página para qualquer visitante. O Route Handler existe para o envio sair "direto ao
 RD" sem expor a chave — é a única razão dele.
 
+**O RD NÃO depende do Mautic sobreviver** (corrigido no mesmo dia, após a pergunta certa do
+stakeholder: "a main não está mais enviando pro Mautic, correto?"). A primeira versão encaminhava
+SOMENTE quando o Mautic confirmava sucesso — o que amarrava a chegada de lead no RD à saúde de uma
+plataforma que a ROCO já decidiu abandonar (decisionLog 2026-08-23). No dia em que aquele servidor
+fosse desligado, o formulário pararia de dar sucesso e o RD deixaria de receber lead NENHUM, sem
+erro em lugar algum, porque o encaminhamento é silencioso por desenho. Agora há um segundo gatilho,
+por TEMPO: passados 10 s do submit sem confirmação, o lead segue assim mesmo. Os dois caminhos são
+deduplicados por uma ref — vence quem chegar primeiro. TRADE-OFF ACEITO: um envio que o Mautic
+REJEITOU (captcha errado) também cai no caminho por tempo e vira lead no RD; é deliberado, porque
+quem errou o captcha ainda digitou nome, e-mail e telefone reais, e lead com captcha errado vale
+mais que lead nenhum. Verificado em 2026-08-31 que o servidor Mautic segue no ar e aceitando
+(`form/generate.js?id=1` responde 200; um submit real redireciona para `/form/message`, que é o
+caminho de sucesso dele).
+
 **Por que MANTER o Mautic**: esta landing não tem banco (o `package.json` traz `next`, `react` e
 pouco mais — nada de Postgres, Drizzle ou Redis), então não existe aqui o "grava o lead primeiro,
 dispara os canais depois" do site novo. Sem o Mautic, uma indisponibilidade do RD faria o lead se
