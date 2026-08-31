@@ -45,3 +45,4 @@ next-env.d.ts.bak
 
 # large design source (PSD ~95MB) — kept local; use Git LFS if it must be versioned
 /docs/documento
+/docs/PRODUTOS
