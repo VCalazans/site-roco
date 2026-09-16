@@ -1,4 +1,5 @@
 import type { Dictionary } from "@/i18n/get-dictionary";
+import type { RepresentativeEditErrorCode } from "./representative-types";
 
 /**
  * Formato da chave `portal` nos dicionários (`src/i18n/dictionaries/{pt,en}.json`,
@@ -213,9 +214,17 @@ export type PortalDictionary = {
     };
     actions: {
       viewDetails: string;
+      edit: string;
       disable: string;
       enable: string;
       delete: string;
+    };
+    edit: {
+      title: string;
+      save: string;
+      saving: string;
+      emailHint: string;
+      errors: Record<RepresentativeEditErrorCode, string>;
     };
     fields: {
       disableReason: string;
@@ -225,6 +234,9 @@ export type PortalDictionary = {
     };
     details: {
       title: string;
+      name: string;
+      email: string;
+      companyName: string;
       cnpj: string;
       phone: string;
       region: string;

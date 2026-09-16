@@ -639,7 +639,8 @@
         "viewDetails": "View details",
         "disable": "Disable",
         "enable": "Re-enable",
-        "delete": "Delete record"
+        "delete": "Delete record",
+        "edit": "Edit record"
       },
       "fields": {
         "disableReason": "Reason (optional)",
@@ -658,7 +659,10 @@
         "notes": "Representative's notes",
         "reviewNotes": "Reviewer's notes",
         "documents": "Documents",
-        "disableReason": "Reason for disabling"
+        "disableReason": "Reason for disabling",
+        "name": "Name",
+        "email": "E-mail (login)",
+        "companyName": "Company name"
       },
       "confirmDisable": {
         "title": "Disable record?",
@@ -695,6 +699,21 @@
       "empty": {
         "title": "No representatives awaiting review",
         "description": "New registrations will appear here for analysis."
+      },
+      "edit": {
+        "title": "Edit record",
+        "save": "Save changes",
+        "saving": "Saving...",
+        "emailHint": "This is the e-mail used to sign in to the portal.",
+        "errors": {
+          "required": "Required field.",
+          "invalid_email": "Invalid e-mail.",
+          "invalid_cnpj": "Invalid CNPJ.",
+          "invalid_phone": "Invalid phone. Use area code + number.",
+          "email_exists": "This e-mail already belongs to another user.",
+          "cnpj_exists": "This CNPJ is already used by another record.",
+          "generic": "Could not save. Please try again."
+        }
       }
     },
     "welcome": {

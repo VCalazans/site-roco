@@ -19,12 +19,75 @@ import BlockIcon from "@mui/icons-material/Block";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RestoreIcon from "@mui/icons-material/Restore";
 import DescriptionIcon from "@mui/icons-material/Description";
+import EditIcon from "@mui/icons-material/Edit";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
 import { formatCNPJ } from "@/shared/components/contact-form/cnpj";
-import type { RepresentativeListItem } from "@/modules/portal/lib/representative-types";
+import { formatPhoneBR } from "@/shared/lib/phone";
+import {
+  representativeAdminUpdateSchema,
+  type RepresentativeAdminUpdateInput,
+} from "@/server/lib/representative-admin-update";
+import type {
+  RepresentativeEditErrorCode,
+  RepresentativeListItem,
+} from "@/modules/portal/lib/representative-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+
+type EditForm = {
+  name: string;
+  email: string;
+  companyName: string;
+  cnpj: string;
+  phone: string;
+  region: string;
+  notes: string;
+};
+
+type EditField = keyof EditForm;
+
+const EDIT_ERROR_CODES = new Set<string>([
+  "required",
+  "invalid_email",
+  "invalid_cnpj",
+  "invalid_phone",
+  "email_exists",
+  "cnpj_exists",
+]);
+
+/** Mensagem do servidor/zod → código conhecido (qualquer outra coisa vira `generic`). */
+function toEditErrorCode(message: string | undefined): RepresentativeEditErrorCode {
+  return message && EDIT_ERROR_CODES.has(message)
+    ? (message as RepresentativeEditErrorCode)
+    : "generic";
+}
+
+function formFromRepresentative(representative: RepresentativeListItem): EditForm {
+  return {
+    name: representative.user.name ?? "",
+    email: representative.user.email ?? "",
+    companyName: representative.companyName ?? "",
+    cnpj: representative.cnpj ?? "",
+    phone: representative.phone ?? "",
+    region: representative.region ?? "",
+    notes: representative.notes ?? "",
+  };
+}
+
+/** Rótulo + valor do modo de visualização. */
+function DetailField({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <Stack sx={{ flex: 1, minWidth: 0 }}>
+      <Typography variant="caption" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
+        {value || "—"}
+      </Typography>
+    </Stack>
+  );
+}
 
 type RepresentativeDetailsDialogProps = {
   open: boolean;
@@ -45,6 +108,9 @@ type RepresentativeDetailsDialogProps = {
  *  - botões Disable / Reativar / Excluir (gated pelas permissions
  *    `representatives:disable` e `representatives:delete`; o admin é o
  *    único que tem ambas hoje).
+ *  - edição completa (`representatives:update`, 2026-09-16): nome, e-mail de
+ *    login, razão social, CNPJ, telefone, região e observações — validada no
+ *    cliente com o MESMO schema do servidor (`representative-admin-update.ts`).
  *  - estado secundário: `confirmDisable` (campo de motivo + OK) e
  *    `confirmDelete` (confirmação simples). Reativação é one-click.
  */
@@ -67,9 +133,32 @@ export function RepresentativeDetailsDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [disableReason, setDisableReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [form, setForm] = useState<EditForm | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditField, string>>>({});
+  const editing = form !== null;
 
   const canDisable = can(user, "representatives", "disable");
   const canDelete = can(user, "representatives", "delete");
+  const canEdit = can(user, "representatives", "update");
+
+  const updateMutation = useMutation(
+    trpc.representatives.update.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: trpc.representatives.list.queryKey() });
+        onClose();
+      },
+      onError: (error) => {
+        const code = toEditErrorCode(error.message);
+        if (code === "email_exists") {
+          setFieldErrors({ email: dictionary.edit.errors.email_exists });
+        } else if (code === "cnpj_exists") {
+          setFieldErrors({ cnpj: dictionary.edit.errors.cnpj_exists });
+        } else {
+          setActionError(dictionary.edit.errors[code]);
+        }
+      },
+    })
+  );
 
   const disableMutation = useMutation(
     trpc.representatives.disable.mutationOptions({
@@ -121,7 +210,75 @@ export function RepresentativeDetailsDialog({
   if (!representative) return null;
 
   const isDisabled = Boolean(representative.disabledAt);
-  const isMutating = disableMutation.isPending || enableMutation.isPending || deleteMutation.isPending;
+  const isMutating =
+    disableMutation.isPending ||
+    enableMutation.isPending ||
+    deleteMutation.isPending ||
+    updateMutation.isPending;
+
+  const startEditing = () => {
+    setForm(formFromRepresentative(representative));
+    setFieldErrors({});
+    setActionError(null);
+  };
+
+  const cancelEditing = () => {
+    setForm(null);
+    setFieldErrors({});
+    setActionError(null);
+  };
+
+  const setField = (field: EditField, value: string) => {
+    setForm((current) => (current ? { ...current, [field]: value } : current));
+    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const submitEdit = () => {
+    if (!form) return;
+    setActionError(null);
+    const payload: RepresentativeAdminUpdateInput = { id: representative.id, ...form };
+    const parsed = representativeAdminUpdateSchema.safeParse(payload);
+    if (!parsed.success) {
+      const errors: Partial<Record<EditField, string>> = {};
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && field in form && !errors[field as EditField]) {
+          const code = toEditErrorCode(issue.message);
+          errors[field as EditField] = dictionary.edit.errors[code === "generic" ? "required" : code];
+        }
+      }
+      setFieldErrors(errors);
+      return;
+    }
+    updateMutation.mutate(payload);
+  };
+
+  const renderEditField = (
+    field: EditField,
+    label: string,
+    options: {
+      format?: (value: string) => string;
+      helperText?: string;
+      multiline?: boolean;
+      type?: string;
+    } = {}
+  ) => (
+    <TextField
+      label={label}
+      value={form?.[field] ?? ""}
+      onChange={(event) =>
+        setField(field, options.format ? options.format(event.target.value) : event.target.value)
+      }
+      error={Boolean(fieldErrors[field])}
+      helperText={fieldErrors[field] ?? options.helperText}
+      type={options.type}
+      multiline={options.multiline}
+      minRows={options.multiline ? 3 : undefined}
+      disabled={isMutating}
+      size="small"
+      fullWidth
+    />
+  );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -155,57 +312,59 @@ export function RepresentativeDetailsDialog({
         ) : null}
 
         <Stack spacing={2}>
-          {/* Cabeçalho: contato + status atual */}
-          <Stack spacing={0.5}>
-            <Typography variant="caption" color="text.secondary">
-              {dictionary.table.name}
-            </Typography>
-            <Typography variant="body1">{representative.user.name ?? "—"}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {representative.user.email ?? "—"}
-            </Typography>
-          </Stack>
-
-          <Divider />
-
-          {/* Campos do cadastro */}
-          <Stack spacing={1.5}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <Stack sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {details.cnpj}
-                </Typography>
-                <Typography variant="body2">
-                  {representative.companyName ? formatCNPJ(representative.companyName) : "—"}
-                </Typography>
+          {editing ? (
+            <Stack spacing={2}>
+              <Typography variant="subtitle2">{dictionary.edit.title}</Typography>
+              {renderEditField("name", details.name)}
+              {renderEditField("email", details.email, {
+                type: "email",
+                helperText: dictionary.edit.emailHint,
+              })}
+              {renderEditField("companyName", details.companyName)}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                {renderEditField("cnpj", details.cnpj, { format: formatCNPJ })}
+                {renderEditField("phone", details.phone, { format: formatPhoneBR, type: "tel" })}
               </Stack>
-              <Stack sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {details.phone}
-                </Typography>
-                <Typography variant="body2">{representative.region ?? "—"}</Typography>
-              </Stack>
+              {renderEditField("region", details.region)}
+              {renderEditField("notes", details.notes, { multiline: true })}
             </Stack>
+          ) : (
+            <>
+              {/* Cabeçalho: contato */}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <DetailField label={details.name} value={representative.user.name} />
+                <DetailField label={details.email} value={representative.user.email} />
+              </Stack>
 
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <Stack sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {details.region}
-                </Typography>
-                <Typography variant="body2">{representative.region ?? "—"}</Typography>
+              <Divider />
+
+              {/* Campos do cadastro */}
+              <Stack spacing={1.5}>
+                <DetailField label={details.companyName} value={representative.companyName} />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <DetailField label={details.cnpj} value={representative.cnpj} />
+                  <DetailField label={details.phone} value={representative.phone} />
+                </Stack>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <DetailField label={details.region} value={representative.region} />
+                  <DetailField
+                    label={details.submittedAt}
+                    value={
+                      representative.submittedAt
+                        ? new Date(representative.submittedAt).toLocaleString()
+                        : null
+                    }
+                  />
+                </Stack>
+                {representative.notes ? (
+                  <DetailField label={details.notes} value={representative.notes} />
+                ) : null}
+                {representative.reviewNotes ? (
+                  <DetailField label={details.reviewNotes} value={representative.reviewNotes} />
+                ) : null}
               </Stack>
-              <Stack sx={{ flex: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {details.submittedAt}
-                </Typography>
-                <Typography variant="body2">
-                  {representative.submittedAt
-                    ? new Date(representative.submittedAt).toLocaleString()
-                    : "—"}
-                </Typography>
-              </Stack>
-            </Stack>
-          </Stack>
+            </>
+          )}
 
           {/* Soft-disable info (só se desabilitado) */}
           {isDisabled ? (
@@ -328,9 +487,25 @@ export function RepresentativeDetailsDialog({
         </Stack>
       </DialogContent>
 
-      {!confirmingDisable && !confirmingDelete ? (
+      {editing ? (
+        <DialogActions>
+          <Button onClick={cancelEditing} disabled={isMutating}>
+            {common.cancel}
+          </Button>
+          <Button variant="contained" onClick={submitEdit} disabled={isMutating}>
+            {updateMutation.isPending ? dictionary.edit.saving : dictionary.edit.save}
+          </Button>
+        </DialogActions>
+      ) : null}
+
+      {!editing && !confirmingDisable && !confirmingDelete ? (
         <DialogActions>
           <Button onClick={onClose}>{common.cancel}</Button>
+          {canEdit ? (
+            <Button startIcon={<EditIcon />} onClick={startEditing} disabled={isMutating}>
+              {dictionary.actions.edit}
+            </Button>
+          ) : null}
           {canDisable && !isDisabled ? (
             <Button
               startIcon={<BlockIcon />}

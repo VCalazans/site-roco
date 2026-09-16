@@ -639,7 +639,8 @@
         "viewDetails": "Ver detalhes",
         "disable": "Desabilitar",
         "enable": "Reativar",
-        "delete": "Excluir cadastro"
+        "delete": "Excluir cadastro",
+        "edit": "Editar cadastro"
       },
       "fields": {
         "disableReason": "Motivo (opcional)",
@@ -658,7 +659,10 @@
         "notes": "Observações do representante",
         "reviewNotes": "Anotações do revisor",
         "documents": "Documentos",
-        "disableReason": "Motivo do desligamento"
+        "disableReason": "Motivo do desligamento",
+        "name": "Nome",
+        "email": "E-mail (login)",
+        "companyName": "Razão social"
       },
       "confirmDisable": {
         "title": "Desabilitar cadastro?",
@@ -695,6 +699,21 @@
       "empty": {
         "title": "Nenhum representante aguardando revisão",
         "description": "Novos cadastros aparecerão aqui para análise."
+      },
+      "edit": {
+        "title": "Editar cadastro",
+        "save": "Salvar alterações",
+        "saving": "Salvando...",
+        "emailHint": "É o e-mail usado para entrar no portal.",
+        "errors": {
+          "required": "Campo obrigatório.",
+          "invalid_email": "E-mail inválido.",
+          "invalid_cnpj": "CNPJ inválido.",
+          "invalid_phone": "Telefone inválido. Use DDD + número.",
+          "email_exists": "Este e-mail já pertence a outro usuário.",
+          "cnpj_exists": "Este CNPJ já está em outro cadastro.",
+          "generic": "Não foi possível salvar. Tente novamente."
+        }
       }
     },
     "welcome": {

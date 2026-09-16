@@ -10,7 +10,14 @@ export type RepresentativeListItem = {
   id: string;
   status: RepresentativeStatus;
   companyName: string | null;
+  cnpj: string | null;
+  phone: string | null;
   region: string | null;
+  /** Observações do próprio representante (onboarding). */
+  notes: string | null;
+  /** Retorno do revisor (aprovação/rejeição). */
+  reviewNotes: string | null;
+  reviewedAt: string | null;
   submittedAt: string | null;
   createdAt: string;
   /**
@@ -66,6 +73,20 @@ export type RepresentativeStats = {
   /** Quantos cadastros estão atualmente soft-disabled (independe do status). */
   disabled: number;
 };
+
+/**
+ * Códigos de erro da edição do cadastro pelo admin — os mesmos que o servidor
+ * devolve (`representatives.update`: zod `message` e `CONFLICT`), mapeados
+ * para texto em `portal.representatives.edit.errors`.
+ */
+export type RepresentativeEditErrorCode =
+  | "required"
+  | "invalid_email"
+  | "invalid_cnpj"
+  | "invalid_phone"
+  | "email_exists"
+  | "cnpj_exists"
+  | "generic";
 
 export const REPRESENTATIVE_STATUS_TABS: RepresentativeStatus[] = [
   "submitted",

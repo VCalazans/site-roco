@@ -1,6 +1,6 @@
 import "server-only";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getPresignedDownloadUrl, getPresignedUploadUrl, headObject } from "@/core/storage/r2";
 import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
@@ -16,6 +16,10 @@ import {
 import { writeAuditLog } from "@/server/lib/audit";
 import { translateDbError } from "@/server/lib/db-error";
 import { checkRateLimit } from "@/server/lib/rate-limit";
+import {
+  representativeAdminUpdateSchema,
+  splitRepresentativeAdminUpdate,
+} from "@/server/lib/representative-admin-update";
 import { permissionProcedure, protectedProcedure, router } from "../init";
 
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
@@ -379,7 +383,12 @@ export const representativesRouter = router({
             id: representatives.id,
             status: representatives.status,
             companyName: representatives.companyName,
+            cnpj: representatives.cnpj,
+            phone: representatives.phone,
             region: representatives.region,
+            notes: representatives.notes,
+            reviewNotes: representatives.reviewNotes,
+            reviewedAt: representatives.reviewedAt,
             submittedAt: representatives.submittedAt,
             createdAt: representatives.createdAt,
             disabledAt: representatives.disabledAt,
@@ -600,23 +609,17 @@ export const representativesRouter = router({
     }),
 
   /**
-   * Edição pelo admin de campos pós-submit (CNPJ digitado errado, telefone
-   * mudou, representante pediu correção). Não mexe em status — só nos
-   * campos editáveis. Audit log preserva o evento.
+   * Edição COMPLETA do cadastro pelo admin: nome e e-mail de login (tabela
+   * `user`) + razão social, CNPJ, telefone, região e observações. Não mexe em
+   * status — aprovação/rejeição continua em `review`. Contrato/normalização em
+   * `representative-admin-update.ts`. E-mail e CNPJ não podem colidir com
+   * outro cadastro (mensagens `email_exists`/`cnpj_exists`, traduzidas na UI).
+   * O audit log registra só os NOMES dos campos alterados, nunca os valores.
    */
   update: permissionProcedure("representatives", "update")
-    .input(
-      z.object({
-        id: z.string().uuid(),
-        companyName: z.string().trim().min(1).max(200).optional(),
-        cnpj: z.string().trim().min(1).max(18).optional(),
-        phone: z.string().trim().min(1).max(30).optional(),
-        region: z.string().trim().min(1).max(120).optional(),
-        notes: z.string().trim().max(2000).optional(),
-      })
-    )
+    .input(representativeAdminUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, ...patch } = input;
+      const { id, userPatch, representativePatch } = splitRepresentativeAdminUpdate(input);
       const [existing] = await ctx.db
         .select()
         .from(representatives)
@@ -625,21 +628,56 @@ export const representativesRouter = router({
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Cadastro não encontrado." });
       }
-      if (patch.cnpj && !isValidCNPJ(patch.cnpj)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "CNPJ inválido." });
+
+      if (userPatch.email) {
+        const [emailOwner] = await ctx.db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.email, userPatch.email), ne(users.id, existing.userId)))
+          .limit(1);
+        if (emailOwner) {
+          throw new TRPCError({ code: "CONFLICT", message: "email_exists" });
+        }
       }
-      const [updated] = await ctx.db
-        .update(representatives)
-        .set({ ...patch, updatedAt: new Date() })
-        .where(eq(representatives.id, id))
-        .returning();
-      await writeAuditLog(ctx.db, ctx.session, {
-        action: "representatives.update",
-        resource: "representatives",
-        resourceId: id,
-        metadata: { fields: Object.keys(patch) },
-      });
-      return updated;
+
+      if (representativePatch.cnpj) {
+        const [cnpjOwner] = await ctx.db
+          .select({ id: representatives.id })
+          .from(representatives)
+          .where(and(eq(representatives.cnpj, representativePatch.cnpj), ne(representatives.id, id)))
+          .limit(1);
+        if (cnpjOwner) {
+          throw new TRPCError({ code: "CONFLICT", message: "cnpj_exists" });
+        }
+      }
+
+      try {
+        const updated = await ctx.db.transaction(async (tx) => {
+          if (Object.keys(userPatch).length > 0) {
+            await tx.update(users).set(userPatch).where(eq(users.id, existing.userId));
+          }
+          const [row] = await tx
+            .update(representatives)
+            .set({ ...representativePatch, updatedAt: new Date() })
+            .where(eq(representatives.id, id))
+            .returning();
+          return row;
+        });
+
+        await writeAuditLog(ctx.db, ctx.session, {
+          action: "representatives.update",
+          resource: "representatives",
+          resourceId: id,
+          metadata: { fields: [...Object.keys(userPatch), ...Object.keys(representativePatch)] },
+        });
+        return updated;
+      } catch (error) {
+        // Corrida com outro usuário gravando o mesmo e-mail (índice único).
+        if ((error as { code?: string } | undefined)?.code === "23505") {
+          throw new TRPCError({ code: "CONFLICT", message: "email_exists" });
+        }
+        throw translateDbError(error, "Falha ao atualizar o cadastro.");
+      }
     }),
 
   /**
