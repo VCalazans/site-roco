@@ -10,6 +10,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Alert from "@mui/material/Alert";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -70,6 +71,13 @@ export function WelcomeMaterialsFeed({ locale, dictionary }: WelcomeMaterialsFee
                 <Skeleton key={i} variant="rounded" height={64} />
               ))}
             </Stack>
+          ) : listQuery.isError ? (
+            // Antes o erro caía no ramo "lista vazia" e uma permissão negada
+            // aparecia como "Nenhum material publicado ainda." — sintoma
+            // indistinguível de não haver material nenhum.
+            <Alert severity={listQuery.error.data?.code === "FORBIDDEN" ? "warning" : "error"}>
+              {listQuery.error.data?.code === "FORBIDDEN" ? dictionary.forbidden : dictionary.error}
+            </Alert>
           ) : items.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               {dictionary.empty}

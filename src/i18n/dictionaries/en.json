@@ -747,6 +747,8 @@
         "title": "Materials for you",
         "subtitle": "Access support materials published by ROCO to help your work as a representative.",
         "empty": "No materials published yet.",
+        "error": "Could not load the materials. Please try again shortly.",
+        "forbidden": "Your access does not have permission to view the materials yet. Please contact the ROCO team.",
         "downloadLabel": "Download",
         "watchLabel": "Watch",
         "publishedOn": "Published on {date}"

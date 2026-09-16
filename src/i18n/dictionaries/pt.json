@@ -747,6 +747,8 @@
         "title": "Materiais para você",
         "subtitle": "Acesse os materiais de suporte publicados pela ROCO para auxiliar seu trabalho como representante.",
         "empty": "Nenhum material publicado ainda.",
+        "error": "Não foi possível carregar os materiais. Tente novamente em instantes.",
+        "forbidden": "Seu acesso ainda não tem permissão para ver os materiais. Fale com a equipe ROCO.",
         "downloadLabel": "Baixar",
         "watchLabel": "Assistir",
         "publishedOn": "Publicado em {date}"

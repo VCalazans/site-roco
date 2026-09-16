@@ -300,6 +300,9 @@ export type PortalDictionary = {
       title: string;
       subtitle: string;
       empty: string;
+      /** Falha ao carregar (ex.: sessão sem `materials:read`) — nunca confundir com lista vazia. */
+      error: string;
+      forbidden: string;
       downloadLabel: string;
       watchLabel: string;
       /** Placeholder literal `{date}` — usar `interpolate()`. */
