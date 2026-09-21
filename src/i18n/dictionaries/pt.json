@@ -81,10 +81,6 @@
       }
     }
   },
-  "whatsapp": {
-    "label": "Fale conosco no WhatsApp",
-    "message": "Olá! Vim pelo site da ROCO e gostaria de mais informações."
-  },
   "footer": {
     "rights": "© 2026 ROCO. Todos os direitos reservados."
   },

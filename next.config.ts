@@ -53,11 +53,24 @@ const RD_STATION_SCRIPT_HOSTS =
   "https://d335luupugsy2.cloudfront.net https://d1sag09wwfbul8.cloudfront.net";
 
 /**
+ * Pop-ups do RD Station (inclui o botão flutuante do WhatsApp), levantados
+ * lendo o `rdstation-popup.min.js` real em 2026-09-21:
+ *   popups.rdstation.com.br  → `GET /popup/show.json`, a LISTA de pop-ups da
+ *     conta. Sem ele nenhum pop-up aparece — e sem erro fora do console.
+ *   cta-redirect.rdstation.com → `POST /v2/conversions`, o envio do formulário
+ *     do pop-up (é XHR, por isso `connect-src` e não `form-action`).
+ *   cidades.rdstation.com.br → autocomplete do campo "cidade", se usado.
+ * São só destinos de DADOS: nenhum deles entra em `script-src`.
+ */
+const RD_STATION_POPUP_HOSTS =
+  "https://popups.rdstation.com.br https://cta-redirect.rdstation.com https://cidades.rdstation.com.br";
+
+/**
  * Destinos dos hits de tracking. Inclui os hosts de script (as CDNs também
  * recebem beacons) mais `app.rdstation.com.br`, que é para onde a API de
  * eventos do RD envia.
  */
-const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br`;
+const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br ${RD_STATION_POPUP_HOSTS}`;
 
 /**
  * Content-Security-Policy.
@@ -114,12 +127,15 @@ function contentSecurityPolicy(): string {
     // `powershell`, `mshta`, `eval(`, `new Function`, `atob`, `fromCharCode`,
     // `unescape`, `document.write` — todos com 0 ocorrências).
     `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS}${isDev ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self' 'unsafe-inline'",
+    // Google Fonts: o HTML dos pop-ups do RD traz um `<link>` para
+    // fonts.googleapis.com (CSS) que baixa as fontes de fonts.gstatic.com.
+    // Sem isto os pop-ups aparecem, mas com a fonte de fallback.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     // `d335luupugsy2.cloudfront.net`: o `scout/bundle.js` do RD (banner de
     // consentimento) serve seus próprios assets de imagem do mesmo host.
     // O domínio do Mautic permanece por causa do formulário.
     `img-src 'self' data: blob: ${RD_STATION_SCRIPT_HOSTS} ${mautic}`,
-    "font-src 'self'",
+    "font-src 'self' https://fonts.gstatic.com",
     // RD Station: sem isto o script CARREGA mas nenhum hit chega ao RD —
     // falha silenciosa, visível só no console.
     `connect-src 'self' ${RD_STATION_CONNECT_HOSTS} ${mautic}${isDev ? " ws: http://localhost:*" : ""}`,

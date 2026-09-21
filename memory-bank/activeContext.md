@@ -2,45 +2,46 @@
 > Atualizar no início/fim de cada sessão.
 
 ## Data
-2026-08-04
+2026-09-21
 
 ## Fase Atual
-MVP evolução — landing + catálogo no ar; tracking de visitantes recém-instalado.
+MVP estável — landing + catálogo + pop-ups e leads em RD Station; botão próprio de WhatsApp removido.
 
 ## O Que Foi Feito (esta sessão)
-- **Tracking de visitantes via Mautic (`mtc.js`)**, no padrão de segurança já usado no formulário:
-  - `public/vendor/mautic-tracking.js` — cópia verificada e self-hosted do `mtc.js`
-    (SHA-256 `d4378644…`, 100.654 bytes; zero indicadores de ClickFix/ofuscação).
-  - `src/shared/components/analytics/mautic-tracking.tsx` (+ `index.ts`) — instala a fila `mt`,
-    carrega o script self-hosted e emite um pageview por `pathname` novo (App Router é SPA).
-  - Montado em `src/app/[locale]/layout.tsx`.
-  - CSP: **`script-src 'self'` mantido**; adicionado só `https://mautic.roco.com.br` ao `img-src`.
-  - Flag `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED` (prod: on salvo `"false"`; dev: off salvo `"true"`).
-  - `public/vendor/README.md` e `.env.example` documentados; decisão em `decisionLog.md`.
-- Verificado: build verde; `/vendor/mautic-tracking.js` servido 200; CSP correta na resposta;
-  `POST /mtc/event` → 200 com CORS completo; `mtracking.gif` → 200 `image/gif`.
-- **Descoberta a resolver**: a allowlist de CORS do Mautic tem só `https://roco.com.br`. Como
-  `roco.com.br` e `www.roco.com.br` ambos servem o site (nenhum canonicaliza), quem entra por `www`
-  cai no pixel — o hit conta, mas os cookies `mtc_id`/`mtc_sid` não são gravados e a visita não é
-  amarrada ao contato. Corrigir no Mautic (CORS Valid Domains) ou canonicalizar o host.
+- **Pop-ups do RD Station (conta 811101) agora renderizam**:
+  - Loader RD já existia (`rdstation-tracking.tsx`, SHA-256 `db41b826…`); injetava popup.min.js
+    do CDN CloudFront. Bloqueio vinha da CSP: `connect-src`, `style-src`, `font-src` não liberavam
+    os hosts do RD e Google Fonts.
+  - Mudança em `next.config.ts`: constante `RD_STATION_POPUP_HOSTS` somada a `connect-src`
+    (`popups.rdstation.com.br`, `cta-redirect.rdstation.com`, `cidades.rdstation.com.br`);
+    `style-src` + `https://fonts.googleapis.com`; `font-src` + `https://fonts.gstatic.com`.
+  - Auditoria de `rdstation-popup.min.js`: sem eval/`new Function`/iframes; clipboard só em
+    botão "copiar cupom".
+- **Removido botão flutuante próprio de WhatsApp**:
+  - Deletado: `src/shared/components/whatsapp-float/` (componente + index).
+  - Removido uso em `src/app/[locale]/layout.tsx`.
+  - Removido: chave `whatsapp` em `src/i18n/dictionaries/{pt,en}.json`.
+  - `siteLinks.whatsapp` em `src/core/config/site.ts` agora sem uso.
+  - Razão: pop-up flutuante do RD (id=6077326) substitui a funcionalidade; elimina redundância.
+- **Pop-ups ativos na conta RD**:
+  - Newsletter (id=6072461, exit_intent, desktop, 1x/dia).
+  - WhatsApp (id=6077326, floating_button, desktop+mobile).
+  - "teste" (id=9325167, scroll, 1x/dia, link rds.land — **confirmar se pausar**).
+- Verificado: `npm run build` verde; CSP header via `next start` confere; sem eval/forbidden API.
+- **Não verificado**: smoke test no navegador (botão WhatsApp renderiza, console sem CSP violation,
+  cookies do RD gravados).
 
 ## Próximos Passos Imediatos
-1. [ ] **Smoke test no navegador** (não executado — extensão do Chrome não conectada nesta sessão):
-       abrir `/pt`, DevTools → Network filtrar `mtracking` (1 hit), navegar para `/pt/catalogo`
-       (2º hit), Console sem violações de CSP, Application → Cookies com `mtc_id`/`mtc_sid`.
-       Conferir no Mautic se as visitas aparecem.
-2. [ ] **Liberar `www` no CORS do Mautic** (ou canonicalizar host) — ver "Descoberta" acima.
-3. [ ] **Decidir LGPD**: manter tracking sem banner ou exigir opt-in (o `mtc.js` grava
-       `mtc_id`/`mtc_sid`/`mautic_device_id` e identifica o visitante). Flag já permite desligar.
-4. [ ] Confirmar fluxo dos 3 itens de contato: todos → Mautic id=1, ou "Ligamos pra você" → WhatsApp?
-5. [ ] Revisar copy EN (provisório) com copywriter.
-6. [ ] Corrigir config ESLint (circular structure).
-7. [ ] Confirmar destino real de Produtos (`NEXT_PUBLIC_PRODUCTS_URL` vazio).
+1. [ ] **Smoke test no navegador**: abrir `/pt` (prod), Network filtrar `popups.rdstation.com.br`,
+       ver botão WhatsApp, Console sem CSP violations, Cookies com `rd_*`.
+2. [ ] **Pausar pop-up "teste" (id=9325167)?** — link para rds.land; avaliar se deve ficar ativo.
+3. [ ] **Máscara de telefone internacional**: se algum pop-up usar, carrega `choices.js` de
+       cdn.jsdelivr.net — decidirnow se liberar cdn.jsdelivr.net em `script-src` ou manter sem máscara.
+4. [ ] Confirmar se GA4 será adicionado aos pop-ups (googletagmanager.com).
 
 ## Bloqueadores
-- Definição de fluxo das opções de contato (Mautic vs. WhatsApp vs. híbrido).
-- Política de consentimento (LGPD) para o tracking.
+- Verificação no navegador (extensão Chrome não conectada).
 
 ## Decisões Pendentes
-- Três itens de contato devem convergir para o mesmo modal, ou ter caminhos distintos?
-- Banner de consentimento antes do tracking?
+- Pop-up "teste" de scroll (rds.land) deve ser pausado ou mantido ativamente?
+- Suporte a máscara de telefone internacional nos pop-ups (exige cdn.jsdelivr.net em `script-src`)?

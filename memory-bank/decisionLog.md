@@ -196,3 +196,16 @@ novas `leadSubject`/`leadOrigin` no `MauticEmbed`; env `RD_STATION_API_KEY` docu
 ⚠️ **Ao mesclar o site novo nesta branch, os módulos `rd-station*` daqui devem ser DESCARTADOS** em
 favor dos de lá (que têm zod, testes e o schema de `contact-submit`), nunca mesclados: são o mesmo
 conceito escrito para dois contextos, e esta versão só existe porque a landing não tem backend.
+
+## 2026-09-21 — Pop-ups do RD Station: CSP revisada para renderização + remoção de botão próprio
+
+**Decisão**: Liberar os pop-ups do RD Station (conta 811101) que estavam bloqueados pela CSP.
+O loader `rdstation-tracking.tsx` já existia e injeta `https://d335luupugsy2.cloudfront.net/js/rdstation-popups/bricks/rdstation-popup.min.js` (host já em `script-src`). O script busca pop-ups via XHR em `https://popups.rdstation.com.br/popup/show.json`, envia conversões para `https://cta-redirect.rdstation.com/v2/conversions`, autocomplete de cidade usa `https://cidades.rdstation.com.br`, e HTML dos pop-ups carrega Google Fonts — nenhum desses hosts estava em `connect-src` ou `font-src`, criando falhas silenciosas. Mudança em `next.config.ts`: `connect-src` + 3 hosts RD; `style-src` + `https://fonts.googleapis.com`; `font-src` + `https://fonts.gstatic.com`. Auditoria do `rdstation-popup.min.js`: sem eval/`new Function`/iframes; clipboard usado só em botão "copiar cupom". Removido botão flutuante próprio de WhatsApp (`src/shared/components/whatsapp-float/` deletado, chave `whatsapp` dos dicionários), que duplicava a funcionalidade do pop-up flutuante do RD (id=6077326).
+
+**Alternativas**: (a) desativar pop-ups completamente (limita contato); (b) autorizar todo domínio `*` em `connect-src` (contra defesa em profundidade); (c) usar máscara de telefone internacional (exigiria `script-src` com cdn.jsdelivr.net para `choices.js`).
+
+**Justificativa**: Pop-ups do RD já são parte da estratégia de contato; desbloqueá-los melhora conversão. Google Fonts é load-bearing (pop-ups usam tipografia); os 3 hosts RD são específicos e auditáveis. Remover botão próprio de WhatsApp elimina redundância e reduz CSP/dependências.
+
+**Impacto**: (1) `next.config.ts` (constante `RD_STATION_POPUP_HOSTS` + CSP); (2) `src/shared/components/whatsapp-float/` deletado; (3) `src/i18n/dictionaries/{pt,en}.json` sem chave `whatsapp`; `src/core/config/site.ts` `siteLinks.whatsapp` sem uso. (4) Pop-ups ativos: Newsletter (exit_intent, desktop, 1x/dia, id=6072461); WhatsApp (floating_button, desktop+mobile, id=6077326); "teste" (scroll, 1x/dia, id=9325167 — confirmar se deve pausar). (5) **Limitações conhecidas**: pop-up de scroll não dispara em hero (página ≤ 1 tela, sem rolagem); pop-ups reavaliam só no carregamento inicial (SPA não reavalia). (6) Se pop-up usar **máscara de telefone internacional ou campo cidade com autocomplete**, carrega `choices.js` de cdn.jsdelivr.net — exigiria liberar cdn.jsdelivr.net em `script-src` ou manter telefone sem máscara. (7) GA4 nos pop-ups exigiria googletagmanager.com. (8) **Verificado**: build verde; CSP header via `next start` conferido; XHR/img/font não violam política. **Não verificado**: smoke test no navegador (botão WhatsApp renderiza, console sem violação, cookies do RD).
+
+**Decisões abertas**: pop-up "teste" de scroll (id=9325167, link para rds.land) deve ser pausado? Telefone com máscara internacional deve ser suportado?
