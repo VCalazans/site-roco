@@ -1859,7 +1859,7 @@
         },
         "catalog": {
           "title": "Catálogo em PDF",
-          "description": "Arquivo entregue no botão “Baixar catálogo” do site."
+          "description": "Arquivo da página de catálogo com formulário (/catalogo). O botão “Baixar catálogo” da home e do rodapé leva ao catálogo online."
         }
       },
       "fields": {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   LEGACY_QUOTE_SEGMENT,
+  ONLINE_CATALOG_URL,
   QUOTE_SEGMENT,
   contactPath,
   localizeInternalHref,
@@ -79,13 +80,20 @@ describe("resolveCtaHref", () => {
     expect(resolveCtaHref("/contato?assunto=quote", "pt", "home-fachada")).toBe(
       `${contactPath("pt")}?assunto=quote&origem=home-fachada`
     );
-    expect(resolveCtaHref("#catalogo", "pt", "home-hero")).toBe("/pt/catalogo?origem=home-hero");
+    expect(resolveCtaHref("/contato", "pt", "home-hero")).toBe(`${contactPath("pt")}?origem=home-hero`);
   });
 
   it("não anexa origem fora das páginas de captura", () => {
     expect(resolveCtaHref("/produtos", "pt", "home-destaques")).toBe("/pt/produtos");
     expect(resolveCtaHref("#sobre", "pt", "home-fachada")).toBe("#sobre");
     expect(resolveCtaHref("https://exemplo.com/x", "pt", "home-hero")).toBe("https://exemplo.com/x");
+  });
+
+  it("\"Baixar Catálogo\" (#catalogo e /catalogo) vai sempre para o catálogo online, sem origem", () => {
+    expect(ONLINE_CATALOG_URL).toBe("https://catalogo.roco.com.br/catalogo-roco");
+    expect(resolveCtaHref("#catalogo", "pt", "home-hero")).toBe(ONLINE_CATALOG_URL);
+    expect(resolveCtaHref("/catalogo", "en", "rodape")).toBe(ONLINE_CATALOG_URL);
+    expect(resolveDestination("#catalogo", "pt")).toBe(ONLINE_CATALOG_URL);
   });
 
   it("sem origem, só resolve e localiza", () => {

@@ -8,16 +8,24 @@
 import { locales } from "@/i18n/config";
 import { withLeadOrigin, type LeadOrigin } from "@/shared/lib/lead-origin";
 
+/**
+ * Catálogo online da ROCO (página de download do catálogo, fora deste site).
+ * Pedido do stakeholder em 2026-09-30: o botão "Baixar Catálogo" leva SEMPRE
+ * para lá — da home, do slide de reserva do hero e do rodapé.
+ */
+export const ONLINE_CATALOG_URL = "https://catalogo.roco.com.br/catalogo-roco";
+
 export const siteLinks = {
   /** "Conheça nossos Produtos" — empty until the products URL is defined. */
   products: process.env.NEXT_PUBLIC_PRODUCTS_URL || "",
   /**
-   * "Baixar Catálogo" — when empty the CTA points at this site's own catalog
-   * page (`/{locale}/catalogo`), which gates the PDF behind the lead form.
-   * Set it only to send visitors somewhere else instead (it bypasses the
-   * gate — and, with it, the lead capture and the origin tracking).
+   * "Baixar Catálogo": o catálogo online da ROCO (`ONLINE_CATALOG_URL`);
+   * `NEXT_PUBLIC_CATALOG_URL` só troca esse endereço. A página própria
+   * `/{locale}/catalogo` (formulário + PDF) continua no ar, mas nenhum botão
+   * aponta mais para ela — e, sendo endereço externo, o link não leva
+   * `?origem=` e abre em nova aba (`externalProps`).
    */
-  catalog: process.env.NEXT_PUBLIC_CATALOG_URL || "",
+  catalog: process.env.NEXT_PUBLIC_CATALOG_URL || ONLINE_CATALOG_URL,
   /** The catalog PDF itself, served from /public (must stay same-origin so the
    *  browser honours the `download` attribute on the catalog page). */
   catalogPdf:

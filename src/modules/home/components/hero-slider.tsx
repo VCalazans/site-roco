@@ -41,7 +41,7 @@ type HeroCopy = {
     secondaryCta: Cta;
   };
   brand: string;
-  /** Logo 3D oficial — peça central quando o slide não traz mídia própria. */
+  /** Logo 3D oficial — peça central de todos os slides (vídeo enviado, YouTube e reserva). */
   logoSrc: string;
   logoWidth: number;
   logoHeight: number;
@@ -111,7 +111,6 @@ export function HeroSlider({ slides, copy }: HeroSliderProps) {
 
   const primaryCta: Cta = current.primaryCta ?? copy.primaryCtaFallback;
   const secondaryCta: Cta | null = current.secondaryCta ?? null;
-  const showLogo = current.kind !== "upload";
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (count <= 1) return;
@@ -205,17 +204,17 @@ export function HeroSlider({ slides, copy }: HeroSliderProps) {
               </p>
             ) : null}
             <h1 className="flex flex-col items-center gap-3">
-              {showLogo ? (
-                <Image
-                  src={copy.logoSrc}
-                  alt={copy.brand}
-                  width={copy.logoWidth}
-                  height={copy.logoHeight}
-                  priority
-                  sizes="(min-width: 768px) 420px, 280px"
-                  className="h-auto w-[min(70vw,280px)] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] md:w-[420px]"
-                />
-              ) : null}
+              {/* A logo fica em TODOS os slides: o vídeo institucional traz a
+                  marca só no canto superior esquerdo, que o menu fixo cobre. */}
+              <Image
+                src={copy.logoSrc}
+                alt={copy.brand}
+                width={copy.logoWidth}
+                height={copy.logoHeight}
+                priority
+                sizes="(min-width: 768px) 420px, 280px"
+                className="h-auto w-[min(70vw,280px)] drop-shadow-[0_18px_40px_rgba(0,0,0,0.55)] md:w-[420px]"
+              />
               <span className="sr-only">{current.headline}</span>
             </h1>
             {current.description ? (

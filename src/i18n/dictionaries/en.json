@@ -1859,7 +1859,7 @@
         },
         "catalog": {
           "title": "Catalog PDF",
-          "description": "File delivered by the “Download catalog” button of the site."
+          "description": "File served by the catalog page with the form (/catalogo). The “Download catalog” button on the home page and footer goes to the online catalog."
         }
       },
       "fields": {

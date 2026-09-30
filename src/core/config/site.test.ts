@@ -6,6 +6,7 @@ import {
   PRODUCTS_SEGMENT,
   CONTACT_SEGMENT,
   CATALOG_PDF_FILENAME,
+  ONLINE_CATALOG_URL,
   representativesPath,
   productsPath,
   catalogPath,
@@ -190,17 +191,10 @@ describe("site config", () => {
     });
 
     describe("catalog anchor resolution", () => {
-      it("resolves #catalogo for different locales", () => {
-        const pt = resolveDestination("#catalogo", "pt");
-        const en = resolveDestination("#catalogo", "en");
-        expect(typeof pt).toBe("string");
-        expect(typeof en).toBe("string");
-      });
-
-      it("uses locale in fallback path for catalog", () => {
-        const result = resolveDestination("#catalogo", "pt");
-        // Should return either env URL or include locale
-        expect(result).toBeTruthy();
+      it("resolves #catalogo to the online catalog in every locale", () => {
+        expect(siteLinks.catalog).toBe(process.env.NEXT_PUBLIC_CATALOG_URL || ONLINE_CATALOG_URL);
+        expect(resolveDestination("#catalogo", "pt")).toBe(siteLinks.catalog);
+        expect(resolveDestination("#catalogo", "en")).toBe(siteLinks.catalog);
       });
     });
 
@@ -336,14 +330,12 @@ describe("resolveDestination — origem de lead (3º parâmetro)", () => {
       expect(resolveDestination("#contato", "en", "rodape")).toBe("/en/contato?origem=rodape");
     });
 
-    it("tags the catalog page when it falls back to the internal route", () => {
-      const destination = resolveDestination("#catalogo", "pt", "home-hero");
-      // Só vale quando NEXT_PUBLIC_CATALOG_URL está vazia (padrão do repo).
-      if (siteLinks.catalog) {
-        expect(destination).toBe(siteLinks.catalog);
-      } else {
-        expect(destination).toBe("/pt/catalogo?origem=home-hero");
-      }
+    it("never tags the catalog button: it leaves the site for the online catalog", () => {
+      expect(resolveDestination("#catalogo", "pt", "home-hero")).toBe(siteLinks.catalog);
+    });
+
+    it("still tags the internal catalog page when a link points straight at it", () => {
+      expect(resolveDestination("/pt/catalogo", "pt", "home-hero")).toBe("/pt/catalogo?origem=home-hero");
     });
 
     it("treats /contato as an alias of #contato", () => {
