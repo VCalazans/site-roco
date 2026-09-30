@@ -133,5 +133,62 @@ Next reavalia Route Handlers → cache reset → paginas/ISR refazem.
 Se necessário (form simples, arquivo pequeno): `"use server"` + `cookies()` para auth.
 Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming).
 
+## Padrões Novos (Spec 001 — 2026-09-30)
+
+### Conteúdo editável da home
+- **Modelo**: um documento jsonb por seção em `site_settings` (`home.*`) + schema zod compartilhado
+  em `src/modules/home/lib/home-content.ts` (escrita estrita no router, leitura tolerante no site).
+- **Resolução**: `conteúdo salvo[idioma] || dicionário[idioma]`; campo ausente vale vazio, então um
+  campo novo no schema não invalida o que já foi salvo.
+- **Cache**: `unstable_cache` com tag `home-content` (300 s); toda mutação expira a tag na hora
+  (`revalidateTag(tag, { expire: 0 })`). O hero continua em `hero_slides` (tag `hero`).
+- **Links editáveis**: sempre por `isSafeHref` (caminho interno `/…`, âncora `#…`, `http(s)://`,
+  `mailto:`/`tel:`; bloqueia `javascript:`, `data:`, `//host`, espaço/controle).
+
+### Header persistente + View Transitions
+- `SiteHeader` (client component) vive no layout `(site)` e não remonta entre páginas; as páginas não
+  o renderizam.
+- O conteúdo fica num `<ViewTransition>` do React (Next 16.3): crossfade curto, header ancorado,
+  morph da imagem do card para a capa do detalhe (mesmo `name`); `prefers-reduced-motion` desliga.
+
+### Carrossel e filtros
+- `src/shared/components/carousel`: setas anterior/próxima + rolagem por toque; as setas somem
+  quando tudo cabe. Indicadores e pausa são do slider do hero, não do carrossel genérico.
+- `/produtos`: barra lateral (gaveta no mobile) com busca ao vivo, categorias com contagem e
+  "só campeões", tudo na URL.
+- Busca: `matchAllTerms` (`sql-like.ts`, até 6 palavras, sem acento via `translate`); busca livre
+  NUNCA entra no cache (a chave viria do usuário).
+
+### Solicitações (leads)
+- `leads.list` (somente leitura, `leads:read`) não devolve e-mail/telefone; o detalhe (`leads.byId`)
+  devolve e grava a ação `leads.view` no audit log a cada abertura.
+
+### Orçamento (ex-carrinho)
+- Rota `/{locale}/orcamento`, redirect 308 de `/carrinho`; origem `orcamento` forçada no servidor
+  para `subject: "cart"`; `conversion_identifier` `orcamento_lista_produtos`; chave `roco_cart_v1`
+  do localStorage mantida.
+
+### Link estável de arquivo privado
+- Arquivo privado do R2 nunca vai para a página como URL presignada (vence e o arquivo "some").
+- A página aponta para uma rota autenticada (`GET /api/portal/materials/[id]/download`) que confere
+  sessão e permissão no clique e redireciona (303) para uma URL do R2 de 60 s com
+  `Content-Disposition` seguro (`src/server/lib/content-disposition.ts`).
+
+### Embalagens sem "padrão"
+- Não existe embalagem "padrão": todas as cadastradas aparecem, sempre na ordem de `sortPackagings`
+  (tipo → quantidade), com texto de `describePackaging` (`src/shared/lib/packaging.ts`).
+- A coluna `is_default` é legado do importador: não é exibida nem editada, só devolvida ao salvar.
+- O formulário do portal acusa embalagem repetida (tipo + quantidade) antes do banco.
+
+### Permissão nova de módulo = seed + migration
+- O seed não roda no boot; as migrations rodam. Toda permissão nova entra no seed E numa migration
+  idempotente (`INSERT … ON CONFLICT DO NOTHING`, ex.: `drizzle/0011_ensure_portal_permissions.sql`),
+  aplicada uma única vez por banco, no primeiro boot com o código novo.
+
+### Uma rota, telas por permissão
+- Quando gestão e leitura do mesmo conteúdo servem públicos diferentes, a mesma rota decide a tela
+  pela permissão (ex.: `/portal/materiais`: CRUD com `materials:create`, biblioteca com
+  `materials:read`), com pré-visualização para quem gerencia (`?visao=representante`).
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

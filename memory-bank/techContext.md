@@ -3,11 +3,11 @@
 
 ## Stack Completa
 ### Frontend
-- **next** 16.3.0 (App Router, Turbopack, output standalone; 16.0.3 → 16.3.0 por CVEs)
-- **react** / **react-dom** 19.2.0
+- **next** 16.3.7 (App Router, Turbopack, output standalone; 16.3.0 → 16.3.7 por CVEs GHSA-2xp9-vwfh-vxw4 etc)
+- **react** / **react-dom** 19.2.0 (`<ViewTransition>` do React canary embutido no Next; tipos em `src/types/react-canary.d.ts`)
 - **typescript** 5 (strict) — alias `@/* -> ./src/*`
 - **tailwindcss** 4 + **@tailwindcss/postcss** (config via `@theme` em `globals.css`)
-- **framer-motion** 12 (animações da hero)
+- **framer-motion** 12 (animações do hero e das seções; a transição ENTRE páginas é `<ViewTransition>`)
 - **lucide-react** (ícones)
 - **clsx** + **tailwind-merge** (`cn`)
 - **server-only** (proteção de módulos server, ex.: `get-dictionary`)
@@ -26,7 +26,8 @@
 - **@aws-sdk/client-s3** (Cloudflare R2, compatível S3)
 - **bcryptjs** 3 (hash seguro senhas; custo 12; puro JS para alpine)
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
-- **vitest** 4 (test runner, 208 testes)
+- **sharp** 0.35.5 (otimizador de imagens; 0.35.3 → 0.35.5 por CVE GHSA-rgj7-g3m4-5g8c)
+- **vitest** 4 (test runner, 1571 testes em 55 arquivos desde spec 001 + revisão pós-entrega)
 - **happy-dom** (DOM simulation para testes)
 - **tsx** (devDependency; scripts db:seed + db:import-catalog — Node 20 local sem `--experimental-strip-types`)
 
@@ -155,6 +156,13 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **Idempotência**: por externalId do ERP.
 - **Full-sync**: não implementado (aguarda contrato ERP).
 
+### API Routes Públicas e Privadas
+- **`GET /api/products`** (pública): listagem filtrada, cacheada via `unstable_cache` tag `products`.
+- **`GET /api/portal/materials/[id]/download`** (privada, autenticada): gera presignada R2 60s com `Content-Disposition` RFC 6266/5987. Sem sessão: 303 para login. **Nunca embutir presignada na página** (vence rápido).
+- **`POST /api/contact`** (pública): captura lead (contact_submissions), RD Station + Resend best-effort, rate limit fail-closed.
+- **`POST /api/webhooks/erp`** (pública, secretizada): enfileira sync de produtos.
+- **`GET /api/health`** (pública): liveness uncondicional; com `x-health-token`: uptime + métricas.
+
 ### Dados & Segurança
 - **PostgreSQL**: produção via docker-compose ou RDS.
 - **Redis**: fila + cache de sessão (opcional, pode usar Postgres se REDIS_URL vazio).
@@ -163,7 +171,9 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **Audit log**: tabela audit_logs (user_id, action, resource, timestamp, metadata).
 
 ### Testes
-- **Vitest 4**: 208 testes cobrindo rbac, cnpj, validações, perms, phone.
+- **Vitest 4**: 1571 testes em 55 arquivos (+473 desde spec 001 + revisão pós-entrega).
+  Lógica pura (rbac, cnpj, telefone, busca SQL, home-content, embalagens, materiais, links, orçamento…)
+  + render SSR de telas do portal (shell, dashboard, produtos, configurações, home-content, solicitações).
 - **Happy-dom**: DOM simulation para testes de helpers.
 - Scripts: `npm run test`, `test:watch`, `test:coverage`.
 
@@ -230,7 +240,7 @@ site com fotos). Ordem para produção:
 
 4b. **(histórico) Sequência manual equivalente**, com `DATABASE_URL`/R2 de produção no `.env.local`
    (os scripts rodam fora do bundle e leem `docs/`, que NÃO vai na imagem Docker), nesta ordem:
-   a. `npm run db:migrate`      (drizzle 0000–0005) — ou, de dentro do container,
+   a. `npm run db:migrate`      (drizzle 0000–0011) — ou, de dentro do container,
       `npm run db:migrate:container` (ver seção abaixo)
    b. `npm run db:seed`         (roles/permissões + admin bootstrap; idempotente)
    c. `npm run db:import-catalog` (upsert por sku; nasce `published=false` POR DESIGN)
@@ -333,9 +343,25 @@ usa `.env.local` (localhost:5433/6380 — mesmo banco).
 **Build no Windows (bug do BuildKit)**: `docker compose build` falha com
 `invalid file request src/app/[locale]/(site)/page.tsx` (colchetes/parênteses no caminho).
 Use `scripts\docker-build.cmd` (contexto via tar/stdin, binário-seguro via cmd) e depois
-`docker compose up -d --no-build web`. O script passa
-`NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=false` como build-arg (flag é embutida no bundle em
-build-time — imagem local NÃO envia hits reais ao Mautic).
+`docker compose up -d --no-build web`. O script passa dois build-args (flag é embutida no bundle em
+build-time — imagem local NÃO envia dados reais a terceiros):
+  - `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=false` (desde 2026-08-11)
+  - `NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=false` (desde 2026-09-30)
+
+## Rotas Novas (Spec 001 — 2026-09-30)
+- `/{locale}/orcamento` — lista de orçamento multi-produto (ex-carrinho); `/{locale}/carrinho` redireciona
+  com 308 (`next.config.ts`)
+- `/{locale}/portal/pagina-inicial` — Editor da home para admin + `sales_manager`
+- `/{locale}/portal/solicitacoes` — Leads/orçamentos recebidos para `leads:read` (somente-leitura)
+- `/{locale}/portal/materiais` — gestão (quem tem `materials:create`) ou biblioteca por setor (quem só tem `materials:read`, o representante)
+- `GET /api/portal/materials/[id]/download` — link estável de material (sessão + permissão no clique)
+
+## Permissões Novas (Spec 001 — 2026-09-30)
+Criadas e concedidas no boot pela migration `0011_ensure_portal_permissions` (e também pelo seed):
+- **`home_content:read`** / **`home_content:update`** (admin, sales_manager) — editor da página inicial
+- **`leads:read`** (admin, sales_manager) — caixa de solicitações; abrir o detalhe grava a ação
+  `leads.view` no audit log (não é permissão)
+- **`materials:read`** garantida também para `representative` (biblioteca de materiais)
 
 **Hot reload**: a imagem é build de produção (sem HMR). Para desenvolver com hot reload:
 `docker compose stop web && npm run dev` (mesma porta 3000, mesmo Postgres/Redis do Docker);

@@ -282,9 +282,45 @@
       → 1098 total. Build detectou 2 erros TS em testes, corrigidos. Lint: 0 erros novos.
 - [x] Revisão de segurança: 3 achados (1 Médio pré-existente, 2 Baixo/informativos novos)
 
+### Spec 001 — Site ROCO v2: marca, vitrine e painel (2026-09-30)
+- [x] Logos novas (2D branca, 2D com slogan, 3D; azul no tema claro do portal), favicon e ícone Apple em `public/images/logos/` e `src/app/`
+- [x] Migration 0010: flags de produto `featured` + `featured_order` + `best_seller` (57 produtos migrados de `top`)
+- [x] Conteúdo da home editável: 6 seções por `site_settings` jsonb (layout, fachada, sobre, categorias, destaques, CTA portal)
+- [x] Navegação fluida: header persistente em layout + `<ViewTransition>` React nativa (crossfade, prefers-reduced-motion)
+- [x] Hero com setas WEG (padrão, indicadores, pausa, teclado ←/→, arraste); carrossel genérico de destaques
+- [x] Galeria de produtos: setas + miniaturas + anterior/próximo + breadcrumb + "voltar" restaurando filtros + "ao topo"
+- [x] Busca multi-termo sem acento: `matchAllTerms` em `sql-like.ts` (até 6 palavras, `translate` SQL); `%00` como espaço
+- [x] Barra lateral de filtros (`<aside>` desktop / gaveta mobile): busca ao vivo + contagem por categoria + "só campeões"
+- [x] Orçamento (ex-Carrinho): rota `/{locale}/orcamento`, redirect 308 de `carrinho`, miniatura do produto no card, `origin: "orcamento"`
+- [x] Portal reescrito: logo sensível ao tema (CSS) + nav agrupada (5 grupos) + busca Ctrl/⌘+K + drawer colapsável (localStorage)
+- [x] Dashboard com indicadores clicáveis (publicados, destaques, campeões, sem foto, representantes, solicitações 30d)
+- [x] Tabela de produtos: miniatura + flags `featured`/`best_seller` em 1 clique + "ver no site / copiar link / WhatsApp"
+- [x] Formulário de produto por seções (Info, Categorias, Badges, Embalagens, Imagens); nulo em campo opcional LIMPA coluna
+- [x] Editor da Página Inicial: upload 2-step presigned (tipo/tamanho ASSINADOS + HEAD no confirm) + fallback para dicionário
+- [x] Solicitações (`leads.list`/`byId`): somente-leitura; lista sem e-mail/telefone (só detalhe + auditado); filtro por `subject`
+- [x] 1544 testes em 52 arquivos (+446 vs baseline); lint 0 erros (6 warnings pré-existentes); `npm audit --omit=dev` = 0
+- [x] Next 16.3.7 + sharp 0.35.5 (CVEs: GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36, GHSA-rgj7-g3m4-5g8c)
+- [x] Tracking RD Station desligado em builds Docker locais (ARG + `docker-compose.yml`)
+- [x] Validação no navegador: site + portal com 3 perfis de teste (admin, `sales_manager`, só-read); dados de teste revertidos
+- [ ] **PENDENTE**: reconstruir a imagem Docker local (o `next build` final passou; a imagem não foi refeita por falta de memória na máquina)
+- [x] Upload REAL de imagem da home contra o R2 — assinatura de tipo/tamanho aceita, PUT adulterado recusado (2026-09-30)
+- [x] RF07 conferido: com 0 destaques a vitrine mostra 8 campeões com troféu (2026-09-30)
+- [x] Permissões `home_content:*`, `leads:read` e `materials:read` do representante chegam pela migration 0011 no boot (o seed continua válido)
+
+### Revisão pós-entrega da spec 001 (2026-09-30)
+- [x] **Embalagens**: todas cadastradas aparecem no site (sem "padrão"). Descrição gerada de tipo + quantidade ("Blister — 12 unidades por embalagem", "Peça avulsa — Vendida por unidade"), EAN quando existe, contagem ao lado do título. API deixa de expor `isDefault`. Portal mostra todas (antes só `is_default`); o formulário acusa embalagem repetida (tipo + quantidade) antes do banco.
+- [x] **Cache imediato**: toda edição de produto no portal expira com `{ expire: 0 }` (antes `"max"` servia a versão antiga na primeira visita). Sintoma resolvido: "embalagem cadastrada não aparece".
+- [x] **Painel centralizado**: largura única 1280 px em container wrapper (`PORTAL_CONTENT_MAX_WIDTH`) — saíram os `maxWidth: 1200` alinhados à esquerda.
+- [x] **Materiais: biblioteca por setor** + gestão separada. Rota `/portal/materiais` unificada: tela (1) Gestão para `materials:create`, (2) Biblioteca para `materials:read` (busca sem acento, filtro/contagem por assunto, cards com tipo/tamanho/data/"Novo" 14d). Menu do representante: Boas-vindas, Materiais, Cadastro, Produtos (Painel saiu).
+- [x] **Link estável de material**: rota privada `/api/portal/materials/[id]/download` (autenticada, sessão + `materials:read`), gera presignada R2 60s com `Content-Disposition` RFC 6266/5987 (nome com acento). Sem sessão: 303 para login em idioma do cookie. Antes: URL vencia com aba aberta → erro.
+- [x] **Migration 0011**: idempotente, garante permissões `materials:*`, `home_content:*`, `leads:read` + concessões por role (admin, sales_manager, representative) no boot — representante não vê mais "sem permissão".
+- [x] **Upload home com assinatura**: presign com `content-type` + `content-length` ASSINADOS (o R2 recusa PUT com outro tipo/tamanho); confirm e update conferem o objeto gravado por HEAD (tipo real, extensão, ≤ 10 MB). Imagem órfã é apagada.
+- [x] 1571 testes em 55 arquivos (baseline 1098); lint 0 erros; `npm audit --omit=dev` = 0; `next build` de produção verde.
+- [x] Validação ponta a ponta: admin publica 2 materiais → representante vê "Materiais recentes" e biblioteca setorizada → abre PDF pela rota (303 → R2) → sem sessão login no idioma → material apagado 404. Upload home com tipo/tamanho assinados aceito, PUT adulterado recusado.
+
 ### Qualidade
-- [x] `npm run build` verde (incluindo `tsc` completo — detectou 2 erros em cart.test.ts)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1098 testes totais agora)
+- [x] `npm run build` verde (incluindo `tsc` completo)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1571 testes totais agora)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -555,21 +591,29 @@ catálogo vivo via ERP → cotação como dado estruturado.
   com `"carrinho"` (lista fechada), mas rota só força hardcode quando `subject === "cart"` — os outros 4 assuntos
   poderiam receber `?origem=carrinho` via URL. Não é brecha de segurança (origin/UTM são self-reported, não
   confiáveis por desenho), registrado por completude de documentação.
+- **Presign sem assinatura de tipo/tamanho nos fluxos antigos** (2026-09-30, Médio/backlog): hero, produtos, materiais e representantes usam presign 2-step do R2 mas NÃO assinam `content-type` e `content-length` no PUT (só a home nova assina; foi redescoberto na revisão de segurança do spec 001). Risco: cliente pode mandar tipo/tamanho incorretos. Recomendação: replicar o padrão de `homeContent.presignImage` (tipo/tamanho ASSINADOS) para os outros fluxos e testar contra o R2 real.
+- **`siteSettings.set` sem validação no servidor** (2026-09-30, Médio/backlog): o router aceita qualquer string ≤ 2000 em `social.links`, `contact.email` e `catalog.pdf-url`; só o formulário do portal valida. Exige admin (`users:manage`). Sem compensação: o `mailto:` do rodapé usa o e-mail cru e o getter do PDF devolve o valor salvo se `R2_PUBLIC_URL` faltar. Recomendação: validar no router.
+- **CTA da fachada apontando para seção oculta** (2026-09-30, Baixo/UX — RESOLVIDO): o site esconde o botão (`targetsHiddenSection`) e o editor avisa o operador.
+- **Hero: `youtubeId`, `r2Key` e `r2PosterKey` livres** (2026-09-30, Médio/backlog, pré-existente): create/update aceitam qualquer chave, e o delete do slide chama `deleteObject(slide.r2Key)` — um perfil com `hero_slides:update` pode apontar a chave para QUALQUER objeto do bucket (foto de produto, imagem da home) e ela é apagada quando alguém excluir o slide; `youtubeId` sem validação de formato. Recomendação: validar o prefixo `hero/` e o formato do ID.
+- **`isSafeHref` aceita qualquer http(s) externo** (2026-09-30, Baixo/backlog): links editáveis podem apontar para qualquer URL externa. Recomendação: considerar allowlist de hosts conhecidos (parceiros, catálogo externo) se o stakeholder pedir.
+- **`images.remotePatterns` com `pathname: "/**"` no R2** (2026-09-30, Médio/backlog): o `next.config.ts` libera qualquer arquivo do R2 via `next/image`. Recomendação: restringir a `/products/**`, `/site/home/**`, `/hero/**` para reduzir superfície (apenas caminhos mapeados).
+- **Tracking RD Station em produção** (2026-09-30, informativo): ligado por padrão no build de produção; o consentimento vem do RD Cookie Control do próprio loader (o `ConsentBanner` do projeto segue desligado desde 2026-08-30). Builds locais agora passam `false`.
+- **Débito técnico: `products.update` grava TODOS os campos no audit** (2026-09-30, Baixo): `changedFields` no `audit_logs` contém o payload inteiro (via `updateSchema`), não apenas os campos que mudaram. Recomendação: filtrar para `diff(antes, depois)` se um dia precisar de auditoria granular.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1098 testes (30 arquivos), 100% cobertura lógica pura; scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1571 testes em 55 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+  (+473 testes em 2026-09-30 — spec 001 e revisão: lógica pura — safe-href, sql-like, paginação, memória da listagem, home-content, orçamento, embalagens, materiais, content-disposition, formulários do portal — e render SSR das telas do portal.)
   (+122 testes 2026-08-30 carrinho: `cart-store` 28, `product-card` 18, `cart-page` 44, `contact-submit`/cart-cases 32.)
-  (+42 testes 2026-08-30 chrome de navegação: `locale-path`, `phone`, casos novos de `nav` e
-  `resolveDestination`/`#ligamas`.)
+  (+42 testes 2026-08-30 chrome de navegação: `locale-path`, `phone`, casos novos de `nav` e `resolveDestination`/`#ligamas`.)
   (+90 testes 2026-08-11 produtos explorer/detail; +6 testes 2026-08-12 `interpolate`;
   +6 testes 2026-08-23 `resolveCategoryCardHref`; +137 testes 2026-08-24 roles-guards + upload-limits;
   +139 testes 2026-08-24 contato: contact-submit + rd-station + contact-email;
   +224 testes 2026-08-25 rastreio de origem: lead-origin, catalog-form, site/nav, rd-station,
   contact-email, contact-submit; +87 testes 2026-08-25 capacidade: request-size, timing-safe,
   workers-enabled, event-loop-metrics/summarizeHistogram, pg-error).
-- **Build**: verde. **Lint**: verde (ESLint flat config).
-- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.0); OWASP scan 2026-08-11 aplicado
-  (nenhum achado crítico/alto novo introduzido).
+- **Build**: verde. **Lint**: 0 erros (6 warnings pré-existentes em `src/server/trpc/routers/site-settings.ts`).
+- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.7 + sharp 0.35.5); revisão 2026-09-30 aplicada
+  (nenhum crítico novo; 1 alto pré-existente corrigido; 3 médios — 2 corrigidos no diff, 1 mitigado).
 - **Revisão adversarial multi-agente** (2026-08-12): 13 agentes (4 dimensões: corretude, i18n,
   segurança, regressão + verificação adversarial por achado) sobre o diff da feature WEG.
   8 achados confirmados / 1 refutado; 7 corrigidos no mesmo dia (resync URL↔estado do explorer

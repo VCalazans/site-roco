@@ -1,28 +1,54 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-08-30)
-Carrinho de cotação multi-produto: implementação, testes, revisão de segurança e consolidação.
-**CONCLUÍDA, testada, revisada e APROVADA pelo stakeholder no navegador.** Portões verdes:
-lint 0 erros, **1098 testes** em 30 arquivos (+122, baseline 976), build verde com
-`ƒ /[locale]/carrinho` no manifest. **Zero regressão**. Commitado e pushado.
+## Sessão atual (2026-09-30, segunda rodada)
+Revisão pós-entrega da spec 001: **7 itens implementados e validados localmente** (build de
+produção `next build` verde + navegador). **Commitado e enviado** na branch
+`feat/porta-mais-site` (a pedido do stakeholder): `d459363` (deps), `add519a` (entrega da
+spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. Container
+`site-roco` parado (imagem anterior; rebuild da imagem Docker pendente por falta de memória).
 
-## Verificação de ponta a ponta (container local, build de produção)
-Migration `0009` aplicada; imagem rebuildada e container recriado. Envio real de carrinho com
-DOIS slugs válidos + UM inventado gravou **2 itens** (o inventado caiu fora, como projetado),
-com `product_name`/`product_sku` vindos do BANCO — não do payload, provando a doutrina "o
-cliente nunca é a autoridade". Carrinho só com slug inválido → `400 cart_empty`, nada gravado.
-`ON DELETE CASCADE` verificado: apagar a submissão levou os itens filhos junto, sem órfão.
-`rd_station_status`/`email_status` = `failed` é ESPERADO enquanto não houver credencial —
-o lead fica no banco de qualquer forma, que é a garantia do desenho.
-Interface conferida no HTML servido: ícone com `aria-label="Carrinho de Cotação"` na barra,
-21 botões de adicionar na listagem, `/pt/carrinho` e `/en/carrinho` em 200.
-Stakeholder abriu no navegador e aprovou o resultado visual.
+**Mudanças (a–g)**:
+- Embalagens: todas aparecem (sem padrão); descrição gerada
+- Cache expira na hora em edição (sintoma: embalagem não aparecia)
+- Painel centralizado 1280px
+- Materiais: biblioteca por setor + gestão separada
+- Link estável de material via rota autenticada (antes: presignada vencia)
+- Migration 0011: garantia de permissões no boot
+- Upload home com tipo/tamanho ASSINADOS + HEAD
+- Testes: 1571 em 55 arquivos; lint 0 erros; build verde
 
-## Estado do repositório
-- Branch: `feat/porta-mais-site` — árvore limpa, commitado e pushado
-- Carrinho: `src/modules/cart/`, `src/shared/lib/cart-store.ts`, `POST /api/contact`
-  com `subject: "cart"`, migration `drizzle/0009_youthful_gressill.sql`
-- Container local em :3000 serve o código ATUAL (rebuildado após o carrinho)
+**Validação ponta a ponta no navegador**:
+- Admin (conta de teste): publica 2 materiais (upload real no R2), "Ver como representante",
+  tabela de produtos com TODAS as embalagens, formulário sem "Padrão" e acusando embalagem
+  repetida (nada salvo), upload da fachada com tipo/tamanho assinados
+- Sales manager: validado só na 1ª rodada (menu sem Configurações/Perfis); não retestado nesta
+- Representante aprovado (conta de teste): cai nas boas-vindas; menu Boas-vindas/Materiais/
+  Cadastro/Produtos (sem Painel); vê "Materiais recentes" + biblioteca setorizada; abre o PDF
+  pela rota (303 → R2); sem sessão → login no idioma; material apagado → 404
+- Site: detalhe do produto com as 6 embalagens descritas (EAN, ordem tipo → quantidade);
+  com 0 destaques a vitrine da home mostra 8 campeões (RF07)
+- Upload home: tipo/tamanho ASSINADOS aceito, PUT adulterado recusado por R2
+
+**Dados de teste**: revertidos (0 destaques, 0 layout salvo, sem contas QA).
+
+## Validação no Navegador (2026-09-30)
+- **Home**: hero com setas WEG + indicadores + pausa; logo 3D quando sem vídeo; fachada com upload 2-step presigned;
+  seções editáveis (layout, about, categorias, destaques, portal-cta); fallback para dicionário quando vazio.
+- **Site Público**: breadcrumb/galeria/anterior-próximo no detalhe; barra lateral filtros desktop + gaveta mobile;
+  busca multi-termo + contagem por categoria; "só campeões" checkbox; paginação numerada; "voltar ao topo".
+- **Portal**: shell com logo sensível ao tema + nav agrupada (5 grupos) + busca Ctrl/⌘+K + drawer colapsável (localStorage).
+  Dashboard com indicadores clicáveis. Produtos com miniatura + flags `featured`/`best_seller` toggleáveis + ações WhatsApp.
+  Formulário por seções (Info, Categorias, Badges, Embalagens, Imagens); nulo em campo opcional LIMPA coluna.
+  Solicitações somente-leitura (sem e-mail/telefone na lista, só no detalhe auditado).
+  Editor da Página Inicial com upload 2-step presigned (tipo/tamanho ASSINADOS).
+- **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
+
+## Estado do Repositório
+- Branch: `feat/porta-mais-site` — tudo commitado e enviado ao remoto; sem merge em `main`
+- Migrations: `0010_product_flags.sql` (57 produtos migrados de `top` para `best_seller`) e
+  `0011_ensure_portal_permissions.sql` aplicadas no banco local (journal com 12 linhas)
+- Container local: parado (imagem é ainda a anterior às últimas correções de segurança)
+- Dados de teste: revertidos (0 destaques, sem layout salvo, sem contas QA; "Teste Spec 001 Orçamento" mantida como exemplo)
 
 ## RD Station — VALIDADO em 2026-08-31
 Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
@@ -41,6 +67,8 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 - **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
   (hoje `email_status = "not_configured"` em todo lead).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
-- merge `feat/porta-mais-site` → `main` + push
+- merge `feat/porta-mais-site` → `main` (a branch já está no remoto)
+- reconstruir a imagem Docker local (`scripts\docker-build.cmd` + `docker compose up -d --no-build web`)
+  quando houver memória livre — a atual é anterior à spec 001
 - seed em produção: `npm run db:seed` com `DATABASE_URL` de produção
 - Publicar o site em produção (main está ~70+ commits atrás)

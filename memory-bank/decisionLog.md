@@ -1567,3 +1567,105 @@ nenhum campo customizado" agora exige zerar também `message`. **Pendência que 
 `cf_origem` NÃO existe na conta (é o único dos quatro que o código envia e o painel não tem) —
 enquanto não for criado, a origem da seção do site é descartada em silêncio, pelo mecanismo
 documentado na entrada anterior.
+
+## 2026-09-30 — Flags de produto "Destaque na home" e "Campeão de vendas"
+**Decisão**: Colunas `featured` + `featured_order` + `best_seller` em `products` (migration `drizzle/0010_product_flags.sql`). O selo legado `top` virou a flag `best_seller`: a migration copia `top` → `best_seller` (57 produtos) e só depois apaga as linhas `top` de `product_badges`, na mesma transação. O importador mapeia `@TOP` para `bestSeller` só no INSERT (não desfaz curadoria). Vitrine da home (`getFeaturedProducts`): destaques na ordem do operador → sem destaques, campeões → sem campeões, mais recentes.
+**Alternativas**: manter `top` como selo (duas fontes para a mesma informação); vitrine automática sem curadoria.
+**Justificativa**: pedido explícito (spec 001, RF04–RF10); flag na própria linha do produto simplifica filtros, contagens e a vitrine.
+**Impacto**: `products.setFlags`, `featuredList` e `reorderFeatured` (RBAC `products:update` + audit); filtros "Destaques / Campeões / Sem foto" na tabela do portal; selo com troféu (nome acessível "Campeão de vendas") no card e no detalhe; `GET /api/products?bestSeller=1`.
+
+## 2026-09-30 — Conteúdo da home editável no painel
+**Decisão**: Um documento jsonb por seção em `site_settings` (`home.layout`, `home.facade`, `home.about`, `home.categories`, `home.featured`, `home.portal-cta`), com schemas zod compartilhados em `src/modules/home/lib/home-content.ts`. Resolução: texto salvo no idioma da página || padrão do dicionário do mesmo idioma; campo ausente vale vazio (compatível para frente — um campo novo não invalida o que já foi salvo). Ordem e visibilidade das seções editáveis (o hero fica fixo no topo, com editor próprio). Links só via `isSafeHref` (bloqueia `javascript:`, `data:`, `//host`, espaços/controle). Leitura cacheada (tag `home-content`, 300 s) e toda mutação expira a tag na hora (`{ expire: 0 }`). A home chama `connection()` (sempre por requisição — sem isso o `next build` tentava ler o banco).
+**Alternativas**: arquivo JSON fixo (só devs editam); uma coluna por campo (migration a cada campo novo); `"max"` na revalidação (a primeira visita após salvar mostraria o texto antigo).
+**Justificativa**: pedido explícito ("todo o conteúdo da página principal deve poder ser controlado pelo painel", RF17–RF21); documento por seção evita sobrescrita cruzada entre editores; o dicionário continua sendo a fonte da copy padrão (regra nº 1).
+**Impacto**: router `homeContent` (get/update/reset/presignImage/confirmImage; permissões `home_content:read/update`; audit); página `/portal/pagina-inicial` (lista de seções, editor por seção, "Restaurar padrão", gerenciador da vitrine); `src/app/[locale]/(site)/page.tsx` renderiza as seções resolvidas.
+
+## 2026-09-30 — "Carrinho" renomeado para "Orçamento"
+**Decisão**: Toda copy visível passa a "orçamento" ("Adicionar ao orçamento", "Meu orçamento", ícone de prancheta); rota `/{locale}/orcamento` com redirect 308 de `/:locale(pt|en)/carrinho`; origem de lead `orcamento` (forçada no servidor para `subject: "cart"`); `conversion_identifier` do RD `orcamento_lista_produtos`. Identificadores técnicos mantidos: `subject: "cart"`, o campo `cf_produtos_carrinho` (já criado na conta do RD) e a chave `roco_cart_v1` do localStorage.
+**Alternativas**: renomear também os identificadores técnicos (migraria dados e campos do RD sem ganho para o visitante).
+**Justificativa**: pedido explícito (RF22–RF24): o visitante monta um pedido de orçamento, não uma compra.
+**Impacto**: dicionários, página do orçamento e ícone do header; itens ganham miniatura (`image` saneado); `sitemap.ts`; rótulos novos no e-mail de notificação.
+
+## 2026-09-30 — Navegação fluida com View Transitions + header persistente
+**Decisão**: `SiteHeader` sobe para o layout `(site)` (não remonta entre páginas) e o conteúdo fica num `<ViewTransition>` do React (Next 16.3), com crossfade curto, header ancorado e morph da imagem do card para a capa do detalhe; `prefers-reduced-motion` desliga tudo. Hero com setas laterais (padrão WEG), indicadores de progresso, pausa, teclado e arraste; carrossel genérico (`src/shared/components/carousel`); detalhe com breadcrumb, "voltar" que restaura a listagem (sessionStorage), galeria com setas/miniaturas e produto anterior/próximo da categoria; paginação numerada; "voltar ao topo"; busca no header e no menu mobile.
+**Alternativas**: animação de rota com framer-motion (remonta a árvore e o header); sem transições.
+**Justificativa**: pedido explícito ("arrows de navegação… navegação mais fluida", RF11–RF16).
+**Impacto**: páginas do `(site)` deixam de renderizar o próprio `SiteHeader`; tipos do React canary em `src/types/react-canary.d.ts`.
+
+## 2026-09-30 — Busca pública multi-termo sem acento + filtros laterais
+**Decisão**: `matchAllTerms` (`src/server/lib/sql-like.ts`): todas as palavras (até 6), em qualquer coluna (SKU, nome PT/EN), sem acento/caixa via `translate(lower(coalesce(col,'')))` — sem a extensão `unaccent`. `/produtos` ganha barra lateral (gaveta no mobile) com busca ao vivo, categorias com contagem e filtro "só campeões", sincronizados com a URL. Caracteres de controle viram espaço (`?search=%00` dava 500). Espaço de chaves do cache público fechado: categoria desconhecida → lista vazia sem tocar cache nem banco; só `page ≤ 200` e `perPage ∈ {20, 1}` são cacheados; busca livre nunca é cacheada.
+**Alternativas**: extensão `unaccent` (migration com privilégio no banco de produção); busca por frase exata (o comportamento anterior — "flexivel gas" não achava "FLEXÍVEL PARA GÁS").
+**Justificativa**: pedido explícito (RF25, RF27) e revisão de segurança (chave de cache controlada pela querystring).
+**Impacto**: `GET /api/products` aceita `bestSeller`; contagens por categoria e de campeões cacheadas (tag `products`); a busca do portal (`products.list`) usa o mesmo helper.
+
+## 2026-09-30 — Portal do operador: shell reescrito + dashboard + editor da home
+**Decisão**: Shell com logo sensível ao tema (duas imagens alternadas por CSS), menu em grupos (Visão geral, Catálogo, Relacionamento, Site, Administração), busca de produtos na sidebar (Ctrl/⌘+K), sidebar recolhível (store externo com `useSyncExternalStore`, sem mismatch de hidratação), `buildPortalShellProps` como ponto único das props do shell e logout voltando ao login no mesmo idioma. Dashboard com indicadores clicáveis (publicados, destaques, campeões, sem foto, cadastros para revisar, solicitações dos últimos 30 dias — cada um conforme a permissão), atalhos, solicitações recentes e saúde do catálogo. Produtos: filtros na URL (fonte da verdade), miniatura, destaque/campeão em um clique, "ver no site / copiar link / WhatsApp", formulário por seções. Caixa de **Solicitações** (`/portal/solicitacoes`, `leads:read`, somente leitura; detalhe auditado como `leads.view`; a lista não devolve e-mail/telefone).
+**Alternativas**: manter o shell anterior (props repetidas em cada página); dashboard só com contagens estáticas.
+**Justificativa**: pedido explícito ("painel intuitivo e com bons recursos para o operador/representante", RF26, RF28–RF31).
+**Impacto**: rotas novas `/portal/pagina-inicial` e `/portal/solicitacoes`; permissão `leads:read`; todo texto do shell e das configurações nos dicionários.
+
+## 2026-09-30 — Foto da fachada da ROCO após o hero
+**Decisão**: Seção nova `home.facade` logo após o hero: imagem da fachada, eyebrow, título, texto curto e CTA opcional, tudo editável. Imagem padrão em `public/images/home/fachada-roco.jpg` (recorte do render oficial), trocável no painel por upload para o R2 (`site/home/<uuid>`), servida por `next/image` com `loading="lazy"`.
+**Alternativas**: seção fixa no código (não editável).
+**Justificativa**: pedido explícito ("seção de fachada da fábrica breve pra dividir o conteúdo", RF17).
+**Impacto**: `home-facade.tsx` + `facade-parallax.tsx`; upload pelo mesmo `homeContent.presignImage/confirmImage` das imagens dos cards de categoria (o hero tem fluxo próprio).
+
+## 2026-09-30 — Brand assets: logos 2D/3D, favicon, tema claro do portal
+**Decisão**: Logos novas processadas por `scripts/build-brand-assets.mjs` (recorte do alfa, sem padding) para `public/images/logos/`: branca no header, com slogan no rodapé/login, 3D no hero, azul no tema claro do portal. Originais em `docs/marca/logos-originais/`. Favicon e ícone Apple pela convenção de arquivo do App Router (`src/app/icon.png`, `apple-icon.png`).
+**Alternativas**: usar os PNGs originais direto (padding e tamanhos inconsistentes); favicon declarado à mão no metadata.
+**Justificativa**: pedido explícito (RF01–RF03); script reprodutível para a próxima troca de marca.
+**Impacto**: 5 PNGs em `public/images/logos/` + 2 ícones em `src/app/`; o metadata raiz deixou de declarar ícones.
+
+## 2026-09-30 — Atualização de dependências: Next 16.3.0 → 16.3.7, sharp 0.35.3 → 0.35.5
+**Decisão**: Atualizar pelos advisories publicados em 2026-09: GHSA-2xp9-vwfh-vxw4 (RCE no otimizador de imagem com AVIF), GHSA-p293-qw3h-jr36 (RCE em servidor Windows) e GHSA-rgj7-g3m4-5g8c (libheif no sharp). `eslint-config-next` acompanhou; `baseline-browser-mapping` 2.11.26 (moderado). `npm audit --omit=dev` = 0.
+**Alternativas**: mitigar sem atualizar (bloquear o loader HEIF do sharp e restringir `remotePatterns`).
+**Justificativa**: mesma política do upgrade de 2026-08-09 (CVE crítica → atualizar); só patch-level.
+**Impacto**: 43 linhas no lockfile, todas desse grupo; build de produção verde com 16.3.7.
+
+## 2026-09-30 — Flag `NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED` desligada nos builds locais
+**Decisão**: A flag vira ARG do Dockerfile; `scripts/docker-build.cmd` e `docker-compose.yml` passam `false`; o build de produção sem o arg segue LIGADO (inalterado). Antes, a imagem local carregava o script real da conta ROCO e a navegação de teste entrava no lead scoring do RD.
+**Alternativas**: manter como estava (dados de teste na conta real).
+**Justificativa**: mesmo raciocínio já aplicado ao Mautic (`NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=false` no build local).
+**Impacto**: build-arg novo; nenhuma mudança em produção.
+
+## 2026-09-30 — Embalagens: todas aparecem, sem "padrão"
+**Decisão**: Regra do stakeholder: "as embalagens podem ser compostas, não tem embalagem padrão; todas cadastradas precisam aparecer". Site: cada embalagem no detalhe do produto com descrição gerada de tipo + quantidade ("Blister — 12 unidades por embalagem"; "Peça avulsa — Vendida por unidade"), EAN quando existe, contagem ao lado do título e a nota "Este produto é vendido em todas as embalagens abaixo"; a API pública deixa de expor `isDefault`. Portal: a tabela de produtos lista TODAS (antes só a `is_default`), o checkbox "Padrão" saiu do formulário (a coluna fica como legado do importador, devolvida intacta ao salvar) e o formulário acusa embalagem repetida (tipo + quantidade) antes do banco.
+**Alternativas**: texto livre por embalagem editável no portal (exigiria migration e proteção contra a reimportação, que apaga e recria as embalagens) — fica para quando o stakeholder pedir.
+**Justificativa**: pedido explícito; a planilha do ERP só traz tipo, quantidade e EAN (1.749 embalagens em 737 produtos), então a descrição é gerada.
+**Impacto**: `src/shared/lib/packaging.ts` (`sortPackagings` tipo → quantidade, `describePackaging`); textos em `products.packagingInfo`.
+
+## 2026-09-30 — Cache do catálogo com expiração imediata em edição
+**Decisão**: Toda mutação de catálogo feita no portal (criar, editar, excluir, publicar, destaque/campeão, ordem da vitrine, imagens) expira a tag `products` com `{ expire: 0 }` em vez de `"max"`. Com `"max"` a primeira visita depois de salvar mostrava a versão antiga — sintoma relatado: "a embalagem cadastrada não aparece". O sync em lote do ERP continua com `"max"`.
+**Alternativas**: manter `"max"` (a mudança só aparece na segunda visita).
+**Justificativa**: o operador salva e confere o site em seguida; edição manual é rara.
+**Impacto**: `IMMEDIATE_EXPIRY` em `src/server/trpc/routers/products.ts`; a visita seguinte à edição regenera a página de forma bloqueante (custo aceito).
+
+## 2026-09-30 — Painel centralizado em largura única
+**Decisão**: O `PortalShell` envolve todas as páginas num contêiner centralizado de até 1280 px (`PORTAL_CONTENT_MAX_WIDTH`). Saíram os `maxWidth: 1200` alinhados à esquerda do painel e das boas-vindas; os formulários do onboarding ficaram centralizados.
+**Alternativas**: largura por página (o conteúdo "pulava" de lugar a cada navegação).
+**Justificativa**: pedido explícito ("as páginas do painel estão alinhadas à esquerda, centralize o conteúdo").
+**Impacto**: só layout; nenhuma mudança de dados.
+
+## 2026-09-30 — Materiais do representante: biblioteca por setor + gestão separada
+**Decisão**: `/portal/materiais` é UMA rota com DUAS telas: gestão (CRUD) para `materials:create` e biblioteca somente-leitura para `materials:read`. Biblioteca (`MaterialsLibrary` + `src/modules/portal/lib/materials-library.ts`): busca sem acento, filtro por assunto com contagem, seções na ordem política comercial → logística → contatos → treinamento → outros (categoria vazia ou desconhecida cai em "outros"), cards com tipo, tamanho, data e selo "Novo" (14 dias), faixa "Publicados recentemente" só com 5+ materiais. Menu do representante: Boas-vindas, Materiais, Cadastro, Produtos ("Painel" saiu: só redirecionava). Boas-vindas: "Materiais recentes" (4 últimos + "Ver todos") logo abaixo do hero. Admin: "Ver como representante" (`?visao=representante`). Notícias/comunicados: o stakeholder decidiu não criar agora.
+**Alternativas**: duas rotas separadas; manter a lista corrida no fim das boas-vindas (era onde o material "sumia").
+**Justificativa**: pedido explícito ("acesso do representante aos materiais… harmonioso e setorizado").
+**Impacto**: item "Materiais" no menu de quem só lê; `materials.listPublished` sem URL presignada no payload.
+
+## 2026-09-30 — Link estável de material com rota autenticada
+**Decisão**: `GET /api/portal/materials/[id]/download?modo=abrir|baixar` confere sessão + `materials:read` NO CLIQUE (rascunho só para `materials:create`; para os demais, 404), gera URL do R2 de 60 s com `Content-Disposition` seguro (RFC 6266/5987, nome com acento preservado — `src/server/lib/content-disposition.ts`) e responde 303; sem sessão, 303 para o login no idioma do cookie `NEXT_LOCALE`, voltando à biblioteca; `Cache-Control: no-store`. Antes a página embutia URLs presignadas de 5 min, que venciam com a aba aberta — o clique dava erro do R2 e o material parecia não existir.
+**Alternativas**: URLs presignadas mais longas (vazam por mais tempo e ainda vencem); refetch periódico da lista.
+**Justificativa**: garantir que o representante sempre consiga abrir o material publicado.
+**Impacto**: Route Handler novo; testes do `Content-Disposition`; rota verificada no navegador e por curl (303 → R2, sem sessão → login, material apagado → 404).
+
+## 2026-09-30 — Migration 0011: garantia de permissões no boot
+**Decisão**: `drizzle/0011_ensure_portal_permissions.sql` (custom, idempotente — `INSERT … ON CONFLICT DO NOTHING`) cria as permissões `materials:*`, `home_content:read/update` e `leads:read` e as concessões que o seed faria (admin: todas; sales_manager: materials create/read/update + home_content + leads:read; representative: materials:read). Como as migrations rodam no boot do container, cada ambiente recebe as concessões uma única vez, no primeiro boot com o código novo, sem depender de alguém rodar `npm run db:seed`. Não remove nada.
+**Alternativas**: só o seed manual (já tinha sido esquecido); rodar o seed a cada boot (reescreveria dados do admin e do site a cada deploy).
+**Justificativa**: o representante logava e não via os materiais; sem `materials:read` a consulta responde FORBIDDEN. No banco local a permissão existia (sintoma não reproduzido); foram corrigidas as três causas possíveis (permissão ausente, material só no fim da página e sem menu, link vencido). Representante ainda não aprovado continua sem perfil — intencional.
+**Impacto**: journal com 12 migrations (0000–0011); testado: grant removido → `drizzle-kit migrate` → grant de volta.
+
+## 2026-09-30 — Upload de imagem da home: presign com tipo/tamanho assinados + HEAD
+**Decisão**: O presign das imagens da home (fachada e cards de categoria) assina `content-type` e `content-length` (opt-in `sizeBytes` em `getPresignedUploadUrl`): o R2 só aceita o PUT com exatamente o tipo e o tamanho declarados. No `confirmImage` e no `update` o servidor confere o objeto GRAVADO (HEAD: JPEG/PNG/WebP, extensão da chave, ≤ 10 MB) e apaga o que estiver fora do contrato. A limpeza de imagens órfãs olha todos os documentos da home antes de apagar.
+**Alternativas**: validar só o que o cliente declara (o presigner não assina `content-type` por padrão — qualquer arquivo passava).
+**Justificativa**: revisão de segurança de 2026-09-30 (RNF02).
+**Impacto**: validado contra o R2 real — PUT correto 200; PUT com outro tamanho ou outro tipo recusado; confirm antes do upload → "Imagem não encontrada"; "Restaurar padrão" apaga a órfã. Hero, produtos, materiais e documentos seguem sem a assinatura (backlog).

@@ -1,10 +1,12 @@
 # CLAUDE.md — ROCO (site institucional)
-> Versão: 0.1.0 | Criado: 2026-07-13 | Fase: MVP (página "Em breve")
+> Versão: 0.1.0 | Criado: 2026-07-13 | Atualizado: 2026-09-30 | Fase: site completo + Portal ROCO
 
 ## 🎯 Contexto do Projeto
-Site institucional da **ROCO**, fabricante industrial brasileira. Nesta fase o site é
-uma **página de espera ("Tem novidade chegando!")** em pt-BR, construída sobre uma base
-Next.js completa, pronta para crescer para o site definitivo (produtos, catálogo, contato).
+Site institucional da **ROCO**, fabricante industrial brasileira, e **Portal ROCO** (painel da
+equipe e dos representantes) — um único app Next.js. Site público (pt/en): home editável pelo
+painel, catálogo de produtos, orçamento, contato, catálogo PDF e pré-cadastro de representantes.
+Portal: produtos, página inicial, hero, solicitações (leads), representantes, materiais,
+configurações e perfis/permissões. Specs de feature em `memory-bank/specs/`.
 
 ## 🧠 Memory Bank — Carregar Sempre
 Leia no início de cada sessão, nesta ordem:
@@ -23,12 +25,14 @@ Next.js App Router + i18n por middleware (`[locale]`), organização modular:
 
 ```
 src/
-  app/            → App Router: layout raiz, [locale], robots, sitemap, globals.css
-  core/           → config (metadata) e lib (cn, utilitários)
-  modules/<feat>/ → features isoladas (ex.: landing/components)
-  shared/         → componentes compartilhados (layout, forms, i18n UI)
+  app/            → App Router: [locale]/(site) público · [locale]/(internal) portal · api/*
+  core/           → auth (RBAC), config, storage (R2), queue, theme (MUI), trpc-client
+  modules/<feat>/ → features isoladas (home, products, cart, portal, …)
+  server/         → routers tRPC e libs server-only
+  db/             → schema Drizzle, seed, importadores
+  shared/         → componentes e libs compartilhados
   i18n/           → config, get-dictionary, dictionaries/{pt,en}.json
-middleware.ts     → resolve locale (cookie/Accept-Language) e prefixa a rota
+  proxy.ts        → middleware: resolve locale e protege /portal (fica em src/, ao lado de app/)
 ```
 Detalhes: @memory-bank/systemPatterns.md
 
@@ -50,7 +54,7 @@ Detalhes: @memory-bank/systemPatterns.md
 7. `page.tsx`/`layout.tsx` de `[locale]` validam o locale (`notFound()` se inválido).
 8. Componentes com animação/estado são `"use client"`; dados e i18n resolvem no server.
 9. Variáveis públicas via `process.env.NEXT_PUBLIC_*`; segredos nunca no client.
-10. Coordenadas/medidas da hero foram extraídas do `.psd` — ver comentário em `coming-soon-hero.tsx` antes de mexer no layout.
+10. Conteúdo da home é editável no portal: o texto padrão fica no dicionário e o que o operador sobrescreve fica em `site_settings` (`home.*`) — ver `src/modules/home/lib/home-content.ts`; o hero são os slides de `hero_slides`.
 
 ## 🔐 Segurança
 - Headers de segurança em `next.config.ts` (HSTS, X-Frame-Options, nosniff, Referrer-Policy).
@@ -83,4 +87,6 @@ Detalhes: @memory-bank/systemPatterns.md
 - Tailwind v4: sem `tailwind.config`; tokens e cores ficam em `@theme` no `globals.css`.
 - Next 16: `params` de rotas é **assíncrono** (`await params`).
 - `next/font` injeta variáveis CSS (`--font-inter`, `--font-poppins`) usadas pelo `@theme`.
-- A hero desktop usa uma caixa com `aspect-[3224/1724]` + `containerType: inline-size`; textos escalam em `cqw`. Não troque para `object-cover` recortado sem reavaliar o alinhamento.
+- `src/proxy.ts` precisa ficar em `src/` (ao lado de `app/`): na raiz do repo ele compila mas NUNCA roda.
+- Permissão nova de módulo: seed E migration idempotente (ex.: `drizzle/0011_*`) — o seed não roda no boot.
+- O header do site vive no layout `(site)` (não remonta entre páginas); páginas não renderizam `SiteHeader`.

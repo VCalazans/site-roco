@@ -41,20 +41,41 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 ## Fluxos de Negócio
 
 ### Fluxo de Visitante (Site Público)
-1. Acessa `/pt` (ou `/en`) → home institucional (hero + "Quem é a ROCO" + categorias + produtos destaque + footer).
-2. **Via vitrine de produtos**: clica um produto destacado → `/pt/produtos/[slug]` (detalhe com galeria R2,
-   embalagens, badges, produtos relacionados).
-3. **Via vitrine de categorias**: clica categoria (ex.: "Metalurgia") → `/pt/produtos?category=metalurgia`
-   (filtro aplicado).
-4. **Via barra de busca**: digita termo + ENTER/buscar → `/pt/produtos?q=termo` (SSR, debounce 350ms
-   no client, paginação real, cache tag `"products"`).
-5. Clica **"Solicite um orçamento"** (em produto) ou **"Entre em contato"** (nav) → abre modal form Mautic (id=1).
-6. Preenche CNPJ/empresa/email/telefone → validação client-side (CNPJ, telefone) + bloqueio de submit inválido
-   → POST via Mautic → lead criado no Mautic.
-7. **Alternativa**: clica **"Baixar Catálogo"** (nav/footer) → abre modal Mautic (captura de lead) + link PDF
-   (endpoint `/downloads/catalogo-roco-2026.pdf`).
-8. Tracking: pageview em cada rota (`mtc.js` via `mautic-tracking.tsx`); hit enviado a `POST /mtc/event` ou
-   pixel `mtracking.gif`.
+1. Acessa `/pt` (ou `/en`) → home institucional com **header persistente** (não remonta):
+   - Hero cinematográfico com setas, indicadores, pausa, teclado/arraste (padrão WEG).
+   - **Fachada da ROCO** (seção editável): imagem, eyebrow, título, texto, CTA opcional.
+   - "Quem é a ROCO" (institucional, editável).
+   - **Vitrine de destaques**: carrossel com setas, produtos destacados em ordem do operador (fallback: campeões → recentes).
+   - Categorias (grid editável).
+   - CTA Portal ROCO.
+   - Rodapé com contatos e redes sociais (endereços editáveis).
+
+2. **Busca/navegação**:
+   - Busca no header (desktop) e no menu mobile → `/pt/produtos?search=termo`.
+   - Barra lateral de filtros em `/produtos`: busca ao vivo + contagem por categoria + "só campeões" checkbox; gaveta no mobile.
+   - Via vitrine: clica destaque → `/pt/produtos/[slug]` (detalhe com breadcrumb, galeria + setas + miniaturas,
+     anterior/próximo, "voltar" restaurando filtros, embalagens, badges, produtos relacionados por categoria).
+
+3. **Orçamento multi-produto** (ex-carrinho): clica "Adicionar ao orçamento" (card ou detalhe) →
+   badge na nav atualiza contagem → `/pt/orcamento` → miniatura + quantidade ajustável + remover + "Enviar orçamento".
+   Envio: `POST /api/contact` com `subject: "cart"` → gravado em `contact_submissions` + `contact_submission_items`,
+   melhor-esforço para RD Station (origin: `"orcamento"`, `conversion_identifier: "orcamento_lista_produtos"`)
+   e e-mail (Resend, quando configurado).
+
+4. **Solicitações de orçamento ou contato**:
+   - Clica **"Solicite um orçamento"** (produto) ou **"Entre em contato"** (nav) → `/pt/contato` (formulário público).
+   - Preenche: nome, e-mail, telefone, empresa (opcional), CNPJ (opcional), assunto (dropdown: ligamos/orçamento/contato),
+     mensagem (opcional), consentimento LGPD obrigatório.
+   - Validação client-side (e-mail, telefone) → `POST /api/contact` → INSERT em `contact_submissions`,
+     melhor-esforço para RD Station + e-mail (Resend).
+
+5. **Catálogo PDF**:
+   - Clica **"Baixar Catálogo"** (nav/footer) → `/pt/catalogo` (formulário de captura) → `POST /api/contact`
+     com `subject: "catalog"` → link para download em `public/downloads/catalogo-roco-2026.pdf`.
+
+6. **Transições e UX**: navegação entre páginas é fluida (View Transitions React 19), header fica fixo,
+   cards carregam em paralelo com morphing de imagem (card → detalhe). Redução de movimento respeitada
+   (`prefers-reduced-motion`).
 
 ### Fluxo de Representante (Portal)
 **Canal padrão (2026-08-11): pré-cadastro pelo SITE.**
@@ -76,7 +97,45 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 4. Time interno revisa em `/portal/representantes` → aprova/rejeita com notas (audit log;
    auto-aprovação bloqueada no servidor).
 5. Se aprovado: usuário ganha a role `representative` (userRoles) — JWT revalida em ≤5min.
-6. Dashboard mostra resumo; pedidos/comissões dependem do ERP (futuro).
+6. Entra direto nas **boas-vindas** ("Painel" não aparece para o representante): "Materiais recentes" no topo e
+   o item **Materiais** no menu → biblioteca por assunto (política comercial, logística, contatos, treinamento,
+   outros) com busca e filtros; o arquivo abre pela rota autenticada (link gerado no clique). Pedidos/comissões
+   dependem do ERP (futuro).
+
+### Fluxo do Operador (Admin + Sales Manager)
+1. Acessa `/portal` (requer role `admin` ou `sales_manager`):
+   - **Dashboard**: indicadores clicáveis (produtos publicados, destaques, campeões, sem foto, representantes
+     aguardando aprovação, solicitações dos últimos 30 dias), atalhos (novo produto, editar home, ver site).
+
+2. **Gestão de Página Inicial** (`/{locale}/portal/pagina-inicial`, requer `home_content:update`):
+   - Página com a lista de seções (ordem por setas, "Exibir no site") e o editor da seção escolhida: fachada
+     (imagem, eyebrow, título, texto PT/EN, CTA opcional), institucional (textos, destaques, números reais do
+     catálogo), categorias (cards), destaques (textos, limite e a vitrine de produtos), CTA do portal.
+   - Upload 2-step presigned: tipo/tamanho ASSINADOS no presign + HEAD no confirm (valida tipo real, tamanho ≤10MB, extensão).
+   - Fallback inteligente: campo vazio = padrão do dicionário (sempre tem conteúdo visível); "Restaurar padrão" apaga a linha.
+
+3. **Gerenciamento de Produtos**:
+   - Acessa `/portal/produtos` (requer `products:read`; edição requer `products:update`):
+     - Tabela com miniatura, flags `featured`/`best_seller` toggleáveis em 1 clique,
+       filtro "Destaque", "Campeão", "Sem foto", busca por nome/SKU.
+     - Ações por linha: "Ver no site" (se `published`), "Copiar link", "Compartilhar no WhatsApp".
+   - Clica o produto (ou "Editar") → formulário em diálogo na própria listagem:
+     - Seções: identificação (SKU, ERP, NCM, EAN), nome e descrição PT/EN, categorias e selos, vitrine,
+       embalagens (todas; sem "padrão"; repetida é acusada), imagens (upload presigned).
+     - Flags: "Destaque na home" (entra no fim da vitrine; a ordem se ajusta na Página inicial) e "Campeão de vendas" (troféu no site).
+     - "Publicar" (toggle) requer `products:publish`; invalidação de cache imediata.
+
+4. **Visualização de Solicitações** (`/{locale}/portal/solicitacoes`, requer `leads:read`):
+   - Lista somente-leitura de leads/orçamentos: sem e-mail/telefone (minimização LGPD).
+   - Filtro por assunto (call_back, quote, general, catalog, cart).
+   - Clica detalhe → janela modal com nome, e-mail, telefone, empresa, CNPJ, produto (se aplicável), lista de itens
+     (se orçamento), mensagem, status do RD Station e e-mail (sent/failed/skipped), data.
+     Abertura grava audit log (`leads.view`).
+
+5. **Configurações** (`/{locale}/portal/configuracoes`, requer `admin`):
+   - Redes sociais em campos separados e validados (Instagram, LinkedIn, YouTube, WhatsApp).
+   - Endereços da matriz e unidade fabril (que aparecem no rodapé público).
+   - Não expõe JSON cru (campos separados).
 
 ### Fluxo de Produto (Admin)
 1. Importar catálogo: `npm run db:import-catalog` lê `docs/Dados Catalogo ROCO site_2026.xls`
