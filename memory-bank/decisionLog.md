@@ -1742,3 +1742,134 @@ rodapé (antes "Portal ROCO — Força de Vendas"), descrição no editor da hom
 em pt (antes "ROCO Portal", vai no título das abas do portal). O botão da chamada, que dizia
 "Portal ROCO", virou "Faça seu pré-cadastro" / "Pre-register now" para não repetir o título.
 **Impacto**: só dicionários; destino inalterado (`/{locale}/representantes`, pré-cadastro).
+
+## 2026-09-30 — Paginação numerada no portal, imagens do produto no site (exibir/capa) e download dos originais
+Pedido do stakeholder (4ª rodada): "adicionar a paginação, carregar mais não é um bom padrão", código
+limpo com componentes reaproveitáveis, dados de teste cadastrados, marcar nas imagens enviadas o que
+vai para a listagem do site e liberar aos representantes o download de TODAS as imagens dos
+produtos sem perda de qualidade.
+
+### Parte A: paginação numerada nas listas do portal
+**Decisão**: "Carregar mais" sai de Produtos; as quatro listas do portal (Produtos, Solicitações,
+Representantes e Usuários da tela de Perfis) passam a usar o MESMO rodapé, `PortalPagination`
+(`src/modules/portal/components/shared/portal-pagination.tsx`): o `TablePagination` do MUI com as
+ações trocadas por páginas numeradas (`Pagination`, primeira/última, 1 vizinha; no celular só
+primeira/anterior/atual/próxima/última) e "itens por página" 20/50/100. Os textos vêm do locale do
+tema (ptBR/enUS) — nenhuma copy no componente — e a conversão 1-based ↔ 0-based fica dentro dele.
+Em Produtos, `?page=`/`?perPage=` na URL (fonte da verdade, `history.replaceState` lendo a URL
+viva); filtro novo volta à página 1 mantendo o tamanho; o servidor limita a página ao intervalo real
+(`clampPage`) e a URL adota a página efetiva; trocar de página rola até o topo da tabela.
+`products.list` passou de `limit`/cursor para `page`/`perPage` (1–100, padrão 20) com retorno
+`{ items, total, page, perPage }`; os filtros do servidor foram extraídos para
+`src/server/lib/portal-product-filters.ts`, compartilhados com o resumo e o ZIP de imagens.
+**Alternativas**: (a) manter "Carregar mais" — rejeitado pelo stakeholder: não dá para ir a uma
+página específica, a posição se perde ao voltar e a lista cresce sem fim; (b) rolagem infinita —
+mesmos problemas; (c) um componente de paginação por tela — duplicaria comportamento e textos.
+**Justificativa**: pedido explícito; um componente só para as quatro listas.
+**Impacto**: helpers puros `src/modules/portal/lib/pagination.ts` (`PORTAL_PER_PAGE_OPTIONS`,
+`DEFAULT_PORTAL_PER_PAGE = 20`, `pageCountOf`, `clampPage`, `parsePaging`, `applyPaging`) com
+testes. Representantes: trocar status, região, "incluir desabilitados" ou a busca volta à página 1
+(antes ficava numa página que podia não existir); `DEFAULT_REPRESENTATIVES_PER_PAGE` removido.
+Verificado no navegador (737 produtos): `?page=3` → "41–60 de 737"; `?page=99` → URL adota
+`?page=37`; 50 por página → 15 páginas; "Campeões" ligado na página 2 → página 1 com 50 ("1–50 de 57").
+
+### Parte B: o operador escolhe quais imagens vão ao site e qual é a capa
+**Decisão**: coluna `product_images.show_on_site boolean NOT NULL DEFAULT true` (migration
+`drizzle/0012_product_images_show_on_site.sql`; todas as imagens existentes continuam no site). O
+site (`assembleProducts`, ponto único das consultas públicas) só lista imagens visíveis, na ordem
+`sort_order, created_at`; a capa da listagem é a PRIMEIRA visível. No cadastro do produto, cada
+imagem tem "Exibir no site" (`products.setImageVisibility`), "Usar como capa"
+(`products.setCoverImage`: leva ao início da ordem e marca visível, numa transação), baixar o
+original e remover, com chips "Capa da listagem" / "No site" / "Só no portal" (esmaecida). Na fila
+de upload, "Exibir no site" é marcável antes do envio (`confirmImageUpload` aceita `showOnSite`,
+padrão true). Tudo vale na hora (não espera "Salvar"), com audit (`product_images.setVisibility`,
+`product_images.setCover`) e expiração imediata da tag `products`. Permissão nova
+`product_images:update` (só admin).
+**Alternativas**: (a) apagar a imagem que não deve ir ao site — perde o original que o representante
+precisa baixar; (b) uma flag de "capa" separada da ordem — duas fontes de verdade (a ordem já
+define a galeria); (c) arrastar para reordenar — mais caro de construir; "Usar como capa" resolve o
+pedido (escolher o que vai à listagem).
+**Justificativa**: pedido explícito ("as imagens que vão aparecer no site precisam ser selecionáveis").
+**Impacto**: tabela de produtos com "{n} no site" sob o total de fotos e chip "Nenhuma no site"
+(alerta se publicado); filtro rápido "Sem foto no site" (`hasSiteImage=false`); o indicador
+"publicados sem foto" do painel conta só imagens visíveis. **`show_on_site` é curadoria, não sigilo**:
+o bucket é público e a URL de toda imagem sai para quem tem `products:read` (ver progress.md, Riscos).
+Verificado: ligar a imagem oculta e "Usar como capa" refletiram na hora na API e no detalhe; o
+estado original foi restaurado em seguida.
+
+### Parte C: download dos originais (representante, gerente comercial e admin)
+**Decisão**: permissão `product_images:download` (admin, sales_manager, representative), no seed E
+na migration idempotente `drizzle/0013_product_images_permissions.sql`. Duas rotas autenticadas
+(sessão + permissão conferidas NO CLIQUE, helper compartilhado `src/server/lib/portal-route-auth.ts`):
+- `GET /api/portal/products/images/[imageId]/download` — 303 para URL do R2 de 60 s com
+  `Content-Disposition: attachment` e o nome original do arquivo.
+- `GET /api/portal/products/images/zip` — `?product=<uuid>` (arquivos na raiz) ou os filtros da
+  listagem (uma pasta por produto `"{SKU} - {nome}"`; sem filtro, o catálogo inteiro de produtos
+  ativos). ZIP em streaming com `client-zip` 2.5.1 no modo "store": bytes originais, sem
+  recompressão. Arquivos numerados na ordem da galeria; imagem que não abre no R2 vira item de um
+  relatório em texto dentro do ZIP. Tetos: 3000 arquivos / 2 GiB (413); 20 ZIPs por 10 min por
+  usuário (429); no máximo 2 ZIPs simultâneos por usuário e 5 por processo (429, `download-slots.ts`);
+  2 min sem progresso encerram o download. Audit `product_images.download` com escopo, filtros,
+  contagens e bytes.
+Na tela: botão "Baixar imagens" no topo de Produtos com resumo ANTES de baixar ("617 imagens
+originais de 593 produtos (336 MB)") e galeria "Imagens de {produto}" (coluna Fotos ou menu da
+linha) com cada original e "Baixar todas (ZIP)".
+**Alternativas**: (a) URL presignada na página — vence com a aba aberta (lição de 2026-09-30 nos
+materiais); (b) montar o ZIP em memória ou em disco — memória/disco proporcionais ao catálogo;
+(c) só download avulso — "baixar todas as imagens" viraria centenas de cliques; (d) recomprimir
+para reduzir o ZIP — contraria "sem perder qualidade".
+**Justificativa**: pedido explícito; streaming mantém a memória constante.
+**Impacto e lições**:
+- Um objeto do R2 por vez: o catálogo levava 340 s, quase tudo espera pelo primeiro byte (~0,3 s
+  por GET). Com 4 objetos abertos à frente (`PREFETCH_WINDOW`): 35 s (617 imagens, 336 MB, local),
+  conferido byte a byte com os originais (sha256).
+- `transformToWebStream()` (= `Readable.toWeb`) + cancelamento soltava `uncaughtException
+  ERR_INVALID_STATE` a cada download abortado (visto com o `ChecksumStream` do SDK) →
+  `src/core/storage/pull-stream.ts` (`toPullStream`, leitura por demanda).
+- `pipeThrough(transform, { signal })` não cancela a fonte quando ninguém lê o outro lado (o abort
+  espera a escrita pendente) → repasse próprio `cancelOnAbort`. O client-zip não encerra o gerador
+  de entradas no cancelamento → a limpeza (arquivo em cópia + abertos à frente) fica num wrapper nosso.
+- Verificado como representante (script com login real, dev e container): mutação de visibilidade
+  403; avulso 303; ZIPs de produto, de filtro e do catálogo válidos; 3 downloads abortados sem erro.
+- **Decisão de produto pendente**: o representante baixa imagens de produtos ativos NÃO publicados
+  (coerente com a listagem do portal, onde já os vê).
+
+### Parte D: dados de teste persistentes
+**Decisão**: `npm run db:seed:qa` (`src/db/seed-qa.ts`) cria, só em banco local (host localhost,
+127.0.0.1, ::1 ou `postgres`; `host`/`hostaddr` na querystring recusados), um representante
+APROVADO (`representante.teste@roco.local`; e-mail sempre de domínio `.local`; senha só em
+`QA_REPRESENTATIVE_PASSWORD` no `.env.local`), imagens de teste nos SKUs 1000 e 1001 (uma visível,
+uma só no portal em 3000 px) e dois materiais publicados "(TESTE)" (PDF e PNG). Idempotente pelo
+prefixo `qa-teste-`; `--remover` apaga o que o script criou (R2 + banco + a conta).
+**Alternativas**: (a) dados de teste no `db:seed` — iriam para produção; (b) cadastrar à mão pelo
+painel a cada validação — lento e sem remoção garantida.
+**Justificativa**: pedido explícito ("deixe materiais de testes cadastrados para validar").
+**Impacto**: `src/db/script-env.ts` (`repoRoot`, `loadEnvFiles`, `requireEnv`) compartilhado com o
+importador de imagens; `.env.example` documenta as duas variáveis (vazias).
+
+### Parte E: revisão de segurança desta rodada
+Revisão OWASP pelo agente `security`: 0 crítico, 1 alto, 4 médios, baixos.
+- **Corrigido no mesmo dia**:
+  - (M) **Zip Slip**: o nome de pasta de reserva era o SKU cru — SKU `"../.."` (ERP ou cadastro)
+    gerava `../../01-foto.png`. Agora todo segmento passa pelo saneador e `buildImageZipEntries`
+    recusa qualquer caminho inseguro (`isSafeZipPath`).
+  - (M) **ReDoS**: `/[.\s]+$/` sobre `namePt` sem limite custava tempo quadrático (medido: 40k
+    caracteres → 690 ms por chamada). Agora a entrada é cortada antes de qualquer regex e o recorte
+    final é um laço.
+  - (M) **ZIPs simultâneos sem teto** esgotavam os 50 sockets do cliente S3 compartilhado (~13 ZIPs
+    parados). Agora há teto por usuário/processo em memória — o recurso é local ao processo — e um
+    tempo máximo sem progresso.
+  - (B) `imagesSummary` sem `includeInactive` (o resumo conta exatamente o que o ZIP leva);
+    filtros no audit do ZIP; `seed-qa` endurecido; controles bidi e nomes reservados do Windows
+    tratados no saneador.
+- **Registrado, não corrigido**:
+  - (A, pré-existente e latente) role `representative` concedida no 1º login Google, antes da
+    aprovação, e não removida na reprovação — dormente sem `AUTH_GOOGLE_*`; corrigir antes de
+    ligar o SSO.
+  - (M) `show_on_site` não é sigilo.
+  - (B) Pendências menores:
+    - download avulso sem audit/rate limit;
+    - rate limit do ZIP fail-open (decisão: o teto de simultâneos em memória protege sem Redis);
+    - GET do ZIP com efeito colateral;
+    - SDK sem timeout de requisição;
+    - índice em `product_images(product_id)`.

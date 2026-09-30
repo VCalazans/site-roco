@@ -203,5 +203,34 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
   pela permissão (ex.: `/portal/materiais`: CRUD com `materials:create`, biblioteca com
   `materials:read`), com pré-visualização para quem gerencia (`?visao=representante`).
 
+### Paginação numerada reutilizável no portal
+- Um rodapé para todas as listas: `PortalPagination` (MUI `TablePagination` com as ações trocadas por
+  páginas numeradas; textos do locale do tema; 20/50/100 por página). A aplicação conta páginas a
+  partir de 1; a conversão para o 0-based do MUI fica só dentro do componente.
+- Em Produtos a URL é a fonte da verdade (`?page=`/`?perPage=`, gravados com `history.replaceState`
+  lendo a URL viva); filtro novo volta à página 1 mantendo o tamanho.
+- Helpers puros em `src/modules/portal/lib/pagination.ts` (`pageCountOf`, `clampPage`,
+  `parsePaging`, `applyPaging`), com testes.
+- O servidor limita a página ao intervalo real (`clampPage` depois do `count`) e devolve a página
+  efetiva; a URL a adota só com a resposta DAQUELA consulta (nunca com o placeholder da anterior).
+- A consulta usa `keepPreviousData` (a página anterior fica na tela enquanto a nova carrega) e trocar
+  de página rola até o topo da tabela (sem animação com `prefers-reduced-motion`).
+
+### Downloads pelo portal (arquivos do R2)
+- A página nunca recebe URL presignada (vence com a aba aberta). Aponta para uma rota autenticada
+  que confere sessão e permissão NO CLIQUE (`authorizePortalRoute`, `src/server/lib/portal-route-auth.ts`)
+  e responde 303 para uma URL do R2 de 60 s com `Content-Disposition` seguro (RFC 6266/5987):
+  materiais (privados, `materials:read`) e imagens de produto (original com o nome do arquivo,
+  `product_images:download`). Sem sessão: 303 RELATIVO para o login no idioma do cookie `NEXT_LOCALE`.
+- Vários arquivos = ZIP em streaming (`client-zip`, modo "store": bytes originais):
+  - leitura do R2 sob demanda (`getObjectStream` → `toPullStream`) e janela de 4 objetos abertos à
+    frente (`PREFETCH_WINDOW`);
+  - cancelamento, falha no meio ou 2 min sem progresso fecham o que está aberto no R2 — wrapper nosso,
+    porque o client-zip não encerra o gerador de entradas;
+  - teto de ZIPs simultâneos por usuário e por processo (`download-slots.ts`, em memória: o pool de
+    sockets do S3 é por processo);
+  - nomes de pasta/arquivo sempre pelo saneador (`zip-entry-names.ts`), com guarda final de caminho
+    (`isSafeZipPath`).
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

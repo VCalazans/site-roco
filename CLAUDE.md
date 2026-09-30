@@ -91,3 +91,5 @@ Detalhes: @memory-bank/systemPatterns.md
 - Permissão nova de módulo: seed E migration idempotente (ex.: `drizzle/0011_*`) — o seed não roda no boot.
 - O header do site vive no layout `(site)` (não remonta entre páginas); páginas não renderizam `SiteHeader`.
 - Route Handler que redireciona para o próprio site: `Location` relativa — no standalone (Docker) `request.nextUrl.origin` vira `http://0.0.0.0:3000`.
+- Objeto do R2 em stream que pode ser cancelado (download): nunca `transformToWebStream()` (= `Readable.toWeb`) — cancelado com leitura agendada, faz `enqueue` num controller fechado e solta `uncaughtException` (`ERR_INVALID_STATE`). Use `getObjectStream`/`toPullStream` (`src/core/storage/`).
+- No host, `npm run db:migrate` sai com código 1 sem mensagem: o `drizzle.config.ts` não lê o `.env.local`. Migre com `node --env-file=.env.local scripts/migrate.mjs`.

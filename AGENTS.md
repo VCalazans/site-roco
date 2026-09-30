@@ -39,7 +39,8 @@ src/
                              #   configuracoes, perfis} e admin/
     api/                     # Route Handlers: auth, contact (leads), products (catálogo
                              #   público), representatives/register, trpc, webhooks/erp,
-                             #   health, portal/materials/[id]/download
+                             #   health, portal/materials/[id]/download,
+                             #   portal/products/images/[id]/download + images/zip
   modules/                   # uma pasta por feature (components/ + lib/ pura e testada)
     home/                    # seções da home + conteúdo editável (lib/home-content.ts)
     products/                # listagem com filtros, detalhe, galeria, paginação
@@ -81,7 +82,9 @@ memory-bank/                 # contexto do projeto, decisionLog e specs/
 | `npm run test`              | Vitest                                               |
 | `npm run db:migrate`        | Aplica as migrations (drizzle-kit)                   |
 | `npm run db:seed`           | Perfis, permissões e admin inicial (idempotente)     |
+| `npm run db:seed:qa`        | Dados de teste (representante, imagens, materiais)   |
 | `npm run db:import-catalog` | Importa o catálogo da planilha em `docs/`            |
+| `npm run db:import-images`  | Sobe as fotos de produto para o R2                   |
 
 ## Convenções
 - Copy visível SEMPRE nos dicionários i18n (`src/i18n/dictionaries/*.json`).

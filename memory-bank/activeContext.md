@@ -1,50 +1,64 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-09-30, terceira rodada)
-Três pedidos do stakeholder, **implementados e validados no navegador**: "Força de Vendas" →
-"Portal ROCO", cadastro de redes sociais "o máximo intuitivo" e vários filtros ao mesmo tempo em
-`/produtos`. **Commitado e enviado** na branch `feat/porta-mais-site` (a pedido do stakeholder):
-`cc8423e` (feature) + o commit de documentação. Merge em `main` NÃO feito. `tsc` limpo, lint 0
-erros, 1610 testes em 56 arquivos, `next build` verde. Container `site-roco` **reconstruído** com
-este código e conferido.
+## Sessão atual (2026-09-30, quarta rodada)
+Pedido do stakeholder: paginação de verdade nos produtos do portal ("carregar mais não é um bom
+padrão"), código limpo e componentes reaproveitáveis, dados de teste cadastrados, escolher quais
+imagens do produto vão ao site e liberar o download das imagens — sem perda de qualidade — para os
+representantes. **Implementado, validado no navegador e por script, e commitado** na branch
+`feat/porta-mais-site` (feature + documentação; sem push, sem merge em `main`). `tsc` limpo, lint 0
+erros, 1660 testes em 63 arquivos, `next build` verde, `npm audit --omit=dev` = 0. Revisão de
+segurança OWASP feita (ver progress.md): 3 médios e os baixos de código corrigidos; 1 alto
+pré-existente e latente registrado (Google SSO) — decisão do stakeholder antes de ligar o SSO.
 
-**Rodada anterior (segunda, já commitada em `add519a` + `5dd95b5`) — mudanças (a–g)**:
-- Embalagens: todas aparecem (sem padrão); descrição gerada
-- Cache expira na hora em edição (sintoma: embalagem não aparecia)
-- Painel centralizado 1280px
-- Materiais: biblioteca por setor + gestão separada
-- Link estável de material via rota autenticada (antes: presignada vencia)
-- Migration 0011: garantia de permissões no boot
-- Upload home com tipo/tamanho ASSINADOS + HEAD
-- Testes: 1571 em 55 arquivos; lint 0 erros; build verde
+**Rodada anterior (terceira, já commitada em `cc8423e` + `c46569e`) — resumo**:
+- "Força de Vendas" → "Portal ROCO", filtros combinados em `/produtos` (várias categorias em OU,
+  vários termos em E), redes sociais por @perfil/nome/número
 
-**Mudanças desta sessão** (detalhes no decisionLog, entrada de 2026-09-30 "Filtros combinados…"):
-- **"Força de Vendas" → "Portal ROCO"** em todo texto visível (chamada da home, rodapé, descrição
-  no editor da home; `portal.shell.appName` em pt, que vai no título das abas do portal). O botão
-  da chamada virou "Faça seu pré-cadastro" / "Pre-register now" para não repetir o título.
-- **Filtros combinados em `/produtos`**: várias categorias (OU) e vários termos de busca (E); Enter
-  ou "+" fixa o termo como chip e libera o campo; até 5 chips; parâmetros repetidos na URL.
-- **Dois bugs de navegação pré-existentes corrigidos** (achados na verificação): com filtros
-  aplicados, clicar em "Produtos" no menu mantinha a lista filtrada numa URL limpa; e voltar do
-  detalhe pelo navegador mostrava a URL filtrada com a lista inteira. Correção: URL como fonte da
-  verdade no explorador (ver systemPatterns).
-- **Relacionados do detalhe do produto** passaram a usar o cache (antes rodavam sem cache a cada visita).
-- **Redes sociais no painel** (`/portal/configuracoes`, bloco que já existia com 4 campos de URL):
-  agora aceita @perfil, nome da página, número de WhatsApp ou link, mostra o link final, testa o
-  link, oferece o telefone do Contato para o WhatsApp e prévia do rodapé; grava o link canônico.
+**Rodada retrasada (segunda, já commitada em `add519a` + `5dd95b5`) — resumo**:
+- Embalagens sem padrão, cache expira na hora, painel centralizado, materiais por setor,
+  material via rota autenticada, permissões no boot, upload home assinado
 
-**Validação ponta a ponta no navegador (dev server; desktop e mobile via iframe de 390px)**:
-- **Filtros**: "engate" + "3/4" → 1 produto (igual a buscar "engate 3/4"); 2 categorias somam
-  (6 + 43 = 49); busca + categorias; recarregar a URL com parâmetros repetidos reconstrói chips e
-  caixas; teto de 5 termos com aviso; gaveta do mobile não fecha ao marcar; busca do header
-  substitui os filtros; "Produtos" no menu limpa; voltar do detalhe restaura filtros e resultados;
-  `?page=999` cai na última página sem chamada extra à API; console sem erro/aviso de hidratação.
-- **Redes sociais** (admin local): `@rocoindustria` → `https://www.instagram.com/rocoindustria`;
-  link de Instagram no campo LinkedIn → erro; `youtube.com/@x` completado; atalho do telefone
-  preencheu `554733352012`; salvar com erro bloqueado. NADA salvo (alterações descartadas).
-- **Renomeação**: home pt/en sem "Força de Vendas"/"Sales Force"; "Portal ROCO" 3× (menu, chamada, rodapé).
-- **Container reconstruído**: home, produtos (com filtros repetidos), contato, representantes e
-  detalhe 200; API com 2 categorias → 49; otimizador de imagem 200.
+**Mudanças desta rodada** (detalhes no decisionLog, entrada de 2026-09-30 "Paginação numerada…"):
+- **Paginação numerada**: 4 listas (Produtos, Solicitações, Representantes, Usuários) usam agora
+  `PortalPagination` (reaproveitável) com primeira/última + 1 vizinha, 20/50/100 itens/página.
+  Em Produtos a URL é a fonte da verdade (`?page=`/`?perPage=`), mudar filtro volta à página 1 e o
+  servidor limita a página ao intervalo real. Em Representantes, filtro novo volta à página 1
+  (bug pré-existente).
+- **Imagens do produto editáveis**: coluna `product_images.show_on_site` (migration 0012). Portal:
+  chave "Exibir no site" por imagem, "Usar como capa" (leva ao início e marca visível), chips
+  "Capa da listagem"/"No site"/"Só no portal". Site: só mostra imagens visíveis, primeira é a capa
+  da listagem. Aviso se publicado sem foto no site.
+- **Download de imagens originais**: permissão `product_images:download` (admin, sales_manager,
+  representative). Rotas: `GET /api/portal/products/images/[imageId]/download` (individual, 303 →
+  R2 com `Content-Disposition` seguro) e `GET /api/portal/products/images/zip` (bulk com filtros,
+  streaming, teto 3000 arquivos / 2 GiB, rate limit 20/10min, no máximo 2 ZIPs simultâneos por
+  usuário e 5 por processo, encerra após 2 min sem progresso). ZIP com pastas por produto, nomes
+  saneados, arquivo de erros se houver. Migration 0013 garante a permissão no boot.
+- **Dados de teste**: `npm run db:seed:qa` (só banco local) cria representante aprovado
+  `representante.teste@roco.local` (senha em `QA_REPRESENTATIVE_PASSWORD` no `.env.local`), imagens
+  de teste nos SKUs 1000/1001 e dois materiais "(TESTE)"; idempotente; `--remover` desfaz.
+- **Correções da revisão de segurança**: saneador de nomes do ZIP seguro por construção (Zip Slip
+  pelo nome de pasta de reserva, ReDoS, bidi, nomes reservados do Windows, guarda final de
+  caminho); teto de ZIPs simultâneos + tempo máximo sem progresso; `imagesSummary` sem
+  `includeInactive`; filtros no audit do ZIP; `seed-qa` recusa host na querystring e e-mail que não
+  seja `.local`.
+
+**Validação (dev server + script com login real + container)**:
+- **Paginação** (navegador, 737 produtos): `?page=3` → "41–60 de 737"; última página "721–737";
+  `?page=99` → URL adota `?page=37`; 50 por página → 15 páginas; ligar "Campeões" na página 2 →
+  página 1 mantendo 50 ("1–50 de 57").
+- **Imagens** (navegador, admin, SKU 1000): chips "Capa da listagem", "No site", "Só no portal"
+  (esmaecida); ligar a imagem oculta e "Usar como capa" refletiram na hora na API pública e no
+  detalhe; o estado original foi RESTAURADO em seguida (o site volta a mostrar 2 imagens, sem a oculta).
+- **Download**: resumo "3 imagens originais de 1 produto (1,1 MB)" com filtro e "617 imagens
+  originais de 593 produtos (336 MB)" sem filtro. Como representante (script com login real):
+  mutação de visibilidade → 403; avulso → 303 para o R2 com o nome original; ZIP do produto
+  idêntico aos originais (sha256); ZIP filtrado com pasta por produto; filtro vazio → 404; catálogo
+  inteiro válido (617 arquivos) em 35 s; 3 downloads abortados sem erro no log. A tela de Produtos
+  do representante mostra só "Baixar imagens" (sem "Novo Produto"/"Sincronizar"); ele vê os 2
+  materiais de teste.
+- **Dados de teste**: seed rodado 2 vezes sem duplicar. O `--remover` não foi executado (os dados
+  ficam para validação).
 
 ## Validação no Navegador (2026-09-30)
 - **Home**: hero com setas WEG + indicadores + pausa; logo 3D quando sem vídeo; fachada com upload 2-step presigned;
@@ -59,14 +73,17 @@ este código e conferido.
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch: `feat/porta-mais-site` — tudo commitado e enviado (`cc8423e` + documentação); sem
-  merge em `main`. Nenhum dado do painel foi salvo durante os testes.
-- Testes: 1610 em 56 arquivos (+39 sobre os 1571 da rodada anterior: +30 `listing-filters`,
-  +8 `site-settings-form` (22 no total), +1 `sql-like-match`).
-- Build de produção: verde (`npm run build`); lint 0 erros (6 avisos antigos em
-  `src/server/trpc/routers/site-settings.ts`, arquivo não tocado).
-- Container local: reconstruído com este código e conferido (páginas 200, API com filtros
-  repetidos, otimizador de imagem 200).
+- Branch: `feat/porta-mais-site` — commitada nesta rodada (`852a916` feature + commit de
+  documentação; sem push); merge em `main` pendente.
+  Dados de teste do `db:seed:qa` PERMANECEM no banco local e no bucket `roco-test` (pedido do
+  stakeholder: "deixe materiais de testes cadastrados"); nenhuma outra alteração do painel ficou salva.
+- Testes: 1660 em 63 arquivos (+50 sobre os 1610 da rodada anterior; 7 arquivos novos:
+  `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7,
+  `pull-stream` 5, `download-slots` 4).
+- Build de produção: verde (`npm run build`); lint 0 erros (6 avisos antigos).
+- Banco local: migrations 0012/0013 aplicadas (journal com 14); no host foram aplicadas com
+  `node --env-file=.env.local scripts/migrate.mjs` (o `npm run db:migrate` não lê o `.env.local`).
+- Container local: reconstruído com o código final e conferido (ver progress.md).
 
 ## RD Station — VALIDADO em 2026-08-31
 Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
@@ -78,13 +95,16 @@ silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles 
 nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 
 ## Pending
+- **Antes de ligar o Google SSO (stakeholder + dev)**: corrigir a concessão automática da role
+  `representative` no 1º login Google (achado ALTO da revisão — ver progress.md, Riscos).
+- **Decisão de produto**: representante baixa imagens de produtos NÃO publicados? Hoje sim
+  (coerente com a listagem do portal, onde ele já os vê).
+- **Atualizar Node local para 22** (AWS SDK exigirá em jan/2027; Docker já usa node:22-alpine).
 - **RD Station (stakeholder)**: criar `cf_origem` no painel — é o ÚNICO campo que o código envia e
-  a conta não tem (conferido na lista de 2026-08-31). `cf_cnpj`, `cf_produto_interesse`,
-  `cf_produtos_carrinho` e `cf_mensagem` já existem. Sem `cf_origem`, a seção do site que gerou o
-  lead some sem aviso. Conferir abrindo `teste-campos-rd@roco.com.br` no painel do RD.
-- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
-  (hoje `email_status = "not_configured"` em todo lead).
+  a conta não tem. Sem ele, a seção do site que gerou o lead some em silêncio.
+- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`.
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
-- merge `feat/porta-mais-site` → `main` (a branch já está no remoto)
-- seed em produção: `npm run db:seed` com `DATABASE_URL` de produção
-- Publicar o site em produção (main está ~70+ commits atrás)
+- **push + merge `feat/porta-mais-site` → `main`**.
+- **seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local — dado
+  de teste nunca chega à produção).
+- Publicar o site em produção (main está ~70+ commits atrás).

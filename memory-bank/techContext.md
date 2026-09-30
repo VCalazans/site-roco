@@ -27,13 +27,14 @@
 - **bcryptjs** 3 (hash seguro senhas; custo 12; puro JS para alpine)
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
 - **sharp** 0.35.5 (otimizador de imagens; 0.35.3 → 0.35.5 por CVE GHSA-rgj7-g3m4-5g8c)
-- **vitest** 4 (test runner, 1610 testes em 56 arquivos em 2026-09-30, 3ª rodada)
+- **client-zip** 2.5.1 (streaming ZIP de imagens, modo "store" sem recompressão)
+- **vitest** 4 (test runner, 1660 testes em 63 arquivos em 2026-09-30, 4ª rodada)
 - **happy-dom** (DOM simulation para testes)
-- **tsx** (devDependency; scripts db:seed + db:import-catalog — Node 20 local sem `--experimental-strip-types`)
+- **tsx** (devDependency; scripts db:seed + db:seed:qa + db:import-catalog + db:import-images — Node 20 local sem `--experimental-strip-types`)
 
 ## Setup do Ambiente
 ```bash
-node -v            # 22+
+node -v            # 22+ recomendado (20.x ainda funciona, mas AWS SDK exigirá ≥22 a partir de jan/2027)
 npm install
 cp .env.example .env.local
 npm run dev        # http://localhost:3000
@@ -94,6 +95,12 @@ orquestrador mata justamente o container ocupado); só falha real de conexão vi
 | R2_BUCKET                    | sim    | Nome do bucket R2 (`roco-portal` no exemplo) |
 | R2_PUBLIC_URL                | não    | URL pública das imagens de produto (entra na CSP `img-src`) |
 
+### QA / Dados de Teste (2026-09-30)
+| Variável                     | Obrig. | Descrição                                  |
+|------------------------------|:------:|--------------------------------------------|
+| QA_REPRESENTATIVE_EMAIL      | não    | E-mail do representante de teste do `db:seed:qa` (padrão: `representante.teste@roco.local`) |
+| QA_REPRESENTATIVE_PASSWORD   | sim, para `db:seed:qa` | Senha do representante de teste (mín. 12 caracteres). Fica só no `.env.local`; o script não tem senha embutida e falha sem ela |
+
 ## Comandos do Projeto
 ### Desenvolvimento
 | Comando         | Quando usar                                  |
@@ -118,6 +125,7 @@ orquestrador mata justamente o container ocupado); só falha real de conexão vi
 | `npm run db:push`    | Push schema direto (dev apenas)              |
 | `npm run db:studio`  | Abrir Drizzle Studio (UI local)              |
 | `npm run db:seed`    | Seed roles + permissões (idempotente)       |
+| `npm run db:seed:qa` | Seed de teste: representante aprovado + imagens + materiais (idempotente, só localhost; `--remover` desfaz) |
 | `npm run db:import-catalog` | Importar catálogo de .xls (769 produtos) |
 | `npm run db:import-images` | Carga inicial de fotos (docs/PRODUTOS → R2 + product_images; `--dry-run`/`--limit=N`; idempotente por produto+filename) |
 
@@ -159,6 +167,8 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 ### API Routes Públicas e Privadas
 - **`GET /api/products`** (pública): listagem filtrada, cacheada via `unstable_cache` tag `products`.
 - **`GET /api/portal/materials/[id]/download`** (privada, autenticada): gera presignada R2 60s com `Content-Disposition` RFC 6266/5987. Sem sessão: 303 para login. **Nunca embutir presignada na página** (vence rápido).
+- **`GET /api/portal/products/images/[imageId]/download`** (privada, `product_images:download`): original de uma imagem de produto ativo — 303 para presignada R2 60 s com `attachment` e o nome do arquivo.
+- **`GET /api/portal/products/images/zip`** (privada, `product_images:download`): ZIP em streaming dos originais — `?product=<uuid>` ou os filtros da listagem do portal (sem filtro: catálogo inteiro de ativos). 3000 arquivos / 2 GiB (413), 20 por 10 min por usuário (429, fail-open), 2 simultâneos por usuário e 5 por processo (429 `busy`), 2 min sem progresso encerram; audit `product_images.download`.
 - **`POST /api/contact`** (pública): captura lead (contact_submissions), RD Station + Resend best-effort, rate limit fail-closed.
 - **`POST /api/webhooks/erp`** (pública, secretizada): enfileira sync de produtos.
 - **`GET /api/health`** (pública): liveness uncondicional; com `x-health-token`: uptime + métricas.
@@ -205,6 +215,22 @@ Procedência, SHA-256, resultado da inspeção e passos de reextração: `public
 3. **Tooltip em elemento disabled no SSR**: MUI Popper clona o filho para medir → divergência
    de atributos (aria-describedby) → hydration mismatch **mesmo sem style inline**. Padrão: Chip
    visível ou texto inline; nunca Tooltip em disabled em árvore Server.
+
+## Armadilhas da Stack (Descobertas 2026-09-30)
+1. **Cancelar o stream de um objeto do R2 solta exceção não capturada**: `transformToWebStream()`
+   do SDK é o `Readable.toWeb` do Node, que empurra os dados por evento `data`. Cancelado com uma
+   leitura já agendada (download interrompido), o evento seguinte faz `enqueue` num controller
+   fechado → `uncaughtException ERR_INVALID_STATE: Controller is already closed`. Apareceu com o
+   `ChecksumStream` que o SDK põe no corpo de objetos gravados com checksum; não reproduz com
+   streams simples. Solução: `toPullStream` (`src/core/storage/pull-stream.ts`), leitura sob
+   demanda pelo iterador do stream do Node; cancelar destrói o stream (e libera a conexão).
+2. **`pipeThrough(transform, { signal })` não cancela a fonte se ninguém lê o outro lado**: pela
+   especificação, o abort espera a escrita pendente terminar — e ela nunca termina. Para cancelar
+   a fonte com o leitor de outra biblioteca preso ao stream, use um repasse próprio que chama
+   `reader.cancel()` (ver `cancelOnAbort` em `src/server/lib/product-images-zip.ts`).
+3. **`drizzle.config.ts` não carrega `.env.local`**: rodado do host, `npm run db:migrate` sai com
+   código 1 sem mensagem. Use `node --env-file=.env.local scripts/migrate.mjs`. (Os scripts `tsx`
+   de `src/db/` carregam `.env.local`/`.env` sozinhos via `src/db/script-env.ts`.)
 
 ## Infraestrutura de Deploy
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.
@@ -338,8 +364,10 @@ Os 3 serviços rodam via `docker compose` com `restart: unless-stopped` (voltam 
 - **redis** (`site-roco-redis`) → host `localhost:6380` (interno 6379).
 
 Envs: container web usa `.env` (gitignored) + `environment:` do compose (DATABASE_URL/REDIS_URL
-apontam para os hosts internos `postgres`/`redis`); tooling do host (`npm run dev`, drizzle-kit)
-usa `.env.local` (localhost:5433/6380 — mesmo banco).
+apontam para os hosts internos `postgres`/`redis`); tooling do host (`npm run dev` e os scripts
+`tsx` de `src/db/`) usa `.env.local` (localhost:5433/6380 — mesmo banco). **Exceção**: o
+`drizzle-kit` NÃO lê o `.env.local` — migre do host com `node --env-file=.env.local
+scripts/migrate.mjs` (ver "Armadilhas da Stack (Descobertas 2026-09-30)").
 
 **Build no Windows (bug do BuildKit)**: `docker compose build` falha com
 `invalid file request src/app/[locale]/(site)/page.tsx` (colchetes/parênteses no caminho).
@@ -363,6 +391,15 @@ Criadas e concedidas no boot pela migration `0011_ensure_portal_permissions` (e 
 - **`leads:read`** (admin, sales_manager) — caixa de solicitações; abrir o detalhe grava a ação
   `leads.view` no audit log (não é permissão)
 - **`materials:read`** garantida também para `representative` (biblioteca de materiais)
+
+## Rotas e Permissões Novas (4ª rodada — 2026-09-30)
+- Rotas: `GET /api/portal/products/images/[imageId]/download` e `GET /api/portal/products/images/zip`
+  (ver "API Routes Públicas e Privadas").
+- **`product_images:update`** (admin) — "Exibir no site" e "Usar como capa" no cadastro do produto.
+- **`product_images:download`** (admin, sales_manager, representative) — baixar os originais.
+- Concedidas pelo seed E pela migration idempotente `0013_product_images_permissions` (aplicada no
+  boot). A migration `0012_product_images_show_on_site` cria a coluna `product_images.show_on_site`
+  (default true). Journal com 14 migrations (0000–0013).
 
 **Hot reload**: a imagem é build de produção (sem HMR). Para desenvolver com hot reload:
 `docker compose stop web && npm run dev` (mesma porta 3000, mesmo Postgres/Redis do Docker);

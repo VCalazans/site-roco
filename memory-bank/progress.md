@@ -38,7 +38,8 @@
 - [x] Webhook `/api/webhooks/erp` (secret timing-safe, 202 + fila)
 - [x] Importador catálogo: SheetJS via CDN, 769 produtos + variantes, normalizações, idempotente
 - [x] CRUD produtos: busca/filtros/cursor pagination + paginação real (total, page, perPage),
-      form embalagens/badges/categorias, R2 uploads
+      form embalagens/badges/categorias, R2 uploads (hoje, desde 2026-09-30: paginação numerada
+      com `PortalPagination` — ver 4ª rodada)
 - [x] Validação CNPJ/telefone + masking em uploads representantes
 - [x] Dashboard: products.stats (total, published, active) + representatives.stats (draft, submitted, etc.)
 - [x] Vitest 4: 226 testes, 100% cobertura lógica pura; 18 testes novos para rate limiting
@@ -333,9 +334,49 @@
 - [x] Testes: +30 `listing-filters.test.ts` (novo), +8 `site-settings-form.test.ts` (22 no
       total), +1 `sql-like-match.test.ts`.
 
+### Paginação numerada, imagens editáveis e download de originais (2026-09-30, 4ª rodada)
+- [x] **Paginação numerada em 4 listas do portal** (Produtos, Solicitações, Representantes, Usuários):
+      componente reaproveitável `PortalPagination` com primeira/última + 1 vizinha; 20/50/100 itens/página;
+      URL como fonte da verdade (`?page=`/`?perPage=`); mudar filtro volta à página 1. Helpers puros
+      (`pageCountOf`, `clampPage`, `parsePaging`, `applyPaging`) com testes. Trocar página rola ao topo
+      da tabela; `keepPreviousData` mantém conteúdo anterior enquanto carrega.
+- [x] **Imagens editáveis no portal** (migration 0012 `product_images.show_on_site`): operador marca
+      visibilidade por imagem, "Usar como capa" (leva ao início + marca visível na transação), chips
+      "Capa da listagem"/"No site"/"Só no portal". Site: só mostra visíveis, primeira é capa da listagem.
+      API pública e detalhe refletem na hora (`{ expire: 0 }`). Aviso se publicado sem foto no site.
+- [x] **Download de imagens originais** (permissão `product_images:download`, migration 0013):
+      `GET /api/portal/products/images/[id]/download` (individual, 303 → R2 com `Content-Disposition`);
+      `GET /api/portal/products/images/zip` (bulk com filtros, streaming `client-zip` 2.5.1, 3000
+      arquivos / 2 GiB max, rate limit 20/10min, no máximo 2 ZIPs simultâneos por usuário e 5 por
+      processo, encerra após 2 min sem progresso). ZIP com pastas por produto, nomes saneados, arquivo
+      de erros se houver. Prefetch de 4 objetos do R2 reduz catálogo de 340 s → 35 s (617 imagens,
+      336 MB). Cancelamento fecha as conexões sem erro no log.
+- [x] **Dados de teste persistentes** (`npm run db:seed:qa`, só banco local): representante aprovado
+      `representante.teste@roco.local` (e-mail sempre `.local`; senha só no `.env.local`), imagens de
+      teste nos SKUs 1000/1001 (uma visível, uma só no portal em 3000 px), dois materiais "(TESTE)".
+      Idempotente; `--remover` desfaz. `src/db/script-env.ts` compartilhado com o importador de imagens.
+- [x] **Componentes e libs reaproveitáveis novos**: `PortalPagination`, `ActionIconButton` (nome
+      acessível; tooltip só habilitado; vira link com `href`), `ProductImageTile` (mesmo bloco no
+      cadastro e na galeria), `ProductImagesDialog`, `ProductImagesBulkDownloadDialog`;
+      `src/server/lib/download-slots.ts` (vagas por usuário/total), `src/core/storage/pull-stream.ts`;
+      `formatFileSize` movido para `src/shared/lib/file-size.ts` (com GB).
+- [x] **Revisão de segurança OWASP desta rodada** (agente `security`): 0 crítico; 1 alto (pré-existente,
+      latente — ver Riscos); 4 médios — 3 corrigidos no mesmo dia (Zip Slip pelo nome de pasta de
+      reserva, ReDoS no saneador de nomes, ZIPs simultâneos sem teto), 1 documentado (`show_on_site` não
+      é sigilo); baixos: `imagesSummary` sem `includeInactive`, filtros no audit do ZIP, guarda do
+      `seed-qa` (host na querystring, e-mail `.local`) e caracteres bidi — corrigidos; o resto em Riscos.
+- [x] **Testes**: 7 arquivos novos (51 testes) — `pagination` 7, `product-images` 8,
+      `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7, `pull-stream` 5, `download-slots` 4.
+- [x] **Container reconstruído com o código final e conferido** (boot com 14 migrations; páginas 200;
+      API pública só com imagens visíveis; ZIP sem sessão → 303 relativo). Como representante (login
+      real por script): visibilidade 403, avulso 303, ZIPs de produto/filtro válidos, filtro vazio 404;
+      2 ZIPs simultâneos abertos → o 3º recebe 429 "busy" (`Retry-After: 30`) e, abortados os dois, o
+      próximo passa; 2 ZIPs parados sem leitura → vagas devolvidas sozinhas em 120 s (log do servidor
+      registra "Download sem progresso há 120 s"); downloads abortados sem exceção no log.
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1610 testes em 56 arquivos; +39 sobre os 1571 da rodada anterior)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1660 testes em 63 arquivos; +50 sobre os 1610 da rodada anterior)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -465,6 +506,18 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] Newsletter integrada (backlog futuro quando infra de e-mail definida)
 
 ## 🐛 Débitos Técnicos
+- **Miniaturas do portal carregam original** (2026-09-30): cadastro + galeria do produto usam `<img>`
+  cru da original (não `next/image`). Pesa em arquivos grandes; débito pré-existente já marcado
+  "/portal/produtos com next/image".
+- **`npm run db:migrate` não funciona do host** (2026-09-30): o `drizzle.config.ts` não carrega o
+  `.env.local` e o comando sai com código 1 sem mensagem. Contorno: `node --env-file=.env.local
+  scripts/migrate.mjs`. Correção possível: carregar `.env.local` no próprio `drizzle.config.ts`.
+- **Node 20 local será incompatível jan/2027** (2026-09-30): o AWS SDK avisa que as versões
+  publicadas a partir da primeira semana de janeiro de 2027 exigem Node ≥ 22; o Docker já usa
+  node:22-alpine. Atualizar o Node local para 22.
+- **Erro do ZIP aparece como página de texto** (2026-09-30, Baixo/UX): a rota não é página, então
+  429/413/404 aparecem como texto cru no navegador. O resumo prévio já barra vazio e grande demais;
+  melhoria possível: checar a rota antes de disparar o download.
 - **Retenção de `contact_submissions` (LGPD)** (2026-08-24): tabela contém dados pessoais (ip_address);
   sem policy de retenção hoje (indefinida). Recomendação: definir prazo (ex.: 1 ano) e job de limpeza automática.
 - **PDFs + vídeo das boas-vindas** (contactos, política comercial, logística, Sistema DW) —
@@ -614,9 +667,18 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`images.remotePatterns` com `pathname: "/**"` no R2** (2026-09-30, Médio/backlog): o `next.config.ts` libera qualquer arquivo do R2 via `next/image`. Recomendação: restringir a `/products/**`, `/site/home/**`, `/hero/**` para reduzir superfície (apenas caminhos mapeados).
 - **Tracking RD Station em produção** (2026-09-30, informativo): ligado por padrão no build de produção; o consentimento vem do RD Cookie Control do próprio loader (o `ConsentBanner` do projeto segue desligado desde 2026-08-30). Builds locais agora passam `false`.
 - **Débito técnico: `products.update` grava TODOS os campos no audit** (2026-09-30, Baixo): `changedFields` no `audit_logs` contém o payload inteiro (via `updateSchema`), não apenas os campos que mudaram. Recomendação: filtrar para `diff(antes, depois)` se um dia precisar de auditoria granular.
+- **`representative` concedido no 1º login Google, antes da aprovação** (2026-09-30, **Alto, latente — bloqueia ligar o Google SSO**): `EXTERNAL_DEFAULT_ROLE = "representative"` em `src/core/auth/index.ts` (`events.createUser`) dá a role a QUALQUER conta Google no primeiro acesso, e `representatives.review` com `rejected` não a remove. Com ela vêm `products:read`, `materials:read` e, desde esta rodada, `product_images:download` — ou seja, baixar todos os originais sem aprovação. O pré-cadastro pelo site NÃO tem o problema (a role só entra na aprovação). Dormente enquanto `AUTH_GOOGLE_ID/SECRET` estiverem vazios. Correção antes de ligar o SSO: perfil de onboarding sem permissões até a aprovação (role `representative` só na aprovação) e reprovação removendo a role; como defesa extra, rotas de download exigindo cadastro `approved` para quem não é equipe interna.
+- **`show_on_site = false` não é sigilo** (2026-09-30, Médio/informativo): a flag só filtra o que o SITE lista. O bucket é público: a URL de toda imagem (inclusive "só no portal") sai em `products.byId` para qualquer `products:read`, e uma imagem publicada e depois ocultada continua acessível pela URL (e no cache do otimizador). Se um dia "só no portal" precisar ser confidencial, os objetos ocultos têm de ir para bucket/prefixo privado — mesmo item do bucket R2 separado.
+- **Representante baixa imagens de produtos NÃO publicados** (2026-09-30, decisão de produto pendente): o ZIP e o download avulso cobrem produtos ativos, publicados ou não — coerente com a listagem do portal, onde o representante já vê os despublicados. Se não for a intenção, filtrar `published = true` para quem não é equipe interna.
+- **Download avulso de imagem sem audit e sem rate limit** (2026-09-30, Baixo): só o ZIP é auditado e limitado. Os bytes vêm direto do R2 (bucket público), então o custo de raspar pelo avulso é baixo; registrar se o time quiser rastreio por arquivo.
+- **Rate limit do ZIP é fail-open** (2026-09-30, Baixo, decisão consciente): sem Redis, o teto de 20 ZIPs/10 min por usuário não vale — mas o teto de ZIPs SIMULTÂNEOS (2 por usuário, 5 por processo) vive em memória e continua protegendo o processo; fechar a rota sem Redis tiraria o download de todos.
+- **GET do ZIP com efeito colateral** (2026-09-30, Baixo): gasta cota do rate limit e grava audit; uma navegação cross-site (link clicado em outro site, cookie `SameSite=Lax`) pode queimar a cota de 20/10 min da vítima. Mitigação possível: recusar `Sec-Fetch-Site: cross-site`.
+- **Cliente S3 sem timeout de requisição** (2026-09-30, Baixo/pré-existente): o SDK usa `requestTimeout = 0`; um GET travado no R2 prende um socket. No ZIP, o limite de 2 min sem progresso encerra o download e devolve a vaga, mas o socket do GET travado só volta quando o R2 desistir. Vale para todo uso do R2 (upload, HEAD, exclusão).
+- **`product_images(product_id)` sem índice** (2026-09-30, Baixo/operacional): irrelevante com ~620 linhas; criar se o acervo crescer muito.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1610 testes em 56 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1660 testes em 63 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+  (+50 testes em 2026-09-30, 4ª rodada — 7 arquivos novos: `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7, `pull-stream` 5, `download-slots` 4.)
   (+39 testes em 2026-09-30, 3ª rodada: `listing-filters` 30 (novo), `site-settings-form` +8, `sql-like-match` +1.)
   (+473 testes em 2026-09-30 — spec 001 e revisão: lógica pura — safe-href, sql-like, paginação, memória da listagem, home-content, orçamento, embalagens, materiais, content-disposition, formulários do portal — e render SSR das telas do portal.)
   (+122 testes 2026-08-30 carrinho: `cart-store` 28, `product-card` 18, `cart-page` 44, `contact-submit`/cart-cases 32.)

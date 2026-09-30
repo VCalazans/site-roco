@@ -63,6 +63,7 @@ memory-bank/     → contexto, decisões (decisionLog) e specs de feature (memor
 | `npm run test`              | Testes (Vitest)                                             |
 | `npm run db:migrate`        | Aplica as migrations no banco do `DATABASE_URL`             |
 | `npm run db:seed`           | Perfis, permissões, admin inicial e dados do site (idempotente) |
+| `npm run db:seed:qa`        | Dados de teste (representante, imagens, materiais; só localhost) |
 | `npm run db:import-catalog` | Importa o catálogo da planilha em `docs/`                   |
 | `npm run db:import-images`  | Sobe as fotos de produto para o R2                          |
 

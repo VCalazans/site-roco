@@ -101,6 +101,10 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
    o item **Materiais** no menu → biblioteca por assunto (política comercial, logística, contatos, treinamento,
    outros) com busca e filtros; o arquivo abre pela rota autenticada (link gerado no clique). Pedidos/comissões
    dependem do ERP (futuro).
+7. **Produtos** (menu já existente, catálogo somente leitura com paginação numerada e filtros): baixa as imagens
+   ORIGINAIS — uma a uma ou "Baixar todas (ZIP)" na galeria do produto, ou o ZIP de todos os produtos do filtro
+   atual pelo botão **"Baixar imagens"** (resumo de quantidade e tamanho antes de baixar; sem filtro, o catálogo
+   inteiro). Inclui as imagens que não aparecem no site. Permissão `product_images:download`.
 
 ### Fluxo do Operador (Admin + Sales Manager)
 1. Acessa `/portal` (requer role `admin` ou `sales_manager`):
@@ -116,14 +120,23 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 
 3. **Gerenciamento de Produtos**:
    - Acessa `/portal/produtos` (requer `products:read`; edição requer `products:update`):
-     - Tabela com miniatura, flags `featured`/`best_seller` toggleáveis em 1 clique,
-       filtro "Destaque", "Campeão", "Sem foto", busca por nome/SKU.
-     - Ações por linha: "Ver no site" (se `published`), "Copiar link", "Compartilhar no WhatsApp".
+     - Tabela com paginação numerada (20/50/100 itens/página), miniatura prioriza imagem visível,
+       flags `featured`/`best_seller` toggleáveis em 1 clique, filtros "Destaque", "Campeão" e
+       "Sem foto no site", busca por nome/SKU; a coluna Fotos mostra o total e "{n} no site" (ou o
+       chip "Nenhuma no site") e abre a galeria de download.
+     - Ações por linha: "Ver no site" (se `published`), "Copiar link", "Compartilhar no WhatsApp", "Imagens e download".
    - Clica o produto (ou "Editar") → formulário em diálogo na própria listagem:
      - Seções: identificação (SKU, ERP, NCM, EAN), nome e descrição PT/EN, categorias e selos, vitrine,
        embalagens (todas; sem "padrão"; repetida é acusada), imagens (upload presigned).
+     - **Imagens**: chave "Exibir no site" por imagem, "Usar como capa" (leva ao início e marca visível),
+       baixar original, remover; chips "Capa da listagem"/"No site"/"Só no portal"; aviso se nenhuma vai
+       ao site; na fila de upload, "Exibir no site" (marcado por padrão) antes do envio. Vale na hora.
      - Flags: "Destaque na home" (entra no fim da vitrine; a ordem se ajusta na Página inicial) e "Campeão de vendas" (troféu no site).
      - "Publicar" (toggle) requer `products:publish`; invalidação de cache imediata.
+   - **Botão "Baixar imagens"** (topo da listagem; também para gerente comercial e representante): ZIP dos
+     originais com os filtros atuais (sem filtro = catálogo inteiro), resumo antes de baixar (ex.: "617
+     imagens originais de 593 produtos (336 MB)"); teto 3000 arquivos / 2 GiB. Cada original também
+     baixável individualmente.
 
 4. **Visualização de Solicitações** (`/{locale}/portal/solicitacoes`, requer `leads:read`):
    - Lista somente-leitura de leads/orçamentos: sem e-mail/telefone (minimização LGPD).
