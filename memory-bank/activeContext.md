@@ -81,7 +81,8 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 
 ## Pending
 - **Decisão de produto**: destino da página `/catalogo`, agora sem link (redirecionar para o catálogo online ou tirar do sitemap).
-- **Não commitado**: botão "Baixar Catálogo" → catálogo online, texto do bloco "Catálogo em PDF", `.env.example` e a logo 3D em todos os slides do hero (ver decisionLog 2026-09-30).
+- **Merge da `main` feito** (pop-ups do RD na CSP, sem botão próprio de WhatsApp — ver decisionLog
+  2026-09-30); decisões abertas dos pop-ups do RD em progress.md (Site).
 - **Compartilhar com o cliente**: manual de uso e resumo de entregas são artifacts privados — o cliente só abre depois que forem compartilhados.
 - **SMTP (stakeholder)**: preencher `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` e
   `MAIL_FROM` no `.env` (e nas envs de produção). Sem isso os e-mails de confirmação e de

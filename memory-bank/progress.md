@@ -422,6 +422,10 @@
 - [x] **"Baixar Catálogo" → catálogo online** (`https://catalogo.roco.com.br/catalogo-roco`): padrão de `siteLinks.catalog` via `ONLINE_CATALOG_URL`; vale para o CTA do slide do hero, o CTA de reserva e o link do rodapé (nova aba, sem `?origem=`). Página `/catalogo` segue no ar, sem link.
 - [x] Texto do bloco "Catálogo em PDF" (Configurações do Site) corrigido em pt/en — não é mais o arquivo do botão da home.
 - [x] Manual de uso do sistema com 48 telas reais (site, acesso, equipe, representante) e resumo de entregas para o cliente publicados como artifacts privados: manual https://claude.ai/artifact/RWXamY1MKBeUWhBiqa6BeD · resumo https://claude.ai/artifact/Y8PMi7dqU4u1vtwHtDWGno. Capturas feitas no container local com contas temporárias (apagadas ao final) e nomes reais mascarados.
+- [x] **Merge da `main`** (6 commits de produção): pop-ups do RD liberados na CSP (hosts dos pop-ups em
+      `connect-src`, Google Fonts em `style-src`/`font-src`) e botão próprio de WhatsApp removido (o pop-up
+      flutuante do RD o substitui); módulos `rd-station*`, `/api/rd-lead` e formulário do Mautic da landing
+      descartados em favor dos daqui — ver decisionLog.
 - [x] **Logo 3D em todos os slides do hero** (upload, YouTube e reserva) — antes ficava oculta no slide de vídeo enviado; teste de render novo (`hero-slider-render.test.tsx`), 1749 testes.
 
 ### Qualidade
@@ -524,6 +528,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
       `memory-bank/specs/002-embalagens-gs1.md`, com 4 decisões pendentes do stakeholder.
 
 ### Site (pós-MVP home/produtos)
+- [ ] **Pop-ups do RD** (vindos da `main`): smoke test no navegador em produção (botão de WhatsApp do RD
+      visível, cookies `rd_*`, console sem violação de CSP); decidir se o pop-up "teste" de scroll
+      (id 9325167) deve ser pausado e se o telefone terá máscara internacional (exigiria liberar
+      cdn.jsdelivr.net em `script-src`). Os pop-ups só reavaliam as regras no carregamento inicial.
 - [ ] **Página `/catalogo` sem link** (2026-09-30): decidir se redireciona para o catálogo online ou sai do sitemap (hoje continua indexável, com formulário e PDF próprios).
 - [ ] **Dados de `site_settings` não têm dimensão de locale** (2026-08-30, Médio): os endereços e a
       descrição da unidade fabril vêm do banco em PORTUGUÊS e renderizam assim na versão em inglês,

@@ -4,7 +4,6 @@ import { BackToTop } from "@/shared/components/back-to-top/back-to-top";
 import { ConsentBanner } from "@/shared/components/consent/consent-banner";
 import { SiteFooter } from "@/shared/components/footer";
 import { SiteHeader } from "@/shared/components/nav";
-import { WhatsAppFloat } from "@/shared/components/whatsapp-float";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { siteNavLinks } from "@/shared/lib/nav";
@@ -16,8 +15,8 @@ type SiteLayoutProps = {
 
 /**
  * Layout do SITE PÚBLICO (home + catálogo de produtos + orçamento + contato +
- * representantes). O grupo `(site)` existe para que o header, o rodapé, o
- * botão de WhatsApp e o tracking de marketing não vazem para o portal interno
+ * representantes). O grupo `(site)` existe para que o header, o rodapé e o
+ * tracking de marketing não vazem para o portal interno
  * — `(internal)` tem providers próprios (MUI) e nenhum script de marketing.
  *
  * HEADER NO LAYOUT (spec 001, RF15). Até aqui cada `page.tsx` montava o seu
@@ -62,11 +61,12 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
 
       <SiteFooter content={dictionary.footer} brand={navigation.brand} locale={locale} />
       <BackToTop label={navigation.backToTop} />
-      <WhatsAppFloat content={dictionary.whatsapp} />
       {/* Tracking de visitantes (RD Station). Vive aqui, e não no layout de
        * [locale], para cobrir todas as rotas públicas sem instrumentar o
-       * portal interno. Desligado por padrão — só ativa quando
-       * NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=true. */}
+       * portal interno. O loader também renderiza os POP-UPS do RD, inclusive
+       * o botão flutuante do WhatsApp — por isso o site não tem botão próprio
+       * (removido na main em 2026-09-21). Nos builds locais a flag
+       * NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED vem "false": sem RD, sem pop-up. */}
       <RdStationTracking />
       {/* Banner LGPD. Liga via NEXT_PUBLIC_CONSENT_ENABLED=true; o jurídico
        * precisa preencher a `body` final do dicionário antes de ligar em

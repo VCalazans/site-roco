@@ -1568,6 +1568,92 @@ nenhum campo customizado" agora exige zerar também `message`. **Pendência que 
 enquanto não for criado, a origem da seção do site é descartada em silêncio, pelo mecanismo
 documentado na entrada anterior.
 
+> Entradas vindas da `main` (linha de produção da landing, com o formulário do Mautic),
+> trazidas pelo merge de 2026-09-30 — ver a última entrada deste arquivo.
+
+## 2026-08-31 — Landing envia leads DIRETO ao RD Station, sem tirar o Mautic do caminho
+
+**Decisão**: a landing em produção passa a encaminhar ao RD Station todo lead que o formulário do
+Mautic aceitar. O formulário NÃO muda: continua postando para o Mautic exatamente como antes. O que
+entra é um observador — quando o Mautic confirma o sucesso, os valores capturados são enviados a
+`POST /api/rd-lead`, que fala com a Conversions API do RD do lado do SERVIDOR.
+
+**Por que uma rota, e não um POST do navegador direto para o RD**: a `RD_STATION_API_KEY` é
+credencial de servidor. Um `fetch` para `api.rd.services` feito do cliente a publicaria no
+código-fonte da página para qualquer visitante. O Route Handler existe para o envio sair "direto ao
+RD" sem expor a chave — é a única razão dele.
+
+**O RD NÃO depende do Mautic sobreviver** (corrigido no mesmo dia, após a pergunta certa do
+stakeholder: "a main não está mais enviando pro Mautic, correto?"). A primeira versão encaminhava
+SOMENTE quando o Mautic confirmava sucesso — o que amarrava a chegada de lead no RD à saúde de uma
+plataforma que a ROCO já decidiu abandonar (decisionLog 2026-08-23). No dia em que aquele servidor
+fosse desligado, o formulário pararia de dar sucesso e o RD deixaria de receber lead NENHUM, sem
+erro em lugar algum, porque o encaminhamento é silencioso por desenho. Agora há um segundo gatilho,
+por TEMPO: passados 10 s do submit sem confirmação, o lead segue assim mesmo. Os dois caminhos são
+deduplicados por uma ref — vence quem chegar primeiro. TRADE-OFF ACEITO: um envio que o Mautic
+REJEITOU (captcha errado) também cai no caminho por tempo e vira lead no RD; é deliberado, porque
+quem errou o captcha ainda digitou nome, e-mail e telefone reais, e lead com captcha errado vale
+mais que lead nenhum. Verificado em 2026-08-31 que o servidor Mautic segue no ar e aceitando
+(`form/generate.js?id=1` responde 200; um submit real redireciona para `/form/message`, que é o
+caminho de sucesso dele).
+
+**Por que MANTER o Mautic**: esta landing não tem banco (o `package.json` traz `next`, `react` e
+pouco mais — nada de Postgres, Drizzle ou Redis), então não existe aqui o "grava o lead primeiro,
+dispara os canais depois" do site novo. Sem o Mautic, uma indisponibilidade do RD faria o lead se
+perder de vez. Com ele, o RD é um canal ADICIONAL sobre uma captação que já funciona: se o
+encaminhamento falha, o lead continua no Mautic e o visitante nem fica sabendo (a rota responde 202
+mesmo quando o RD recusa — o motivo fica só no log).
+
+**Captura no SUBMIT, não no sucesso**: o SDK do Mautic limpa os campos ao concluir. Ler o formulário
+dentro do callback de sucesso devolveria strings vazias de forma intermitente — seria uma corrida
+contra o reset. Os valores são lidos na fase de CAPTURA do evento `submit`, antes de qualquer coisa
+acontecer, e guardados numa ref até a confirmação chegar. A detecção de sucesso reaproveita a dupla
+de sinais que `useCatalogDownload` já usava (callback `onResponseEnd` do SDK + classe
+`mauticform-post-success` como reserva), sempre ENCADEANDO o handler anterior: a página de catálogo
+tem dois observadores no mesmo formulário e nenhum pode apagar o outro.
+
+**Mapeamento de campos**: `nome`+`sobrenome` → `name`; `email` → `email`; `telefone` →
+`personal_phone`; `cidade` → `city`; `estado` → `state`; `cnpj` → `cf_cnpj`; `mensagem` →
+`cf_mensagem`; a seção → `cf_origem`. `city`/`state` vão nos campos PADRÃO de propósito: a conta tem
+um `cf_seu_estado`, mas duplicar num campo customizado o que a API já modela nativamente criaria
+duas fontes de verdade e ficaria fora dos relatórios nativos do RD. `conversion_identifier` usa os
+MESMOS valores do site novo (`download_catalogo`, `contato_geral`) para o histórico do RD não nascer
+partido em dois vocabulários.
+
+**Rate limit em MEMÓRIA**: janela fixa de 10 por IP a cada 10 min, com teto de chaves para IPs
+rotativos não fazerem a `Map` crescer sem limite. O site novo usa Redis; aqui não há nenhum, e a
+alternativa era deixar SEM limite uma rota pública que cria contato no CRM — spam de lead falso
+direto na base comercial. Reiniciar o processo só zera os contadores, falhando para o lado
+permissivo, que é o certo quando o custo de um falso positivo é perder lead real.
+
+**Alternativas**: (a) captura automática de formulário do RD (o script de monitoramento já está na
+página e o RD integra formulários sozinho) — rejeitada por não ser verificável daqui: o envio do
+Mautic é AJAX com o `submit` sequestrado pelo SDK, e não há como confirmar que o tracker o
+reconhece; a falha seria silenciosa; (b) substituir o Mautic pelo RD — rejeitada, deixaria a
+captação sem rede de segurança numa landing sem banco; (c) portar o `/api/contact` do site novo —
+impossível sem Postgres/Drizzle/Redis, que esta base não tem.
+
+**Impacto**: arquivos novos `src/server/lib/{rd-station,rd-station-send}.ts`,
+`src/app/api/rd-lead/route.ts`, `src/shared/components/contact-form/use-rd-lead-forward.ts`; props
+novas `leadSubject`/`leadOrigin` no `MauticEmbed`; env `RD_STATION_API_KEY` documentada no
+`.env.example`. CSP intocada — a chamada é para a própria origem, já coberta por `connect-src 'self'`.
+⚠️ **Ao mesclar o site novo nesta branch, os módulos `rd-station*` daqui devem ser DESCARTADOS** em
+favor dos de lá (que têm zod, testes e o schema de `contact-submit`), nunca mesclados: são o mesmo
+conceito escrito para dois contextos, e esta versão só existe porque a landing não tem backend.
+
+## 2026-09-21 — Pop-ups do RD Station: CSP revisada para renderização + remoção de botão próprio
+
+**Decisão**: Liberar os pop-ups do RD Station (conta 811101) que estavam bloqueados pela CSP.
+O loader `rdstation-tracking.tsx` já existia e injeta `https://d335luupugsy2.cloudfront.net/js/rdstation-popups/bricks/rdstation-popup.min.js` (host já em `script-src`). O script busca pop-ups via XHR em `https://popups.rdstation.com.br/popup/show.json`, envia conversões para `https://cta-redirect.rdstation.com/v2/conversions`, autocomplete de cidade usa `https://cidades.rdstation.com.br`, e HTML dos pop-ups carrega Google Fonts — nenhum desses hosts estava em `connect-src` ou `font-src`, criando falhas silenciosas. Mudança em `next.config.ts`: `connect-src` + 3 hosts RD; `style-src` + `https://fonts.googleapis.com`; `font-src` + `https://fonts.gstatic.com`. Auditoria do `rdstation-popup.min.js`: sem eval/`new Function`/iframes; clipboard usado só em botão "copiar cupom". Removido botão flutuante próprio de WhatsApp (`src/shared/components/whatsapp-float/` deletado, chave `whatsapp` dos dicionários), que duplicava a funcionalidade do pop-up flutuante do RD (id=6077326).
+
+**Alternativas**: (a) desativar pop-ups completamente (limita contato); (b) autorizar todo domínio `*` em `connect-src` (contra defesa em profundidade); (c) usar máscara de telefone internacional (exigiria `script-src` com cdn.jsdelivr.net para `choices.js`).
+
+**Justificativa**: Pop-ups do RD já são parte da estratégia de contato; desbloqueá-los melhora conversão. Google Fonts é load-bearing (pop-ups usam tipografia); os 3 hosts RD são específicos e auditáveis. Remover botão próprio de WhatsApp elimina redundância e reduz CSP/dependências.
+
+**Impacto**: (1) `next.config.ts` (constante `RD_STATION_POPUP_HOSTS` + CSP); (2) `src/shared/components/whatsapp-float/` deletado; (3) `src/i18n/dictionaries/{pt,en}.json` sem chave `whatsapp`; `src/core/config/site.ts` `siteLinks.whatsapp` sem uso. (4) Pop-ups ativos: Newsletter (exit_intent, desktop, 1x/dia, id=6072461); WhatsApp (floating_button, desktop+mobile, id=6077326); "teste" (scroll, 1x/dia, id=9325167 — confirmar se deve pausar). (5) **Limitações conhecidas**: pop-up de scroll não dispara em hero (página ≤ 1 tela, sem rolagem); pop-ups reavaliam só no carregamento inicial (SPA não reavalia). (6) Se pop-up usar **máscara de telefone internacional ou campo cidade com autocomplete**, carrega `choices.js` de cdn.jsdelivr.net — exigiria liberar cdn.jsdelivr.net em `script-src` ou manter telefone sem máscara. (7) GA4 nos pop-ups exigiria googletagmanager.com. (8) **Verificado**: build verde; CSP header via `next start` conferido; XHR/img/font não violam política. **Não verificado**: smoke test no navegador (botão WhatsApp renderiza, console sem violação, cookies do RD).
+
+**Decisões abertas**: pop-up "teste" de scroll (id=9325167, link para rds.land) deve ser pausado? Telefone com máscara internacional deve ser suportado?
+
 ## 2026-09-30 — Flags de produto "Destaque na home" e "Campeão de vendas"
 **Decisão**: Colunas `featured` + `featured_order` + `best_seller` em `products` (migration `drizzle/0010_product_flags.sql`). O selo legado `top` virou a flag `best_seller`: a migration copia `top` → `best_seller` (57 produtos) e só depois apaga as linhas `top` de `product_badges`, na mesma transação. O importador mapeia `@TOP` para `bestSeller` só no INSERT (não desfaz curadoria). Vitrine da home (`getFeaturedProducts`): destaques na ordem do operador → sem destaques, campeões → sem campeões, mais recentes.
 **Alternativas**: manter `top` como selo (duas fontes para a mesma informação); vitrine automática sem curadoria.
@@ -2018,3 +2104,24 @@ Curitiba — PR".
 **Alternativas**: (a) esconder a logo em todo slide com vídeo (upload e YouTube), fiel ao texto da RF01 — deixaria o slide institucional sem marca visível: o vídeo traz a marca só no canto superior esquerdo, que o menu fixo cobre, e o título do slide é só para leitor de tela; (b) opção "Mostrar logo" por slide no painel — exige coluna nova, migration e campo no editor; fica para quando o marketing pedir.
 **Justificativa**: pedido explícito; comportamento igual em todos os slides.
 **Impacto**: `src/modules/home/components/hero-slider.tsx` sem a condição; teste de render novo `src/modules/home/components/hero-slider-render.test.tsx` (logo no slide upload, YouTube, com vários slides e no de reserva) — 1749 testes. A RF01 da spec 001 foi atualizada para "em todos os slides".
+
+## 2026-09-30 — Merge da `main` nesta branch: pop-ups do RD sim, integração da landing não
+**Decisão**: Pedido do stakeholder ("no último commit da main ajustamos os scripts… traga isso pra essa
+branch"): `main` mesclada em `feat/porta-mais-site` (6 commits de produção desde 2026-08-04). Entraram:
+a CSP dos pop-ups do RD (`RD_STATION_POPUP_HOSTS` em `connect-src`; Google Fonts em `style-src` e
+`font-src`), a remoção do botão flutuante próprio de WhatsApp (`src/shared/components/whatsapp-float/`
+e a chave `whatsapp` dos dicionários — o pop-up flutuante do RD, id 6077326, faz o mesmo e registra a
+conversão) e o aviso da chave certa do RD no `.env.example`. Ficaram de fora, como pede a entrada da
+`main` de 2026-08-31: os módulos `rd-station*` da landing (vale a versão desta branch, com zod, testes e o
+`/api/contact`), o `POST /api/rd-lead` e o `use-rd-lead-forward` (encaminhavam o formulário do Mautic, que
+não existe aqui), o formulário do Mautic no catálogo e as cópias em `public/vendor/`. O PDF
+`catalogo-roco-2026-OLD.pdf` da `main` é o mesmo arquivo do `catalogo-roco-2026-old.pdf` daqui (mesmo
+blob): ficou só o nome em minúsculas, porque os dois nomes colidem no Windows.
+**Alternativas**: cherry-pick só do commit dos pop-ups (o merge com a `main` teria de ser feito de
+qualquer jeito antes de levar a branch para produção; feito agora, os conflitos ficam resolvidos uma vez).
+**Justificativa**: pedido explícito; o site novo passa a ter o mesmo comportamento do RD que a produção.
+**Impacto**: sem botão próprio de WhatsApp no site — em produção o do RD aparece com o tracking ligado;
+nos builds locais o tracking vem desligado, então não há botão de WhatsApp localmente. Decisões abertas
+herdadas da `main`: pausar o pop-up "teste" de scroll (id 9325167)? máscara de telefone internacional nos
+pop-ups (exigiria cdn.jsdelivr.net em `script-src`)? Pop-ups só reavaliam as regras no carregamento
+inicial (navegação interna não dispara).

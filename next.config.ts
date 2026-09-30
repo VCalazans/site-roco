@@ -94,11 +94,24 @@ const RD_STATION_SCRIPT_HOSTS =
   "https://d335luupugsy2.cloudfront.net https://d1sag09wwfbul8.cloudfront.net";
 
 /**
- * Destinos dos hits de tracking. Inclui os hosts de script (as CDNs também
- * recebem beacons) mais `app.rdstation.com.br`, que é para onde a API de
- * eventos do RD envia.
+ * Pop-ups do RD Station (inclui o botão flutuante do WhatsApp), levantados
+ * lendo o `rdstation-popup.min.js` real em 2026-09-21 (vindos da `main`):
+ *   popups.rdstation.com.br  → `GET /popup/show.json`, a LISTA de pop-ups da
+ *     conta. Sem ele nenhum pop-up aparece — e sem erro fora do console.
+ *   cta-redirect.rdstation.com → `POST /v2/conversions`, o envio do formulário
+ *     do pop-up (é XHR, por isso `connect-src` e não `form-action`).
+ *   cidades.rdstation.com.br → autocomplete do campo "cidade", se usado.
+ * São só destinos de DADOS: nenhum deles entra em `script-src`.
  */
-const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br`;
+const RD_STATION_POPUP_HOSTS =
+  "https://popups.rdstation.com.br https://cta-redirect.rdstation.com https://cidades.rdstation.com.br";
+
+/**
+ * Destinos dos hits de tracking e dos pop-ups: os hosts de script (as CDNs
+ * também recebem beacons), `app.rdstation.com.br` (API de eventos do RD) e os
+ * hosts dos pop-ups.
+ */
+const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br ${RD_STATION_POPUP_HOSTS}`;
 
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
@@ -162,7 +175,10 @@ function contentSecurityPolicy(): string {
     // CSP é resolvida em BUILD-TIME e a flag é de runtime: condicionar deixaria
     // a política dependente de quando a imagem foi buildada.
     `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS}${isDev ? " 'unsafe-eval'" : ""}`,
-    "style-src 'self' 'unsafe-inline'",
+    // Google Fonts: o HTML dos pop-ups do RD traz um `<link>` para
+    // fonts.googleapis.com (CSS) que baixa as fontes de fonts.gstatic.com.
+    // Sem isto os pop-ups aparecem, mas com a fonte de fallback.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     // R2 público (catálogo de imagens) + MAUTIC removido em 2026-08-23.
     // `d335luupugsy2.cloudfront.net`: o `scout/bundle.js` do RD (banner de
     // consentimento) serve seus próprios assets de imagem do mesmo host.
@@ -173,7 +189,7 @@ function contentSecurityPolicy(): string {
     // ficaria só no pôster, sem erro visível fora do console. Slides
     // YouTube não passam por aqui — são iframe, cobertos por `frame-src`.
     `media-src 'self' blob:${r2Public ? ` ${r2Public}` : ""}`,
-    "font-src 'self'",
+    "font-src 'self' https://fonts.gstatic.com",
     // RD Station: os hits de tracking (pageview, conversão, identificação do
     // visitante) saem por XHR/fetch para a API do RD e para as CDNs acima.
     // Sem isto o script CARREGA mas nenhum dado chega ao RD — falha silenciosa,

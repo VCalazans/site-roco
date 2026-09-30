@@ -15,9 +15,8 @@ type InternalLayoutProps = {
  * Layout raiz do Portal Interno (`(internal)` route group — não aparece na
  * URL, só isola a subárvore `/portal/*` e `/admin/*` do visual Tailwind do
  * site público). Ainda aninhado sob `src/app/[locale]/layout.tsx`, que só
- * valida o locale: os providers de marketing (`ContactFormProvider`,
- * `WhatsAppFloat`, `MauticTracking`) vivem no route group irmão `(site)` e
- * NÃO renderizam aqui — o portal fica livre de tracking e de widgets do
+ * valida o locale: o tracking e os pop-ups do RD Station (`RdStationTracking`)
+ * vivem no route group irmão `(site)` e NÃO renderizam aqui — o portal fica livre de tracking e de widgets do
  * site institucional por construção.
  *
  * `<InitColorSchemeScript attribute="class" />` precisa rodar ANTES de
