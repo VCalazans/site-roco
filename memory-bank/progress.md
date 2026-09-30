@@ -318,9 +318,24 @@
 - [x] 1571 testes em 55 arquivos (baseline 1098); lint 0 erros; `npm audit --omit=dev` = 0; `next build` de produção verde.
 - [x] Validação ponta a ponta: admin publica 2 materiais → representante vê "Materiais recentes" e biblioteca setorizada → abre PDF pela rota (303 → R2) → sem sessão login no idioma → material apagado 404. Upload home com tipo/tamanho assinados aceito, PUT adulterado recusado.
 
+### Filtros combinados, redes sociais por @perfil e "Portal ROCO" (2026-09-30, 3ª rodada — commit `cc8423e`)
+- [x] "Força de Vendas" → "Portal ROCO" em todo texto visível (pt/en); botão da chamada da home
+      virou "Faça seu pré-cadastro"; `portal.shell.appName` (pt) = "Portal ROCO".
+- [x] `/produtos` com vários filtros: categorias em OU, termos de busca em E (Enter ou "+" fixa o
+      termo como chip e libera o campo; até 5 chips); parâmetros repetidos na URL; categoria
+      inexistente na URL é ignorada. `getPublicProductList({ categories, searchTerms, … })`.
+- [x] Bugs de navegação pré-existentes: "Produtos" no menu com filtros aplicados e voltar do
+      detalhe pelo navegador — URL passou a ser a fonte da verdade no explorador.
+- [x] Relacionados do detalhe do produto em cache (`perPage` 9 estava fora da lista cacheável).
+- [x] Redes sociais no painel: aceita @perfil, nome da página, número de WhatsApp ou link;
+      grava o link canônico; ícone, link final, testar link, atalho do telefone do Contato,
+      prévia do rodapé; erro por rede bloqueia salvar.
+- [x] Testes: +30 `listing-filters.test.ts` (novo), +8 `site-settings-form.test.ts` (22 no
+      total), +1 `sql-like-match.test.ts`.
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1571 testes totais agora)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1610 testes em 56 arquivos; +39 sobre os 1571 da rodada anterior)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -601,7 +616,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **Débito técnico: `products.update` grava TODOS os campos no audit** (2026-09-30, Baixo): `changedFields` no `audit_logs` contém o payload inteiro (via `updateSchema`), não apenas os campos que mudaram. Recomendação: filtrar para `diff(antes, depois)` se um dia precisar de auditoria granular.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1571 testes em 55 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1610 testes em 56 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+  (+39 testes em 2026-09-30, 3ª rodada: `listing-filters` 30 (novo), `site-settings-form` +8, `sql-like-match` +1.)
   (+473 testes em 2026-09-30 — spec 001 e revisão: lógica pura — safe-href, sql-like, paginação, memória da listagem, home-content, orçamento, embalagens, materiais, content-disposition, formulários do portal — e render SSR das telas do portal.)
   (+122 testes 2026-08-30 carrinho: `cart-store` 28, `product-card` 18, `cart-page` 44, `contact-submit`/cart-cases 32.)
   (+42 testes 2026-08-30 chrome de navegação: `locale-path`, `phone`, casos novos de `nav` e `resolveDestination`/`#ligamas`.)

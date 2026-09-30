@@ -1,13 +1,14 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-09-30, segunda rodada)
-Revisão pós-entrega da spec 001: **7 itens implementados e validados localmente** (build de
-produção `next build` verde + navegador). **Commitado e enviado** na branch
-`feat/porta-mais-site` (a pedido do stakeholder): `d459363` (deps), `add519a` (entrega da
-spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. Container
-`site-roco` RODANDO com a imagem nova (Next 16.3.7, reconstruída e conferida no fim da sessão).
+## Sessão atual (2026-09-30, terceira rodada)
+Três pedidos do stakeholder, **implementados e validados no navegador**: "Força de Vendas" →
+"Portal ROCO", cadastro de redes sociais "o máximo intuitivo" e vários filtros ao mesmo tempo em
+`/produtos`. **Commitado e enviado** na branch `feat/porta-mais-site` (a pedido do stakeholder):
+`cc8423e` (feature) + o commit de documentação. Merge em `main` NÃO feito. `tsc` limpo, lint 0
+erros, 1610 testes em 56 arquivos, `next build` verde. Container `site-roco` **reconstruído** com
+este código e conferido.
 
-**Mudanças (a–g)**:
+**Rodada anterior (segunda, já commitada em `add519a` + `5dd95b5`) — mudanças (a–g)**:
 - Embalagens: todas aparecem (sem padrão); descrição gerada
 - Cache expira na hora em edição (sintoma: embalagem não aparecia)
 - Painel centralizado 1280px
@@ -17,19 +18,33 @@ spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. C
 - Upload home com tipo/tamanho ASSINADOS + HEAD
 - Testes: 1571 em 55 arquivos; lint 0 erros; build verde
 
-**Validação ponta a ponta no navegador**:
-- Admin (conta de teste): publica 2 materiais (upload real no R2), "Ver como representante",
-  tabela de produtos com TODAS as embalagens, formulário sem "Padrão" e acusando embalagem
-  repetida (nada salvo), upload da fachada com tipo/tamanho assinados
-- Sales manager: validado só na 1ª rodada (menu sem Configurações/Perfis); não retestado nesta
-- Representante aprovado (conta de teste): cai nas boas-vindas; menu Boas-vindas/Materiais/
-  Cadastro/Produtos (sem Painel); vê "Materiais recentes" + biblioteca setorizada; abre o PDF
-  pela rota (303 → R2); sem sessão → login no idioma; material apagado → 404
-- Site: detalhe do produto com as 6 embalagens descritas (EAN, ordem tipo → quantidade);
-  com 0 destaques a vitrine da home mostra 8 campeões (RF07)
-- Upload home: tipo/tamanho ASSINADOS aceito, PUT adulterado recusado por R2
+**Mudanças desta sessão** (detalhes no decisionLog, entrada de 2026-09-30 "Filtros combinados…"):
+- **"Força de Vendas" → "Portal ROCO"** em todo texto visível (chamada da home, rodapé, descrição
+  no editor da home; `portal.shell.appName` em pt, que vai no título das abas do portal). O botão
+  da chamada virou "Faça seu pré-cadastro" / "Pre-register now" para não repetir o título.
+- **Filtros combinados em `/produtos`**: várias categorias (OU) e vários termos de busca (E); Enter
+  ou "+" fixa o termo como chip e libera o campo; até 5 chips; parâmetros repetidos na URL.
+- **Dois bugs de navegação pré-existentes corrigidos** (achados na verificação): com filtros
+  aplicados, clicar em "Produtos" no menu mantinha a lista filtrada numa URL limpa; e voltar do
+  detalhe pelo navegador mostrava a URL filtrada com a lista inteira. Correção: URL como fonte da
+  verdade no explorador (ver systemPatterns).
+- **Relacionados do detalhe do produto** passaram a usar o cache (antes rodavam sem cache a cada visita).
+- **Redes sociais no painel** (`/portal/configuracoes`, bloco que já existia com 4 campos de URL):
+  agora aceita @perfil, nome da página, número de WhatsApp ou link, mostra o link final, testa o
+  link, oferece o telefone do Contato para o WhatsApp e prévia do rodapé; grava o link canônico.
 
-**Dados de teste**: revertidos (0 destaques, 0 layout salvo, sem contas QA).
+**Validação ponta a ponta no navegador (dev server; desktop e mobile via iframe de 390px)**:
+- **Filtros**: "engate" + "3/4" → 1 produto (igual a buscar "engate 3/4"); 2 categorias somam
+  (6 + 43 = 49); busca + categorias; recarregar a URL com parâmetros repetidos reconstrói chips e
+  caixas; teto de 5 termos com aviso; gaveta do mobile não fecha ao marcar; busca do header
+  substitui os filtros; "Produtos" no menu limpa; voltar do detalhe restaura filtros e resultados;
+  `?page=999` cai na última página sem chamada extra à API; console sem erro/aviso de hidratação.
+- **Redes sociais** (admin local): `@rocoindustria` → `https://www.instagram.com/rocoindustria`;
+  link de Instagram no campo LinkedIn → erro; `youtube.com/@x` completado; atalho do telefone
+  preencheu `554733352012`; salvar com erro bloqueado. NADA salvo (alterações descartadas).
+- **Renomeação**: home pt/en sem "Força de Vendas"/"Sales Force"; "Portal ROCO" 3× (menu, chamada, rodapé).
+- **Container reconstruído**: home, produtos (com filtros repetidos), contato, representantes e
+  detalhe 200; API com 2 categorias → 49; otimizador de imagem 200.
 
 ## Validação no Navegador (2026-09-30)
 - **Home**: hero com setas WEG + indicadores + pausa; logo 3D quando sem vídeo; fachada com upload 2-step presigned;
@@ -44,12 +59,14 @@ spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. C
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch: `feat/porta-mais-site` — tudo commitado e enviado ao remoto; sem merge em `main`
-- Migrations: `0010_product_flags.sql` (57 produtos migrados de `top` para `best_seller`) e
-  `0011_ensure_portal_permissions.sql` aplicadas no banco local (journal com 12 linhas)
-- Container local: rodando com a imagem reconstruída em 2026-09-30 (migrations 0000–0011; smoke: home, produtos,
-  orçamento, login do portal 200; `/carrinho` 308; download sem sessão → 303 relativo para o login)
-- Dados de teste: revertidos (0 destaques, sem layout salvo, sem contas QA; "Teste Spec 001 Orçamento" mantida como exemplo)
+- Branch: `feat/porta-mais-site` — tudo commitado e enviado (`cc8423e` + documentação); sem
+  merge em `main`. Nenhum dado do painel foi salvo durante os testes.
+- Testes: 1610 em 56 arquivos (+39 sobre os 1571 da rodada anterior: +30 `listing-filters`,
+  +8 `site-settings-form` (22 no total), +1 `sql-like-match`).
+- Build de produção: verde (`npm run build`); lint 0 erros (6 avisos antigos em
+  `src/server/trpc/routers/site-settings.ts`, arquivo não tocado).
+- Container local: reconstruído com este código e conferido (páginas 200, API com filtros
+  repetidos, otimizador de imagem 200).
 
 ## RD Station — VALIDADO em 2026-08-31
 Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e

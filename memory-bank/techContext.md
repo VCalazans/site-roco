@@ -27,7 +27,7 @@
 - **bcryptjs** 3 (hash seguro senhas; custo 12; puro JS para alpine)
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
 - **sharp** 0.35.5 (otimizador de imagens; 0.35.3 → 0.35.5 por CVE GHSA-rgj7-g3m4-5g8c)
-- **vitest** 4 (test runner, 1571 testes em 55 arquivos desde spec 001 + revisão pós-entrega)
+- **vitest** 4 (test runner, 1610 testes em 56 arquivos em 2026-09-30, 3ª rodada)
 - **happy-dom** (DOM simulation para testes)
 - **tsx** (devDependency; scripts db:seed + db:import-catalog — Node 20 local sem `--experimental-strip-types`)
 
@@ -171,7 +171,8 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **Audit log**: tabela audit_logs (user_id, action, resource, timestamp, metadata).
 
 ### Testes
-- **Vitest 4**: 1571 testes em 55 arquivos (+473 desde spec 001 + revisão pós-entrega).
+- **Vitest 4**: 1610 testes em 56 arquivos (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
+  combinados e redes sociais).
   Lógica pura (rbac, cnpj, telefone, busca SQL, home-content, embalagens, materiais, links, orçamento…)
   + render SSR de telas do portal (shell, dashboard, produtos, configurações, home-content, solicitações).
 - **Happy-dom**: DOM simulation para testes de helpers.

@@ -1669,3 +1669,76 @@ documentado na entrada anterior.
 **Alternativas**: validar só o que o cliente declara (o presigner não assina `content-type` por padrão — qualquer arquivo passava).
 **Justificativa**: revisão de segurança de 2026-09-30 (RNF02).
 **Impacto**: validado contra o R2 real — PUT correto 200; PUT com outro tamanho ou outro tipo recusado; confirm antes do upload → "Imagem não encontrada"; "Restaurar padrão" apaga a órfã. Hero, produtos, materiais e documentos seguem sem a assinatura (backlog).
+
+## 2026-09-30 — Filtros combinados na listagem de produtos, redes sociais por @perfil e "Portal ROCO"
+### Parte A: vários filtros ao mesmo tempo em `/produtos`
+**Decisão**: pedido do stakeholder — selecionar vários filtros simultaneamente, nas categorias e no
+"Buscar no catálogo", com Enter liberando o campo para o próximo termo. Semântica: **categorias em
+OU** (produtos de qualquer categoria marcada), **termos de busca em E** (cada termo refina) e os
+grupos (busca × categorias × "só campeões") entre si em E. Enter — ou o botão "+" — fixa o texto
+como chip; o texto ainda no campo já filtra ao vivo como mais um termo, então fixá-lo não muda o
+resultado nem dispara requisição. Na URL, parâmetros repetidos (`?category=a&category=b&search=x
+&search=y`) — links antigos com um valor continuam valendo. Até 5 chips (`MAX_SEARCH_CHIPS`),
+até 6 valores de `search` na querystring (5 chips + o texto do campo), 80 caracteres por termo.
+Na PÁGINA, categoria inexistente na URL é ignorada (link antigo mostra o catálogo inteiro com
+"Todos os produtos" marcado, em vez de lista vazia sem filtro visível); na API, se TODAS forem
+desconhecidas a lista volta vazia, como antes.
+**Alternativas**: (a) termos em OU — fixar o termo digitado mudaria o resultado, e um "filtro" que
+amplia a lista confunde; E é a convenção de refinar por palavra-chave; (b) cachear combinações de
+categorias — espaço de chaves grande (subconjuntos × páginas), controlado por quem monta a URL;
+(c) corrigir a navegação (Parte B) trocando `history.replaceState` por `router.replace` —
+re-executaria a consulta no servidor a cada tecla.
+**Impacto**: módulo puro `src/modules/products/lib/listing-filters.ts` (30 testes) com a
+normalização e `readListingState`, a MESMA leitura da URL no SSR da página e no cliente.
+`getPublicProductList` mudou a assinatura para `{ categories?, searchTerms?, bestSeller?, page?,
+perPage? }`; termos juntados em `matchAllTerms` com teto de 12 palavras (`MAX_SEARCH_WORDS`, novo;
+o padrão de 6 de `MAX_SEARCH_TERMS` segue para o portal); cache só sem busca e com no máximo 1
+categoria. `GET /api/products` lê com `getAll`. Componentes: `search-terms-field.tsx` (novo),
+`filter-chip.tsx` (extraído), `products-filters.tsx` (categorias como caixas de marcação; a
+gaveta do mobile não fecha ao marcar). De passagem: os relacionados do detalhe pediam `perPage` 9,
+fora de `CACHEABLE_PER_PAGE`, e rodavam sem cache a cada visita — `RELATED_PRODUCTS_LIMIT` agora é
+exportado e 9 entrou na lista cacheável.
+
+### Parte B: a URL como fonte da verdade no explorador (dois bugs pré-existentes)
+**Decisão**: achados na verificação no navegador: (1) com filtros aplicados, clicar em "Produtos"
+no menu deixava a lista filtrada numa URL limpa — o servidor mandava props de MESMO valor que a
+primeira carga e a comparação de props não detectava a navegação; (2) filtrar, abrir um produto e
+voltar pelo navegador mostrava a URL filtrada com a lista inteira — em voltar/avançar o roteador do
+App Router restaura a renderização em CACHE, anterior às mudanças feitas com `replaceState`.
+Correção em `products-explorer.tsx`: os filtros vêm da URL (`useSearchParams` + `readListingState`);
+as URLs que o explorador escreve entram numa fila e o eco delas é ignorado; qualquer outra mudança
+de URL é navegação externa e é adotada; se a renderização do servidor não corresponde à URL
+(`matchesServerRender`; página além do fim conta como a mesma quando o servidor a limitou), busca
+os itens certos. A busca de adoção é agendada com `setTimeout` dentro do efeito, por causa da
+regra de lint `react-hooks/set-state-in-effect`.
+**Alternativas**: chave de remontagem por renderização do servidor — resolveria (1) mas não (2),
+porque o voltar restaura props antigas.
+**Impacto**: verificado no navegador — "Produtos" no menu limpa; voltar do detalhe restaura filtros
+e resultados; `?page=999` cai na última página sem chamada extra à API; console sem aviso de hidratação.
+
+### Parte C: cadastro de redes sociais "o máximo intuitivo" (`/portal/configuracoes`)
+**Decisão**: pedido explícito do stakeholder. O bloco "Redes sociais" já tinha quatro campos que só
+aceitavam URL completa; agora cada campo aceita o que o operador souber digitar — link (com ou sem
+`https://`/`www.`), `@perfil` ou só o nome (Instagram/YouTube), nome da página como aparece no link
+(LinkedIn → `/company/<nome>`), número com DDD (WhatsApp; 10–11 dígitos ganham o DDI 55 →
+`wa.me`). Função pura `normalizeSocialLink` (`src/modules/portal/lib/site-settings-form.ts`),
+usada pela TELA antes de gravar, devolve o link canônico ou o motivo do erro (`invalid`,
+`wrongNetwork` — link de outra rede no campo errado —, `invalidPhone`, `tooLong`). O que vai para
+`social.links` é o link canônico; formato de armazenamento inalterado, sem migration.
+**Alternativas**: gravar o texto cru digitado — o rodapé só entende URL completa; manter só a
+validação de URL — exigia do operador montar o link certo de cada rede.
+**Impacto**: UI com ícone da rede, placeholder e dica com exemplo, "Link no site: {url}", botão de
+testar o link e de apagar, atalho "Usar o telefone do bloco Contato" no WhatsApp vazio e prévia
+"Como aparece no rodapé do site"; erro por rede bloqueia o salvar do bloco. Chaves novas em
+`portal.settings`: `fields.<rede>.placeholder`, bloco `social.{linkPreview,test,clear,
+useContactPhone,footerPreview,footerPreviewEmpty}` e `form.errors.{wrongNetwork,invalidHandle,
+invalidWhatsapp,tooLong}`. `site-settings-form.test.ts`: 22 testes (+8). Nada foi salvo durante a
+validação (alterações descartadas).
+
+### Parte D: "Força de Vendas" → "Portal ROCO"
+**Decisão**: pedido do stakeholder — o nome passa a ser "Portal ROCO" em todo texto visível:
+chamada da home (`home.portalCta.headline`, antes "Força de Vendas ROCO" / "ROCO Sales Network"),
+rodapé (antes "Portal ROCO — Força de Vendas"), descrição no editor da home e `portal.shell.appName`
+em pt (antes "ROCO Portal", vai no título das abas do portal). O botão da chamada, que dizia
+"Portal ROCO", virou "Faça seu pré-cadastro" / "Pre-register now" para não repetir o título.
+**Impacto**: só dicionários; destino inalterado (`/{locale}/representantes`, pré-cadastro).

@@ -155,9 +155,19 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
 - `src/shared/components/carousel`: setas anterior/próxima + rolagem por toque; as setas somem
   quando tudo cabe. Indicadores e pausa são do slider do hero, não do carrossel genérico.
 - `/produtos`: barra lateral (gaveta no mobile) com busca ao vivo, categorias com contagem e
-  "só campeões", tudo na URL.
-- Busca: `matchAllTerms` (`sql-like.ts`, até 6 palavras, sem acento via `translate`); busca livre
-  NUNCA entra no cache (a chave viria do usuário).
+  "só campeões", tudo na URL. **Filtros combinados** (regras em
+  `src/modules/products/lib/listing-filters.ts`): categorias em OU, termos de busca em E, grupos
+  entre si em E; parâmetros repetidos na URL; Enter ou "+" fixa o termo como chip (até 5).
+- **URL como fonte da verdade no explorador**: os filtros vêm de `useSearchParams` +
+  `readListingState` (a MESMA leitura que o SSR da página faz). As URLs que o explorador escreve
+  com `history.replaceState` entram numa fila e o eco delas é ignorado; qualquer outra mudança de
+  URL (menu, busca do header, voltar/avançar) é navegação externa e é adotada. Em voltar/avançar o
+  roteador restaura a renderização em cache, que pode ser anterior aos filtros aplicados no
+  cliente — `matchesServerRender` compara e, se não bate, o explorador busca os itens certos.
+- Busca: `matchAllTerms` (`sql-like.ts`, sem acento via `translate`; teto de palavras
+  `maxTerms`: 6 por padrão, 12 na listagem pública, que junta os termos-chip); busca livre NUNCA
+  entra no cache (a chave viria do usuário). Consultas sem busca e com no máximo 1 categoria são
+  cacheadas (`unstable_cache`, tag "products").
 
 ### Solicitações (leads)
 - `leads.list` (somente leitura, `leads:read`) não devolve e-mail/telefone; o detalhe (`leads.byId`)

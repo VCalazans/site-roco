@@ -10,9 +10,9 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 1. Visitante acessa `/` → é redirecionado para `/pt` (ou `/en` conforme idioma).
 2. Vê a página home: site de marketing completo (hero + institucional "Quem é a ROCO" + vitrine de
    categorias + produtos em destaque + CTA Portal ROCO + rodapé).
-3. Pode: **Explorar Produtos** (→ `/pt/produtos`, listagem real), **Baixar Catálogo** (formulário Mautic
-   + PDF), **Força de Vendas** (pré-cadastro de representantes), **Portal ROCO** (acesso interno),
-   ou **Entrar em contato** (modal Mautic).
+3. Pode: **Explorar Produtos** (→ `/pt/produtos`, listagem real com múltiplos filtros), **Baixar Catálogo**
+   (formulário + PDF), **Portal ROCO** (pré-cadastro de representantes ou acesso interno),
+   ou **Entrar em contato** (formulário).
 
 ## Integrações de Negócio
 - **WhatsApp (MCP Archicode)**: disponível para automações/notificações internas.
@@ -79,7 +79,7 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 
 ### Fluxo de Representante (Portal)
 **Canal padrão (2026-08-11): pré-cadastro pelo SITE.**
-0. Visitante acessa `/{locale}/representantes` (nav "Força de Vendas") → pré-cadastro com CNPJ
+0. Visitante acessa `/{locale}/representantes` (nav "Portal ROCO") → pré-cadastro com CNPJ
    obrigatório + nome/e-mail/telefone/razão social/senha → `representatives.status = "submitted"`
    direto na fila do admin. Aprovação (review existente) concede a role `representative`.
    Primeiro acesso pós-aprovação: wizard "modo conclusão" (território + documentos, `completeProfile`).
