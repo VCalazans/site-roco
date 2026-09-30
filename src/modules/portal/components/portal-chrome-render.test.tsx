@@ -7,7 +7,7 @@
  * `{x}` sem resolver e exceção durante a renderização. Interação (clique,
  * atalho, URL) continua sendo validada no navegador.
  */
-import type { ReactElement } from "react";
+import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -101,6 +101,56 @@ function navItemsFor(user: PortalPermissionUser, locale: Locale) {
 
 // ---------------------------------------------------------------------------
 
+const LOGIN_CARD_PROPS: ComponentProps<typeof LoginCard> = {
+  logoAlt: "ROCO",
+  title: "t",
+  subtitle: "s",
+  disclaimer: "d",
+  emailLabel: "e",
+  passwordLabel: "p",
+  signInButtonLabel: "i",
+  forgotPassword: { href: "/pt/portal/esqueci-senha", label: "Esqueci minha senha" },
+  registerPrompt: "r",
+  registerLinkLabel: "l",
+  registerHref: "/pt/representantes",
+  credentialsAction: () => {},
+};
+
+describe("LoginCard", () => {
+  it("sem Google configurado, não oferece o botão do Google", () => {
+    const html = render(<LoginCard {...LOGIN_CARD_PROPS} />);
+    expect(html).not.toContain("Entrar com Google");
+    expect(html).toContain('href="/pt/portal/esqueci-senha"');
+  });
+
+  it("com Google habilitado, mostra o botão e o divisor", () => {
+    const html = render(
+      <LoginCard
+        {...LOGIN_CARD_PROPS}
+        google={{ buttonLabel: "Entrar com Google", orDividerLabel: "ou", action: () => {} }}
+      />
+    );
+    expect(html).toContain("Entrar com Google");
+  });
+
+  it("erro de e-mail não confirmado oferece reenviar a confirmação", () => {
+    const html = render(
+      <LoginCard
+        {...LOGIN_CARD_PROPS}
+        errorMessage={PORTALS.pt.login.emailNotVerified}
+        errorAction={{ href: "/pt/portal/confirmar-email", label: PORTALS.pt.login.resendConfirmation }}
+      />
+    );
+    expect(html).toContain(PORTALS.pt.login.emailNotVerified);
+    expect(html).toContain('href="/pt/portal/confirmar-email"');
+  });
+
+  it("mostra o aviso de senha alterada", () => {
+    const html = render(<LoginCard {...LOGIN_CARD_PROPS} noticeMessage={PORTALS.pt.login.notices.passwordReset} />);
+    expect(html).toContain(PORTALS.pt.login.notices.passwordReset);
+  });
+});
+
 describe("PortalLogo", () => {
   it("renderiza as duas versões com a proporção do arquivo e o mesmo alt", () => {
     const html = render(<PortalLogo alt="ROCO" width={72} />);
@@ -124,24 +174,7 @@ describe("PortalLogo", () => {
   });
 
   it("nenhuma tela do portal usa mais a logo antiga quadrada", () => {
-    const login = render(
-      <LoginCard
-        logoAlt="ROCO"
-        title="t"
-        subtitle="s"
-        googleButtonLabel="g"
-        disclaimer="d"
-        emailLabel="e"
-        passwordLabel="p"
-        signInButtonLabel="i"
-        orDividerLabel="o"
-        registerPrompt="r"
-        registerLinkLabel="l"
-        registerHref="/pt/representantes"
-        googleAction={() => {}}
-        credentialsAction={() => {}}
-      />
-    );
+    const login = render(<LoginCard {...LOGIN_CARD_PROPS} />);
     const welcome = render(<WelcomeHero content={PORTALS.pt.welcome.hero} logoAlt="ROCO" />);
     for (const html of [login, welcome]) {
       expect(html).toContain("roco-logo-slogan");

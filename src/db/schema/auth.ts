@@ -31,6 +31,12 @@ export const users = pgTable("user", {
    * usuários sem hash, então os dois modos convivem sem conflito.
    */
   passwordHash: text("passwordHash"),
+  /**
+   * Última troca de senha (redefinição por e-mail). Sessões emitidas ANTES
+   * disso são derrubadas na revalidação do JWT (≤ 5 min) — quem pediu a
+   * redefinição porque perdeu o controle da conta tira o outro de dentro.
+   */
+  passwordChangedAt: timestamp("passwordChangedAt", { mode: "date" }),
 });
 
 export const accounts = pgTable(

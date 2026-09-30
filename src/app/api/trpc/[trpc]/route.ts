@@ -1,4 +1,5 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { isUnexpectedError, unexpectedErrorCode } from "@/server/lib/trpc-errors";
 import { createTRPCContext } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
 
@@ -8,13 +9,17 @@ function handler(request: Request) {
     req: request,
     router: appRouter,
     createContext: () => createTRPCContext(),
-    onError:
-      process.env.NODE_ENV === "development"
-        ? ({ path, error }) => {
-            // Nunca logar dados de sessão/permissão — só path e mensagem do erro.
-            console.error(`[trpc] ${path ?? "<no-path>"}:`, error.message);
-          }
-        : undefined,
+    onError: ({ path, error }) => {
+      // Nunca logar dados de sessão/permissão. Em desenvolvimento, a mensagem
+      // inteira; em produção, só os erros INESPERADOS, e sem a mensagem (a do
+      // Drizzle traz a consulta com os parâmetros) — path e código do banco.
+      if (process.env.NODE_ENV === "development") {
+        console.error(`[trpc] ${path ?? "<no-path>"}:`, error.message);
+      } else if (isUnexpectedError(error)) {
+        const code = unexpectedErrorCode(error);
+        console.error(`[trpc] ${path ?? "<no-path>"}: erro inesperado${code ? ` (código ${code})` : ""}.`);
+      }
+    },
   });
 }
 

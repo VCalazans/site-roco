@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { can, ADMIN_ROLE_SLUG, type PortalPermissionUser } from "./permissions";
+import { can, ADMIN_ROLE_SLUG, isAwaitingAccess, type PortalPermissionUser } from "./permissions";
 
 describe("permissions (client can() helper)", () => {
   describe("admin role bypass", () => {
@@ -285,5 +285,19 @@ describe("permissions (client can() helper)", () => {
 
       expect(can(userWithAdminRole, "anything", "anything")).toBe(true);
     });
+  });
+});
+
+describe("isAwaitingAccess", () => {
+  it("vale para quem entrou sem nenhum perfil (pré-cadastro aguardando aprovação)", () => {
+    expect(isAwaitingAccess({ roles: [], permissions: [] })).toBe(true);
+    expect(isAwaitingAccess({ permissions: [] } as PortalPermissionUser)).toBe(true);
+    expect(isAwaitingAccess(null)).toBe(true);
+  });
+
+  it("não vale para quem já tem qualquer perfil", () => {
+    expect(isAwaitingAccess({ roles: ["representative"], permissions: [] })).toBe(false);
+    expect(isAwaitingAccess({ roles: ["viewer"], permissions: [] })).toBe(false);
+    expect(isAwaitingAccess({ roles: [ADMIN_ROLE_SLUG], permissions: [] })).toBe(false);
   });
 });

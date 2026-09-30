@@ -22,7 +22,10 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import EditIcon from "@mui/icons-material/Edit";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import { TerritoryPicker, territoryChipLabel } from "@/modules/portal/components/shared/territory-picker";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
+import { interpolate } from "@/shared/lib/interpolate";
+import { territoryKey, type TerritoryOption } from "@/shared/lib/territory";
 import { formatCNPJ } from "@/shared/components/contact-form/cnpj";
 import { formatPhoneBR } from "@/shared/lib/phone";
 import {
@@ -35,13 +38,13 @@ import type {
 } from "@/modules/portal/lib/representative-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
+/** Campos de texto da edição (a área de atuação tem estado próprio — ver `territoryDraft`). */
 type EditForm = {
   name: string;
   email: string;
   companyName: string;
   cnpj: string;
   phone: string;
-  region: string;
   notes: string;
 };
 
@@ -70,7 +73,6 @@ function formFromRepresentative(representative: RepresentativeListItem): EditFor
     companyName: representative.companyName ?? "",
     cnpj: representative.cnpj ?? "",
     phone: representative.phone ?? "",
-    region: representative.region ?? "",
     notes: representative.notes ?? "",
   };
 }
@@ -134,6 +136,10 @@ export function RepresentativeDetailsDialog({
   const [disableReason, setDisableReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [form, setForm] = useState<EditForm | null>(null);
+  // Área de atuação em edição: `null` = o admin não mexeu (o salvamento não a
+  // envia — assim editar outro campo de um cadastro antigo, de texto livre,
+  // não apaga esse texto).
+  const [territoryDraft, setTerritoryDraft] = useState<TerritoryOption[] | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<EditField, string>>>({});
   const editing = form !== null;
 
@@ -218,12 +224,14 @@ export function RepresentativeDetailsDialog({
 
   const startEditing = () => {
     setForm(formFromRepresentative(representative));
+    setTerritoryDraft(null);
     setFieldErrors({});
     setActionError(null);
   };
 
   const cancelEditing = () => {
     setForm(null);
+    setTerritoryDraft(null);
     setFieldErrors({});
     setActionError(null);
   };
@@ -236,7 +244,11 @@ export function RepresentativeDetailsDialog({
   const submitEdit = () => {
     if (!form) return;
     setActionError(null);
-    const payload: RepresentativeAdminUpdateInput = { id: representative.id, ...form };
+    const payload: RepresentativeAdminUpdateInput = {
+      id: representative.id,
+      ...form,
+      ...(territoryDraft ? { territory: territoryDraft.map(({ kind, code }) => ({ kind, code })) } : {}),
+    };
     const parsed = representativeAdminUpdateSchema.safeParse(payload);
     if (!parsed.success) {
       const errors: Partial<Record<EditField, string>> = {};
@@ -325,7 +337,20 @@ export function RepresentativeDetailsDialog({
                 {renderEditField("cnpj", details.cnpj, { format: formatCNPJ })}
                 {renderEditField("phone", details.phone, { format: formatPhoneBR, type: "tel" })}
               </Stack>
-              {renderEditField("region", details.region)}
+              <Stack spacing={0.75}>
+                <TerritoryPicker
+                  value={territoryDraft ?? representative.territory}
+                  onChange={setTerritoryDraft}
+                  copy={portal.territory}
+                  disabled={isMutating}
+                  size="small"
+                />
+                {representative.territory.length === 0 && representative.region ? (
+                  <Typography variant="caption" color="text.secondary">
+                    {interpolate(portal.territory.legacy, { text: representative.region })}
+                  </Typography>
+                ) : null}
+              </Stack>
               {renderEditField("notes", details.notes, { multiline: true })}
             </Stack>
           ) : (
@@ -345,8 +370,28 @@ export function RepresentativeDetailsDialog({
                   <DetailField label={details.cnpj} value={representative.cnpj} />
                   <DetailField label={details.phone} value={representative.phone} />
                 </Stack>
+                <Stack sx={{ minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {details.region}
+                  </Typography>
+                  {representative.territory.length > 0 ? (
+                    <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
+                      {representative.territory.map((option) => (
+                        <Chip
+                          key={territoryKey(option)}
+                          label={territoryChipLabel(option, portal.territory)}
+                          size="small"
+                          variant="outlined"
+                        />
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+                      {representative.region || "—"}
+                    </Typography>
+                  )}
+                </Stack>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                  <DetailField label={details.region} value={representative.region} />
                   <DetailField
                     label={details.submittedAt}
                     value={

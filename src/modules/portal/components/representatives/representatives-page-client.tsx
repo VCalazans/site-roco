@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import BlockIcon from "@mui/icons-material/Block";
@@ -37,6 +37,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import { DEFAULT_PORTAL_PER_PAGE } from "@/modules/portal/lib/pagination";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
+import { useTerritoryIndex } from "@/modules/portal/lib/territory-client";
 import {
   REPRESENTATIVE_STATUS_TABS,
   type RepresentativeListItem,
@@ -71,11 +72,13 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState<number>(DEFAULT_PORTAL_PER_PAGE);
 
-  // Filtros (2026-08-23, CRUD completo): busca textual (debounced), região
-  // (exata, case-insensitive) e toggle para incluir soft-disabled.
+  // Filtros (2026-08-23, CRUD completo): busca textual (debounced), estado de
+  // atuação (UF, pela área cadastrada — base do IBGE) e toggle para incluir
+  // soft-disabled.
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [region, setRegion] = useState("");
+  const [uf, setUf] = useState("");
+  const { index: territoryIndex } = useTerritoryIndex();
   const [includeDisabled, setIncludeDisabled] = useState(false);
 
   useEffect(() => {
@@ -109,7 +112,7 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
       page,
       perPage,
       search: search || undefined,
-      region: region || undefined,
+      uf: uf || undefined,
       includeDisabled,
     })
   );
@@ -135,23 +138,11 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const canReview = can(user, "representatives", "review");
   const canDisable = can(user, "representatives", "disable");
 
-  // Lista de regiões para o select: derivada dos itens carregados (sem
-  // round-trip extra). Dedup case-insensitive. O `?? EMPTY_ITEMS` mantém
-  // a referência do array estável entre renders quando a query ainda não
-  // resolveu — sem isso, o `useMemo` deps abaixo dispararia a cada
-  // render (warning `react-hooks/exhaustive-deps`).
-  const EMPTY_ITEMS: RepresentativeListItem[] = [];
-  const items: RepresentativeListItem[] = listQuery.data?.items ?? EMPTY_ITEMS;
+  const items: RepresentativeListItem[] = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
   const stats = statsQuery.data;
-
-  const regions = useMemo(() => {
-    const set = new Set<string>();
-    for (const item of items) {
-      if (item.region) set.add(item.region);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [items]);
+  // Os 27 estados vêm da base do IBGE (a mesma do campo de área de atuação).
+  const states = territoryIndex?.states ?? [];
 
   function handleStatusChange(nextStatus: RepresentativeStatus) {
     setStatus(nextStatus);
@@ -161,12 +152,12 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   function clearFilters() {
     setSearchInput("");
     setSearch("");
-    setRegion("");
+    setUf("");
     setIncludeDisabled(false);
     setPage(1);
   }
 
-  const hasActiveFilters = Boolean(search || region || includeDisabled);
+  const hasActiveFilters = Boolean(search || uf || includeDisabled);
 
   return (
     <Box>
@@ -226,17 +217,20 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <Select
             displayEmpty
-            value={region}
+            value={uf}
             onChange={(event) => {
-            setRegion(event.target.value as string);
-            setPage(1);
-          }}
-            renderValue={(value) => (value ? value : dictionary.filters.regionAll)}
+              setUf(event.target.value as string);
+              setPage(1);
+            }}
+            renderValue={(value) =>
+              value ? (states.find((state) => state.uf === value)?.name ?? value) : portal.territory.filterAll
+            }
+            inputProps={{ "aria-label": portal.territory.filterLabel }}
           >
-            <MenuItem value="">{dictionary.filters.regionAll}</MenuItem>
-            {regions.map((r) => (
-              <MenuItem key={r} value={r}>
-                {r}
+            <MenuItem value="">{portal.territory.filterAll}</MenuItem>
+            {states.map((state) => (
+              <MenuItem key={state.uf} value={state.uf}>
+                {state.name}
               </MenuItem>
             ))}
           </Select>
@@ -330,10 +324,22 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
                                   variant="outlined"
                                 />
                               ) : null}
+                              {representative.user.emailVerified ? null : (
+                                <Chip
+                                  size="small"
+                                  label={dictionary.badge.emailNotVerified}
+                                  color="warning"
+                                  variant="outlined"
+                                />
+                              )}
                             </Stack>
                           </TableCell>
                           <TableCell>{representative.companyName ?? "—"}</TableCell>
-                          <TableCell>{representative.region ?? "—"}</TableCell>
+                          <TableCell sx={{ maxWidth: 260 }}>
+                            <Typography variant="body2" noWrap title={representative.region ?? undefined}>
+                              {representative.region ?? "—"}
+                            </Typography>
+                          </TableCell>
                           <TableCell>
                             <Chip
                               label={portal.onboarding.status[representative.status]}

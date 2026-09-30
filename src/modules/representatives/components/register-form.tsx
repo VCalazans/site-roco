@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { Loader2, MailCheck } from "lucide-react";
 import { cn } from "@/core/lib/utils";
+import type { Locale } from "@/i18n/config";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
+import { interpolate } from "@/shared/lib/interpolate";
+import { checkPassword, PASSWORD_MIN_LENGTH, type PasswordIssue } from "@/shared/lib/password-policy";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
+import { isValidPersonName, normalizePersonName } from "@/server/lib/representative-register";
 import type { RepresentativesDictionary } from "@/modules/representatives/lib/types";
 
-const PASSWORD_MIN = 8;
+/** Espera entre dois reenvios do e-mail de confirmação na tela de sucesso. */
+const RESEND_COOLDOWN_SECONDS = 60;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type FieldName =
@@ -36,15 +41,32 @@ type RegisterFormProps = {
   content: RepresentativesDictionary;
   /** `/{locale}/portal/login` — CTA do painel de sucesso e do rodapé. */
   loginHref: string;
+  /** Idioma da página: o e-mail de confirmação sai nele. */
+  locale: Locale;
 };
+
+function passwordIssueMessage(issue: PasswordIssue, validation: RepresentativesDictionary["validation"]): string {
+  const messages: Record<PasswordIssue, string> = {
+    too_short: validation.passwordTooShort,
+    too_long: validation.passwordTooLong,
+    too_common: validation.passwordTooCommon,
+    contains_email: validation.passwordContainsEmail,
+  };
+  return messages[issue];
+}
 
 /**
  * Formulário de pré-cadastro do representante (canal público do site).
  * Validação client-side espelha o `registerSchema` do servidor (CNPJ
- * obrigatório/válido, telefone BR, senha mínima) — o servidor revalida tudo.
- * O campo `website` é honeypot anti-bot (invisível; humano nunca preenche).
+ * obrigatório/válido, telefone BR, política de senha compartilhada) — o
+ * servidor revalida tudo. O campo `website` é honeypot anti-bot (invisível;
+ * humano nunca preenche).
+ *
+ * Depois do envio a pessoa precisa CONFIRMAR O E-MAIL pelo link que chega na
+ * caixa dela; só então o pré-cadastro vai para a análise. A tela de sucesso
+ * deixa reenviar o link.
  */
-export function RegisterForm({ content, loginHref }: RegisterFormProps) {
+export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
@@ -67,6 +89,7 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
     const v = content.validation;
 
     if (!form.name.trim()) found.name = v.required;
+    else if (!isValidPersonName(form.name)) found.name = v.invalidName;
     if (!form.email.trim()) found.email = v.required;
     else if (!EMAIL_PATTERN.test(form.email.trim())) found.email = v.invalidEmail;
     if (!form.phone.trim()) found.phone = v.required;
@@ -75,7 +98,10 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
     if (!form.cnpj.trim()) found.cnpj = v.required;
     else if (!isValidCNPJ(form.cnpj)) found.cnpj = v.invalidCnpj;
     if (!form.password) found.password = v.required;
-    else if (form.password.length < PASSWORD_MIN) found.password = v.passwordTooShort;
+    else {
+      const issue = checkPassword(form.password, { email: form.email });
+      if (issue) found.password = passwordIssueMessage(issue, v);
+    }
     if (form.passwordConfirm !== form.password) found.passwordConfirm = v.passwordMismatch;
 
     return found;
@@ -95,12 +121,13 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name.trim(),
+          name: normalizePersonName(form.name),
           email: form.email.trim(),
           phone: form.phone,
           companyName: form.companyName.trim(),
           cnpj: form.cnpj,
           password: form.password,
+          locale,
           website: honeypot,
         }),
       });
@@ -115,6 +142,7 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
         email_exists: content.errors.emailExists,
         cnpj_exists: content.errors.cnpjExists,
         rate_limited: content.errors.rateLimited,
+        unavailable: content.errors.unavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
@@ -125,19 +153,7 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
   }
 
   if (phase === "success") {
-    return (
-      <div
-        role="status"
-        className="rounded-2xl border border-neon-cyan/40 bg-neon-cyan/10 p-6 text-center sm:p-8"
-      >
-        <CheckCircle2 className="mx-auto mb-3 size-10 text-neon-cyan-bright" aria-hidden />
-        <h2 className="font-display text-h2 text-white">{content.success.title}</h2>
-        <p className="mt-2 text-meta text-white/80">{content.success.message}</p>
-        <a href={loginHref} className="btn-neon mt-5 inline-flex">
-          {content.success.loginCta}
-        </a>
-      </div>
-    );
+    return <RegisterSuccess content={content} email={form.email.trim()} locale={locale} loginHref={loginHref} />;
   }
 
   const fieldClass = "block";
@@ -233,7 +249,7 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
           <input
             type="password"
             autoComplete="new-password"
-            minLength={PASSWORD_MIN}
+            minLength={PASSWORD_MIN_LENGTH}
             required
             {...fieldProps("password")}
           />
@@ -245,7 +261,7 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
           <input
             type="password"
             autoComplete="new-password"
-            minLength={PASSWORD_MIN}
+            minLength={PASSWORD_MIN_LENGTH}
             required
             {...fieldProps("passwordConfirm")}
           />
@@ -281,5 +297,74 @@ export function RegisterForm({ content, loginHref }: RegisterFormProps) {
         </a>
       </p>
     </form>
+  );
+}
+
+type RegisterSuccessProps = {
+  content: RepresentativesDictionary;
+  email: string;
+  locale: Locale;
+  loginHref: string;
+};
+
+/**
+ * Depois do envio: pede para confirmar o e-mail e deixa reenviar o link (com
+ * espera entre reenvios — o servidor também limita). A resposta do reenvio é
+ * genérica, como a da rota.
+ */
+function RegisterSuccess({ content, email, locale, loginHref }: RegisterSuccessProps) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
+
+  async function resend() {
+    setStatus("sending");
+    try {
+      const response = await fetch("/api/account/verification/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, locale }),
+      });
+      setStatus(response.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
+
+  const busy = status === "sending" || cooldown > 0;
+  return (
+    <div role="status" className="rounded-2xl border border-neon-cyan/40 bg-neon-cyan/10 p-6 text-center sm:p-8">
+      <MailCheck className="mx-auto mb-3 size-10 text-neon-cyan-bright" aria-hidden />
+      <h2 className="font-display text-h2 text-white">{content.success.title}</h2>
+      <p className="mt-2 text-meta text-white/80">{interpolate(content.success.message, { email })}</p>
+      <p className="mt-3 text-micro text-white/60">{content.success.spamHint}</p>
+
+      {status === "sent" ? <p className="mt-3 text-meta text-neon-cyan-bright">{content.success.resent}</p> : null}
+      {status === "error" ? <p className="mt-3 text-meta text-[#ffc2c2]">{content.success.resendError}</p> : null}
+
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" onClick={() => void resend()} disabled={busy} className="btn-neon">
+          {status === "sending" ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              {content.success.resending}
+            </>
+          ) : cooldown > 0 ? (
+            `${content.success.resendButton} (${cooldown}s)`
+          ) : (
+            content.success.resendButton
+          )}
+        </button>
+        <a href={loginHref} className="text-meta text-white/80 underline underline-offset-2 transition hover:text-white">
+          {content.success.loginCta}
+        </a>
+      </div>
+    </div>
   );
 }

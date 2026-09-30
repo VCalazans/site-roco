@@ -7,6 +7,8 @@
  * este tipo por si só não depende do router e continua útil depois do merge
  * como o "formato esperado" documentado).
  */
+import type { TerritoryOption } from "@/shared/lib/territory";
+
 export type RepresentativeStatus = "draft" | "submitted" | "approved" | "rejected";
 
 export type RepresentativeDocument = {
@@ -23,9 +25,12 @@ export type RepresentativeMe = {
   companyName: string | null;
   cnpj: string | null;
   phone: string | null;
+  /** Resumo legível da área de atuação (ou o texto livre dos cadastros antigos). */
   region: string | null;
   notes: string | null;
   documents: RepresentativeDocument[];
+  /** Áreas de atuação da base do IBGE, já com rótulo. */
+  territory: TerritoryOption[];
   reviewedAt: string | null;
   notesFromReviewer?: string | null;
 } | null;
@@ -34,7 +39,7 @@ export type OnboardingFormState = {
   phone: string;
   companyName: string;
   cnpj: string;
-  region: string;
+  territory: TerritoryOption[];
   notes: string;
 };
 
@@ -42,7 +47,7 @@ export const EMPTY_ONBOARDING_FORM: OnboardingFormState = {
   phone: "",
   companyName: "",
   cnpj: "",
-  region: "",
+  territory: [],
   notes: "",
 };
 

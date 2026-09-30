@@ -26,21 +26,34 @@ export type RepresentativesDictionary = {
   };
   validation: {
     required: string;
+    /** Nome com algo além de letras, espaço, apóstrofo, ponto e hífen. */
+    invalidName: string;
     invalidEmail: string;
     invalidCnpj: string;
     invalidPhone: string;
     passwordTooShort: string;
     passwordMismatch: string;
+    passwordTooLong: string;
+    passwordTooCommon: string;
+    passwordContainsEmail: string;
   };
   errors: {
     emailExists: string;
     cnpjExists: string;
     rateLimited: string;
     generic: string;
+    unavailable: string;
   };
+  /** Depois do envio: confirmar o e-mail (link por e-mail, 24 h). */
   success: {
     title: string;
+    /** Placeholder literal `{email}`. */
     message: string;
+    spamHint: string;
+    resendButton: string;
+    resending: string;
+    resent: string;
+    resendError: string;
     loginCta: string;
   };
   loginPrompt: string;

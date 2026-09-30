@@ -1,5 +1,84 @@
 import type { Dictionary } from "@/i18n/get-dictionary";
+import type { PasswordIssue } from "@/shared/lib/password-policy";
 import type { RepresentativeEditErrorCode } from "./representative-types";
+
+/** Estado de um link de conta vindo do servidor (`POST /api/account/token`). */
+export type AccountLinkFailure = "invalid" | "expired" | "used";
+
+/** Chave `portal.account` — páginas públicas de conta. */
+export type PortalAccountDictionary = {
+  backToLogin: string;
+  emailLabel: string;
+  errors: { invalidEmail: string; rateLimited: string; unavailable: string; generic: string };
+  linkStates: { checking: string } & Record<`${AccountLinkFailure}Title`, string>;
+  confirmEmail: {
+    title: string;
+    description: string;
+    button: string;
+    successTitle: string;
+    successSubmitted: string;
+    /** E-mail confirmado, mas outro cadastro com o mesmo CNPJ já está na fila (ou aprovado). */
+    successCnpjConflict: string;
+    successGeneric: string;
+    loginButton: string;
+    resendTitle: string;
+    resendDescription: string;
+    resendButton: string;
+    resendSent: string;
+  } & Record<AccountLinkFailure, string>;
+  forgotPassword: { title: string; description: string; button: string; sentTitle: string; sent: string };
+  resetPassword: {
+    title: string;
+    description: string;
+    password: string;
+    passwordConfirm: string;
+    hint: string;
+    button: string;
+    requestNew: string;
+    mismatch: string;
+    passwordIssues: Record<PasswordIssue, string>;
+  } & Record<AccountLinkFailure, string>;
+};
+
+/**
+ * Situação do cadastro de quem entrou no portal sem perfil: o status do
+ * representante; `cnpjConflict` quando o e-mail foi confirmado mas outro
+ * cadastro com o mesmo CNPJ já estava na fila (ou aprovado); ou `none` quando
+ * a conta não tem cadastro de representante.
+ */
+export type PendingAccessStatus = "draft" | "submitted" | "approved" | "rejected" | "cnpjConflict" | "none";
+
+/** Chave `portal.pendingAccess` — aviso no `/portal` para quem ainda não foi aprovado. */
+export type PortalPendingAccessDictionary = {
+  submitted: { title: string; message: string; messageWithDate: string; hint: string };
+  approved: { title: string; message: string };
+  rejected: { title: string; message: string; notesLabel: string };
+  draft: { title: string; message: string; action: string };
+  cnpjConflict: { title: string; message: string };
+  none: { title: string; message: string };
+  company: string;
+  steps: { title: string; sent: string; review: string; access: string };
+  contactAction: string;
+  siteAction: string;
+};
+
+/** Chave `portal.territory` — campo da área de atuação (base do IBGE) e filtro por estado. */
+export type PortalTerritoryDictionary = {
+  label: string;
+  placeholder: string;
+  helper: string;
+  kinds: Record<"state" | "region" | "city", string>;
+  noOptions: string;
+  loading: string;
+  loadError: string;
+  /** Placeholder literal `{max}`. */
+  limit: string;
+  required: string;
+  /** Cadastro antigo, só com texto livre. Placeholder literal `{text}`. */
+  legacy: string;
+  filterLabel: string;
+  filterAll: string;
+};
 
 /**
  * Formato da chave `portal` nos dicionários (`src/i18n/dictionaries/{pt,en}.json`,
@@ -19,9 +98,25 @@ export type PortalDictionary = {
     signInButton: string;
     orDivider: string;
     invalidCredentials: string;
+    /** `?error=rate_limited`: muitas tentativas (por IP ou por e-mail). */
+    rateLimited: string;
+    /** `?error=unavailable`: limitador de tentativas fora do ar. */
+    unavailable: string;
     registerPrompt: string;
     registerLink: string;
+    forgotPassword: string;
+    /** `?error=email_not_verified`: senha certa, e-mail ainda não confirmado. */
+    emailNotVerified: string;
+    resendConfirmation: string;
+    /** Avisos de sucesso vindos de outras telas (`?notice=`). */
+    notices: { passwordReset: string };
   };
+  /** Páginas públicas de conta: confirmar e-mail, esqueci a senha, nova senha. */
+  account: PortalAccountDictionary;
+  /** Aviso no `/portal` para quem entrou sem perfil (cadastro ainda não aprovado). */
+  pendingAccess: PortalPendingAccessDictionary;
+  /** Campo da área de atuação (wizard, conclusão do cadastro, edição e filtro do admin). */
+  territory: PortalTerritoryDictionary;
   shell: {
     appName: string;
     /** Legenda ao lado da logo no topo da sidebar ("Portal"). */
@@ -210,6 +305,8 @@ export type PortalDictionary = {
     };
     badge: {
       disabled: string;
+      /** Pré-cadastro aguardando o clique no link de confirmação. */
+      emailNotVerified: string;
     };
     emptySearch: {
       title: string;

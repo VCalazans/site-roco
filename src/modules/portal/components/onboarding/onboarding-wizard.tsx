@@ -37,10 +37,22 @@ type OnboardingWizardProps = {
 
 type FormErrors = Partial<Record<keyof OnboardingFormState, string>>;
 
+/** Rascunho para o servidor: as áreas vão só com tipo e código (o rótulo é da base). */
+function toDraftPayload(form: OnboardingFormState) {
+  return {
+    phone: form.phone,
+    companyName: form.companyName,
+    cnpj: form.cnpj,
+    notes: form.notes,
+    territory: form.territory.map(({ kind, code }) => ({ kind, code })),
+  };
+}
+
 function validateStep(
   step: OnboardingStepKey,
   form: OnboardingFormState,
-  dictionary: PortalDictionary["onboarding"]
+  dictionary: PortalDictionary["onboarding"],
+  territoryCopy: PortalDictionary["territory"]
 ): FormErrors {
   const errors: FormErrors = {};
 
@@ -63,8 +75,8 @@ function validateStep(
     }
   }
 
-  if (step === "territory" && !form.region.trim()) {
-    errors.region = dictionary.validation.required;
+  if (step === "territory" && form.territory.length === 0) {
+    errors.territory = territoryCopy.required;
   }
 
   return errors;
@@ -104,7 +116,7 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
         phone: representative.phone ?? "",
         companyName: representative.companyName ?? "",
         cnpj: representative.cnpj ?? "",
-        region: representative.region ?? "",
+        territory: representative.territory ?? [],
         notes: representative.notes ?? "",
       });
       setActiveStep(
@@ -145,12 +157,13 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
 
   // Fluxo do pré-cadastro pelo site: aprovado ANTES de completar o perfil —
   // o primeiro acesso preenche território/documentos (`completeProfile`).
-  // Quando `region` já existe, o perfil está completo e cai no status normal.
+  // Com a área de atuação salva (`region` guarda o resumo dela), o perfil está
+  // completo e cai no status normal.
   if (status === "approved" && !meQuery.data?.region) {
     return (
       <ProfileCompletion
         portal={portal}
-        initial={{ region: "", notes: meQuery.data?.notes ?? "" }}
+        initial={{ territory: meQuery.data?.territory ?? [], notes: meQuery.data?.notes ?? "" }}
         documents={meQuery.data?.documents ?? []}
       />
     );
@@ -179,7 +192,7 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
   }
 
   async function handleNext() {
-    const stepErrors = validateStep(stepKey, form, dictionary);
+    const stepErrors = validateStep(stepKey, form, dictionary, portal.territory);
     setErrors(stepErrors);
     if (Object.keys(stepErrors).length > 0) {
       return;
@@ -188,13 +201,13 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
     if (stepKey !== "documents" && stepKey !== "review") {
       // Salva o passo de DESTINO (não o atual): se o usuário sair e voltar,
       // o rascunho reabre onde ele parou, não um passo antes.
-      await saveMutation.mutateAsync({ step: activeStep + 1, data: form });
+      await saveMutation.mutateAsync({ step: activeStep + 1, data: toDraftPayload(form) });
     }
     setActiveStep((step) => Math.min(step + 1, ONBOARDING_STEP_KEYS.length - 1));
   }
 
   async function handleSubmit() {
-    await saveMutation.mutateAsync({ step: activeStep, data: form });
+    await saveMutation.mutateAsync({ step: activeStep, data: toDraftPayload(form) });
     await submitMutation.mutateAsync();
   }
 
@@ -243,9 +256,10 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
         {stepKey === "territory" ? (
           <TerritoryStep
             dictionary={dictionary}
-            region={form.region}
-            regionError={errors.region}
-            onRegionChange={(value) => updateField("region", value)}
+            territoryCopy={portal.territory}
+            territory={form.territory}
+            territoryError={errors.territory}
+            onTerritoryChange={(value) => updateField("territory", value)}
             notes={form.notes}
             onNotesChange={(value) => updateField("notes", value)}
           />

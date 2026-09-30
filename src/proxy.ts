@@ -20,6 +20,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { auth } from "@/core/auth";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
+import { PORTAL_PUBLIC_SEGMENTS } from "@/modules/portal/lib/account-links";
 import {
   captureUtm,
   serializeUtmCookie,
@@ -53,10 +54,15 @@ function resolveLocale(request: NextRequest): Locale {
   return (preferredLocale as Locale) ?? defaultLocale;
 }
 
-/** `/{locale}/portal/login` (e subrotas) ficam de fora do gate de sessão. */
-function isPortalLoginPath(pathname: string, locale: Locale): boolean {
-  const prefix = `/${locale}/portal/${PORTAL_LOGIN_SEGMENT}`;
-  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+/**
+ * Telas do portal que não exigem sessão: o login e as de conta (confirmar
+ * e-mail, esqueci a senha, nova senha) — `PORTAL_PUBLIC_SEGMENTS`, com subrotas.
+ */
+function isPortalPublicPath(pathname: string, locale: Locale): boolean {
+  return PORTAL_PUBLIC_SEGMENTS.some((segment) => {
+    const prefix = `/${locale}/portal/${segment}`;
+    return pathname === prefix || pathname.startsWith(`${prefix}/`);
+  });
 }
 
 /**
@@ -119,7 +125,7 @@ export default auth((request) => {
   const currentLocale = (pathname.split("/")[1] ?? defaultLocale) as Locale;
   const section = pathname.split("/")[2];
 
-  if (section && PROTECTED_SECTIONS.has(section) && !isPortalLoginPath(pathname, currentLocale)) {
+  if (section && PROTECTED_SECTIONS.has(section) && !isPortalPublicPath(pathname, currentLocale)) {
     const session = request.auth;
 
     if (!session?.user) {

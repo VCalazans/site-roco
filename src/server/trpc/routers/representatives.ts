@@ -9,11 +9,19 @@ import {
   representativeDocuments,
   representativeStatusEnum,
   representatives,
+  representativeTerritories,
   roles,
   userRoles,
   users,
 } from "@/db/schema";
 import { writeAuditLog } from "@/server/lib/audit";
+import {
+  getTerritoryIndex,
+  loadRepresentativeTerritories,
+  replaceRepresentativeTerritory,
+} from "@/server/lib/representative-territory";
+import { resolveTerritoryEntries } from "@/shared/lib/territory";
+import { territoryInputSchema } from "@/shared/lib/territory-schema";
 import { translateDbError } from "@/server/lib/db-error";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import {
@@ -69,7 +77,21 @@ const onboardingDataSchema = z.object({
   phone: draftField(30),
   region: draftField(120),
   notes: draftField(2000),
+  /** Áreas de atuação (base do IBGE); `undefined` não mexe nas que já estão salvas. */
+  territory: territoryInputSchema.optional(),
 });
+
+/**
+ * Áreas que chegaram do formulário, conferidas na base do IBGE. Código que não
+ * existe (ou lista acima do teto) é erro de entrada, nunca gravado.
+ */
+function resolveTerritoryInput(entries: unknown) {
+  const resolved = resolveTerritoryEntries(getTerritoryIndex(), entries);
+  if (!resolved) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "invalid_territory" });
+  }
+  return resolved;
+}
 
 type Database = typeof dbClient;
 
@@ -104,9 +126,12 @@ export const representativesRouter = router({
       .from(representativeDocuments)
       .where(eq(representativeDocuments.representativeId, representative.id));
 
+    const territory = (await loadRepresentativeTerritories(ctx.db, [representative.id])).get(representative.id) ?? [];
+
     return {
       ...representative,
       documents,
+      territory,
       notesFromReviewer: representative.reviewNotes,
     };
   }),
@@ -124,6 +149,7 @@ export const representativesRouter = router({
       }
 
       const nextStep = Math.max(existing?.onboardingStep ?? 0, input.step);
+      const territory = input.data.territory === undefined ? undefined : resolveTerritoryInput(input.data.territory);
       const patch = {
         companyName: input.data.companyName ?? existing?.companyName ?? null,
         cnpj: input.data.cnpj ?? existing?.cnpj ?? null,
@@ -133,21 +159,27 @@ export const representativesRouter = router({
       };
 
       try {
-        const [saved] = await ctx.db
-          .insert(representatives)
-          .values({
-            userId: ctx.session.user.id,
-            status: "draft",
-            onboardingStep: nextStep,
-            ...patch,
-          })
-          .onConflictDoUpdate({
-            target: representatives.userId,
-            set: { onboardingStep: nextStep, status: "draft", updatedAt: new Date(), ...patch },
-          })
-          .returning();
+        return await ctx.db.transaction(async (tx) => {
+          const [saved] = await tx
+            .insert(representatives)
+            .values({
+              userId: ctx.session.user.id,
+              status: "draft",
+              onboardingStep: nextStep,
+              ...patch,
+            })
+            .onConflictDoUpdate({
+              target: representatives.userId,
+              set: { onboardingStep: nextStep, status: "draft", updatedAt: new Date(), ...patch },
+            })
+            .returning();
 
-        return saved;
+          if (!territory) return saved;
+          // As áreas também reescrevem o resumo em `region`.
+          await replaceRepresentativeTerritory(tx, saved.id, territory);
+          const [withTerritory] = await tx.select().from(representatives).where(eq(representatives.id, saved.id)).limit(1);
+          return withTerritory ?? saved;
+        });
       } catch (error) {
         throw translateDbError(error, "Falha ao salvar o cadastro.");
       }
@@ -169,6 +201,9 @@ export const representativesRouter = router({
     }
     if (!isValidCNPJ(existing.cnpj)) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "CNPJ inválido." });
+    }
+    if (!existing.region?.trim()) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Informe a área de atuação antes de enviar." });
     }
 
     const now = new Date();
@@ -294,7 +329,7 @@ export const representativesRouter = router({
   completeProfile: protectedProcedure
     .input(
       z.object({
-        region: z.string().trim().min(1).max(120),
+        territory: territoryInputSchema.min(1),
         notes: draftField(2000),
       })
     )
@@ -310,20 +345,22 @@ export const representativesRouter = router({
         });
       }
 
-      const [updated] = await ctx.db
-        .update(representatives)
-        .set({
-          region: input.region,
-          notes: input.notes ?? existing.notes,
-          updatedAt: new Date(),
-        })
-        .where(eq(representatives.id, existing.id))
-        .returning();
+      const territory = resolveTerritoryInput(input.territory);
+      const updated = await ctx.db.transaction(async (tx) => {
+        await replaceRepresentativeTerritory(tx, existing.id, territory);
+        const [row] = await tx
+          .update(representatives)
+          .set({ notes: input.notes ?? existing.notes, updatedAt: new Date() })
+          .where(eq(representatives.id, existing.id))
+          .returning();
+        return row;
+      });
 
       await writeAuditLog(ctx.db, ctx.session, {
         action: "representatives.complete_profile",
         resource: "representatives",
         resourceId: existing.id,
+        metadata: { territory: territory.map((option) => `${option.kind}:${option.code}`) },
       });
 
       return updated;
@@ -335,13 +372,19 @@ export const representativesRouter = router({
         status: z.enum(representativeStatusEnum.enumValues).optional(),
         page: z.number().int().min(1).default(DEFAULT_PAGE),
         perPage: z.number().int().min(1).max(MAX_PER_PAGE).default(DEFAULT_PER_PAGE),
-        region: z.string().trim().min(1).max(120).optional(),
+        /** Estado de atuação (UF): representantes com alguma área nesse estado. */
+        uf: z
+          .string()
+          .trim()
+          .regex(/^[A-Za-z]{2}$/)
+          .transform((value) => value.toUpperCase())
+          .optional(),
         search: z.string().trim().min(1).max(120).optional(),
         includeDisabled: z.boolean().default(false),
       })
     )
     .query(async ({ ctx, input }) => {
-      const { status, page, perPage, region, search, includeDisabled } = input;
+      const { status, page, perPage, uf, search, includeDisabled } = input;
 
       // Status filter (tab ativo) — sempre opcional.
       const conditions = status ? [eq(representatives.status, status)] : [];
@@ -353,10 +396,10 @@ export const representativesRouter = router({
         conditions.push(isNull(representatives.disabledAt));
       }
 
-      // Filtro por região (case-insensitive, exato).
-      if (region) {
+      // Filtro por estado: alguma área de atuação (estado, região ou cidade) nessa UF.
+      if (uf) {
         conditions.push(
-          sql`lower(${representatives.region}) = ${region.toLowerCase()}` as never
+          sql`exists (select 1 from ${representativeTerritories} where ${representativeTerritories.representativeId} = ${representatives.id} and ${representativeTerritories.uf} = ${uf})` as never
         );
       }
 
@@ -396,6 +439,7 @@ export const representativesRouter = router({
             disableReason: representatives.disableReason,
             userName: users.name,
             userEmail: users.email,
+            userEmailVerified: users.emailVerified,
             // Quem desabilitou (subquery — evita alias collision com o JOIN
             // principal de users). Retorna null se o user foi deletado ou
             // se o disabled_by_user_id é null. ⚠️ a tabela é `user`
@@ -410,7 +454,12 @@ export const representativesRouter = router({
           .orderBy(desc(representatives.updatedAt))
           .limit(perPage)
           .offset((page - 1) * perPage),
-        ctx.db.select({ total: sql<number>`count(*)::int` }).from(representatives).where(whereClause),
+        // Mesmo JOIN da consulta dos itens: a busca filtra por nome e e-mail de `user`.
+        ctx.db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(representatives)
+          .innerJoin(users, eq(users.id, representatives.userId))
+          .where(whereClause),
       ]);
 
       const total = countRow?.total ?? 0;
@@ -429,6 +478,11 @@ export const representativesRouter = router({
           )
         );
 
+      const territoriesByRepresentative = await loadRepresentativeTerritories(
+        ctx.db,
+        rows.map((row) => row.id)
+      );
+
       const documentsByRepresentative = new Map<string, (typeof documentRows)[number][]>();
       for (const document of documentRows) {
         const list = documentsByRepresentative.get(document.representativeId) ?? [];
@@ -437,10 +491,11 @@ export const representativesRouter = router({
       }
 
       const items = await Promise.all(
-        rows.map(async ({ userName, userEmail, disabledByName, ...row }) => ({
+        rows.map(async ({ userName, userEmail, userEmailVerified, disabledByName, ...row }) => ({
           ...row,
           disabledByName,
-          user: { name: userName, email: userEmail },
+          user: { name: userName, email: userEmail, emailVerified: userEmailVerified !== null },
+          territory: territoriesByRepresentative.get(row.id) ?? [],
           documents: await Promise.all(
             (documentsByRepresentative.get(row.id) ?? []).map(async (document) => ({
               id: document.id,
@@ -494,6 +549,28 @@ export const representativesRouter = router({
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Não é permitido revisar o próprio cadastro.",
+        });
+      }
+
+      // Só cadastro ENVIADO (na fila) e com e-mail confirmado pode ser aprovado
+      // ou reprovado. A tela já só mostra os botões nesse caso; aqui o servidor
+      // garante — senão a role `representative` poderia ir para um rascunho
+      // com e-mail de outra pessoa (revisão de segurança 2026-09-30).
+      if (existing.status !== "submitted") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Só um cadastro enviado para análise pode ser aprovado ou reprovado.",
+        });
+      }
+      const [owner] = await ctx.db
+        .select({ emailVerified: users.emailVerified })
+        .from(users)
+        .where(eq(users.id, existing.userId))
+        .limit(1);
+      if (!owner?.emailVerified) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "O e-mail deste cadastro ainda não foi confirmado.",
         });
       }
 
@@ -619,7 +696,8 @@ export const representativesRouter = router({
   update: permissionProcedure("representatives", "update")
     .input(representativeAdminUpdateSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, userPatch, representativePatch } = splitRepresentativeAdminUpdate(input);
+      const { id, userPatch, representativePatch, territory: territoryInput } = splitRepresentativeAdminUpdate(input);
+      const territory = territoryInput === undefined ? undefined : resolveTerritoryInput(territoryInput);
       const [existing] = await ctx.db
         .select()
         .from(representatives)
@@ -656,6 +734,9 @@ export const representativesRouter = router({
           if (Object.keys(userPatch).length > 0) {
             await tx.update(users).set(userPatch).where(eq(users.id, existing.userId));
           }
+          if (territory) {
+            await replaceRepresentativeTerritory(tx, id, territory);
+          }
           const [row] = await tx
             .update(representatives)
             .set({ ...representativePatch, updatedAt: new Date() })
@@ -668,7 +749,9 @@ export const representativesRouter = router({
           action: "representatives.update",
           resource: "representatives",
           resourceId: id,
-          metadata: { fields: [...Object.keys(userPatch), ...Object.keys(representativePatch)] },
+          metadata: {
+            fields: [...Object.keys(userPatch), ...Object.keys(representativePatch), ...(territory ? ["territory"] : [])],
+          },
         });
         return updated;
       } catch (error) {

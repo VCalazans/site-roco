@@ -15,7 +15,7 @@
  * (ex.: `tsx`) — não instalada neste projeto por padrão.
  */
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { users } from "./schema/auth";
@@ -230,14 +230,19 @@ async function main() {
         .where(eq(users.email, adminEmail))
         .limit(1);
 
+      // O e-mail do admin vem da configuração, não de um cadastro: nasce
+      // confirmado (o login por senha recusa conta com e-mail não confirmado).
       let adminUserId: string;
       if (existing) {
         adminUserId = existing.id;
-        await db.update(users).set({ passwordHash, active: true }).where(eq(users.id, existing.id));
+        await db
+          .update(users)
+          .set({ passwordHash, active: true, emailVerified: sql`coalesce(${users.emailVerified}, now())` })
+          .where(eq(users.id, existing.id));
       } else {
         const [created] = await db
           .insert(users)
-          .values({ email: adminEmail, name: "Administrador ROCO", passwordHash })
+          .values({ email: adminEmail, name: "Administrador ROCO", passwordHash, emailVerified: new Date() })
           .returning({ id: users.id });
         adminUserId = created.id;
       }

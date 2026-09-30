@@ -3,6 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { OnboardingFormState, RepresentativeDocument } from "@/modules/portal/lib/onboarding-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { summarizeTerritory } from "@/shared/lib/territory";
 
 type ReviewStepProps = {
   dictionary: PortalDictionary["onboarding"];
@@ -31,7 +32,7 @@ export function ReviewStep({ dictionary, sessionUser, form, documents }: ReviewS
       <ReviewRow label={dictionary.fields.companyName} value={form.companyName} />
       <ReviewRow label={dictionary.fields.cnpj} value={form.cnpj} />
       <Divider />
-      <ReviewRow label={dictionary.fields.region} value={form.region} />
+      <ReviewRow label={dictionary.fields.region} value={summarizeTerritory(form.territory)} />
       <ReviewRow label={dictionary.fields.notes} value={form.notes} />
       <Divider />
       <Stack direction="row" sx={{ justifyContent: "space-between" }}>

@@ -14,13 +14,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import type { RepresentativeDocument } from "@/modules/portal/lib/onboarding-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import type { TerritoryOption } from "@/shared/lib/territory";
 import { DocumentsStep } from "./steps/documents-step";
 import { TerritoryStep } from "./steps/territory-step";
 
 type ProfileCompletionProps = {
   portal: PortalDictionary;
   /** Valores já salvos no cadastro (pré-preenchem o form uma única vez). */
-  initial: { region: string; notes: string };
+  initial: { territory: TerritoryOption[]; notes: string };
   documents: RepresentativeDocument[];
 };
 
@@ -43,9 +44,9 @@ export function ProfileCompletion({ portal, initial, documents }: ProfileComplet
   const queryClient = useQueryClient();
 
   const [activeStep, setActiveStep] = useState(0);
-  const [region, setRegion] = useState(initial.region);
+  const [territory, setTerritory] = useState<TerritoryOption[]>(initial.territory);
   const [notes, setNotes] = useState(initial.notes);
-  const [regionError, setRegionError] = useState<string | undefined>(undefined);
+  const [territoryError, setTerritoryError] = useState<string | undefined>(undefined);
 
   const completeMutation = useMutation(
     trpc.representatives.completeProfile.mutationOptions({
@@ -69,15 +70,18 @@ export function ProfileCompletion({ portal, initial, documents }: ProfileComplet
   }
 
   function handleNext() {
-    if (stepKey === "territory" && !region.trim()) {
-      setRegionError(dictionary.validation.required);
+    if (stepKey === "territory" && territory.length === 0) {
+      setTerritoryError(portal.territory.required);
       return;
     }
     setActiveStep((step) => Math.min(step + 1, COMPLETION_STEPS.length - 1));
   }
 
   async function handleFinish() {
-    await completeMutation.mutateAsync({ region: region.trim(), notes });
+    await completeMutation.mutateAsync({
+      territory: territory.map(({ kind, code }) => ({ kind, code })),
+      notes,
+    });
   }
 
   return (
@@ -106,11 +110,12 @@ export function ProfileCompletion({ portal, initial, documents }: ProfileComplet
         {stepKey === "territory" ? (
           <TerritoryStep
             dictionary={dictionary}
-            region={region}
-            regionError={regionError}
-            onRegionChange={(value) => {
-              setRegion(value);
-              setRegionError(undefined);
+            territoryCopy={portal.territory}
+            territory={territory}
+            territoryError={territoryError}
+            onTerritoryChange={(value) => {
+              setTerritory(value);
+              setTerritoryError(undefined);
             }}
             notes={notes}
             onNotesChange={setNotes}

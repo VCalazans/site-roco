@@ -71,6 +71,7 @@ export default async function RepresentativesPage({ params }: PageProps) {
         <RegisterForm
           content={representatives}
           loginHref={`/${locale}/portal/login`}
+          locale={locale}
         />
       </div>
     </div>

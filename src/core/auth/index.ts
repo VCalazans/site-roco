@@ -17,7 +17,10 @@ import {
   users,
   verificationTokens,
 } from "@/db/schema";
-import { checkRateLimit, normalizeRateLimitKeyPart } from "@/server/lib/rate-limit";
+import { emailRateLimitKey } from "@/server/lib/account-tokens";
+import { checkRateLimit, getClientIp, normalizeRateLimitKeyPart } from "@/server/lib/rate-limit";
+import { isGoogleSignInEnabled } from "./google";
+import { EmailNotVerifiedError, LoginRateLimitedError, LoginUnavailableError } from "./sign-in-errors";
 
 /** Role com acesso irrestrito — bypassa a checagem granular (ver `rbac.ts`). */
 export const ADMIN_ROLE_SLUG = "admin";
@@ -39,20 +42,33 @@ const AUTHORIZATION_MAX_AGE_MS = 5 * 60 * 1000;
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 /**
- * Rate limit de login por credenciais (brute force). Duas chaves checadas em
- * paralelo: por e-mail alvo (impede tentar senhas contra UMA conta) e uma
- * global (impede rotacionar e-mails para escapar do limite por conta — janela
- * e teto maiores, pensados para não bloquear login legítimo em picos de uso
- * simultâneo do portal). Nenhuma das duas reseta em caso de sucesso — é
- * janela fixa (ver `checkRateLimit`), então mesmo um login válido conta.
+ * Rate limit de login por credenciais (força bruta), com duas chaves checadas
+ * em paralelo: por IP (quem tenta muitas contas a partir do mesmo lugar) e por
+ * e-mail alvo (quem tenta muitas senhas contra UMA conta; a chave leva o hash
+ * do e-mail, nunca o e-mail em claro). Janela fixa: mesmo um login válido
+ * conta. FAIL-CLOSED (`productionSafe`): sem o limitador em produção, o login
+ * recusa em vez de liberar tentativas ilimitadas.
+ *
+ * Não existe mais um teto GLOBAL: 30 tentativas de qualquer origem a cada
+ * 5 min bloqueavam o login de TODO mundo, inclusive do admin (revisão de
+ * segurança de 2026-09-30). O por-IP tem folga para um escritório inteiro
+ * atrás do mesmo IP.
  */
 const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 5 * 60;
 const LOGIN_RATE_LIMIT_MAX_PER_EMAIL = 5;
-const LOGIN_RATE_LIMIT_MAX_GLOBAL = 30;
+const LOGIN_RATE_LIMIT_MAX_PER_IP = 20;
+
+/**
+ * Hash bcrypt (custo 12) de um texto aleatório descartado: quando a conta não
+ * existe, não tem senha ou está desativada, a senha digitada é comparada com
+ * ele — o login leva o mesmo tempo nos dois caminhos, e o tempo de resposta
+ * não denuncia se o e-mail tem conta.
+ */
+const TIMING_EQUALIZER_HASH = "$2b$12$ymMOedZNBaIdAqPP2Vgnte/cDpzZ4TSa5tNENjpF7iIzxpB1js1Ci";
 
 async function loadUserAuthorization(userId: string) {
   const [account] = await db
-    .select({ active: users.active })
+    .select({ active: users.active, passwordChangedAt: users.passwordChangedAt })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -84,9 +100,10 @@ async function loadUserAuthorization(userId: string) {
     .where(eq(userRoles.userId, userId));
 
   const roleSlugs = assignedRoles.map((role) => role.slug);
+  const passwordChangedAt = account.passwordChangedAt;
 
   if (roleSlugs.length === 0) {
-    return { roles: [] as string[], permissions: [] as string[] };
+    return { roles: [] as string[], permissions: [] as string[], passwordChangedAt };
   }
 
   const rows = await db
@@ -100,7 +117,7 @@ async function loadUserAuthorization(userId: string) {
     new Set(rows.map((row) => `${row.resource}:${row.action}`))
   );
 
-  return { roles: roleSlugs, permissions: permissionSlugs };
+  return { roles: roleSlugs, permissions: permissionSlugs, passwordChangedAt };
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -112,36 +129,47 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   }),
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
+    // Google só com opt-in explícito (`AUTH_GOOGLE_ENABLED=true`) — ver `./google.ts`.
+    ...(isGoogleSignInEnabled()
+      ? [
+          Google({
+            clientId: process.env.AUTH_GOOGLE_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
     Credentials({
       credentials: {
         email: {},
         password: {},
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) {
           return null;
         }
 
-        const [emailRateLimit, globalRateLimit] = await Promise.all([
-          checkRateLimit(`login:email:${normalizeRateLimitKeyPart(email)}`, {
+        const ip = request ? getClientIp(request) : "unknown";
+        const [ipRateLimit, emailRateLimit] = await Promise.all([
+          checkRateLimit(`login:ip:${normalizeRateLimitKeyPart(ip)}`, {
+            windowSeconds: LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+            max: LOGIN_RATE_LIMIT_MAX_PER_IP,
+            productionSafe: true,
+          }),
+          checkRateLimit(emailRateLimitKey("login", email), {
             windowSeconds: LOGIN_RATE_LIMIT_WINDOW_SECONDS,
             max: LOGIN_RATE_LIMIT_MAX_PER_EMAIL,
-          }),
-          checkRateLimit("login:global", {
-            windowSeconds: LOGIN_RATE_LIMIT_WINDOW_SECONDS,
-            max: LOGIN_RATE_LIMIT_MAX_GLOBAL,
+            productionSafe: true,
           }),
         ]);
-        // Mesma resposta genérica de credenciais inválidas — nunca revela que
-        // o bloqueio foi por rate limit (evitaria vazar timing/enumeração).
-        if (!emailRateLimit.allowed || !globalRateLimit.allowed) {
-          return null;
+        // Mensagens próprias (a tela explica o que houve). Nenhuma revela se a
+        // conta existe: os dois limites valem para qualquer e-mail digitado.
+        if (ipRateLimit.unavailable || emailRateLimit.unavailable) {
+          throw new LoginUnavailableError();
+        }
+        if (!ipRateLimit.allowed || !emailRateLimit.allowed) {
+          throw new LoginRateLimitedError();
         }
 
         const [user] = await db
@@ -152,20 +180,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             image: users.image,
             active: users.active,
             passwordHash: users.passwordHash,
+            emailVerified: users.emailVerified,
           })
           .from(users)
           .where(eq(users.email, email))
           .limit(1);
 
         // Conta inexistente, só-SSO (sem hash) ou desativada: mesma resposta
-        // genérica — nunca revelar qual dos casos ocorreu.
+        // genérica — nunca revelar qual dos casos ocorreu. O bcrypt roda
+        // mesmo assim, para o tempo de resposta também não revelar.
         if (!user?.passwordHash || user.active === false) {
+          await bcrypt.compare(password, TIMING_EQUALIZER_HASH);
           return null;
         }
 
         const passwordMatches = await bcrypt.compare(password, user.passwordHash);
         if (!passwordMatches) {
           return null;
+        }
+
+        // Senha certa, e-mail ainda não confirmado pelo link do cadastro: a
+        // tela de login pede a confirmação (e oferece reenviar o link). Só
+        // depois de a senha conferir — sem ela, a resposta segue genérica.
+        if (!user.emailVerified) {
+          throw new EmailNotVerifiedError();
         }
 
         return { id: user.id, name: user.name, email: user.email, image: user.image };
@@ -189,6 +227,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return token;
       }
 
+      // Momento do login que emitiu este token (comparado com a última troca de senha).
+      if (user) {
+        token.authAt = Date.now();
+      }
+
       const refreshedAt = typeof token.authzRefreshedAt === "number" ? token.authzRefreshedAt : 0;
       const isStale = Date.now() - refreshedAt > AUTHORIZATION_MAX_AGE_MS;
       const shouldReload =
@@ -198,6 +241,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const authorization = await loadUserAuthorization(userId);
         // `null` = usuário desativado/removido → invalida a sessão inteira.
         if (authorization === null) {
+          return null;
+        }
+        // Senha redefinida DEPOIS deste login → a sessão cai (≤ 5 min, na
+        // revalidação). Quem redefiniu por ter perdido o controle da conta
+        // tira de dentro quem estava usando a senha antiga.
+        const authAt = typeof token.authAt === "number" ? token.authAt : 0;
+        if (authorization.passwordChangedAt && authorization.passwordChangedAt.getTime() > authAt) {
           return null;
         }
         token.roles = authorization.roles;

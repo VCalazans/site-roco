@@ -2,36 +2,33 @@
 
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { TerritoryPicker } from "@/modules/portal/components/shared/territory-picker";
+import type { PortalDictionary, PortalTerritoryDictionary } from "@/modules/portal/lib/types";
+import type { TerritoryOption } from "@/shared/lib/territory";
 
 type TerritoryStepProps = {
   dictionary: PortalDictionary["onboarding"];
-  region: string;
-  regionError?: string;
-  onRegionChange: (value: string) => void;
+  territoryCopy: PortalTerritoryDictionary;
+  territory: TerritoryOption[];
+  territoryError?: string;
+  onTerritoryChange: (value: TerritoryOption[]) => void;
   notes: string;
   onNotesChange: (value: string) => void;
 };
 
-/** Passo 3: região de atuação (obrigatória) + observações (livres). */
+/** Passo 3: área de atuação (obrigatória, da base do IBGE) + observações (livres). */
 export function TerritoryStep({
   dictionary,
-  region,
-  regionError,
-  onRegionChange,
+  territoryCopy,
+  territory,
+  territoryError,
+  onTerritoryChange,
   notes,
   onNotesChange,
 }: TerritoryStepProps) {
   return (
-    <Stack spacing={2.5} sx={{ maxWidth: 480 }}>
-      <TextField
-        label={dictionary.fields.region}
-        value={region}
-        onChange={(event) => onRegionChange(event.target.value)}
-        error={Boolean(regionError)}
-        helperText={regionError}
-        fullWidth
-      />
+    <Stack spacing={2.5} sx={{ maxWidth: 640 }}>
+      <TerritoryPicker value={territory} onChange={onTerritoryChange} copy={territoryCopy} error={territoryError} />
       <TextField
         label={dictionary.fields.notes}
         value={notes}

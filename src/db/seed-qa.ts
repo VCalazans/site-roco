@@ -34,6 +34,7 @@ import { isValidCNPJ } from "../shared/components/contact-form/cnpj";
 import { users } from "./schema/auth";
 import { productImages, products } from "./schema/catalog";
 import { materials } from "./schema/materials";
+import { representativeTerritories } from "./schema/representative-territories";
 import { representatives } from "./schema/representatives";
 import { roles, userRoles } from "./schema/rbac";
 import { loadEnvFiles, requireEnv } from "./script-env";
@@ -41,6 +42,15 @@ import { loadEnvFiles, requireEnv } from "./script-env";
 const QA_PREFIX = "qa-teste-";
 const QA_DEFAULT_EMAIL = "representante.teste@roco.local";
 const QA_CNPJ = "11.222.333/0001-81";
+/**
+ * Área de atuação da conta de teste (códigos da base do IBGE): uma região e uma
+ * cidade de estados diferentes — mostra os chips e o filtro por estado do admin.
+ */
+const QA_TERRITORY = [
+  { kind: "region", code: "4204", uf: "SC" },
+  { kind: "city", code: "4106902", uf: "PR" },
+] as const;
+const QA_TERRITORY_SUMMARY = "Vale do Itajaí — SC · Curitiba — PR";
 const QA_PRODUCT_COUNT = 2;
 const MIN_PASSWORD_LENGTH = 12;
 const LOCAL_DB_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "postgres"]);
@@ -186,7 +196,7 @@ async function seedRepresentative(db: Database) {
     onboardingStep: 5,
     companyName: "Empresa Teste QA Ltda",
     phone: "(47) 99999-0000",
-    region: "Santa Catarina (teste)",
+    region: QA_TERRITORY_SUMMARY,
     submittedAt: now,
     reviewedAt: now,
     reviewNotes: "Conta de teste criada por npm run db:seed:qa.",
@@ -208,6 +218,16 @@ async function seedRepresentative(db: Database) {
       .limit(1);
     await db.insert(representatives).values({ ...profile, userId, cnpj: cnpjInUse ? null : QA_CNPJ });
   }
+
+  const [saved] = await db
+    .select({ id: representatives.id })
+    .from(representatives)
+    .where(eq(representatives.userId, userId))
+    .limit(1);
+  await db.delete(representativeTerritories).where(eq(representativeTerritories.representativeId, saved.id));
+  await db
+    .insert(representativeTerritories)
+    .values(QA_TERRITORY.map((entry) => ({ representativeId: saved.id, ...entry })));
 
   const [role] = await db.select({ id: roles.id }).from(roles).where(eq(roles.slug, "representative")).limit(1);
   if (!role) throw new Error("Perfil 'representative' não existe — rode `npm run db:seed` antes.");

@@ -21,6 +21,8 @@ declare module "next-auth/jwt" {
     permissions?: string[];
     /** Epoch ms da última recarga de roles/permissions do banco (staleness). */
     authzRefreshedAt?: number;
+    /** Epoch ms do login que emitiu o token — sessão anterior a uma troca de senha cai. */
+    authAt?: number;
   }
 }
 
@@ -33,5 +35,7 @@ declare module "@auth/core/jwt" {
     permissions?: string[];
     /** Epoch ms da última recarga de roles/permissions do banco (staleness). */
     authzRefreshedAt?: number;
+    /** Epoch ms do login que emitiu o token — sessão anterior a uma troca de senha cai. */
+    authAt?: number;
   }
 }

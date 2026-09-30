@@ -1,3 +1,4 @@
+import type { TerritoryOption } from "@/shared/lib/territory";
 import type { RepresentativeStatus } from "./onboarding-types";
 
 /**
@@ -33,8 +34,12 @@ export type RepresentativeListItem = {
   user: {
     name: string | null;
     email: string | null;
+    /** `false` = pré-cadastro do site aguardando o clique no link de confirmação. */
+    emailVerified: boolean;
   };
   documents: { id: string; filename: string; url: string }[];
+  /** Áreas de atuação da base do IBGE, já com rótulo (vazio nos cadastros antigos de texto livre). */
+  territory: TerritoryOption[];
 };
 
 /**
@@ -47,8 +52,8 @@ export type RepresentativeListInput = {
   status?: RepresentativeStatus;
   page?: number;
   perPage?: number;
-  /** Filtro por região/território (match exato, case-insensitive). */
-  region?: string;
+  /** Estado de atuação (UF): representantes com alguma área nesse estado. */
+  uf?: string;
   /** Busca textual em `user.name`, `user.email`, `companyName`, `cnpj`. */
   search?: string;
   /** Inclui representantes com `disabledAt IS NOT NULL`. Default `false`. */

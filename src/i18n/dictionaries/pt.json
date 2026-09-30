@@ -382,21 +382,31 @@
     },
     "validation": {
       "required": "Este campo é obrigatório.",
+      "invalidName": "Use só letras no nome — acentos, espaço, apóstrofo, ponto e hífen valem.",
       "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
       "invalidCnpj": "CNPJ inválido. Confira os números digitados.",
       "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
       "passwordTooShort": "A senha precisa ter pelo menos 8 caracteres.",
-      "passwordMismatch": "As senhas não conferem."
+      "passwordMismatch": "As senhas não conferem.",
+      "passwordTooLong": "A senha é longa demais: use até 72 caracteres (menos, se tiver acentos).",
+      "passwordTooCommon": "Essa senha é muito comum ou previsível. Escolha outra.",
+      "passwordContainsEmail": "A senha não pode conter o seu e-mail nem partes dele."
     },
     "errors": {
       "emailExists": "Já existe um cadastro com este e-mail. Entre no portal para acompanhar seu status.",
       "cnpjExists": "Já existe um cadastro com este CNPJ. Fale com nosso time se precisar de ajuda.",
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
-      "generic": "Não foi possível enviar seu cadastro agora. Tente novamente em instantes."
+      "generic": "Não foi possível enviar seu cadastro agora. Tente novamente em instantes.",
+      "unavailable": "Serviço indisponível no momento. Tente novamente em instantes."
     },
     "success": {
-      "title": "Pré-cadastro recebido!",
-      "message": "Nosso time comercial vai analisar suas informações. Assim que seu cadastro for aprovado, você poderá entrar no portal com seu e-mail e senha para completar o restante dos dados.",
+      "title": "Confirme seu e-mail",
+      "message": "Enviamos um link de confirmação para {email}. Abra o e-mail e clique em \"Confirmar e-mail\" para enviar seu pré-cadastro à análise do nosso time. O link vale por 24 horas.",
+      "spamHint": "Não chegou? Confira a caixa de spam ou peça outro link.",
+      "resendButton": "Reenviar e-mail",
+      "resending": "Enviando…",
+      "resent": "Se o cadastro ainda estiver aguardando confirmação, um novo link foi enviado.",
+      "resendError": "Não foi possível reenviar agora. Tente novamente em alguns minutos.",
       "loginCta": "Ir para o login do portal"
     },
     "loginPrompt": "Já fez seu pré-cadastro?",
@@ -521,8 +531,16 @@
       "signInButton": "Entrar",
       "orDivider": "ou",
       "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
+      "rateLimited": "Muitas tentativas de entrar em pouco tempo. Aguarde alguns minutos e tente de novo.",
+      "unavailable": "Não foi possível entrar agora. Tente novamente em instantes.",
       "registerPrompt": "Ainda não tem acesso?",
-      "registerLink": "Obtenha seu acesso ao Portal ROCO"
+      "registerLink": "Obtenha seu acesso ao Portal ROCO",
+      "forgotPassword": "Esqueci minha senha",
+      "emailNotVerified": "Seu e-mail ainda não foi confirmado. Abra o link que enviamos quando você fez o pré-cadastro para liberar o acesso.",
+      "resendConfirmation": "Reenviar o e-mail de confirmação",
+      "notices": {
+        "passwordReset": "Senha alterada. Entre com a nova senha."
+      }
     },
     "homeContent": {
       "title": "Página inicial",
@@ -1022,7 +1040,7 @@
         },
         "territory": {
           "title": "Território de Atuação",
-          "description": "Defina sua região de vendas e cobertura."
+          "description": "Escolha os estados, regiões ou cidades que você atende."
         },
         "documents": {
           "title": "Documentos",
@@ -1039,7 +1057,7 @@
         "phone": "Telefone",
         "companyName": "Razão social da empresa",
         "cnpj": "CNPJ (Cadastro Nacional da Pessoa Jurídica)",
-        "region": "Região de atuação",
+        "region": "Área de atuação",
         "notes": "Observações adicionais"
       },
       "upload": {
@@ -1335,7 +1353,7 @@
       "table": {
         "name": "Nome",
         "company": "Empresa",
-        "region": "Região",
+        "region": "Área de atuação",
         "status": "Status",
         "submittedAt": "Enviado em",
         "actions": "Ações"
@@ -1365,7 +1383,7 @@
         "title": "Detalhes do cadastro",
         "cnpj": "CNPJ",
         "phone": "Telefone",
-        "region": "Região",
+        "region": "Área de atuação",
         "submittedAt": "Enviado em",
         "reviewedAt": "Revisado em",
         "reviewedBy": "Revisado por",
@@ -1397,7 +1415,8 @@
         "cancel": "Cancelar"
       },
       "badge": {
-        "disabled": "Desabilitado"
+        "disabled": "Desabilitado",
+        "emailNotVerified": "E-mail não confirmado"
       },
       "emptySearch": {
         "title": "Nenhum resultado para essa busca",
@@ -1916,6 +1935,122 @@
       "errors": {
         "loadFailed": "Erro ao carregar as configurações."
       }
+    },
+    "account": {
+      "backToLogin": "Voltar para o login",
+      "emailLabel": "E-mail",
+      "errors": {
+        "invalidEmail": "Informe um e-mail válido.",
+        "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
+        "unavailable": "Serviço indisponível no momento. Tente novamente em instantes.",
+        "generic": "Não foi possível concluir agora. Tente novamente em instantes."
+      },
+      "linkStates": {
+        "checking": "Verificando o link…",
+        "invalidTitle": "Link inválido",
+        "expiredTitle": "Link vencido",
+        "usedTitle": "Link já utilizado"
+      },
+      "confirmEmail": {
+        "title": "Confirme seu e-mail",
+        "description": "Clique no botão para confirmar seu e-mail e enviar seu pré-cadastro para a análise do nosso time.",
+        "button": "Confirmar e-mail",
+        "successTitle": "E-mail confirmado!",
+        "successSubmitted": "Seu pré-cadastro foi enviado para análise. Assim que for aprovado, seu acesso de representante é liberado — você pode entrar no portal para acompanhar.",
+        "successCnpjConflict": "Seu e-mail foi confirmado, mas já existe um cadastro com este CNPJ em análise. Fale com o time ROCO para concluir o seu.",
+        "successGeneric": "Seu e-mail foi confirmado. Você já pode entrar no portal.",
+        "loginButton": "Ir para o login",
+        "invalid": "Este link não é válido. Peça um novo abaixo.",
+        "expired": "Este link venceu (ele vale por 24 horas). Peça um novo abaixo.",
+        "used": "Este link já foi usado ou foi trocado por um mais novo. Se o seu e-mail já está confirmado, é só entrar no portal; se não, peça outro link abaixo.",
+        "resendTitle": "Reenviar o e-mail de confirmação",
+        "resendDescription": "Informe o e-mail do pré-cadastro. Se houver um cadastro aguardando confirmação, enviamos um novo link.",
+        "resendButton": "Enviar novo link",
+        "resendSent": "Pronto! Se houver um cadastro aguardando confirmação com esse e-mail, o novo link chega em instantes. Confira também a caixa de spam."
+      },
+      "forgotPassword": {
+        "title": "Esqueceu sua senha?",
+        "description": "Informe o e-mail da sua conta. Enviamos um link para você criar uma senha nova.",
+        "button": "Enviar link",
+        "sentTitle": "Confira seu e-mail",
+        "sent": "Se houver uma conta com esse e-mail, o link para criar uma senha nova chega em instantes. Ele vale por 60 minutos. Confira também a caixa de spam."
+      },
+      "resetPassword": {
+        "title": "Crie uma senha nova",
+        "description": "Escolha uma senha que você não usa em nenhum outro site.",
+        "password": "Nova senha",
+        "passwordConfirm": "Confirme a nova senha",
+        "hint": "Mínimo de 8 caracteres. Uma frase longa é mais segura que uma senha curta cheia de símbolos.",
+        "button": "Salvar nova senha",
+        "invalid": "Este link não é válido. Peça um novo.",
+        "expired": "Este link venceu (ele vale por 60 minutos). Peça um novo.",
+        "used": "Este link já foi usado ou foi trocado por um mais novo. Se precisar, peça outro.",
+        "requestNew": "Pedir novo link",
+        "mismatch": "As senhas não conferem.",
+        "passwordIssues": {
+          "too_short": "A senha precisa ter pelo menos 8 caracteres.",
+          "too_long": "A senha é longa demais: use até 72 caracteres (menos, se tiver acentos).",
+          "too_common": "Essa senha é muito comum ou previsível. Escolha outra.",
+          "contains_email": "A senha não pode conter o seu e-mail nem partes dele."
+        }
+      }
+    },
+    "pendingAccess": {
+      "submitted": {
+        "title": "Seu cadastro está em análise",
+        "message": "Recebemos seu pré-cadastro. O time comercial da ROCO está conferindo seus dados — assim que ele for aprovado, o portal libera os materiais de apoio, o catálogo e as imagens dos produtos.",
+        "messageWithDate": "Recebemos seu pré-cadastro em {date}. O time comercial da ROCO está conferindo seus dados — assim que ele for aprovado, o portal libera os materiais de apoio, o catálogo e as imagens dos produtos.",
+        "hint": "Você não precisa fazer nada agora. Depois da aprovação, é só entrar de novo no portal."
+      },
+      "approved": {
+        "title": "Seu cadastro foi aprovado!",
+        "message": "Seu acesso de representante está sendo liberado. Se o menu ainda não mudou, saia e entre de novo no portal."
+      },
+      "rejected": {
+        "title": "Seu cadastro não foi aprovado",
+        "message": "Se quiser entender o motivo ou enviar dados atualizados, fale com o time ROCO.",
+        "notesLabel": "Observação da análise"
+      },
+      "draft": {
+        "title": "Falta concluir seu cadastro",
+        "message": "Preencha os dados que faltam para enviar seu cadastro à análise do time ROCO.",
+        "action": "Concluir cadastro"
+      },
+      "cnpjConflict": {
+        "title": "Já existe um cadastro com este CNPJ",
+        "message": "Seu e-mail foi confirmado, mas outro cadastro com o mesmo CNPJ já está em análise ou aprovado. Fale com o time ROCO para resolver."
+      },
+      "none": {
+        "title": "Seu acesso ainda não foi liberado",
+        "message": "Sua conta existe, mas ainda não tem permissão para usar o portal. Se você espera esse acesso, fale com o time ROCO."
+      },
+      "company": "Empresa: {company}",
+      "steps": {
+        "title": "Etapas do seu acesso",
+        "sent": "Pré-cadastro enviado",
+        "review": "Análise do time ROCO",
+        "access": "Acesso liberado"
+      },
+      "contactAction": "Falar com a ROCO",
+      "siteAction": "Ver o site"
+    },
+    "territory": {
+      "label": "Área de atuação",
+      "placeholder": "Busque um estado, região ou cidade",
+      "helper": "Escolha estados inteiros, regiões ou cidades — quantos precisar. Base de localidades do IBGE.",
+      "kinds": {
+        "state": "Estado",
+        "region": "Região",
+        "city": "Cidade"
+      },
+      "noOptions": "Nenhum estado, região ou cidade com esse nome.",
+      "loading": "Carregando estados, regiões e cidades…",
+      "loadError": "Não foi possível carregar a lista. Recarregue a página e tente de novo.",
+      "limit": "Você já escolheu o máximo de {max} áreas.",
+      "required": "Escolha pelo menos uma área de atuação.",
+      "legacy": "Informado antes, em texto livre: {text}",
+      "filterLabel": "Estado de atuação",
+      "filterAll": "Todos os estados"
     }
   },
   "cart": {
@@ -1992,6 +2127,34 @@
       "reject": "Recusar",
       "policy": "Política de Privacidade",
       "policyHref": "/privacidade"
+    }
+  },
+  "emails": {
+    "brand": "Portal ROCO",
+    "greeting": "Olá, {name}!",
+    "greetingNoName": "Olá!",
+    "linkFallback": "Se o botão não funcionar, copie e cole este endereço no navegador:",
+    "footer": "ROCO Indústria Metalplástica · Este é um e-mail automático; não é preciso responder.",
+    "verifyEmail": {
+      "subject": "Confirme seu e-mail — Portal ROCO",
+      "intro": "Recebemos seu pré-cadastro no Portal ROCO. Confirme seu e-mail para enviá-lo à análise do nosso time comercial.",
+      "button": "Confirmar e-mail",
+      "note": "O link vale por 24 horas e só pode ser usado uma vez.",
+      "ignore": "Se você não fez este cadastro, ignore este e-mail."
+    },
+    "resetPassword": {
+      "subject": "Redefinição de senha — Portal ROCO",
+      "intro": "Recebemos um pedido para redefinir a senha da sua conta no Portal ROCO.",
+      "button": "Criar senha nova",
+      "note": "O link vale por 60 minutos e só pode ser usado uma vez.",
+      "ignore": "Se você não pediu a redefinição, ignore este e-mail: sua senha continua a mesma."
+    },
+    "passwordChanged": {
+      "subject": "Sua senha foi alterada — Portal ROCO",
+      "intro": "A senha da sua conta no Portal ROCO acabou de ser alterada. Por segurança, as sessões abertas em outros aparelhos são encerradas.",
+      "button": "Não fui eu — redefinir senha",
+      "note": "Se não foi você, redefina a senha agora e avise o time ROCO.",
+      "ignore": "Se foi você, não precisa fazer nada."
     }
   }
 }

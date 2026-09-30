@@ -382,22 +382,32 @@
     },
     "validation": {
       "required": "This field is required.",
+      "invalidName": "Use letters only in your name — accents, spaces, apostrophes, periods and hyphens are fine.",
       "invalidEmail": "Invalid email. Please check the address.",
       "invalidCnpj": "Invalid CNPJ. Please check the digits.",
       "invalidPhone": "Invalid phone. Use the format (XX) 9XXXX-XXXX.",
       "passwordTooShort": "Password must be at least 8 characters long.",
-      "passwordMismatch": "Passwords do not match."
+      "passwordMismatch": "Passwords do not match.",
+      "passwordTooLong": "Your password is too long: use up to 72 characters (fewer if it has accents).",
+      "passwordTooCommon": "That password is too common or predictable. Choose another one.",
+      "passwordContainsEmail": "Your password can't contain your email or parts of it."
     },
     "errors": {
       "emailExists": "There is already a registration with this email. Sign in to the portal to check your status.",
       "cnpjExists": "There is already a registration with this CNPJ. Contact our team if you need help.",
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
-      "generic": "We could not submit your registration right now. Please try again shortly."
+      "generic": "We could not submit your registration right now. Please try again shortly.",
+      "unavailable": "Service unavailable right now. Please try again shortly."
     },
     "success": {
-      "title": "Pre-registration received!",
-      "message": "Our sales team will review your information. Once your registration is approved, you can sign in to the portal with your email and password to complete the remaining details.",
-      "loginCta": "Go to portal login"
+      "title": "Confirm your email",
+      "message": "We sent a confirmation link to {email}. Open the email and click \"Confirm email\" to send your pre-registration to our team for review. The link is valid for 24 hours.",
+      "spamHint": "Didn't get it? Check your spam folder or request another link.",
+      "resendButton": "Resend email",
+      "resending": "Sending…",
+      "resent": "If the registration is still awaiting confirmation, a new link was sent.",
+      "resendError": "We couldn't resend it right now. Please try again in a few minutes.",
+      "loginCta": "Go to the portal sign-in"
     },
     "loginPrompt": "Already pre-registered?",
     "loginLink": "Sign in to the portal",
@@ -521,8 +531,16 @@
       "signInButton": "Sign in",
       "orDivider": "or",
       "invalidCredentials": "Incorrect email or password. Please check and try again.",
+      "rateLimited": "Too many sign-in attempts in a short time. Wait a few minutes and try again.",
+      "unavailable": "We couldn't sign you in right now. Please try again in a moment.",
       "registerPrompt": "Don't have access yet?",
-      "registerLink": "Get your ROCO Portal access"
+      "registerLink": "Get your ROCO Portal access",
+      "forgotPassword": "Forgot my password",
+      "emailNotVerified": "Your email hasn't been confirmed yet. Open the link we sent when you pre-registered to unlock access.",
+      "resendConfirmation": "Resend the confirmation email",
+      "notices": {
+        "passwordReset": "Password changed. Sign in with your new password."
+      }
     },
     "homeContent": {
       "title": "Home page",
@@ -1022,7 +1040,7 @@
         },
         "territory": {
           "title": "Sales Territory",
-          "description": "Define your sales region and coverage area."
+          "description": "Pick the states, regions or cities you cover."
         },
         "documents": {
           "title": "Documents",
@@ -1039,7 +1057,7 @@
         "phone": "Phone",
         "companyName": "Company legal name",
         "cnpj": "CNPJ (Brazilian company ID)",
-        "region": "Sales region",
+        "region": "Service area",
         "notes": "Additional notes"
       },
       "upload": {
@@ -1335,7 +1353,7 @@
       "table": {
         "name": "Name",
         "company": "Company",
-        "region": "Region",
+        "region": "Service area",
         "status": "Status",
         "submittedAt": "Submitted",
         "actions": "Actions"
@@ -1365,7 +1383,7 @@
         "title": "Record details",
         "cnpj": "CNPJ",
         "phone": "Phone",
-        "region": "Region",
+        "region": "Service area",
         "submittedAt": "Submitted at",
         "reviewedAt": "Reviewed at",
         "reviewedBy": "Reviewed by",
@@ -1397,7 +1415,8 @@
         "cancel": "Cancel"
       },
       "badge": {
-        "disabled": "Disabled"
+        "disabled": "Disabled",
+        "emailNotVerified": "Email not confirmed"
       },
       "emptySearch": {
         "title": "No results for that search",
@@ -1916,6 +1935,122 @@
       "errors": {
         "loadFailed": "Failed to load settings."
       }
+    },
+    "account": {
+      "backToLogin": "Back to sign in",
+      "emailLabel": "Email",
+      "errors": {
+        "invalidEmail": "Enter a valid email address.",
+        "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
+        "unavailable": "Service unavailable right now. Please try again shortly.",
+        "generic": "We couldn't complete this right now. Please try again shortly."
+      },
+      "linkStates": {
+        "checking": "Checking the link…",
+        "invalidTitle": "Invalid link",
+        "expiredTitle": "Expired link",
+        "usedTitle": "Link already used"
+      },
+      "confirmEmail": {
+        "title": "Confirm your email",
+        "description": "Click the button to confirm your email and send your pre-registration to our team for review.",
+        "button": "Confirm email",
+        "successTitle": "Email confirmed!",
+        "successSubmitted": "Your pre-registration was sent for review. Once it's approved, your sales representative access is unlocked — you can sign in to follow up.",
+        "successCnpjConflict": "Your email is confirmed, but there's already a registration with this CNPJ under review. Contact the ROCO team to complete yours.",
+        "successGeneric": "Your email is confirmed. You can now sign in to the portal.",
+        "loginButton": "Go to sign in",
+        "invalid": "This link isn't valid. Request a new one below.",
+        "expired": "This link has expired (it's valid for 24 hours). Request a new one below.",
+        "used": "This link was already used or replaced by a newer one. If your email is already confirmed, just sign in; otherwise, request a new link below.",
+        "resendTitle": "Resend the confirmation email",
+        "resendDescription": "Enter the email you pre-registered with. If a registration is awaiting confirmation, we'll send a new link.",
+        "resendButton": "Send new link",
+        "resendSent": "Done! If a registration is awaiting confirmation for that email, the new link will arrive shortly. Please also check your spam folder."
+      },
+      "forgotPassword": {
+        "title": "Forgot your password?",
+        "description": "Enter your account email. We'll send you a link to create a new password.",
+        "button": "Send link",
+        "sentTitle": "Check your email",
+        "sent": "If there's an account with that email, the link to create a new password will arrive shortly. It's valid for 60 minutes. Please also check your spam folder."
+      },
+      "resetPassword": {
+        "title": "Create a new password",
+        "description": "Choose a password you don't use on any other site.",
+        "password": "New password",
+        "passwordConfirm": "Confirm the new password",
+        "hint": "At least 8 characters. A long phrase is safer than a short password full of symbols.",
+        "button": "Save new password",
+        "invalid": "This link isn't valid. Request a new one.",
+        "expired": "This link has expired (it's valid for 60 minutes). Request a new one.",
+        "used": "This link was already used or replaced by a newer one. Request a new one if needed.",
+        "requestNew": "Request a new link",
+        "mismatch": "Passwords don't match.",
+        "passwordIssues": {
+          "too_short": "Your password must have at least 8 characters.",
+          "too_long": "Your password is too long: use up to 72 characters (fewer if it has accents).",
+          "too_common": "That password is too common or predictable. Choose another one.",
+          "contains_email": "Your password can't contain your email or parts of it."
+        }
+      }
+    },
+    "pendingAccess": {
+      "submitted": {
+        "title": "Your registration is under review",
+        "message": "We received your pre-registration. ROCO's sales team is checking your details — once it's approved, the portal unlocks sales materials, the catalog and product images.",
+        "messageWithDate": "We received your pre-registration on {date}. ROCO's sales team is checking your details — once it's approved, the portal unlocks sales materials, the catalog and product images.",
+        "hint": "There's nothing you need to do right now. After approval, just sign in to the portal again."
+      },
+      "approved": {
+        "title": "Your registration was approved!",
+        "message": "Your sales representative access is being enabled. If the menu hasn't changed yet, sign out and sign in again."
+      },
+      "rejected": {
+        "title": "Your registration was not approved",
+        "message": "If you'd like to understand why or send updated details, contact the ROCO team.",
+        "notesLabel": "Review note"
+      },
+      "draft": {
+        "title": "Your registration isn't finished yet",
+        "message": "Fill in the missing details to send your registration to the ROCO team for review.",
+        "action": "Finish registration"
+      },
+      "cnpjConflict": {
+        "title": "There's already a registration with this CNPJ",
+        "message": "Your email is confirmed, but another registration with the same CNPJ is already under review or approved. Contact the ROCO team to sort it out."
+      },
+      "none": {
+        "title": "Your access hasn't been enabled yet",
+        "message": "Your account exists, but it doesn't have permission to use the portal yet. If you're expecting access, contact the ROCO team."
+      },
+      "company": "Company: {company}",
+      "steps": {
+        "title": "Your access steps",
+        "sent": "Pre-registration sent",
+        "review": "Review by the ROCO team",
+        "access": "Access enabled"
+      },
+      "contactAction": "Contact ROCO",
+      "siteAction": "Visit the website"
+    },
+    "territory": {
+      "label": "Service area",
+      "placeholder": "Search for a state, region or city",
+      "helper": "Pick whole states, regions or cities — as many as you need. IBGE locality data.",
+      "kinds": {
+        "state": "State",
+        "region": "Region",
+        "city": "City"
+      },
+      "noOptions": "No state, region or city with that name.",
+      "loading": "Loading states, regions and cities…",
+      "loadError": "We couldn't load the list. Reload the page and try again.",
+      "limit": "You've already picked the maximum of {max} areas.",
+      "required": "Pick at least one service area.",
+      "legacy": "Previously entered as free text: {text}",
+      "filterLabel": "Service area state",
+      "filterAll": "All states"
     }
   },
   "cart": {
@@ -1992,6 +2127,34 @@
       "reject": "Decline",
       "policy": "Privacy Policy",
       "policyHref": "/privacidade"
+    }
+  },
+  "emails": {
+    "brand": "ROCO Portal",
+    "greeting": "Hello, {name}!",
+    "greetingNoName": "Hello!",
+    "linkFallback": "If the button doesn't work, copy and paste this address into your browser:",
+    "footer": "ROCO Indústria Metalplástica · This is an automated email; no reply is needed.",
+    "verifyEmail": {
+      "subject": "Confirm your email — ROCO Portal",
+      "intro": "We received your pre-registration on the ROCO Portal. Confirm your email to send it to our sales team for review.",
+      "button": "Confirm email",
+      "note": "The link is valid for 24 hours and can only be used once.",
+      "ignore": "If you didn't register, please ignore this email."
+    },
+    "resetPassword": {
+      "subject": "Password reset — ROCO Portal",
+      "intro": "We received a request to reset the password of your ROCO Portal account.",
+      "button": "Create new password",
+      "note": "The link is valid for 60 minutes and can only be used once.",
+      "ignore": "If you didn't request a reset, please ignore this email: your password stays the same."
+    },
+    "passwordChanged": {
+      "subject": "Your password was changed — ROCO Portal",
+      "intro": "The password of your ROCO Portal account was just changed. For security, sessions open on other devices are signed out.",
+      "button": "Not me — reset password",
+      "note": "If it wasn't you, reset your password now and let the ROCO team know.",
+      "ignore": "If it was you, there's nothing else to do."
     }
   }
 }

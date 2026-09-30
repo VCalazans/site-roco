@@ -60,3 +60,13 @@ export function isRepresentativeOnly(user: PortalPermissionUser): boolean {
   }
   return !user.roles.some((role) => STAFF_ROLE_SLUGS.includes(role));
 }
+
+/**
+ * `true` para quem entrou no portal SEM nenhum perfil — na prática, quem fez o
+ * pré-cadastro e ainda espera a aprovação (a role `representative` só vem nela).
+ * Sem perfil não há permissão nenhuma, então o painel sairia vazio: `/portal`
+ * mostra no lugar o aviso com a situação do cadastro (`PendingAccessPanel`).
+ */
+export function isAwaitingAccess(user: PortalPermissionUser): boolean {
+  return (user?.roles?.length ?? 0) === 0;
+}

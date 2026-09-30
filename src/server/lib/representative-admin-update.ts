@@ -15,6 +15,7 @@
 import { z } from "zod";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
+import { territoryInputSchema } from "@/shared/lib/territory-schema";
 
 /** "" / só espaços → `null` (limpar); `undefined` continua "não mexer". */
 function clearable(max: number) {
@@ -37,6 +38,11 @@ export const representativeAdminUpdateSchema = z.object({
     .transform((value) => (value == null ? value : formatPhoneBR(value))),
   region: clearable(120),
   notes: clearable(2000),
+  /**
+   * Áreas de atuação (base do IBGE). `undefined` não mexe; lista (mesmo vazia)
+   * troca tudo e reescreve o resumo em `region` — ver `replaceRepresentativeTerritory`.
+   */
+  territory: territoryInputSchema.optional(),
 });
 
 export type RepresentativeAdminUpdateInput = z.input<typeof representativeAdminUpdateSchema>;
@@ -44,7 +50,7 @@ export type RepresentativeAdminUpdate = z.output<typeof representativeAdminUpdat
 
 /** Separa o patch parseado entre as duas tabelas, descartando `undefined`. */
 export function splitRepresentativeAdminUpdate(input: RepresentativeAdminUpdate) {
-  const { id, name, email, ...representativeFields } = input;
+  const { id, name, email, territory, ...representativeFields } = input;
 
   const userPatch: { name?: string; email?: string } = {};
   if (name !== undefined) userPatch.name = name;
@@ -54,5 +60,5 @@ export function splitRepresentativeAdminUpdate(input: RepresentativeAdminUpdate)
     Object.entries(representativeFields).filter(([, value]) => value !== undefined)
   ) as Partial<Record<keyof typeof representativeFields, string | null>>;
 
-  return { id, userPatch, representativePatch };
+  return { id, userPatch, representativePatch, territory };
 }
