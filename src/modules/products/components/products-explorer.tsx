@@ -1,20 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Loader2, Search, SlidersHorizontal, Trophy, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, SlidersHorizontal, Trophy, X } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
+import {
+  buildListingQuery,
+  commitSearchTerm,
+  effectiveSearchTerms,
+  matchesServerRender,
+  readListingState,
+  sameList,
+  toggleCategory,
+  type ListingFilters,
+  type ListingState,
+} from "@/modules/products/lib/listing-filters";
 import { buildPaginationRange } from "@/modules/products/lib/pagination";
 import { rememberListingUrl } from "@/modules/products/lib/listing-memory";
 import type { PublicCategory, PublicProductItem } from "@/modules/products/lib/types";
 import { ProductCard, type ProductCardContent } from "@/shared/components/product-card";
 import { interpolate } from "@/shared/lib/interpolate";
+import { FilterChip } from "./filter-chip";
 import { categoryDisplayName, ProductsFilters } from "./products-filters";
+import { SearchTermsField } from "./search-terms-field";
 
 const DEBOUNCE_MS = 350;
+/** URLs escritas por este componente que aguardam o eco do roteador (teto da fila). */
+const MAX_OWN_URLS = 10;
 
 type ProductsExplorerProps = {
   locale: Locale;
@@ -26,30 +41,88 @@ type ProductsExplorerProps = {
   categoryCounts: Record<string, number>;
   allCount: number;
   bestSellerCount: number;
-  initialFilters: { category: string; search: string; bestSeller: boolean };
+  /** Filtros da URL já validados pelo servidor (categorias existentes, termos normalizados). */
+  initialFilters: ListingFilters;
   content: Dictionary["products"]["listing"];
   cardContent: ProductCardContent;
   badgeLabels: Dictionary["products"]["badges"];
   cartLabels: Dictionary["cart"]["addButton"];
 };
 
-type ExplorerFilters = { search: string; category: string; bestSeller: boolean; page: number };
+/**
+ * Estado dos filtros. `terms` são os termos FIXADOS (chips); `draft` é o texto
+ * ainda no campo, que já filtra ao vivo como mais um termo.
+ */
+type ExplorerFilters = {
+  terms: string[];
+  draft: string;
+  categories: string[];
+  bestSeller: boolean;
+  page: number;
+};
+
+/** Querystring de um estado: a da URL da página ou, com `perPage`, a da API. */
+function toQuery(filters: ExplorerFilters, perPage?: number): URLSearchParams {
+  return buildListingQuery({
+    searchTerms: effectiveSearchTerms(filters.terms, filters.draft),
+    categories: filters.categories,
+    bestSeller: filters.bestSeller,
+    page: filters.page,
+    perPage,
+  });
+}
+
+function toExplorer(state: ListingState): ExplorerFilters {
+  return {
+    terms: state.searchTerms,
+    draft: "",
+    categories: state.categories,
+    bestSeller: state.bestSeller,
+    page: state.page,
+  };
+}
+
+/** Leitura da URL: o estado a exibir e se os itens renderizados pelo servidor servem para ele. */
+type UrlSync = { state: ExplorerFilters; matchesServer: boolean };
+
+/** Os dois estados pedem a MESMA consulta (ex.: o termo só passou do campo para um chip)? */
+function sameQuery(a: ExplorerFilters, b: ExplorerFilters): boolean {
+  return (
+    sameList(effectiveSearchTerms(a.terms, a.draft), effectiveSearchTerms(b.terms, b.draft)) &&
+    sameList(a.categories, b.categories) &&
+    a.bestSeller === b.bestSeller &&
+    a.page === b.page
+  );
+}
 
 /**
- * Explorador do catálogo (spec 001, RF14/RF25): barra lateral de filtros
- * (busca ao vivo, campeões, categorias com contagem) no desktop, gaveta no
- * mobile, chips dos filtros ativos, faixa "Mostrando X–Y de Z" e paginação
- * numerada com setas.
+ * Explorador do catálogo (spec 001, RF14/RF25): barra lateral de filtros no
+ * desktop, gaveta no mobile, chips dos filtros ativos, faixa "Mostrando X–Y
+ * de Z" e paginação numerada com setas.
+ *
+ * Filtros COMBINADOS (pedido do stakeholder, 2026-09-30 — regras em
+ * `listing-filters`): várias categorias ao mesmo tempo (produtos de qualquer
+ * uma delas) e vários termos de busca — Enter fixa o termo como chip e libera
+ * o campo; cada termo novo refina o resultado. Na gaveta do mobile marcar uma
+ * categoria NÃO fecha a gaveta: dá para marcar várias e ver o total no botão
+ * "Ver N produtos".
  *
  * Primeira página vem renderizada do servidor; a partir daí toda mudança usa
  * `GET /api/products` no cliente. URL sincronizada com `history.replaceState`
  * (integração nativa do App Router: atualiza `useSearchParams` SEM refetch RSC
  * — `router.replace` aqui re-executaria a consulta no servidor a cada tecla).
  *
- * Navegação externa para a MESMA rota (ex.: busca do header com outro termo):
- * o servidor manda props novas mas o React preserva a instância — o bloco de
- * adoção compara as props iniciais com as da última renderização e re-adota
- * quando mudam (padrão React de derived state, sem useEffect).
+ * A URL é a FONTE DA VERDADE dos filtros (lida por `useSearchParams`, com as
+ * mesmas regras do SSR). As props dizem o que o servidor renderizou — e em
+ * voltar/avançar o roteador restaura a renderização em CACHE, anterior aos
+ * filtros aplicados aqui. Por isso:
+ * - na montagem, o estado vem da URL; se os itens do servidor não são dessa
+ *   URL, busca os certos (voltar do detalhe mantinha a URL filtrada com a
+ *   lista inteira na tela);
+ * - toda URL que o explorador escreve entra numa fila e o eco dela é
+ *   ignorado; qualquer OUTRA mudança de URL é navegação externa (menu
+ *   "Produtos", busca do header, voltar/avançar) e é adotada — clicar em
+ *   "Produtos" com filtros aplicados mantinha a lista filtrada numa URL limpa.
  */
 export function ProductsExplorer({
   locale,
@@ -68,56 +141,78 @@ export function ProductsExplorer({
   cartLabels,
 }: ProductsExplorerProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
-  const [search, setSearch] = useState(initialFilters.search);
-  const [category, setCategory] = useState(initialFilters.category);
-  const [bestSeller, setBestSeller] = useState(initialFilters.bestSeller);
-  const [page, setPage] = useState(initialPage);
+  const categoryOrder = categories.map((item) => item.slug);
+  const urlKey = searchParams.toString();
+
+  /** Lê a URL atual e confere se os itens renderizados pelo servidor são dela. */
+  function readUrl(): UrlSync {
+    const url = readListingState(searchParams, categoryOrder);
+    const server: ListingState = { ...initialFilters, page: initialPage };
+    const serverTotalPages = Math.max(1, Math.ceil(initialTotal / perPage));
+    return matchesServerRender(url, server, serverTotalPages)
+      ? { state: toExplorer({ ...url, page: initialPage }), matchesServer: true }
+      : { state: toExplorer(url), matchesServer: false };
+  }
+
+  const [boot] = useState(readUrl);
+  const [terms, setTerms] = useState(boot.state.terms);
+  const [draft, setDraft] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState(boot.state.categories);
+  const [bestSeller, setBestSeller] = useState(boot.state.bestSeller);
+  const [page, setPage] = useState(boot.state.page);
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!boot.matchesServer);
   const [loadError, setLoadError] = useState(false);
+  const [termLimitHit, setTermLimitHit] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Sincronização com a URL. `urlSync`: a última adoção da URL (montagem ou
+  // navegação externa), que o efeito mais abaixo conclui. `seenUrlKey`: a
+  // última URL observada. `ownUrls`: as URLs que ESTE componente escreveu com
+  // `replaceState` e cujo eco o roteador ainda não devolveu.
+  const [urlSync, setUrlSync] = useState(boot);
+  const [seenUrlKey, setSeenUrlKey] = useState(urlKey);
+  const [ownUrls, setOwnUrls] = useState<string[]>([]);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
-  // Último conjunto filtros+página cujos resultados chegaram com sucesso —
-  // usado para reverter estado e URL quando um fetch falha.
-  const lastGoodRef = useRef<ExplorerFilters>({ ...initialFilters, page: initialPage });
+  const inFlightRef = useRef(false);
+  // Estado cujos itens estão na tela — usado para reverter estado e URL
+  // quando um fetch falha, e para saber se uma mudança altera a consulta de
+  // fato (senão não há por que buscar de novo).
+  const lastGoodRef = useRef<ExplorerFilters>(
+    boot.matchesServer ? boot.state : toExplorer({ ...initialFilters, page: initialPage })
+  );
 
-  // Adoção de novas props do servidor (navegação externa para a mesma rota).
-  const [prevInitial, setPrevInitial] = useState<ExplorerFilters>({ ...initialFilters, page: initialPage });
-  if (
-    prevInitial.search !== initialFilters.search ||
-    prevInitial.category !== initialFilters.category ||
-    prevInitial.bestSeller !== initialFilters.bestSeller ||
-    prevInitial.page !== initialPage
-  ) {
-    const adopted: ExplorerFilters = { ...initialFilters, page: initialPage };
-    setPrevInitial(adopted);
-    setSearch(adopted.search);
-    setCategory(adopted.category);
-    setBestSeller(adopted.bestSeller);
-    setPage(adopted.page);
-    setItems(initialItems);
-    setTotal(initialTotal);
-    setLoading(false);
-    setLoadError(false);
+  if (urlKey !== seenUrlKey) {
+    setSeenUrlKey(urlKey);
+    const ownIndex = ownUrls.indexOf(urlKey);
+    if (ownIndex >= 0) {
+      // Eco de uma escrita nossa (`syncUrl`): o estado já é esse.
+      setOwnUrls(ownUrls.slice(ownIndex + 1));
+    } else {
+      // Navegação externa (menu "Produtos", busca do header, voltar/avançar):
+      // a URL manda — e os itens do servidor só valem se forem dela.
+      const next = readUrl();
+      setOwnUrls([]);
+      setUrlSync(next);
+      setTerms(next.state.terms);
+      setDraft("");
+      setSelectedCategories(next.state.categories);
+      setBestSeller(next.state.bestSeller);
+      setPage(next.state.page);
+      setTermLimitHit(false);
+      setLoadError(false);
+      setLoading(!next.matchesServer);
+      if (next.matchesServer) {
+        setItems(initialItems);
+        setTotal(initialTotal);
+      }
+    }
   }
-
-  useEffect(() => {
-    // Mesmo gatilho do bloco de adoção: invalida fetch em voo, cancela
-    // debounce pendente e realinha o "último sucesso" às props adotadas.
-    lastGoodRef.current = {
-      search: initialFilters.search,
-      category: initialFilters.category,
-      bestSeller: initialFilters.bestSeller,
-      page: initialPage,
-    };
-    requestIdRef.current += 1;
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, [initialFilters.search, initialFilters.category, initialFilters.bestSeller, initialPage]);
 
   useEffect(() => {
     // Lembra a listagem atual para o "Voltar aos produtos" do detalhe.
@@ -150,34 +245,31 @@ export function ProductsExplorer({
 
   const syncUrl = useCallback(
     (next: ExplorerFilters) => {
-      const qs = new URLSearchParams();
-      if (next.search) qs.set("search", next.search);
-      if (next.category) qs.set("category", next.category);
-      if (next.bestSeller) qs.set("bestSeller", "1");
-      if (next.page > 1) qs.set("page", String(next.page));
-      const queryString = qs.toString();
+      const queryString = toQuery(next).toString();
       const url = queryString ? `${pathname}?${queryString}` : pathname;
-      window.history.replaceState(null, "", url);
       rememberListingUrl(url);
+      // URL igual à atual: o roteador não devolve eco — nada a registrar.
+      if (queryString === window.location.search.slice(1)) return;
+      // Registrada ANTES do replaceState, para o eco que o roteador devolve em
+      // `useSearchParams` ser reconhecido como nosso (não como navegação).
+      setOwnUrls((current) => [...current.slice(-(MAX_OWN_URLS - 1)), queryString]);
+      window.history.replaceState(null, "", url);
     },
     [pathname]
   );
 
-  const fetchProducts = useCallback(
+  /**
+   * Busca os itens de `next`. Quem chama marca `loading`/`loadError` antes
+   * (aqui só há atualização de estado DEPOIS da resposta — dá para chamar de
+   * dentro de um efeito).
+   */
+  const loadProducts = useCallback(
     async (next: ExplorerFilters) => {
       const requestId = ++requestIdRef.current;
-      setLoading(true);
-      setLoadError(false);
-
-      const qs = new URLSearchParams();
-      if (next.search) qs.set("search", next.search);
-      if (next.category) qs.set("category", next.category);
-      if (next.bestSeller) qs.set("bestSeller", "1");
-      qs.set("page", String(next.page));
-      qs.set("perPage", String(perPage));
+      inFlightRef.current = true;
 
       try {
-        const response = await fetch(`/api/products?${qs.toString()}`);
+        const response = await fetch(`/api/products?${toQuery(next, perPage).toString()}`);
         if (!response.ok) throw new Error(`Unexpected status ${response.status}`);
         const data = (await response.json()) as { items: PublicProductItem[]; total: number; page: number };
 
@@ -197,46 +289,127 @@ export function ProductsExplorer({
         console.error("[ProductsExplorer] failed to fetch products", error);
         // Reverte estado e URL para o último conjunto que carregou de fato.
         const prev = lastGoodRef.current;
-        setSearch(prev.search);
-        setCategory(prev.category);
+        setTerms(prev.terms);
+        setDraft(prev.draft);
+        setSelectedCategories(prev.categories);
         setBestSeller(prev.bestSeller);
         setPage(prev.page);
         syncUrl(prev);
         setLoadError(true);
       } finally {
-        if (requestId === requestIdRef.current) setLoading(false);
+        if (requestId === requestIdRef.current) {
+          inFlightRef.current = false;
+          setLoading(false);
+        }
       }
     },
     [perPage, syncUrl]
   );
 
+  useEffect(() => {
+    // Conclui a adoção da URL (montagem ou navegação externa): invalida fetch
+    // em voo e debounce pendente e, se os itens do servidor não são dessa
+    // URL, busca os certos.
+    requestIdRef.current += 1;
+    inFlightRef.current = false;
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    if (urlSync.matchesServer) {
+      lastGoodRef.current = urlSync.state;
+      return;
+    }
+    // A busca sai do corpo do efeito (tarefa seguinte): a limpeza a cancela se
+    // outra adoção chegar antes — e no StrictMode sai uma requisição só.
+    const timer = setTimeout(() => void loadProducts(urlSync.state), 0);
+    return () => clearTimeout(timer);
+  }, [urlSync, loadProducts]);
+
+  const current = (): ExplorerFilters => ({
+    terms,
+    draft,
+    categories: selectedCategories,
+    bestSeller,
+    page,
+  });
+
   function apply(next: ExplorerFilters) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    setSearch(next.search);
-    setCategory(next.category);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    setTerms(next.terms);
+    setDraft(next.draft);
+    setSelectedCategories(next.categories);
     setBestSeller(next.bestSeller);
     setPage(next.page);
+    setLoading(true);
+    setLoadError(false);
     syncUrl(next);
-    fetchProducts(next);
+    void loadProducts(next);
   }
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
+  /** Nada pendente nem em voo: o que está na tela é exatamente `lastGoodRef`. */
+  const settled = () => !debounceRef.current && !inFlightRef.current;
+
+  const handleDraftChange = (value: string) => {
+    setDraft(value);
+    setTermLimitHit(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    const next: ExplorerFilters = { ...current(), draft: value, page: 1 };
     debounceRef.current = setTimeout(() => {
-      const next = { search: value.trim(), category, bestSeller, page: 1 };
+      debounceRef.current = null;
+      // Só espaço a mais, ou o mesmo texto de um chip: a consulta não muda.
+      const last = lastGoodRef.current;
+      if (!inFlightRef.current && sameQuery({ ...next, page: last.page }, last)) return;
       setPage(1);
+      setLoading(true);
+      setLoadError(false);
       syncUrl(next);
-      fetchProducts(next);
+      void loadProducts(next);
     }, DEBOUNCE_MS);
   };
 
-  const handleCategoryChange = (value: string) => apply({ search, category: value, bestSeller, page: 1 });
-  const handleBestSellerChange = (value: boolean) => apply({ search, category, bestSeller: value, page: 1 });
-  const handleClear = () => apply({ search: "", category: "", bestSeller: false, page: 1 });
+  /** Enter (ou "+"): o texto do campo vira um chip e o campo fica livre para o próximo termo. */
+  const handleCommitDraft = () => {
+    const result = commitSearchTerm(terms, draft);
+    if (result.status === "empty") return;
+    if (result.status === "limit") {
+      setTermLimitHit(true);
+      return;
+    }
+    setTermLimitHit(false);
+    const next: ExplorerFilters = { ...current(), terms: result.terms, draft: "" };
+    // O texto já filtrava ao vivo: se a consulta é a que está na tela, o termo
+    // só muda de lugar — sem nova requisição e sem voltar à página 1.
+    if (settled() && sameQuery(next, lastGoodRef.current)) {
+      setTerms(next.terms);
+      setDraft("");
+      lastGoodRef.current = next;
+      return;
+    }
+    apply({ ...next, page: 1 });
+  };
+
+  const handleRemoveTerm = (term: string) => {
+    setTermLimitHit(false);
+    apply({ ...current(), terms: terms.filter((item) => item !== term), page: 1 });
+  };
+
+  const handleToggleCategory = (slug: string) =>
+    apply({ ...current(), categories: toggleCategory(selectedCategories, slug, categoryOrder), page: 1 });
+  const handleClearCategories = () => {
+    if (selectedCategories.length > 0) apply({ ...current(), categories: [], page: 1 });
+  };
+  const handleBestSellerChange = (value: boolean) => apply({ ...current(), bestSeller: value, page: 1 });
+  const handleClear = () => {
+    setTermLimitHit(false);
+    apply({ terms: [], draft: "", categories: [], bestSeller: false, page: 1 });
+  };
 
   const handlePageChange = (nextPage: number) => {
-    apply({ search, category, bestSeller, page: nextPage });
+    apply({ ...current(), page: nextPage });
     // Volta ao topo dos RESULTADOS (não da página): o header é fixo, então o
     // alvo compensa a altura dele via `scroll-margin` do contêiner.
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -246,8 +419,12 @@ export function ProductsExplorer({
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const from = total === 0 ? 0 : (page - 1) * perPage + 1;
   const to = Math.min(page * perPage, total);
-  const selectedCategory = categories.find((item) => item.slug === category);
-  const activeFilterCount = (category ? 1 : 0) + (bestSeller ? 1 : 0);
+  const activeTerms = effectiveSearchTerms(terms, draft);
+  const selectedCategoryItems = categories.filter((item) => selectedCategories.includes(item.slug));
+  // Badge do botão "Filtros" (mobile): só o que mora DENTRO da gaveta.
+  const drawerFilterCount = selectedCategories.length + (bestSeller ? 1 : 0);
+  const chipCount = terms.length + selectedCategoryItems.length + (bestSeller ? 1 : 0);
+  const hasAnyFilter = activeTerms.length > 0 || selectedCategories.length > 0 || bestSeller;
 
   const filtersProps = {
     locale,
@@ -256,14 +433,16 @@ export function ProductsExplorer({
     categoryCounts,
     allCount,
     bestSellerCount,
-    search,
-    category,
+    draft,
+    terms,
+    termLimitHit,
+    selectedCategories,
     bestSeller,
-    onSearchChange: handleSearchChange,
-    onCategoryChange: (value: string) => {
-      handleCategoryChange(value);
-      setDrawerOpen(false);
-    },
+    onDraftChange: handleDraftChange,
+    onCommitDraft: handleCommitDraft,
+    onRemoveTerm: handleRemoveTerm,
+    onToggleCategory: handleToggleCategory,
+    onClearCategories: handleClearCategories,
     onBestSellerChange: handleBestSellerChange,
     onClear: handleClear,
   };
@@ -271,9 +450,10 @@ export function ProductsExplorer({
   return (
     <div className="relative mx-auto max-w-7xl px-5 pb-20 sm:px-6">
       <div className="lg:grid lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-10">
-        {/* Barra lateral (desktop). */}
+        {/* Barra lateral (desktop). Rola por dentro quando é mais alta que a
+            tela — senão, fixa (sticky), o fim dela ficaria inalcançável. */}
         <aside aria-label={content.filtersTitle} className="hidden lg:block">
-          <div className="sticky top-28 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+          <div className="sticky top-28 max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-white/[0.02] p-5 [scrollbar-width:thin]">
             <h2 className="mb-5 font-display text-h2 text-white">{content.filtersTitle}</h2>
             <ProductsFilters {...filtersProps} />
           </div>
@@ -281,21 +461,18 @@ export function ProductsExplorer({
 
         <div ref={resultsRef} className="scroll-mt-28">
           {/* Barra do mobile: busca sempre à vista + botão da gaveta de filtros. */}
-          <div className="flex items-center gap-3 lg:hidden">
-            <label className="relative flex-1">
-              <span className="sr-only">{content.searchLabel}</span>
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/40" aria-hidden />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => handleSearchChange(event.target.value)}
-                placeholder={content.searchPlaceholder}
-                autoComplete="off"
-                enterKeyHint="search"
-                maxLength={80}
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-meta text-white outline-none transition placeholder:text-white/35 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20"
-              />
-            </label>
+          <div className="flex items-start gap-3 lg:hidden">
+            <SearchTermsField
+              variant="bar"
+              className="min-w-0 flex-1"
+              content={content}
+              value={draft}
+              terms={terms}
+              limitHit={termLimitHit}
+              onChange={handleDraftChange}
+              onCommit={handleCommitDraft}
+              onRemoveTerm={handleRemoveTerm}
+            />
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
@@ -304,16 +481,16 @@ export function ProductsExplorer({
             >
               <SlidersHorizontal className="size-4" aria-hidden />
               {content.openFilters}
-              {activeFilterCount > 0 ? (
+              {drawerFilterCount > 0 ? (
                 <span className="flex size-5 items-center justify-center rounded-full bg-neon-cyan-bright text-micro font-bold text-background">
-                  {activeFilterCount}
+                  {drawerFilterCount}
                 </span>
               ) : null}
             </button>
           </div>
 
-          {/* Faixa de resultado + chips dos filtros ativos. */}
-          <div className="mt-5 flex flex-col gap-3 lg:mt-0 sm:flex-row sm:items-center sm:justify-between">
+          {/* Faixa de resultado + chips de TODOS os filtros ativos. */}
+          <div className="mt-5 flex flex-col gap-3 lg:mt-0">
             <p className="flex items-center gap-2 text-meta text-white/60" aria-live="polite">
               {loading ? <Loader2 className="size-4 animate-spin text-neon-cyan-bright" aria-hidden /> : null}
               {total > 0
@@ -321,32 +498,46 @@ export function ProductsExplorer({
                 : interpolate(content.resultsCount, { count: total })}
             </p>
 
-            {search || selectedCategory || bestSeller ? (
+            {chipCount > 0 ? (
               <ul className="flex flex-wrap items-center gap-2" aria-label={content.activeFilters}>
-                {search ? (
+                {terms.map((term) => (
                   <FilterChip
-                    label={interpolate(content.searchChip, { term: search })}
-                    removeLabel={interpolate(content.removeFilter, { label: search })}
-                    onRemove={() => apply({ search: "", category, bestSeller, page: 1 })}
+                    key={`search:${term}`}
+                    label={interpolate(content.searchChip, { term })}
+                    removeLabel={interpolate(content.removeFilter, { label: term })}
+                    onRemove={() => handleRemoveTerm(term)}
                   />
-                ) : null}
-                {selectedCategory ? (
-                  <FilterChip
-                    label={categoryDisplayName(selectedCategory, locale)}
-                    removeLabel={interpolate(content.removeFilter, {
-                      label: categoryDisplayName(selectedCategory, locale),
-                    })}
-                    onRemove={() => apply({ search, category: "", bestSeller, page: 1 })}
-                  />
-                ) : null}
+                ))}
+                {selectedCategoryItems.map((item) => {
+                  const name = categoryDisplayName(item, locale);
+                  return (
+                    <FilterChip
+                      key={`category:${item.slug}`}
+                      label={name}
+                      removeLabel={interpolate(content.removeFilter, { label: name })}
+                      onRemove={() => handleToggleCategory(item.slug)}
+                    />
+                  );
+                })}
                 {bestSeller ? (
                   <FilterChip
                     tone="amber"
                     icon={<Trophy className="size-3.5" aria-hidden />}
                     label={content.bestSellerFilter}
                     removeLabel={interpolate(content.removeFilter, { label: content.bestSellerFilter })}
-                    onRemove={() => apply({ search, category, bestSeller: false, page: 1 })}
+                    onRemove={() => handleBestSellerChange(false)}
                   />
+                ) : null}
+                {chipCount > 1 ? (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={handleClear}
+                      className="rounded-full px-2.5 py-1 text-micro font-semibold text-white/60 underline-offset-4 transition hover:text-white hover:underline"
+                    >
+                      {content.clearFilters}
+                    </button>
+                  </li>
                 ) : null}
               </ul>
             ) : null}
@@ -363,8 +554,10 @@ export function ProductsExplorer({
 
           {items.length === 0 && !loading ? (
             <div className="mt-10 flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-14 text-center">
-              <p className="text-body text-white/70">{content.emptyState}</p>
-              {search || category || bestSeller ? (
+              <p className="text-body text-white/70">
+                {activeTerms.length > 1 ? content.emptyStateAllTerms : content.emptyState}
+              </p>
+              {hasAnyFilter ? (
                 <button type="button" onClick={handleClear} className="btn-neon">
                   {content.clearFilters}
                 </button>
@@ -453,45 +646,6 @@ export function ProductsExplorer({
         ) : null}
       </AnimatePresence>
     </div>
-  );
-}
-
-function FilterChip({
-  label,
-  removeLabel,
-  onRemove,
-  icon,
-  tone = "cyan",
-}: {
-  label: string;
-  removeLabel: string;
-  onRemove: () => void;
-  icon?: ReactNode;
-  tone?: "cyan" | "amber";
-}) {
-  return (
-    <li>
-      <span
-        className={cn(
-          "inline-flex max-w-[16rem] items-center gap-1.5 rounded-full border py-1 pl-3 pr-1 text-micro font-semibold",
-          tone === "amber"
-            ? "border-neon-amber/50 bg-neon-amber/10 text-neon-amber-bright"
-            : "border-neon-cyan/40 bg-neon-cyan/10 text-neon-cyan-bright"
-        )}
-      >
-        {icon}
-        <span className="truncate">{label}</span>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={removeLabel}
-          title={removeLabel}
-          className="flex size-6 items-center justify-center rounded-full transition hover:bg-white/10"
-        >
-          <X className="size-3.5" aria-hidden />
-        </button>
-      </span>
-    </li>
   );
 }
 

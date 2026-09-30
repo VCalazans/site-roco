@@ -62,4 +62,12 @@ describe("matchAllTerms", () => {
     const likeCount = query.sql.match(/ like \$/g)?.length ?? 0;
     expect(likeCount).toBe(MAX_SEARCH_TERMS);
   });
+
+  it("aceita um teto próprio (termos-chip combinados da listagem pública)", () => {
+    const words = Array.from({ length: 15 }, (_, index) => `p${index}`).join(" ");
+    const condition = matchAllTerms(words, [products.sku], 12)!;
+    const likeCount = dialect.sqlToQuery(condition).sql.match(/ like \$/g)?.length ?? 0;
+    expect(likeCount).toBe(12);
+    expect(splitSearchTerms(words, 12)).toHaveLength(12);
+  });
 });

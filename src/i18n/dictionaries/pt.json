@@ -185,10 +185,10 @@
       }
     },
     "portalCta": {
-      "headline": "Força de Vendas ROCO",
+      "headline": "Portal ROCO",
       "description": "Faça seu pré-cadastro como representante comercial da ROCO. Aproveite as oportunidades de negócio em toda a sua região de atuação.",
       "cta": {
-        "label": "Portal ROCO",
+        "label": "Faça seu pré-cadastro",
         "href": "/representantes"
       }
     }
@@ -313,7 +313,7 @@
         "title": "Empresa",
         "links": [
           {
-            "label": "Portal ROCO — Força de Vendas",
+            "label": "Portal ROCO",
             "href": "/representantes"
           }
         ]
@@ -412,8 +412,14 @@
       "headline": "Produtos",
       "description": "Explore nossa linha completa de soluções hidrossanitárias e hidráulicas.",
       "searchPlaceholder": "Buscar por nome ou código…",
+      "searchHint": "Pressione Enter para fixar o termo e refinar a busca com outro.",
+      "addSearchTerm": "Adicionar “{term}” aos filtros",
+      "searchLimit": "Limite de {max} termos. Remova um para adicionar outro.",
+      "searchTermsLabel": "Termos da busca",
+      "termChip": "“{term}”",
       "categoryAllLabel": "Todas as categorias",
       "emptyState": "Nenhum produto encontrado. Ajuste os filtros e tente novamente.",
+      "emptyStateAllTerms": "Nenhum produto reúne todos os termos da busca. Remova um deles para ampliar o resultado.",
       "loadError": "Não foi possível carregar os produtos. Verifique sua conexão e tente novamente.",
       "resultsCount": "{count} produtos encontrados",
       "loadMore": "Carregar mais",
@@ -427,6 +433,7 @@
       "filtersTitle": "Filtrar produtos",
       "searchLabel": "Buscar no catálogo",
       "categoriesLabel": "Categorias",
+      "categoriesHint": "Marque uma ou mais.",
       "allProducts": "Todos os produtos",
       "bestSellerFilter": "Somente campeões de vendas",
       "clearFilters": "Limpar filtros",
@@ -565,7 +572,7 @@
         },
         "portalCta": {
           "name": "Chamada do Portal ROCO",
-          "description": "Convite para representantes se cadastrarem na força de vendas."
+          "description": "Convite para representantes se cadastrarem no Portal ROCO."
         }
       },
       "editor": {
@@ -873,7 +880,7 @@
       }
     },
     "shell": {
-      "appName": "ROCO Portal",
+      "appName": "Portal ROCO",
       "brandCaption": "Portal",
       "nav": {
         "dashboard": "Painel",
@@ -1769,7 +1776,7 @@
         },
         "social": {
           "title": "Redes sociais",
-          "description": "Cole o endereço completo de cada perfil. Redes deixadas em branco não aparecem no site."
+          "description": "Cole o link do perfil ou digite só o @ — o link certo é montado sozinho. Redes em branco não aparecem no site."
         },
         "catalog": {
           "title": "Catálogo em PDF",
@@ -1795,24 +1802,36 @@
         },
         "instagram": {
           "label": "Instagram",
-          "hint": "Ex.: https://www.instagram.com/suaempresa"
+          "hint": "Digite o @ do perfil (ex.: @rocoindustria) ou cole o link.",
+          "placeholder": "@perfil ou link do Instagram"
         },
         "linkedin": {
           "label": "LinkedIn",
-          "hint": "Ex.: https://www.linkedin.com/company/suaempresa"
+          "hint": "Digite o nome da página como aparece no link (ex.: roco-industria) ou cole o link.",
+          "placeholder": "Nome da página ou link do LinkedIn"
         },
         "youtube": {
           "label": "YouTube",
-          "hint": "Ex.: https://www.youtube.com/@suaempresa"
+          "hint": "Digite o @ do canal (ex.: @rocoindustria) ou cole o link.",
+          "placeholder": "@canal ou link do YouTube"
         },
         "whatsapp": {
-          "label": "WhatsApp (link)",
-          "hint": "Ex.: https://wa.me/554733352012"
+          "label": "WhatsApp",
+          "hint": "Digite o número com DDD (ex.: (47) 3335-2012) — o link de conversa é montado sozinho.",
+          "placeholder": "(47) 99999-9999"
         },
         "catalogPdf": {
           "label": "Link do catálogo (PDF)",
           "hint": "Endereço completo (https://…) ou caminho iniciado por /"
         }
+      },
+      "social": {
+        "linkPreview": "Link no site: {url}",
+        "test": "Testar o link de {network}",
+        "clear": "Apagar {network}",
+        "useContactPhone": "Usar o telefone do bloco Contato",
+        "footerPreview": "Como aparece no rodapé do site",
+        "footerPreviewEmpty": "Nenhuma rede preenchida — o rodapé fica sem ícones de redes sociais."
       },
       "form": {
         "save": "Salvar",
@@ -1824,8 +1843,12 @@
           "required": "Este campo é obrigatório.",
           "saveFailed": "Erro ao salvar. Tente novamente.",
           "invalidUrl": "Informe um endereço completo, começando com http:// ou https://.",
+          "wrongNetwork": "Este link não é do {network}. Confira se colou no campo certo.",
+          "invalidHandle": "Não reconheci esse perfil. Digite o @ (ex.: @rocoindustria) ou cole o link completo.",
           "invalidEmail": "Informe um e-mail válido.",
           "invalidPhone": "Informe um telefone válido, com código do país e DDD.",
+          "invalidWhatsapp": "Informe o número com DDD (ex.: (47) 3335-2012) ou um link wa.me.",
+          "tooLong": "Endereço longo demais.",
           "invalidPath": "Informe um endereço completo (https://…) ou um caminho iniciado por /.",
           "storedInvalid": "O valor salvo das redes sociais estava em formato inválido e foi ignorado. Salvar irá substituí-lo."
         }

@@ -565,6 +565,8 @@ export type PortalRolesDictionary = {
 };
 
 type SettingsFieldCopy = { label: string; hint: string };
+/** Campo de rede social: o `placeholder` mostra o que dá para digitar (@, nome, número). */
+type SocialFieldCopy = SettingsFieldCopy & { placeholder: string };
 type SettingsBlockCopy = { title: string; description: string };
 
 export type PortalSettingsDictionary = {
@@ -581,11 +583,20 @@ export type PortalSettingsDictionary = {
     email: SettingsFieldCopy;
     addressMatriz: SettingsFieldCopy;
     addressFilial: SettingsFieldCopy;
-    instagram: SettingsFieldCopy;
-    linkedin: SettingsFieldCopy;
-    youtube: SettingsFieldCopy;
-    whatsapp: SettingsFieldCopy;
+    instagram: SocialFieldCopy;
+    linkedin: SocialFieldCopy;
+    youtube: SocialFieldCopy;
+    whatsapp: SocialFieldCopy;
     catalogPdf: SettingsFieldCopy;
+  };
+  /** Bloco de redes sociais: prévia do link, teste, prévia do rodapé. Placeholders `{url}`/`{network}`. */
+  social: {
+    linkPreview: string;
+    test: string;
+    clear: string;
+    useContactPhone: string;
+    footerPreview: string;
+    footerPreviewEmpty: string;
   };
   form: {
     save: string;
@@ -597,8 +608,13 @@ export type PortalSettingsDictionary = {
       required: string;
       saveFailed: string;
       invalidUrl: string;
+      /** Placeholder `{network}`. */
+      wrongNetwork: string;
+      invalidHandle: string;
       invalidEmail: string;
       invalidPhone: string;
+      invalidWhatsapp: string;
+      tooLong: string;
       invalidPath: string;
       storedInvalid: string;
     };

@@ -185,10 +185,10 @@
       }
     },
     "portalCta": {
-      "headline": "ROCO Sales Network",
+      "headline": "ROCO Portal",
       "description": "Pre-register as a commercial representative for ROCO. Seize business opportunities throughout your sales region.",
       "cta": {
-        "label": "ROCO Portal",
+        "label": "Pre-register now",
         "href": "/representantes"
       }
     }
@@ -313,7 +313,7 @@
         "title": "Company",
         "links": [
           {
-            "label": "ROCO Portal — Sales Network",
+            "label": "ROCO Portal",
             "href": "/representantes"
           }
         ]
@@ -412,8 +412,14 @@
       "headline": "Products",
       "description": "Explore our complete line of plumbing and hydraulic solutions.",
       "searchPlaceholder": "Search by name or code…",
+      "searchHint": "Press Enter to pin the term and refine the search with another.",
+      "addSearchTerm": "Add “{term}” to the filters",
+      "searchLimit": "Up to {max} terms. Remove one to add another.",
+      "searchTermsLabel": "Search terms",
+      "termChip": "“{term}”",
       "categoryAllLabel": "All categories",
       "emptyState": "No products found. Adjust your filters and try again.",
+      "emptyStateAllTerms": "No product matches all the search terms. Remove one to broaden the results.",
       "loadError": "Could not load products. Check your connection and try again.",
       "resultsCount": "{count} products found",
       "loadMore": "Load more",
@@ -427,6 +433,7 @@
       "filtersTitle": "Filter products",
       "searchLabel": "Search the catalog",
       "categoriesLabel": "Categories",
+      "categoriesHint": "Select one or more.",
       "allProducts": "All products",
       "bestSellerFilter": "Best sellers only",
       "clearFilters": "Clear filters",
@@ -565,7 +572,7 @@
         },
         "portalCta": {
           "name": "ROCO Portal call to action",
-          "description": "Invitation for representatives to join the sales network."
+          "description": "Invitation for sales reps to join the ROCO Portal."
         }
       },
       "editor": {
@@ -1769,7 +1776,7 @@
         },
         "social": {
           "title": "Social networks",
-          "description": "Paste the full address of each profile. Networks left blank do not appear on the site."
+          "description": "Paste the profile link or just type the @ — the right link is built for you. Networks left blank do not appear on the site."
         },
         "catalog": {
           "title": "Catalog PDF",
@@ -1795,24 +1802,36 @@
         },
         "instagram": {
           "label": "Instagram",
-          "hint": "E.g.: https://www.instagram.com/yourcompany"
+          "hint": "Type the profile @ (e.g. @rocoindustria) or paste the link.",
+          "placeholder": "@profile or Instagram link"
         },
         "linkedin": {
           "label": "LinkedIn",
-          "hint": "E.g.: https://www.linkedin.com/company/yourcompany"
+          "hint": "Type the page name as it appears in the link (e.g. roco-industria) or paste the link.",
+          "placeholder": "Page name or LinkedIn link"
         },
         "youtube": {
           "label": "YouTube",
-          "hint": "E.g.: https://www.youtube.com/@yourcompany"
+          "hint": "Type the channel @ (e.g. @rocoindustria) or paste the link.",
+          "placeholder": "@channel or YouTube link"
         },
         "whatsapp": {
-          "label": "WhatsApp (link)",
-          "hint": "E.g.: https://wa.me/554733352012"
+          "label": "WhatsApp",
+          "hint": "Type the number with area code (e.g. (47) 3335-2012) — the chat link is built for you.",
+          "placeholder": "(47) 99999-9999"
         },
         "catalogPdf": {
           "label": "Catalog link (PDF)",
           "hint": "Full address (https://…) or a path starting with /"
         }
+      },
+      "social": {
+        "linkPreview": "Link on the site: {url}",
+        "test": "Test the {network} link",
+        "clear": "Clear {network}",
+        "useContactPhone": "Use the phone from the Contact block",
+        "footerPreview": "How it looks in the site footer",
+        "footerPreviewEmpty": "No network filled in — the footer shows no social icons."
       },
       "form": {
         "save": "Save",
@@ -1824,8 +1843,12 @@
           "required": "This field is required.",
           "saveFailed": "Failed to save. Please try again.",
           "invalidUrl": "Enter a full address starting with http:// or https://.",
+          "wrongNetwork": "This link is not a {network} link. Check that you pasted it in the right field.",
+          "invalidHandle": "We could not recognize this profile. Type the @ (e.g. @rocoindustria) or paste the full link.",
           "invalidEmail": "Enter a valid e-mail.",
           "invalidPhone": "Enter a valid phone number, with country code and area code.",
+          "invalidWhatsapp": "Enter the number with area code (e.g. (47) 3335-2012) or a wa.me link.",
+          "tooLong": "Address is too long.",
           "invalidPath": "Enter a full address (https://…) or a path starting with /.",
           "storedInvalid": "The saved social links value was in an invalid format and was ignored. Saving will replace it."
         }

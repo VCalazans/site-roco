@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { and, asc, desc, eq, exists, gt, inArray, lt, sql } from "drizzle-orm";
 import { getPublicUrl } from "@/core/storage/r2";
+import { normalizeCategorySlugs, normalizeSearchTerms } from "@/modules/products/lib/listing-filters";
 import { matchAllTerms } from "@/server/lib/sql-like";
 import { sortPackagings } from "@/shared/lib/packaging";
 import { db } from "@/db";
@@ -16,13 +17,20 @@ import {
 
 const DEFAULT_PER_PAGE = 20;
 const MAX_PER_PAGE = 100;
-/** Teto do termo de busca — limita o custo do ILIKE com input do usuário. */
-const MAX_SEARCH_LENGTH = 80;
-
+/**
+ * Teto de PALAVRAS da busca combinada (todos os termos-chip juntos) — cada
+ * palavra é um LIKE em três colunas. O explorador aceita até 5 chips + o texto
+ * do campo; 12 palavras cobrem o uso real com folga.
+ */
+const MAX_SEARCH_WORDS = 12;
+/** Produtos relacionados no detalhe (o próprio produto é pedido junto e descartado). */
+export const RELATED_PRODUCTS_LIMIT = 8;
 
 export interface PublicProductListParams {
-  category?: string;
-  search?: string;
+  /** Slugs de categoria — produto de QUALQUER uma delas (OU). */
+  categories?: readonly string[];
+  /** Termos de busca — TODOS precisam casar (E), cada um em qualquer campo. */
+  searchTerms?: readonly string[];
   /** Só campeões de vendas (filtro da barra lateral, spec 001 RF25). */
   bestSeller?: boolean;
   page?: number;
@@ -160,8 +168,8 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
  */
 async function queryPublicProductList(params: PublicProductListParams) {
   const { page, perPage } = normalizePagination(params.page, params.perPage);
-  const search = params.search?.trim();
-  const categorySlug = params.category?.trim();
+  const searchTerms = params.searchTerms ?? [];
+  const categorySlugs = params.categories ?? [];
 
   const conditions = [eq(products.published, true), eq(products.active, true)];
 
@@ -169,22 +177,28 @@ async function queryPublicProductList(params: PublicProductListParams) {
     conditions.push(eq(products.bestSeller, true));
   }
 
-  if (search) {
-    // Todas as palavras, em qualquer ordem, sem ligar para acento/caixa
-    // ("flexivel gas" acha "FLEXÍVEL PARA GÁS"). `nameEn` incluído: no locale
-    // EN o card exibe nameEn — o usuário precisa achar o nome que vê na tela.
-    const match = matchAllTerms(search, [products.sku, products.namePt, products.nameEn]);
+  if (searchTerms.length > 0) {
+    // Todas as palavras de todos os termos, em qualquer ordem, sem ligar para
+    // acento/caixa ("flexivel gas" acha "FLEXÍVEL PARA GÁS"): termos-chip se
+    // combinam em E, então basta juntá-los. `nameEn` incluído: no locale EN o
+    // card exibe nameEn — o usuário precisa achar o nome que vê na tela.
+    const match = matchAllTerms(
+      searchTerms.join(" "),
+      [products.sku, products.namePt, products.nameEn],
+      MAX_SEARCH_WORDS
+    );
     if (match) conditions.push(match);
   }
 
-  if (categorySlug) {
+  if (categorySlugs.length > 0) {
+    // Produto de QUALQUER uma das categorias marcadas (OU).
     conditions.push(
       exists(
         db
           .select({ one: sql`1` })
           .from(productCategories)
           .innerJoin(categories, eq(categories.id, productCategories.categoryId))
-          .where(and(eq(productCategories.productId, products.id), eq(categories.slug, categorySlug)))
+          .where(and(eq(productCategories.productId, products.id), inArray(categories.slug, [...categorySlugs])))
       )
     );
   }
@@ -226,45 +240,60 @@ const getCachedProductList = unstable_cache(queryPublicProductList, ["public-pro
 
 /** Última página que entra na CHAVE do cache: 200 × 20 = 4.000 produtos (o catálogo tem ~740). */
 const MAX_CACHED_PAGE = 200;
-/** Tamanhos de página que a própria UI pede (listagem e contagens) — só eles são cacheados. */
-const CACHEABLE_PER_PAGE: ReadonlySet<number> = new Set([DEFAULT_PER_PAGE, 1]);
+/**
+ * Tamanhos de página que a própria UI pede — listagem, contagens e os
+ * relacionados do detalhe (8 + o próprio produto) — e só eles são cacheados.
+ */
+const CACHEABLE_PER_PAGE: ReadonlySet<number> = new Set([DEFAULT_PER_PAGE, 1, RELATED_PRODUCTS_LIMIT + 1]);
 
 /**
- * Catálogo público (`GET /api/products` + SSR de `/produtos`).
+ * Catálogo público (`GET /api/products` + SSR de `/produtos` + relacionados
+ * do detalhe). Categorias em OU, termos de busca em E, grupos entre si em E
+ * (ver `@/modules/products/lib/listing-filters`).
  *
  * A chave do `unstable_cache` (tag `"products"`, invalidada pelas mutações do
  * tRPC e pelo sync do ERP) vem da querystring, então o ESPAÇO de chaves é
  * fechado aqui — senão cada valor inventado grava uma entrada nova no data
  * cache em disco, crescimento que quem faz a requisição controla (revisões de
  * segurança de 2026-08-12 e 2026-09-30):
- * - categoria: só slug que EXISTE (lista cacheada); desconhecida devolve lista
- *   vazia sem tocar cache nem banco (e `%00` deixa de virar 500);
+ * - categorias: só slug que EXISTE (lista cacheada), na ordem do catálogo.
+ *   As desconhecidas são descartadas; se TODAS forem desconhecidas, a lista
+ *   volta vazia sem tocar cache nem banco (e `%00` não vira 500). Só UMA
+ *   categoria entra no cache — combinações de várias rodam direto;
  * - página e tamanho: fora de `MAX_CACHED_PAGE`/`CACHEABLE_PER_PAGE` a consulta
  *   roda direto, sem cache — funciona, só não ocupa disco;
- * - busca livre: nunca cacheada (e truncada em MAX_SEARCH_LENGTH).
+ * - busca livre: nunca cacheada (e cada termo truncado em MAX_SEARCH_LENGTH).
  */
 export async function getPublicProductList(params: PublicProductListParams) {
-  const search = params.search?.trim().slice(0, MAX_SEARCH_LENGTH) || undefined;
-  const category = params.category?.trim() || undefined;
+  const searchTerms = normalizeSearchTerms(params.searchTerms ?? []);
+  const requestedCategories = normalizeCategorySlugs(params.categories ?? []);
   const { page, perPage } = normalizePagination(params.page, params.perPage);
 
-  if (category) {
-    const knownCategories = await getPublicCategoryList();
-    if (!knownCategories.some((item) => item.slug === category)) {
+  let categorySlugs: string[] = [];
+  if (requestedCategories.length > 0) {
+    const requested = new Set(requestedCategories);
+    categorySlugs = (await getPublicCategoryList())
+      .map((item) => item.slug)
+      .filter((slug) => requested.has(slug));
+    if (categorySlugs.length === 0) {
       return { items: [], total: 0, page: 1, perPage };
     }
   }
 
-  // Montado campo a campo: nada além do contrato entra na chave. E
-  // `bestSeller: false` vira `undefined` — o mesmo filtro, uma entrada só.
+  // Montado campo a campo: nada além do contrato entra na chave. Listas vazias
+  // e `bestSeller: false` viram `undefined` — o mesmo filtro, uma entrada só.
   const normalized: PublicProductListParams = {
-    category,
-    search,
+    categories: categorySlugs.length > 0 ? categorySlugs : undefined,
+    searchTerms: searchTerms.length > 0 ? searchTerms : undefined,
     bestSeller: params.bestSeller || undefined,
     page,
     perPage,
   };
-  const cacheable = !search && page <= MAX_CACHED_PAGE && CACHEABLE_PER_PAGE.has(perPage);
+  const cacheable =
+    searchTerms.length === 0 &&
+    categorySlugs.length <= 1 &&
+    page <= MAX_CACHED_PAGE &&
+    CACHEABLE_PER_PAGE.has(perPage);
   return cacheable ? getCachedProductList(normalized) : queryPublicProductList(normalized);
 }
 

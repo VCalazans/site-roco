@@ -5,6 +5,8 @@ import {
   isHttpUrl,
   isValidEmail,
   normalizePhone,
+  normalizeSocialLink,
+  normalizeWhatsappNumber,
   parseSocialLinks,
   serializeSocialLinks,
 } from "./site-settings-form";
@@ -123,5 +125,70 @@ describe("isCatalogLocation", () => {
     expect(isCatalogLocation("catalogo.pdf")).toBe(false);
     expect(isCatalogLocation("/com espaço.pdf")).toBe(false);
     expect(isCatalogLocation("")).toBe(false);
+  });
+});
+
+describe("normalizeSocialLink — aceita o que o operador souber digitar", () => {
+  const ok = (url: string) => ({ kind: "ok", url });
+  const err = (reason: string) => ({ kind: "error", reason });
+
+  it("vazio é vazio (a rede some do rodapé)", () => {
+    expect(normalizeSocialLink("instagram", "   ")).toEqual({ kind: "empty" });
+  });
+
+  it("Instagram: @perfil, perfil, link com ou sem https/www — sempre o link canônico", () => {
+    for (const input of ["@rocoindustria", "rocoindustria", "instagram.com/rocoindustria", "www.instagram.com/rocoindustria/", "https://www.instagram.com/rocoindustria/?hl=pt-br"]) {
+      expect(normalizeSocialLink("instagram", input)).toEqual(ok("https://www.instagram.com/rocoindustria"));
+    }
+    expect(normalizeSocialLink("instagram", "roco.oficial")).toEqual(ok("https://www.instagram.com/roco.oficial"));
+  });
+
+  it("YouTube: @canal vira youtube.com/@canal; links de canal são preservados", () => {
+    expect(normalizeSocialLink("youtube", "@rocoindustria")).toEqual(ok("https://www.youtube.com/@rocoindustria"));
+    expect(normalizeSocialLink("youtube", "youtube.com/@rocoindustria")).toEqual(ok("https://www.youtube.com/@rocoindustria"));
+    expect(normalizeSocialLink("youtube", "https://m.youtube.com/channel/UC123")).toEqual(ok("https://www.youtube.com/channel/UC123"));
+    expect(normalizeSocialLink("youtube", "https://youtu.be/abc")).toEqual(ok("https://youtu.be/abc"));
+  });
+
+  it("LinkedIn: nome da página, company/..., link com subdomínio de país", () => {
+    expect(normalizeSocialLink("linkedin", "roco-industria")).toEqual(ok("https://www.linkedin.com/company/roco-industria"));
+    expect(normalizeSocialLink("linkedin", "company/roco-industria/")).toEqual(ok("https://www.linkedin.com/company/roco-industria"));
+    expect(normalizeSocialLink("linkedin", "https://br.linkedin.com/company/roco-industria?trk=x")).toEqual(
+      ok("https://www.linkedin.com/company/roco-industria")
+    );
+  });
+
+  it("WhatsApp: número com máscara, com ou sem DDI, e links wa.me/api.whatsapp.com", () => {
+    for (const input of ["(47) 3335-2012", "47 3335 2012", "+55 47 3335-2012", "047 3335-2012", "wa.me/554733352012", "https://api.whatsapp.com/send?phone=554733352012&text=Oi"]) {
+      expect(normalizeSocialLink("whatsapp", input)).toEqual(ok("https://wa.me/554733352012"));
+    }
+    expect(normalizeSocialLink("whatsapp", "(47) 99999-8888")).toEqual(ok("https://wa.me/5547999998888"));
+    // link curto do WhatsApp Business fica como está
+    expect(normalizeSocialLink("whatsapp", "https://wa.me/message/ABC123")).toEqual(ok("https://wa.me/message/ABC123"));
+  });
+
+  it("link de OUTRA rede no campo errado é recusado", () => {
+    expect(normalizeSocialLink("instagram", "https://facebook.com/roco")).toEqual(err("wrongNetwork"));
+    expect(normalizeSocialLink("linkedin", "instagram.com/roco")).toEqual(err("wrongNetwork"));
+    expect(normalizeSocialLink("whatsapp", "https://t.me/roco")).toEqual(err("wrongNetwork"));
+  });
+
+  it("entradas inválidas dizem o motivo", () => {
+    expect(normalizeSocialLink("instagram", "instagram.com")).toEqual(err("invalid"));
+    expect(normalizeSocialLink("instagram", "meu perfil")).toEqual(err("invalid"));
+    expect(normalizeSocialLink("instagram", "javascript:alert(1)")).toEqual(err("invalid"));
+    expect(normalizeSocialLink("youtube", "@ab")).toEqual(err("invalid"));
+    expect(normalizeSocialLink("whatsapp", "123")).toEqual(err("invalidPhone"));
+    expect(normalizeSocialLink("whatsapp", "whatsapp")).toEqual(err("invalidPhone"));
+    expect(normalizeSocialLink("instagram", "https://instagram.com/" + "a".repeat(400))).toEqual(err("tooLong"));
+  });
+});
+
+describe("normalizeWhatsappNumber", () => {
+  it("DDD + número ganha o 55; com DDI fica como está; curto demais é recusado", () => {
+    expect(normalizeWhatsappNumber("4733352012")).toBe("554733352012");
+    expect(normalizeWhatsappNumber("47999998888")).toBe("5547999998888");
+    expect(normalizeWhatsappNumber("+1 (415) 555-2671 00")).toBe("141555526710" + "0");
+    expect(normalizeWhatsappNumber("12345")).toBeNull();
   });
 });

@@ -49,9 +49,13 @@ export function foldAccents(value: string): string {
 /** Teto de palavras por busca — limita o custo (cada palavra é um `LIKE`). */
 export const MAX_SEARCH_TERMS = 6;
 
-/** Palavras da busca: separadas por espaço, sem vazias, no máximo `MAX_SEARCH_TERMS`. */
-export function splitSearchTerms(search: string): string[] {
-  return stripControlChars(search).trim().split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TERMS);
+/**
+ * Palavras da busca: separadas por espaço, sem vazias, no máximo `maxTerms`
+ * (padrão `MAX_SEARCH_TERMS`; a listagem pública combina vários termos-chip e
+ * passa um teto maior).
+ */
+export function splitSearchTerms(search: string, maxTerms: number = MAX_SEARCH_TERMS): string[] {
+  return stripControlChars(search).trim().split(/\s+/).filter(Boolean).slice(0, maxTerms);
 }
 
 /**
@@ -63,8 +67,12 @@ export function splitSearchTerms(search: string): string[] {
  * A coluna é dobrada no SQL (`translate(lower(col), …)`) e o termo em JS
  * (`foldAccents`) — os dois lados passam pela mesma normalização.
  */
-export function matchAllTerms(search: string, columns: AnyColumn[]): SQL | undefined {
-  const terms = splitSearchTerms(search);
+export function matchAllTerms(
+  search: string,
+  columns: AnyColumn[],
+  maxTerms: number = MAX_SEARCH_TERMS
+): SQL | undefined {
+  const terms = splitSearchTerms(search, maxTerms);
   if (terms.length === 0 || columns.length === 0) return undefined;
 
   const perTerm = terms.map((term) => {

@@ -1,31 +1,59 @@
 "use client";
 
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import CloseIcon from "@mui/icons-material/Close";
+import InstagramIcon from "@mui/icons-material/Instagram";
+import LinkedInIcon from "@mui/icons-material/LinkedIn";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PhoneForwardedIcon from "@mui/icons-material/PhoneForwarded";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import YouTubeIcon from "@mui/icons-material/YouTube";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import type { PortalSettingsDictionary } from "@/modules/portal/lib/types";
 import {
   SOCIAL_NETWORKS,
-  SOCIAL_URL_MAX_LENGTH,
   isCatalogLocation,
-  isHttpUrl,
   isValidEmail,
   normalizePhone,
+  normalizeSocialLink,
   parseSocialLinks,
   serializeSocialLinks,
   type SocialLinksForm,
   type SocialNetwork,
 } from "@/modules/portal/lib/site-settings-form";
+import { interpolate } from "@/shared/lib/interpolate";
+
+/** Ícone e cor oficial de cada rede — o operador reconhece o campo pelo ícone. */
+const NETWORK_ICONS: Record<SocialNetwork, typeof InstagramIcon> = {
+  instagram: InstagramIcon,
+  linkedin: LinkedInIcon,
+  youtube: YouTubeIcon,
+  whatsapp: WhatsAppIcon,
+};
+const NETWORK_COLORS: Record<SocialNetwork, string> = {
+  instagram: "#E4405F",
+  linkedin: "#0A66C2",
+  youtube: "#FF0000",
+  whatsapp: "#25D366",
+};
+
+function isSocialField(field: FieldKey): field is SocialNetwork {
+  return (SOCIAL_NETWORKS as readonly string[]).includes(field);
+}
 
 type BlockKey = "contact" | "addresses" | "social" | "catalog";
 type FieldKey =
@@ -96,13 +124,25 @@ function blockOf(field: FieldKey): BlockKey {
 }
 
 /** Mensagem de erro do campo ("" = válido). */
-function validateField(
-  field: FieldKey,
-  value: string,
-  errors: PortalSettingsDictionary["form"]["errors"]
-): string {
+function validateField(field: FieldKey, value: string, labels: PortalSettingsDictionary): string {
+  const errors = labels.form.errors;
   const text = value.trim();
   if (text === "") return REQUIRED_FIELDS.has(field) ? errors.required : "";
+
+  if (isSocialField(field)) {
+    const result = normalizeSocialLink(field, text);
+    if (result.kind !== "error") return "";
+    switch (result.reason) {
+      case "wrongNetwork":
+        return interpolate(errors.wrongNetwork, { network: labels.fields[field].label });
+      case "invalidPhone":
+        return errors.invalidWhatsapp;
+      case "tooLong":
+        return errors.tooLong;
+      default:
+        return errors.invalidHandle;
+    }
+  }
 
   switch (field) {
     case "phone":
@@ -111,11 +151,6 @@ function validateField(
       return isValidEmail(text) ? "" : errors.invalidEmail;
     case "catalogPdf":
       return isCatalogLocation(text) ? "" : errors.invalidPath;
-    case "instagram":
-    case "linkedin":
-    case "youtube":
-    case "whatsapp":
-      return isHttpUrl(text) && text.length <= SOCIAL_URL_MAX_LENGTH ? "" : errors.invalidUrl;
     default:
       return "";
   }
@@ -126,10 +161,6 @@ const FIELD_INPUT: Partial<
 > = {
   phone: { type: "tel", inputMode: "tel" },
   email: { type: "email", inputMode: "email" },
-  instagram: { type: "url", inputMode: "url" },
-  linkedin: { type: "url", inputMode: "url" },
-  youtube: { type: "url", inputMode: "url" },
-  whatsapp: { type: "url", inputMode: "url" },
   catalogPdf: { type: "url", inputMode: "url" },
 };
 
@@ -237,8 +268,10 @@ type SettingsPageClientProps = {
  * Configurações do site (contato, endereços, redes sociais, catálogo em PDF),
  * agrupadas em blocos com salvamento INDEPENDENTE: cada bloco tem o próprio
  * botão, validação e resultado. As redes sociais deixaram de ser um JSON cru:
- * são quatro campos de URL validados, serializados no mesmo `social.links`
- * (JSON string) que o rodapé já lê.
+ * são quatro campos que aceitam o que o operador souber digitar (link, @perfil,
+ * nome da página, número de WhatsApp) — `normalizeSocialLink` monta o link
+ * canônico, que é o que vai gravado no mesmo `social.links` (JSON string) que
+ * o rodapé lê. Cada campo mostra o link final e um botão para testá-lo.
  */
 export function SettingsPageClient({ labels }: SettingsPageClientProps) {
   const trpc = useTRPC();
@@ -255,8 +288,12 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
   const server = useMemo(() => readServerState(listQuery.data ?? []), [listQuery.data]);
 
   const valueOf = (field: FieldKey): string => drafts[field] ?? server.values[field];
-  const errorOf = (field: FieldKey): string =>
-    validateField(field, valueOf(field), labels.form.errors);
+  const errorOf = (field: FieldKey): string => validateField(field, valueOf(field), labels);
+  /** Link final de uma rede (o que vai para o rodapé), ou `null` se vazio/inválido. */
+  const socialUrlOf = (network: SocialNetwork): string | null => {
+    const result = normalizeSocialLink(network, valueOf(network));
+    return result.kind === "ok" ? result.url : null;
+  };
   const isDirty = (block: BlockKey): boolean =>
     BLOCK_FIELDS[block].some((field) => valueOf(field).trim() !== server.values[field].trim());
 
@@ -291,8 +328,10 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
     const writes: { key: SettingWriteKey; value: string }[] = [];
 
     if (block === "social") {
+      // Grava o link CANÔNICO montado de cada campo (quem digitou "@roco" salva
+      // https://www.instagram.com/roco) — o rodapé só entende URL completa.
       const values = Object.fromEntries(
-        SOCIAL_NETWORKS.map((network) => [network, valueOf(network)])
+        SOCIAL_NETWORKS.map((network) => [network, socialUrlOf(network) ?? ""])
       ) as SocialLinksForm;
       const serialized = serializeSocialLinks(values);
       // Valor salvo em formato inválido também precisa ser substituído, mesmo
@@ -359,7 +398,129 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
     }
   }
 
+  function renderSocialField(network: SocialNetwork) {
+    const error = attempted.social || touched[network] ? errorOf(network) : "";
+    const copy = labels.fields[network];
+    const url = socialUrlOf(network);
+    const value = valueOf(network);
+    const saving = status.social === "saving";
+    const Icon = NETWORK_ICONS[network];
+    const contactNumber = normalizePhone(valueOf("phone"));
+    const testLabel = interpolate(labels.social.test, { network: copy.label });
+
+    return (
+      <Stack key={network} spacing={0.75}>
+        <TextField
+          label={copy.label}
+          placeholder={copy.placeholder}
+          value={value}
+          onChange={(event) => handleChange(network, event.target.value)}
+          onBlur={() => setTouched((current) => ({ ...current, [network]: true }))}
+          error={Boolean(error)}
+          helperText={error || (url ? interpolate(labels.social.linkPreview, { url }) : copy.hint)}
+          disabled={saving}
+          autoComplete="off"
+          slotProps={{
+            htmlInput: {
+              inputMode: network === "whatsapp" ? "tel" : "text",
+              spellCheck: false,
+              autoCapitalize: "none",
+            },
+            formHelperText: { sx: { overflowWrap: "anywhere" } },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Icon sx={{ color: NETWORK_COLORS[network] }} />
+                </InputAdornment>
+              ),
+              endAdornment:
+                value.trim() !== "" ? (
+                  <InputAdornment position="end">
+                    {url ? (
+                      <Tooltip title={testLabel}>
+                        <IconButton
+                          size="small"
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={testLabel}
+                        >
+                          <OpenInNewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    ) : null}
+                    <IconButton
+                      size="small"
+                      onClick={() => handleChange(network, "")}
+                      aria-label={interpolate(labels.social.clear, { network: copy.label })}
+                      disabled={saving}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+            },
+          }}
+        />
+        {/* Atalho: o WhatsApp da empresa quase sempre é o mesmo telefone do
+            bloco Contato — um clique em vez de redigitar o número. */}
+        {network === "whatsapp" && value.trim() === "" && contactNumber ? (
+          <Box>
+            <Button
+              size="small"
+              startIcon={<PhoneForwardedIcon fontSize="small" />}
+              onClick={() => handleChange("whatsapp", contactNumber)}
+              disabled={saving}
+            >
+              {labels.social.useContactPhone}
+            </Button>
+          </Box>
+        ) : null}
+      </Stack>
+    );
+  }
+
+  /** Prévia do rodapé: os ícones que vão aparecer, na ordem do site, clicáveis. */
+  function renderFooterPreview() {
+    const active = SOCIAL_NETWORKS.flatMap((network) => {
+      const url = socialUrlOf(network);
+      return url ? [{ network, url }] : [];
+    });
+    return (
+      <Box sx={{ borderTop: 1, borderColor: "divider", pt: 2 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
+          {labels.social.footerPreview}
+        </Typography>
+        {active.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            {labels.social.footerPreviewEmpty}
+          </Typography>
+        ) : (
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap" }}>
+            {active.map(({ network, url }) => {
+              const Icon = NETWORK_ICONS[network];
+              return (
+                <Chip
+                  key={network}
+                  icon={<Icon sx={{ color: `${NETWORK_COLORS[network]} !important` }} />}
+                  label={labels.fields[network].label}
+                  component="a"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  clickable
+                  variant="outlined"
+                />
+              );
+            })}
+          </Stack>
+        )}
+      </Box>
+    );
+  }
+
   function renderField(field: FieldKey) {
+    if (isSocialField(field)) return renderSocialField(field);
     const block = blockOf(field);
     const error = attempted[block] || touched[field] ? errorOf(field) : "";
     const copy = labels.fields[field];
@@ -390,7 +551,7 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
 
   if (listQuery.isLoading) {
     return (
-      <Box sx={{ maxWidth: 960 }}>
+      <Box sx={{ maxWidth: 960, mx: "auto" }}>
         <Skeleton variant="text" width={280} sx={{ fontSize: "2rem" }} />
         <Skeleton variant="text" width={420} sx={{ mb: 3 }} />
         <Stack spacing={3} aria-hidden>
@@ -407,7 +568,7 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
   }
 
   return (
-    <Box sx={{ maxWidth: 960 }}>
+    <Box sx={{ maxWidth: 960, mx: "auto" }}>
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           {labels.title}
@@ -446,6 +607,7 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
             >
               {BLOCK_FIELDS[block].map((field) => renderField(field))}
             </Box>
+            {block === "social" ? renderFooterPreview() : null}
           </SettingsBlock>
         ))}
       </Stack>

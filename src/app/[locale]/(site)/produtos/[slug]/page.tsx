@@ -3,14 +3,16 @@ import { notFound } from "next/navigation";
 import { ProductDetailView } from "@/modules/products/components/product-detail-view";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getAdjacentProducts, getPublicProductBySlug, getPublicProductList } from "@/server/lib/public-products";
+import {
+  RELATED_PRODUCTS_LIMIT,
+  getAdjacentProducts,
+  getPublicProductBySlug,
+  getPublicProductList,
+} from "@/server/lib/public-products";
 
 type PageProps = {
   params: Promise<{ locale: Locale; slug: string }>;
 };
-
-/** Relacionados no carrossel do detalhe (mesma categoria, sem o próprio produto). */
-const RELATED_LIMIT = 8;
 
 /**
  * SEM `generateStaticParams` (decisão registrada em decisionLog): o catálogo
@@ -66,11 +68,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const primaryCategorySlug = product.categories[0]?.slug ?? null;
   const [relatedResult, adjacent] = await Promise.all([
     primaryCategorySlug
-      ? getPublicProductList({ category: primaryCategorySlug, perPage: RELATED_LIMIT + 1 })
+      ? // Relacionados: mesma categoria, sem o próprio produto (pedido junto e descartado).
+        getPublicProductList({ categories: [primaryCategorySlug], perPage: RELATED_PRODUCTS_LIMIT + 1 })
       : Promise.resolve({ items: [] as Awaited<ReturnType<typeof getPublicProductList>>["items"] }),
     getAdjacentProducts(product.sku, primaryCategorySlug),
   ]);
-  const related = relatedResult.items.filter((item) => item.slug !== product.slug).slice(0, RELATED_LIMIT);
+  const related = relatedResult.items.filter((item) => item.slug !== product.slug).slice(0, RELATED_PRODUCTS_LIMIT);
 
   return (
     <ProductDetailView

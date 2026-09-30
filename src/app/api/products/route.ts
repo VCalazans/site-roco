@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { parseBestSeller } from "@/modules/products/lib/listing-filters";
 import { getPublicProductList } from "@/server/lib/public-products";
 import { checkRateLimit, getClientIp } from "@/server/lib/rate-limit";
 
@@ -9,7 +10,10 @@ const PUBLIC_PRODUCTS_RATE_LIMIT = { windowSeconds: 60, max: 120 };
 
 /**
  * Catálogo público de produtos. Dados de leitura pública — sem autenticação.
- * `?category=<slug>&search=<termo>&bestSeller=1&page=<n>&perPage=<n>`.
+ * `?category=<slug>&search=<termo>&bestSeller=1&page=<n>&perPage=<n>` —
+ * `category` e `search` podem se REPETIR: categorias combinam em OU, termos
+ * de busca em E (ver `@/modules/products/lib/listing-filters`). A validação e
+ * os tetos de cada lista ficam em `getPublicProductList`.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -23,19 +27,14 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = request.nextUrl;
-
-    const category = searchParams.get("category")?.trim() || undefined;
-    const search = searchParams.get("search")?.trim() || undefined;
-    // Só "1"/"true" liga o filtro — qualquer outro valor é ignorado.
-    const bestSellerParam = searchParams.get("bestSeller");
-    const bestSeller = bestSellerParam === "1" || bestSellerParam === "true";
     const pageParam = Number(searchParams.get("page"));
     const perPageParam = Number(searchParams.get("perPage"));
 
     const result = await getPublicProductList({
-      category,
-      search,
-      bestSeller,
+      categories: searchParams.getAll("category"),
+      searchTerms: searchParams.getAll("search"),
+      // Só "1"/"true" liga o filtro — qualquer outro valor é ignorado.
+      bestSeller: parseBestSeller(searchParams.get("bestSeller")),
       page: Number.isFinite(pageParam) ? pageParam : undefined,
       perPage: Number.isFinite(perPageParam) ? perPageParam : undefined,
     });

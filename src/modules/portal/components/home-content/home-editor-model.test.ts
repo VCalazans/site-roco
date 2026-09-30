@@ -197,8 +197,8 @@ describe("validateSection", () => {
   );
 
   it("devolve o payload já aparado pelo schema", () => {
-    const form = { ...emptyForm("portalCta"), headline: { pt: "  Força de Vendas  ", en: "" } };
-    expect(validateSection("portalCta", form, messages).data?.headline.pt).toBe("Força de Vendas");
+    const form = { ...emptyForm("portalCta"), headline: { pt: "  Portal ROCO  ", en: "" } };
+    expect(validateSection("portalCta", form, messages).data?.headline.pt).toBe("Portal ROCO");
   });
 
   it("exige título nos destaques do institucional (o site descarta os sem título)", () => {

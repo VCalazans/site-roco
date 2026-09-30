@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProductsExplorer } from "@/modules/products/components/products-explorer";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { paramValues, readListingState } from "@/modules/products/lib/listing-filters";
 import {
   getPublicBestSellerCount,
   getPublicCategoryCounts,
@@ -13,7 +14,8 @@ import {
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
-  searchParams: Promise<{ category?: string; search?: string; page?: string; bestSeller?: string }>;
+  /** `category` e `search` podem vir repetidos (vários filtros ao mesmo tempo). */
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 /**
@@ -50,23 +52,30 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
   }
 
   const sp = await searchParams;
-  const category = sp.category?.trim() || "";
-  // Mesmo teto de `getPublicProductList` (MAX_SEARCH_LENGTH) — o input do
-  // explorer deve refletir o termo que o server de fato usou.
-  const search = (sp.search?.trim() || "").slice(0, 80);
-  // Mesma regra de `GET /api/products`: só "1"/"true" liga o filtro.
-  const bestSeller = sp.bestSeller === "1" || sp.bestSeller === "true";
-  const requestedPage = Number(sp.page);
-  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
-
-  const dictionary = await getDictionary(locale);
+  const [dictionary, categoryList] = await Promise.all([getDictionary(locale), getPublicCategoryList()]);
   const { products, cart } = dictionary;
+
+  // A MESMA leitura da URL que o explorador faz no cliente (`readListingState`
+  // sobre `useSearchParams`) — os dois precisam chegar ao mesmo estado.
+  // Termos normalizados; só categorias que existem, na ordem do catálogo.
+  const urlParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    for (const item of paramValues(value)) urlParams.append(key, item);
+  }
+  const {
+    searchTerms,
+    categories: selectedCategories,
+    bestSeller,
+    page,
+  } = readListingState(
+    urlParams,
+    categoryList.map((item) => item.slug)
+  );
 
   // Initial load via direct import (SSR, sem HTTP) — buscas/filtros
   // subsequentes no cliente usam `GET /api/products` (ver `ProductsExplorer`).
-  const [initialResult, categoryList, categoryCounts, bestSellerCount, allProducts] = await Promise.all([
-    getPublicProductList({ category: category || undefined, search: search || undefined, bestSeller, page }),
-    getPublicCategoryList(),
+  const [initialResult, categoryCounts, bestSellerCount, allProducts] = await Promise.all([
+    getPublicProductList({ categories: selectedCategories, searchTerms, bestSeller, page }),
     getPublicCategoryCounts(),
     getPublicBestSellerCount(),
     getPublicProductList({ page: 1, perPage: 1 }),
@@ -107,7 +116,7 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
         categoryCounts={categoryCounts}
         allCount={allProducts.total}
         bestSellerCount={bestSellerCount}
-        initialFilters={{ category, search, bestSeller }}
+        initialFilters={{ categories: selectedCategories, searchTerms, bestSeller }}
         content={products.listing}
         cardContent={products.card}
         badgeLabels={products.badges}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useId } from "react";
-import { Search, Trophy, X } from "lucide-react";
+import { Check, Trophy, X } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import type { PublicCategory } from "@/modules/products/lib/types";
+import { SearchTermsField } from "./search-terms-field";
 
 type ListingContent = Dictionary["products"]["listing"];
 
@@ -27,11 +28,18 @@ type ProductsFiltersProps = {
   /** Total de produtos publicados (rótulo de "Todos os produtos"). */
   allCount: number;
   bestSellerCount: number;
-  search: string;
-  category: string;
+  /** Texto ainda no campo de busca. */
+  draft: string;
+  /** Termos de busca fixados (chips). */
+  terms: string[];
+  termLimitHit: boolean;
+  selectedCategories: string[];
   bestSeller: boolean;
-  onSearchChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
+  onDraftChange: (value: string) => void;
+  onCommitDraft: () => void;
+  onRemoveTerm: (term: string) => void;
+  onToggleCategory: (slug: string) => void;
+  onClearCategories: () => void;
   onBestSellerChange: (value: boolean) => void;
   onClear: () => void;
   /** Esconde o campo de busca (no mobile ele fica fora da gaveta, sempre à vista). */
@@ -39,13 +47,15 @@ type ProductsFiltersProps = {
 };
 
 /**
- * Painel de filtros da listagem (spec 001, RF25): busca AO VIVO, "somente
- * campeões de vendas" e a lista de categorias com contagem de produtos
- * publicados. É a barra lateral no desktop e o conteúdo da gaveta no mobile —
- * o MESMO componente, então os dois nunca divergem.
+ * Painel de filtros da listagem (spec 001, RF25 + filtros combinados de
+ * 2026-09-30): busca com vários termos, "somente campeões de vendas" e as
+ * categorias com contagem de produtos publicados — MARCÁVEIS em conjunto
+ * (produtos de qualquer uma das marcadas). É a barra lateral no desktop e o
+ * conteúdo da gaveta no mobile — o MESMO componente, então os dois nunca
+ * divergem.
  *
  * Categoria sem nenhum produto publicado não aparece (seria um beco sem
- * saída), exceto se for a selecionada (link antigo, por exemplo).
+ * saída), exceto se estiver marcada (link antigo, por exemplo).
  */
 export function ProductsFilters({
   locale,
@@ -54,54 +64,40 @@ export function ProductsFilters({
   categoryCounts,
   allCount,
   bestSellerCount,
-  search,
-  category,
+  draft,
+  terms,
+  termLimitHit,
+  selectedCategories,
   bestSeller,
-  onSearchChange,
-  onCategoryChange,
+  onDraftChange,
+  onCommitDraft,
+  onRemoveTerm,
+  onToggleCategory,
+  onClearCategories,
   onBestSellerChange,
   onClear,
   hideSearch = false,
 }: ProductsFiltersProps) {
-  const searchId = useId();
+  const categoriesLabelId = useId();
+  const categoriesHintId = useId();
   const visibleCategories = categories.filter(
-    (item) => (categoryCounts[item.slug] ?? 0) > 0 || item.slug === category
+    (item) => (categoryCounts[item.slug] ?? 0) > 0 || selectedCategories.includes(item.slug)
   );
-  const hasFilters = Boolean(search || category || bestSeller);
+  const hasFilters = Boolean(draft.trim() || terms.length || selectedCategories.length || bestSeller);
 
   return (
     <div className="flex flex-col gap-6">
       {!hideSearch ? (
-        <div>
-          <label htmlFor={searchId} className="mb-2 block text-micro font-semibold uppercase tracking-[0.14em] text-white/55">
-            {content.searchLabel}
-          </label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/40" aria-hidden />
-            <input
-              id={searchId}
-              type="search"
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder={content.searchPlaceholder}
-              autoComplete="off"
-              enterKeyHint="search"
-              maxLength={80}
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-10 text-meta text-white outline-none transition placeholder:text-white/35 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/20"
-            />
-            {search ? (
-              <button
-                type="button"
-                onClick={() => onSearchChange("")}
-                aria-label={content.clearSearch}
-                title={content.clearSearch}
-                className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
-              >
-                <X className="size-4" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <SearchTermsField
+          variant="sidebar"
+          content={content}
+          value={draft}
+          terms={terms}
+          limitHit={termLimitHit}
+          onChange={onDraftChange}
+          onCommit={onCommitDraft}
+          onRemoveTerm={onRemoveTerm}
+        />
       ) : null}
 
       {/* Só campeões: botão-alternância (aria-pressed), com o troféu âmbar do selo. */}
@@ -145,29 +141,47 @@ export function ProductsFilters({
         </span>
       </button>
 
-      <nav aria-label={content.categoriesLabel}>
-        <p className="mb-2 text-micro font-semibold uppercase tracking-[0.14em] text-white/55">{content.categoriesLabel}</p>
+      <div role="group" aria-labelledby={categoriesLabelId} aria-describedby={categoriesHintId}>
+        <p id={categoriesLabelId} className="text-micro font-semibold uppercase tracking-[0.14em] text-white/55">
+          {content.categoriesLabel}
+        </p>
+        <p id={categoriesHintId} className="mb-2 mt-0.5 text-micro text-white/40">
+          {content.categoriesHint}
+        </p>
         <ul className="flex flex-col gap-0.5">
           <li>
-            <CategoryButton
-              active={!category}
-              label={content.allProducts}
-              count={allCount}
-              onClick={() => onCategoryChange("")}
-            />
+            {/* "Todos" é o estado SEM categoria marcada — clicar limpa a seleção. */}
+            <button
+              type="button"
+              aria-pressed={selectedCategories.length === 0}
+              onClick={onClearCategories}
+              className={categoryRowClass(selectedCategories.length === 0)}
+            >
+              <CheckBox checked={selectedCategories.length === 0} />
+              <span className="min-w-0 flex-1 leading-snug">{content.allProducts}</span>
+              <CountBadge active={selectedCategories.length === 0} count={allCount} />
+            </button>
           </li>
-          {visibleCategories.map((item) => (
-            <li key={item.slug}>
-              <CategoryButton
-                active={category === item.slug}
-                label={categoryDisplayName(item, locale)}
-                count={categoryCounts[item.slug] ?? 0}
-                onClick={() => onCategoryChange(item.slug)}
-              />
-            </li>
-          ))}
+          {visibleCategories.map((item) => {
+            const checked = selectedCategories.includes(item.slug);
+            return (
+              <li key={item.slug}>
+                <label className={cn(categoryRowClass(checked), "cursor-pointer")}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggleCategory(item.slug)}
+                    className="sr-only"
+                  />
+                  <CheckBox checked={checked} />
+                  <span className="min-w-0 flex-1 leading-snug">{categoryDisplayName(item, locale)}</span>
+                  <CountBadge active={checked} count={categoryCounts[item.slug] ?? 0} />
+                </label>
+              </li>
+            );
+          })}
         </ul>
-      </nav>
+      </div>
 
       {hasFilters ? (
         <button
@@ -183,44 +197,41 @@ export function ProductsFilters({
   );
 }
 
-function CategoryButton({
-  active,
-  label,
-  count,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  count: number;
-  onClick: () => void;
-}) {
+/** Linha de categoria. O anel de foco segue o checkbox nativo (visualmente oculto) via `:has`. */
+function categoryRowClass(active: boolean): string {
+  return cn(
+    "relative flex w-full items-center gap-3 rounded-lg py-2 pl-3 pr-2.5 text-left text-micro font-semibold uppercase tracking-[0.06em] transition",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan/70 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neon-cyan/70",
+    active ? "bg-neon-cyan/10 text-neon-cyan-bright" : "text-white/70 hover:bg-white/5 hover:text-white"
+  );
+}
+
+/** Caixa de marcação desenhada — o check é o segundo canal além da cor (WCAG 1.4.1). */
+function CheckBox({ checked }: { checked: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "true" : undefined}
+    <span
+      aria-hidden
       className={cn(
-        "group relative flex w-full items-center justify-between gap-3 rounded-lg py-2 pl-3.5 pr-2.5 text-left text-micro font-semibold uppercase tracking-[0.06em] transition",
-        active ? "bg-neon-cyan/10 text-neon-cyan-bright" : "text-white/70 hover:bg-white/5 hover:text-white"
+        "flex size-4 shrink-0 items-center justify-center rounded-[5px] border transition",
+        checked
+          ? "border-neon-cyan-bright bg-neon-cyan-bright text-background shadow-[0_0_8px_rgba(53,217,255,0.6)]"
+          : "border-white/30 bg-white/[0.03]"
       )}
     >
-      {/* Filete ciano do item ativo — segundo canal além da cor (WCAG 1.4.1). */}
-      <span
-        aria-hidden
-        className={cn(
-          "absolute inset-y-1.5 left-0 w-0.5 rounded-full transition",
-          active ? "bg-neon-cyan-bright shadow-[0_0_8px_rgba(53,217,255,0.8)]" : "bg-transparent"
-        )}
-      />
-      <span className="min-w-0 flex-1 leading-snug">{label}</span>
-      <span
-        className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-micro tabular-nums tracking-normal",
-          active ? "bg-neon-cyan-bright/15 text-neon-cyan-bright" : "bg-white/5 text-white/45"
-        )}
-      >
-        {count}
-      </span>
-    </button>
+      {checked ? <Check className="size-3" strokeWidth={3.5} /> : null}
+    </span>
+  );
+}
+
+function CountBadge({ active, count }: { active: boolean; count: number }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2 py-0.5 text-micro tabular-nums tracking-normal",
+        active ? "bg-neon-cyan-bright/15 text-neon-cyan-bright" : "bg-white/5 text-white/45"
+      )}
+    >
+      {count}
+    </span>
   );
 }
