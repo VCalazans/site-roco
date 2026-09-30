@@ -42,6 +42,7 @@
 - `npm run lint` quebrado: ESLint 9.39.5 estoura "Converting circular structure to JSON" ao carregar config (pré-existente, não relacionado a mudanças de hoje).
 - Configurar test runner formal (Jest/Vitest) para formalizar testes de `cnpj.ts` (verificação atual: manual, 10/10 casos).
 - Avaliar tornar CNPJ obrigatório (atualmente só se preenchido — depende da política de contato da ROCO).
+- Pop-ups RD em SPA: avaliar se liberar reavaliação em mudança de rota (exige listener de pathname no RD SDK ou reinjeção).
 - `roco-wordmark-white.png` (wordmark 3D) tem leve bleed do render; logo 2D é o asset principal.
 - `docs/documento` e `docs/Novos ícones_OK.psd` (~98 MB) versionados — avaliar mover para storage/LFS.
 - Copy EN dos itens novos de nav é provisório (revisar).
