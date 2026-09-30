@@ -40,6 +40,11 @@ const PERMISSIONS: PermissionSeed[] = [
   { resource: "products", action: "publish" },
   { resource: "product_images", action: "create" },
   { resource: "product_images", action: "delete" },
+  // Imagens de produto (2026-09-30): `update` marca o que aparece no site e
+  // escolhe a capa; `download` baixa os ORIGINAIS (inclusive os que não vão
+  // ao site). Também garantidas pela migration 0013.
+  { resource: "product_images", action: "update" },
+  { resource: "product_images", action: "download" },
   { resource: "representatives", action: "read" },
   { resource: "representatives", action: "review" },
   { resource: "representatives", action: "update" },
@@ -137,6 +142,7 @@ const ROLE_PERMISSIONS: Record<string, PermissionSeed[] | "*"> = {
     { resource: "home_content", action: "read" },
     { resource: "home_content", action: "update" },
     { resource: "leads", action: "read" },
+    { resource: "product_images", action: "download" },
   ],
   representative: [
     { resource: "onboarding", action: "create" },
@@ -145,6 +151,8 @@ const ROLE_PERMISSIONS: Record<string, PermissionSeed[] | "*"> = {
     { resource: "products", action: "read" },
     // Permite consultar o feed de materiais em /portal/boas-vindas.
     { resource: "materials", action: "read" },
+    // Baixa as imagens originais dos produtos para o próprio material de venda.
+    { resource: "product_images", action: "download" },
   ],
   viewer: [{ resource: "products", action: "read" }],
 };

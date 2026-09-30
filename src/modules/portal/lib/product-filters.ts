@@ -13,9 +13,12 @@
  *   ?status=published         publicados (ou `unpublished`); ausente = todos
  *   ?filter=featured          filtros rápidos, repetíveis:
  *   ?filter=bestSeller          destaques da home / campeões de vendas / sem foto
- *   ?filter=noImage
+ *   ?filter=noImage             ("sem foto" = nenhuma imagem marcada para o site)
+ *   ?page=2&perPage=50        paginação (ver `./pagination`) — mudar filtro volta à página 1
  *   ?new=1                    abre o diálogo de novo produto (atalho do painel)
  */
+import { PAGE_PARAM } from "./pagination";
+
 export type ProductStatusFilter = "all" | "published" | "unpublished";
 export type ProductQuickFilter = "featured" | "bestSeller" | "noImage";
 
@@ -97,8 +100,10 @@ export function parseProductFilters(params: ParamsReader): ProductFilters {
 
 /**
  * Devolve uma cópia de `base` com os filtros aplicados. Parâmetros que não são
- * de filtro (ex.: `new`) passam intactos; os de filtro são sempre reescritos —
- * e os que estão no padrão saem da URL, mantendo-a curta.
+ * de filtro (ex.: `new`, `perPage`) passam intactos; os de filtro são sempre
+ * reescritos — e os que estão no padrão saem da URL, mantendo-a curta. A
+ * página sai sempre: filtro novo recomeça na página 1 (a 5ª página de outro
+ * filtro pode nem existir neste).
  */
 export function applyProductFilters(
   base: URLSearchParams,
@@ -106,6 +111,7 @@ export function applyProductFilters(
 ): URLSearchParams {
   const next = new URLSearchParams(base);
   for (const name of FILTER_PARAMS) next.delete(name);
+  next.delete(PAGE_PARAM);
 
   if (filters.search) next.set(PRODUCT_SEARCH_PARAM, filters.search);
   if (filters.categoryId) next.set(PRODUCT_CATEGORY_PARAM, filters.categoryId);
@@ -135,7 +141,7 @@ export function toggleQuickFilter(
   return { ...filters, quick: PRODUCT_QUICK_FILTERS.filter((item) => active.has(item)) };
 }
 
-/** Input de `trpc.products.list` (sem `cursor`/`limit`): só chaves com valor. */
+/** Filtros de `trpc.products.list`/`imagesSummary` e do ZIP de imagens (sem paginação). */
 export function toProductListInput(filters: ProductFilters) {
   return {
     search: filters.search || undefined,
@@ -143,8 +149,8 @@ export function toProductListInput(filters: ProductFilters) {
     published: filters.status === "all" ? undefined : filters.status === "published",
     featured: filters.quick.includes("featured") ? true : undefined,
     bestSeller: filters.quick.includes("bestSeller") ? true : undefined,
-    // "Sem foto" = `hasImage: false`; desligado NÃO é `true` (não exige foto).
-    hasImage: filters.quick.includes("noImage") ? false : undefined,
+    // "Sem foto" = nenhuma imagem marcada para o site; desligado NÃO é `true` (não exige foto).
+    hasSiteImage: filters.quick.includes("noImage") ? false : undefined,
   };
 }
 

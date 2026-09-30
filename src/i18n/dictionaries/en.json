@@ -1080,21 +1080,19 @@
     "products": {
       "title": "Products",
       "subtitle": "Manage the ROCO catalog: listings, site showcase and publishing.",
-      "subtitleReadOnly": "Browse the catalog, copy a product link and share it with your customers.",
+      "subtitleReadOnly": "Browse the catalog, share products with your customers and download product images in full quality.",
       "searchPlaceholder": "Search by SKU or name...",
       "count": {
         "one": "{count} product",
         "other": "{count} products"
       },
-      "showing": "Showing {shown} of {total}",
-      "loadMore": "Load more",
       "filters": {
         "statusAll": "All",
         "categoryAll": "All categories",
         "quickLabel": "Quick filters",
         "featured": "Featured",
         "bestSeller": "Best sellers",
-        "noImage": "No photo",
+        "noImage": "No photo on site",
         "clear": "Clear filters"
       },
       "flags": {
@@ -1109,6 +1107,7 @@
         "viewOnSite": "View on site",
         "copyLink": "Copy link",
         "shareWhatsapp": "Share on WhatsApp",
+        "images": "Images & download",
         "delete": "Delete"
       },
       "share": {
@@ -1142,7 +1141,10 @@
         "showcase": "Showcase",
         "published": "Published",
         "photos": "Photos",
-        "noPhoto": "No photo"
+        "noPhoto": "No photo",
+        "noSitePhoto": "None on site",
+        "onSite": "{count} on site",
+        "openImages": "Images of {name}"
       },
       "status": {
         "published": "Published",
@@ -1183,7 +1185,7 @@
           },
           "images": {
             "title": "Images",
-            "hint": "The first uploaded image is the product cover in the catalog."
+            "hint": "Choose which images appear on the site; the cover is the listing image. All of them — including those not shown on the site — can be downloaded from the portal in full quality."
           }
         },
         "validation": {
@@ -1230,11 +1232,18 @@
           "title": "Product Images",
           "dropzone": "Drag photos here or click to upload",
           "altText": "Alt text (image description)",
-          "cover": "Catalog cover",
+          "cover": "Listing cover",
           "remove": "Remove image",
           "uploadError": "Upload error. Please try again.",
           "upload": "Upload images",
-          "saveFirst": "Save the product to be able to upload images."
+          "saveFirst": "Save the product to be able to upload images.",
+          "showOnSite": "Show on site",
+          "onSite": "On site",
+          "portalOnly": "Portal only",
+          "setCover": "Use as cover",
+          "download": "Download original",
+          "noSiteImages": "No image appears on the site: the product is shown with the photo placeholder.",
+          "updateError": "Could not update the image. Please try again."
         },
         "actions": {
           "save": "Save Product",
@@ -1272,6 +1281,52 @@
         "messageNamed": "Are you sure you want to delete “{name}”? This action cannot be undone.",
         "confirm": "Yes, delete",
         "cancel": "Cancel"
+      },
+      "imagesDialog": {
+        "title": "Images of {name}",
+        "description": "Original, uncompressed files — including images not shown on the site.",
+        "downloadAll": "Download all (ZIP)",
+        "download": "Download",
+        "downloadNamed": "Download {filename}",
+        "close": "Close",
+        "empty": "This product has no images yet."
+      },
+      "bulkDownload": {
+        "button": "Download images",
+        "title": "Download product images",
+        "scopeAll": "All products in the catalog.",
+        "scopeFiltered": "The products in the current filter.",
+        "imagesCount": {
+          "one": "{count} original image",
+          "other": "{count} original images"
+        },
+        "productsCount": {
+          "one": "{count} product",
+          "other": "{count} products"
+        },
+        "summary": "{images} from {products} ({size})",
+        "hint": "The ZIP contains the original files, in full quality, in one folder per product — including images not shown on the site. Large downloads may take a few minutes.",
+        "empty": "No product in this filter has images.",
+        "tooLarge": "This exceeds the limit of {files} images or {size} per download. Filter the products (by category, for example) and download in parts.",
+        "confirm": "Download ZIP",
+        "started": "Your download has started — follow it in your browser."
+      },
+      "downloads": {
+        "productZipName": "ROCO-{sku}-images",
+        "catalogZipName": "ROCO-images-{date}",
+        "failureReport": {
+          "fileName": "README-images-not-included.txt",
+          "header": "These images could not be read from storage and were left out of the ZIP. Please try downloading them again later:"
+        },
+        "errors": {
+          "forbidden": "Your profile is not allowed to download product images.",
+          "notFound": "Image or product not found.",
+          "empty": "No images to download with this filter.",
+          "tooLarge": "Download too large. Filter the products and download in parts.",
+          "rateLimited": "Too many downloads in a row. Please wait a few minutes and try again.",
+          "busy": "Image downloads are already in progress. Please wait for them to finish and try again.",
+          "unavailable": "Image storage is unavailable right now. Please try again shortly."
+        }
       }
     },
     "representatives": {
@@ -1760,6 +1815,11 @@
         "message": "This cannot be undone. The file will also be removed from R2.",
         "confirm": "Yes, delete",
         "cancel": "Cancel"
+      },
+      "downloadErrors": {
+        "forbidden": "No permission to access materials.",
+        "notFound": "Material not found.",
+        "unavailable": "File temporarily unavailable. Please try again."
       }
     },
     "settings": {

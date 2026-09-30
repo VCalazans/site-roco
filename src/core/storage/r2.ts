@@ -1,4 +1,5 @@
 import "server-only";
+import { Readable } from "node:stream";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
@@ -7,6 +8,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { toPullStream } from "./pull-stream";
 
 declare global {
   var __rocoR2Client: S3Client | undefined;
@@ -107,6 +109,20 @@ export async function getPresignedDownloadUrl(
     ...(options.contentDisposition ? { ResponseContentDisposition: options.contentDisposition } : {}),
   });
   return getSignedUrl(getClient(), command, { expiresIn });
+}
+
+/**
+ * Conteúdo do objeto como stream — os bytes ORIGINAIS, sem passar pelo
+ * otimizador de imagem. Usado pelo ZIP de imagens de produto, que lê cada
+ * objeto aos pedaços sem carregar nenhum inteiro na memória. Lido sob demanda
+ * (ver `toPullStream`), e não com `transformToWebStream()`.
+ */
+export async function getObjectStream(key: string): Promise<ReadableStream<Uint8Array>> {
+  const response = await getClient().send(new GetObjectCommand({ Bucket: getBucket(), Key: key }));
+  if (!(response.Body instanceof Readable)) {
+    throw new Error(`Objeto sem conteúdo no R2: ${key}`);
+  }
+  return toPullStream(response.Body);
 }
 
 export async function deleteObject(key: string): Promise<void> {

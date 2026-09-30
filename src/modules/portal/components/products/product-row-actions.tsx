@@ -6,6 +6,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
@@ -26,7 +27,10 @@ type ProductRowActionsProps = {
   canEdit: boolean;
   /** `products:delete`. */
   canDelete: boolean;
+  /** `product_images:download`. */
+  canOpenImages: boolean;
   onEdit: (product: ProductListItem) => void;
+  onOpenImages: (product: ProductListItem) => void;
   onCopyLink: (product: ProductListItem) => void;
   onShareWhatsapp: (product: ProductListItem) => void;
   onDelete: (product: ProductListItem) => void;
@@ -37,8 +41,9 @@ type ProductRowActionsProps = {
  * WhatsApp" só existem para produto PUBLICADO (RF31): um link para um produto
  * despublicado cairia num 404 no site. Quem só consulta o catálogo (representante,
  * sem `products:update`/`delete`) ainda recebe essas três ações — é o que torna
- * o catálogo útil no atendimento — e, quando não sobra nenhuma ação, o botão
- * some em vez de abrir um menu vazio.
+ * o catálogo útil no atendimento — mais "Imagens e download" (as fotos
+ * originais, publicado ou não) e, quando não sobra nenhuma ação, o botão some
+ * em vez de abrir um menu vazio.
  */
 export function ProductRowActions({
   dictionary,
@@ -46,7 +51,9 @@ export function ProductRowActions({
   product,
   canEdit,
   canDelete,
+  canOpenImages,
   onEdit,
+  onOpenImages,
   onCopyLink,
   onShareWhatsapp,
   onDelete,
@@ -55,8 +62,9 @@ export function ProductRowActions({
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = Boolean(anchor);
   const canShare = product.published;
+  const canImages = canOpenImages && product.imageCount > 0;
 
-  if (!canEdit && !canDelete && !canShare) return null;
+  if (!canEdit && !canDelete && !canShare && !canImages) return null;
 
   const close = () => setAnchor(null);
   const triggerLabel = `${dictionary.more}: ${product.namePt}`;
@@ -139,7 +147,21 @@ export function ProductRowActions({
           </MenuItem>
         ) : null}
 
-        {canDelete && (canEdit || canShare) ? <Divider /> : null}
+        {canImages ? (
+          <MenuItem
+            onClick={() => {
+              close();
+              onOpenImages(product);
+            }}
+          >
+            <ListItemIcon>
+              <PhotoLibraryOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            {dictionary.images}
+          </MenuItem>
+        ) : null}
+
+        {canDelete && (canEdit || canShare || canImages) ? <Divider /> : null}
         {canDelete ? (
           <MenuItem
             onClick={() => {

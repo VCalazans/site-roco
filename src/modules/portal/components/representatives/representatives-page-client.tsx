@@ -27,7 +27,6 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
@@ -36,14 +35,15 @@ import Typography from "@mui/material/Typography";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import { DEFAULT_PORTAL_PER_PAGE } from "@/modules/portal/lib/pagination";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
 import {
-  DEFAULT_REPRESENTATIVES_PER_PAGE,
   REPRESENTATIVE_STATUS_TABS,
   type RepresentativeListItem,
 } from "@/modules/portal/lib/representative-types";
 import type { RepresentativeStatus } from "@/modules/portal/lib/onboarding-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { PortalPagination } from "../shared/portal-pagination";
 import { RepresentativeDetailsDialog } from "./representative-details-dialog";
 import { ReviewDialog } from "./review-dialog";
 
@@ -68,8 +68,8 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const queryClient = useQueryClient();
 
   const [status, setStatus] = useState<RepresentativeStatus>("submitted");
-  const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(DEFAULT_REPRESENTATIVES_PER_PAGE);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState<number>(DEFAULT_PORTAL_PER_PAGE);
 
   // Filtros (2026-08-23, CRUD completo): busca textual (debounced), região
   // (exata, case-insensitive) e toggle para incluir soft-disabled.
@@ -79,13 +79,21 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const [includeDisabled, setIncludeDisabled] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
+    // A página volta ao início junto com o termo (dentro do timeout, não no
+    // corpo do efeito); o `if` evita zerar a página quando o termo não mudou.
+    const t = setTimeout(() => {
+      const next = searchInput.trim();
+      if (next !== search) {
+        setSearch(next);
+        setPage(1);
+      }
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, search]);
 
-  // Handlers de filtro resetam `page` para 0 inline (não via useEffect —
-  // `useEffect(setState)` viola `react-hooks/set-state-in-effect`).
-  // O `clearFilters` único está no JSX block abaixo, inline no botão.
+  // Todo filtro novo volta à página 1 (inline nos handlers, não via useEffect —
+  // `useEffect(setState)` viola `react-hooks/set-state-in-effect`): a página 3
+  // de um filtro pode nem existir no outro.
 
   // Reset estado do dialog de review ao trocar de representante / fechar.
   // (Não usamos o padrão de `useEffect(setState)` que viola
@@ -98,7 +106,7 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
   const listQuery = useQuery(
     trpc.representatives.list.queryOptions({
       status,
-      page: page + 1,
+      page,
       perPage,
       search: search || undefined,
       region: region || undefined,
@@ -147,6 +155,7 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
 
   function handleStatusChange(nextStatus: RepresentativeStatus) {
     setStatus(nextStatus);
+    setPage(1);
   }
 
   function clearFilters() {
@@ -154,6 +163,7 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
     setSearch("");
     setRegion("");
     setIncludeDisabled(false);
+    setPage(1);
   }
 
   const hasActiveFilters = Boolean(search || region || includeDisabled);
@@ -217,7 +227,10 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
           <Select
             displayEmpty
             value={region}
-            onChange={(event) => setRegion(event.target.value as string)}
+            onChange={(event) => {
+            setRegion(event.target.value as string);
+            setPage(1);
+          }}
             renderValue={(value) => (value ? value : dictionary.filters.regionAll)}
           >
             <MenuItem value="">{dictionary.filters.regionAll}</MenuItem>
@@ -232,7 +245,10 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
           control={
             <Switch
               checked={includeDisabled}
-              onChange={(event) => setIncludeDisabled(event.target.checked)}
+              onChange={(event) => {
+                setIncludeDisabled(event.target.checked);
+                setPage(1);
+              }}
               size="small"
             />
           }
@@ -402,15 +418,14 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
               </TableBody>
             </Table>
           </TableContainer>
-          <TablePagination
-            component="div"
-            count={total}
+          <PortalPagination
             page={page}
-            onPageChange={(_event, nextPage) => setPage(nextPage)}
-            rowsPerPage={perPage}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value));
-              setPage(0);
+            perPage={perPage}
+            total={total}
+            onPageChange={setPage}
+            onPerPageChange={(next) => {
+              setPerPage(next);
+              setPage(1);
             }}
           />
         </Paper>

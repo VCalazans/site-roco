@@ -53,7 +53,7 @@ const BRAND = { pt: pt.navigation.brand, en: en.navigation.brand };
 const ADMIN: PortalPermissionUser = { roles: ["admin"], permissions: [] };
 const REPRESENTATIVE: PortalPermissionUser = {
   roles: ["representative"],
-  permissions: ["products:read", "materials:read"],
+  permissions: ["products:read", "materials:read", "product_images:download"],
 };
 
 function newQueryClient() {
@@ -401,6 +401,7 @@ const product = (overrides: Partial<ProductListItem>): ProductListItem => ({
   ],
   badges: ["nacional"],
   imageCount: 2,
+  siteImageCount: 2,
   coverUrl: "https://img.roco.com.br/products/1122/a.jpg",
   packagings: [
     { packagingType: "peca", unitsPerPack: 1 },
@@ -421,6 +422,7 @@ const sampleProducts: ProductListItem[] = [
     featured: false,
     bestSeller: true,
     imageCount: 0,
+    siteImageCount: 0,
     coverUrl: null,
     categories: [],
     badges: [],
@@ -442,7 +444,9 @@ describe.each(["pt", "en"] as const)("tabela de produtos (%s)", (locale) => {
         canWrite={perms.write}
         canPublish={perms.publish}
         canDelete={perms.remove}
+        canOpenImages={perms.write}
         onEdit={() => {}}
+        onOpenImages={() => {}}
         onTogglePublished={() => {}}
         onToggleFeatured={() => {}}
         onToggleBestSeller={() => {}}
@@ -501,7 +505,9 @@ describe.each(["pt", "en"] as const)("tabela de produtos (%s)", (locale) => {
         canWrite
         canPublish
         canDelete
+        canOpenImages
         onEdit={() => {}}
+        onOpenImages={() => {}}
         onTogglePublished={() => {}}
         onToggleFeatured={() => {}}
         onToggleBestSeller={() => {}}
@@ -523,8 +529,8 @@ describe.each(["pt", "en"] as const)("página de produtos (%s)", (locale) => {
   function seeded() {
     const client = newQueryClient();
     client.setQueryData(
-      [["products", "list"], { input: { limit: 20, published: true, featured: true }, type: "infinite" }],
-      { pages: [{ items: sampleProducts, nextCursor: undefined, total: 2 }], pageParams: [undefined] }
+      [["products", "list"], { input: { page: 1, perPage: 20, published: true, featured: true }, type: "query" }],
+      { items: sampleProducts, total: 2, page: 1, perPage: 20 }
     );
     client.setQueryData(
       [["products", "categories", "list"], { type: "query" }],
@@ -533,7 +539,7 @@ describe.each(["pt", "en"] as const)("página de produtos (%s)", (locale) => {
     return client;
   }
 
-  it("admin: filtros vindos da URL, contagem, botão de novo produto e rodapé da lista", () => {
+  it("admin: filtros vindos da URL, contagem, botões do topo e paginação da lista", () => {
     const html = render(
       <ProductsPageClient portal={portal} user={ADMIN} locale={locale} />,
       locale,
@@ -552,9 +558,12 @@ describe.each(["pt", "en"] as const)("página de produtos (%s)", (locale) => {
     expect(html).toContain(dictionary.status.published);
     expect(html).toContain(dictionary.filters.categoryAll);
     expect(html).toContain(dictionary.filters.clear);
-    // Criação e rodapé.
+    // Criação, download em lote e paginação numerada (faixa "1–2" do MUI no idioma do tema).
     expect(html).toContain(dictionary.form.createTitle);
-    expect(html).toContain(dictionary.showing.replace("{shown}", "2").replace("{total}", "2"));
+    expect(html).toContain(dictionary.bulkDownload.button);
+    expect(html).toContain("MuiTablePagination");
+    expect(html).toContain("MuiPagination");
+    expect(text(html)).toMatch(/1–2/);
     expectNoBrokenText(html);
   });
 
@@ -567,6 +576,8 @@ describe.each(["pt", "en"] as const)("página de produtos (%s)", (locale) => {
     expect(html).toContain(dictionary.subtitleReadOnly);
     expect(html).not.toContain(dictionary.form.createTitle);
     expect(html).not.toContain(dictionary.sync.title);
+    // Com `product_images:download` o representante baixa as imagens do filtro.
+    expect(html).toContain(dictionary.bulkDownload.button);
     expectNoBrokenText(html);
   });
 });

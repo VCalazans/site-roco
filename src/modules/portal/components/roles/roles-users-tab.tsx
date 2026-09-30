@@ -19,13 +19,14 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
-import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { DEFAULT_PORTAL_PER_PAGE } from "@/modules/portal/lib/pagination";
+import { PortalPagination } from "../shared/portal-pagination";
 
 type RolesUsersTabProps = {
   portal: PortalDictionary;
@@ -41,7 +42,6 @@ type AssignMenuState = {
 
 /** Debounce da busca (ms) — mesmo padrão de `representatives-page-client.tsx`. */
 const SEARCH_DEBOUNCE_MS = 350;
-const DEFAULT_PER_PAGE = 10;
 
 /**
  * Aba "Usuários" — busca + tabela paginada (`roles.listUsers`), com Chips
@@ -57,20 +57,20 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState<number>(DEFAULT_PORTAL_PER_PAGE);
   const [assignMenu, setAssignMenu] = useState<AssignMenuState | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       setSearch(searchInput.trim());
-      setPage(0);
+      setPage(1);
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
   const listQuery = useQuery(
-    trpc.roles.listUsers.queryOptions({ search: search || undefined, page: page + 1, perPage })
+    trpc.roles.listUsers.queryOptions({ search: search || undefined, page, perPage })
   );
   const rolesQuery = useQuery(trpc.roles.listRoles.queryOptions());
 
@@ -206,15 +206,14 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
             </TableBody>
           </Table>
         </TableContainer>
-        <TablePagination
-          component="div"
-          count={total}
+        <PortalPagination
           page={page}
-          onPageChange={(_event, nextPage) => setPage(nextPage)}
-          rowsPerPage={perPage}
-          onRowsPerPageChange={(event) => {
-            setPerPage(Number(event.target.value));
-            setPage(0);
+          perPage={perPage}
+          total={total}
+          onPageChange={setPage}
+          onPerPageChange={(next) => {
+            setPerPage(next);
+            setPage(1);
           }}
         />
       </Paper>

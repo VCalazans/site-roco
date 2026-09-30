@@ -40,15 +40,13 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { productImages, products } from "../schema/catalog";
+import { loadEnvFiles, repoRoot, requireEnv } from "../script-env";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..", "..", "..");
 const IMAGES_DIR = path.join(repoRoot, "docs", "PRODUTOS");
 
 /** Espelha ALLOWED_IMAGE_TYPES/MAX_IMAGE_BYTES do router de produtos. */
@@ -61,28 +59,6 @@ const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const CONCURRENCY = 8;
 const UPLOAD_RETRIES = 2;
-
-function loadEnvFiles(): void {
-  for (const file of [".env.local", ".env"]) {
-    const fullPath = path.join(repoRoot, file);
-    if (!fs.existsSync(fullPath)) continue;
-    for (const line of fs.readFileSync(fullPath, "utf8").split(/\r?\n/)) {
-      const match = /^([A-Za-z0-9_]+)\s*=\s*(.*)$/.exec(line);
-      if (!match || line.trimStart().startsWith("#")) continue;
-      const [, name, rawValue] = match;
-      if (process.env[name] !== undefined) continue;
-      process.env[name] = rawValue.replace(/^(['"])(.*)\1$/, "$2");
-    }
-  }
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} não configurada (ver .env.local).`);
-  }
-  return value;
-}
 
 type SeedFile = {
   filename: string;

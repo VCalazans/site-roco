@@ -1080,21 +1080,19 @@
     "products": {
       "title": "Produtos",
       "subtitle": "Gerencie o catálogo ROCO: cadastro, vitrine do site e publicação.",
-      "subtitleReadOnly": "Consulte o catálogo, copie o link de um produto e compartilhe com seus clientes.",
+      "subtitleReadOnly": "Consulte o catálogo, compartilhe produtos com seus clientes e baixe as imagens em alta qualidade.",
       "searchPlaceholder": "Buscar por SKU ou nome...",
       "count": {
         "one": "{count} produto",
         "other": "{count} produtos"
       },
-      "showing": "Exibindo {shown} de {total}",
-      "loadMore": "Carregar mais",
       "filters": {
         "statusAll": "Todos",
         "categoryAll": "Todas as categorias",
         "quickLabel": "Filtros rápidos",
         "featured": "Destaques",
         "bestSeller": "Campeões de vendas",
-        "noImage": "Sem foto",
+        "noImage": "Sem foto no site",
         "clear": "Limpar filtros"
       },
       "flags": {
@@ -1109,6 +1107,7 @@
         "viewOnSite": "Ver no site",
         "copyLink": "Copiar link",
         "shareWhatsapp": "Compartilhar no WhatsApp",
+        "images": "Imagens e download",
         "delete": "Excluir"
       },
       "share": {
@@ -1142,7 +1141,10 @@
         "showcase": "Vitrine",
         "published": "Publicado",
         "photos": "Fotos",
-        "noPhoto": "Sem foto"
+        "noPhoto": "Sem foto",
+        "noSitePhoto": "Nenhuma no site",
+        "onSite": "{count} no site",
+        "openImages": "Imagens de {name}"
       },
       "status": {
         "published": "Publicado",
@@ -1183,7 +1185,7 @@
           },
           "images": {
             "title": "Imagens",
-            "hint": "A primeira imagem enviada é a capa do produto no catálogo."
+            "hint": "Marque as imagens que aparecem no site; a capa é a imagem da listagem. Todas — inclusive as que não vão ao site — ficam disponíveis para download no portal, sem perda de qualidade."
           }
         },
         "validation": {
@@ -1230,11 +1232,18 @@
           "title": "Imagens do Produto",
           "dropzone": "Arraste fotos aqui ou clique para fazer upload",
           "altText": "Texto alternativo (descrição da imagem)",
-          "cover": "Capa do catálogo",
+          "cover": "Capa da listagem",
           "remove": "Remover imagem",
           "uploadError": "Erro ao fazer upload. Tente novamente.",
           "upload": "Enviar imagens",
-          "saveFirst": "Salve o produto para poder enviar as imagens."
+          "saveFirst": "Salve o produto para poder enviar as imagens.",
+          "showOnSite": "Exibir no site",
+          "onSite": "No site",
+          "portalOnly": "Só no portal",
+          "setCover": "Usar como capa",
+          "download": "Baixar original",
+          "noSiteImages": "Nenhuma imagem aparece no site: o produto é exibido com o espaço reservado para a foto.",
+          "updateError": "Não foi possível atualizar a imagem. Tente novamente."
         },
         "actions": {
           "save": "Salvar Produto",
@@ -1272,6 +1281,52 @@
         "messageNamed": "Tem certeza que deseja excluir “{name}”? Esta ação não pode ser desfeita.",
         "confirm": "Sim, deletar",
         "cancel": "Cancelar"
+      },
+      "imagesDialog": {
+        "title": "Imagens de {name}",
+        "description": "Arquivos originais, sem compressão — inclusive as imagens que não aparecem no site.",
+        "downloadAll": "Baixar todas (ZIP)",
+        "download": "Baixar",
+        "downloadNamed": "Baixar {filename}",
+        "close": "Fechar",
+        "empty": "Este produto ainda não tem imagens."
+      },
+      "bulkDownload": {
+        "button": "Baixar imagens",
+        "title": "Baixar imagens dos produtos",
+        "scopeAll": "Todos os produtos do catálogo.",
+        "scopeFiltered": "Os produtos do filtro atual.",
+        "imagesCount": {
+          "one": "{count} imagem original",
+          "other": "{count} imagens originais"
+        },
+        "productsCount": {
+          "one": "{count} produto",
+          "other": "{count} produtos"
+        },
+        "summary": "{images} de {products} ({size})",
+        "hint": "O ZIP traz os arquivos originais, sem perda de qualidade, em uma pasta por produto — inclusive as imagens que não aparecem no site. Downloads grandes podem levar alguns minutos.",
+        "empty": "Nenhum produto deste filtro tem imagens.",
+        "tooLarge": "Passa do limite de {files} imagens ou {size} por download. Filtre os produtos (por categoria, por exemplo) e baixe em partes.",
+        "confirm": "Baixar ZIP",
+        "started": "O download começou — acompanhe pelo seu navegador."
+      },
+      "downloads": {
+        "productZipName": "ROCO-{sku}-imagens",
+        "catalogZipName": "ROCO-imagens-{date}",
+        "failureReport": {
+          "fileName": "LEIA-ME-imagens-nao-incluidas.txt",
+          "header": "Estas imagens não puderam ser lidas no armazenamento e ficaram fora do ZIP. Tente baixá-las novamente mais tarde:"
+        },
+        "errors": {
+          "forbidden": "Seu perfil não tem permissão para baixar imagens de produtos.",
+          "notFound": "Imagem ou produto não encontrado.",
+          "empty": "Nenhuma imagem para baixar com este filtro.",
+          "tooLarge": "Download grande demais. Filtre os produtos e baixe em partes.",
+          "rateLimited": "Muitos downloads em sequência. Aguarde alguns minutos e tente novamente.",
+          "busy": "Já há downloads de imagens em andamento. Aguarde terminarem e tente novamente.",
+          "unavailable": "Armazenamento de imagens indisponível no momento. Tente novamente em instantes."
+        }
       }
     },
     "representatives": {
@@ -1760,6 +1815,11 @@
         "message": "Esta ação não pode ser desfeita. O arquivo também será removido do R2.",
         "confirm": "Sim, deletar",
         "cancel": "Cancelar"
+      },
+      "downloadErrors": {
+        "forbidden": "Sem permissão para acessar materiais.",
+        "notFound": "Material não encontrado.",
+        "unavailable": "Arquivo indisponível no momento. Tente novamente."
       }
     },
     "settings": {

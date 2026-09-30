@@ -133,6 +133,12 @@ export const productImages = pgTable("product_images", {
   altPt: text("alt_pt"),
   altEn: text("alt_en"),
   sortOrder: integer("sort_order").notNull().default(0),
+  /**
+   * Aparece no site (listagem, detalhe, orçamento)? Desmarcada, a imagem fica
+   * só no portal — os representantes baixam TODAS, inclusive estas. A capa do
+   * site é a primeira imagem visível por `sortOrder`.
+   */
+  showOnSite: boolean("show_on_site").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

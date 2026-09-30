@@ -82,6 +82,8 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
       })
       .from(productPackagings)
       .where(inArray(productPackagings.productId, productIds)),
+    // Só as imagens marcadas para o SITE (as demais ficam para o download dos
+    // representantes no portal), na ordem de exibição: a primeira é a capa.
     db
       .select({
         productId: productImages.productId,
@@ -90,8 +92,8 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
         altEn: productImages.altEn,
       })
       .from(productImages)
-      .where(inArray(productImages.productId, productIds))
-      .orderBy(asc(productImages.sortOrder)),
+      .where(and(inArray(productImages.productId, productIds), eq(productImages.showOnSite, true)))
+      .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt)),
   ]);
 
   const categoriesByProduct = new Map<

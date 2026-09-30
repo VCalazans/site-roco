@@ -1,7 +1,7 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, exists, gt, inArray, not, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { hasPermission } from "@/core/auth/rbac";
 import { deleteObject, getPresignedUploadUrl, getPublicUrl, headObject } from "@/core/storage/r2";
@@ -16,11 +16,17 @@ import {
   productPackagings,
   products,
 } from "@/db/schema";
+import { DEFAULT_PORTAL_PER_PAGE, clampPage } from "@/modules/portal/lib/pagination";
+import { moveToFront } from "@/modules/portal/lib/product-images";
 import { writeAuditLog } from "@/server/lib/audit";
 import { translateDbError } from "@/server/lib/db-error";
+import {
+  portalProductConditions,
+  portalProductFiltersSchema,
+  siteImageExists,
+} from "@/server/lib/portal-product-filters";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { slugify } from "@/server/lib/slugify";
-import { matchAllTerms } from "@/server/lib/sql-like";
 import { sortPackagings } from "@/shared/lib/packaging";
 import { permissionProcedure, router } from "../init";
 
@@ -94,18 +100,10 @@ const productMutableFields = {
 const createInputSchema = z.object(productMutableFields);
 const updatePatchSchema = z.object(productMutableFields).partial();
 
-const listInputSchema = z.object({
-  search: z.string().trim().min(1).max(200).optional(),
-  categoryId: z.string().uuid().optional(),
-  published: z.boolean().optional(),
-  /** Filtros de vitrine/saúde do catálogo (spec 001, RF10). */
-  featured: z.boolean().optional(),
-  bestSeller: z.boolean().optional(),
-  hasImage: z.boolean().optional(),
-  /** Inclui produtos excluídos (soft delete, `active = false`). Padrão: só ativos. */
-  includeInactive: z.boolean().optional(),
-  cursor: z.string().uuid().optional(),
-  limit: z.number().int().min(1).max(100).default(25),
+/** Filtros (os mesmos do ZIP de imagens) + paginação numerada — página a partir de 1. */
+const listInputSchema = portalProductFiltersSchema.extend({
+  page: z.number().int().min(1).default(1),
+  perPage: z.number().int().min(1).max(100).default(DEFAULT_PORTAL_PER_PAGE),
 });
 
 /**
@@ -131,7 +129,11 @@ async function nextFeaturedOrder(db: Database): Promise<number> {
   return (row?.value ?? -1) + 1;
 }
 
-/** Capa (1ª imagem por `sortOrder`) de cada produto do lote — para miniaturas. */
+/**
+ * Miniatura de cada produto do lote: a CAPA do site (1ª imagem visível por
+ * `sortOrder`); sem imagem visível, a 1ª imagem do portal — o operador ainda
+ * reconhece o produto na tabela.
+ */
 async function loadCoverUrls(db: Database, productIds: string[]): Promise<Map<string, string>> {
   const covers = new Map<string, string>();
   if (productIds.length === 0) return covers;
@@ -139,7 +141,7 @@ async function loadCoverUrls(db: Database, productIds: string[]): Promise<Map<st
     .select({ productId: productImages.productId, r2Key: productImages.r2Key })
     .from(productImages)
     .where(inArray(productImages.productId, productIds))
-    .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt));
+    .orderBy(desc(productImages.showOnSite), asc(productImages.sortOrder), asc(productImages.createdAt));
   for (const row of rows) {
     if (covers.has(row.productId)) continue;
     const url = safePublicUrl(row.r2Key);
@@ -149,6 +151,7 @@ async function loadCoverUrls(db: Database, productIds: string[]): Promise<Map<st
 }
 
 type PackagingSummary = { packagingType: PackagingTypeSlug; unitsPerPack: number };
+type ImageCounts = { total: number; onSite: number };
 
 /** Categorias + badges + packagings + imagens de um lote de produtos, indexados por productId. */
 async function loadProductRelations(db: Database, productIds: string[]) {
@@ -157,7 +160,7 @@ async function loadProductRelations(db: Database, productIds: string[]) {
       categoriesByProduct: new Map<string, (typeof categories.$inferSelect)[]>(),
       badgesByProduct: new Map<string, BadgeSlug[]>(),
       packagingsByProduct: new Map<string, PackagingSummary[]>(),
-      imageCountByProduct: new Map<string, number>(),
+      imageCountsByProduct: new Map<string, ImageCounts>(),
     };
   }
 
@@ -182,7 +185,11 @@ async function loadProductRelations(db: Database, productIds: string[]) {
       .from(productPackagings)
       .where(inArray(productPackagings.productId, productIds)),
     db
-      .select({ productId: productImages.productId, total: sql<number>`count(*)::int` })
+      .select({
+        productId: productImages.productId,
+        total: sql<number>`count(*)::int`,
+        onSite: sql<number>`count(*) filter (where ${productImages.showOnSite})::int`,
+      })
       .from(productImages)
       .where(inArray(productImages.productId, productIds))
       .groupBy(productImages.productId),
@@ -212,12 +219,12 @@ async function loadProductRelations(db: Database, productIds: string[]) {
     packagingsByProduct.set(productId, sortPackagings(list));
   }
 
-  const imageCountByProduct = new Map<string, number>();
+  const imageCountsByProduct = new Map<string, ImageCounts>();
   for (const row of imageCountRows) {
-    imageCountByProduct.set(row.productId, row.total);
+    imageCountsByProduct.set(row.productId, { total: row.total, onSite: row.onSite });
   }
 
-  return { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountByProduct };
+  return { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountsByProduct };
 }
 
 /** Monta o shape completo de um produto (`byId`/`create`/`update`/`setPublished`). */
@@ -238,7 +245,7 @@ async function loadProductDetail(db: Database, productId: string) {
       .select()
       .from(productImages)
       .where(eq(productImages.productId, productId))
-      .orderBy(asc(productImages.sortOrder)),
+      .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt)),
     db.select({ badge: productBadges.badge }).from(productBadges).where(eq(productBadges.productId, productId)),
   ]);
 
@@ -299,117 +306,66 @@ async function replacePackagings(
 }
 
 export const productsRouter = router({
+  /**
+   * Página numerada da tabela do portal. A contagem roda antes da página: a
+   * página pedida é LIMITADA ao intervalo real (`?page=99` depois de um filtro
+   * que sobrou 2 páginas devolve a 2, não uma tabela vazia) e o cliente adota
+   * o `page` devolvido.
+   */
   list: permissionProcedure("products", "read")
     .input(listInputSchema)
     .query(async ({ ctx, input }) => {
-      const { search, categoryId, published, featured, bestSeller, hasImage, includeInactive, cursor, limit } =
-        input;
+      const { page, perPage, ...filters } = input;
+      const where = portalProductConditions(ctx.db, filters);
 
-      // Filtros do input (sem o cursor) — reaproveitados no COUNT, que reflete
-      // o total de resultados do filtro, não da página atual.
-      const filterConditions = [];
-      // Produto "excluído" é soft delete (`active = false`, ver `delete`):
-      // não aparece na lista a menos que se peça explicitamente.
-      if (!includeInactive) {
-        filterConditions.push(eq(products.active, true));
-      }
-      if (published !== undefined) {
-        filterConditions.push(eq(products.published, published));
-      }
-      if (featured !== undefined) {
-        filterConditions.push(eq(products.featured, featured));
-      }
-      if (bestSeller !== undefined) {
-        filterConditions.push(eq(products.bestSeller, bestSeller));
-      }
-      if (hasImage !== undefined) {
-        const imageExists = exists(
-          ctx.db
-            .select({ one: sql`1` })
-            .from(productImages)
-            .where(eq(productImages.productId, products.id))
-        );
-        filterConditions.push(hasImage ? imageExists : not(imageExists));
-      }
-      if (search) {
-        // Mesma busca do site: todas as palavras, sem acento/caixa, em SKU,
-        // código ERP, nome PT ou EN (termos escapados — LIKE literal).
-        const match = matchAllTerms(search, [products.sku, products.erpCode, products.namePt, products.nameEn]);
-        if (match) filterConditions.push(match);
-      }
-      if (categoryId) {
-        filterConditions.push(
-          exists(
-            ctx.db
-              .select({ one: sql`1` })
-              .from(productCategories)
-              .where(
-                and(
-                  eq(productCategories.productId, products.id),
-                  eq(productCategories.categoryId, categoryId)
-                )
-              )
-          )
-        );
-      }
+      const [countRow] = await ctx.db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(products)
+        .where(where);
+      const total = countRow?.total ?? 0;
+      const safePage = clampPage(page, total, perPage);
 
-      const pageConditions = [...filterConditions];
-      if (cursor) {
-        const [cursorProduct] = await ctx.db
-          .select({ sku: products.sku })
-          .from(products)
-          .where(eq(products.id, cursor))
-          .limit(1);
-        if (cursorProduct) {
-          pageConditions.push(gt(products.sku, cursorProduct.sku));
-        }
-      }
+      const rows =
+        total === 0
+          ? []
+          : await ctx.db
+              .select()
+              .from(products)
+              .where(where)
+              .orderBy(asc(products.sku))
+              .limit(perPage)
+              .offset((safePage - 1) * perPage);
 
-      const [rows, [countRow]] = await Promise.all([
-        ctx.db
-          .select()
-          .from(products)
-          .where(pageConditions.length > 0 ? and(...pageConditions) : undefined)
-          .orderBy(asc(products.sku))
-          .limit(limit + 1),
-        ctx.db
-          .select({ total: sql<number>`count(*)::int` })
-          .from(products)
-          .where(filterConditions.length > 0 ? and(...filterConditions) : undefined),
-      ]);
-
-      const hasMore = rows.length > limit;
-      const page = hasMore ? rows.slice(0, limit) : rows;
-
-      const pageIds = page.map((product) => product.id);
+      const pageIds = rows.map((product) => product.id);
       const [
-        { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountByProduct },
+        { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountsByProduct },
         coverByProduct,
       ] = await Promise.all([loadProductRelations(ctx.db, pageIds), loadCoverUrls(ctx.db, pageIds)]);
 
-      const items = page.map((product) => ({
-        ...product,
-        categories: categoriesByProduct.get(product.id) ?? [],
-        badges: badgesByProduct.get(product.id) ?? [],
-        imageCount: imageCountByProduct.get(product.id) ?? 0,
-        coverUrl: coverByProduct.get(product.id) ?? null,
-        packagings: packagingsByProduct.get(product.id) ?? [],
-      }));
+      const items = rows.map((product) => {
+        const imageCounts = imageCountsByProduct.get(product.id) ?? { total: 0, onSite: 0 };
+        return {
+          ...product,
+          categories: categoriesByProduct.get(product.id) ?? [],
+          badges: badgesByProduct.get(product.id) ?? [],
+          imageCount: imageCounts.total,
+          siteImageCount: imageCounts.onSite,
+          coverUrl: coverByProduct.get(product.id) ?? null,
+          packagings: packagingsByProduct.get(product.id) ?? [],
+        };
+      });
 
-      return {
-        items,
-        nextCursor: hasMore ? page[page.length - 1]?.id : undefined,
-        total: countRow?.total ?? 0,
-      };
+      return { items, total, page: safePage, perPage };
     }),
 
   /**
    * Uma query agregada (FILTER) para os cards do dashboard. Contagens de
    * vitrine/saúde consideram só produtos ativos; "sem foto" olha os
-   * PUBLICADOS — é o que o visitante vê com placeholder no site.
+   * PUBLICADOS sem nenhuma imagem marcada para o SITE — é o que o visitante
+   * vê com o espaço reservado, mesmo que haja imagens só no portal.
    */
   stats: permissionProcedure("products", "read").query(async ({ ctx }) => {
-    const hasNoImage = sql`not exists (select 1 from ${productImages} where ${productImages.productId} = ${products.id})`;
+    const hasNoImage = sql`not ${siteImageExists(ctx.db)}`;
     const [row] = await ctx.db
       .select({
         total: sql<number>`count(*) filter (where ${products.active} = true)::int`,
@@ -763,6 +719,8 @@ export const productsRouter = router({
         filename: z.string().trim().min(1).max(255),
         contentType: z.enum(ALLOWED_IMAGE_TYPES),
         altPt: z.string().trim().min(1).optional(),
+        /** Aparece no site? Desmarcada, fica só no portal (ex.: foto em alta só para download). */
+        showOnSite: z.boolean().default(true),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -794,6 +752,13 @@ export const productsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Arquivo inválido (tamanho)." });
       }
 
+      // Entra no FIM da ordem de exibição — antes todo upload ficava com
+      // `sortOrder` 0 e a ordem entre eles dependia do banco.
+      const [position] = await ctx.db
+        .select({ next: sql<number>`coalesce(max(${productImages.sortOrder}) + 1, 0)::int` })
+        .from(productImages)
+        .where(eq(productImages.productId, input.productId));
+
       const [image] = await ctx.db
         .insert(productImages)
         .values({
@@ -803,6 +768,8 @@ export const productsRouter = router({
           contentType: input.contentType,
           sizeBytes,
           altPt: input.altPt ?? null,
+          sortOrder: position?.next ?? 0,
+          showOnSite: input.showOnSite,
         })
         .returning();
 
@@ -848,6 +815,100 @@ export const productsRouter = router({
       revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return { success: true as const };
+    }),
+
+  /** Marca se a imagem aparece no site (listagem, detalhe, orçamento); desmarcada, fica só no portal. */
+  setImageVisibility: permissionProcedure("product_images", "update")
+    .input(z.object({ imageId: z.string().uuid(), showOnSite: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const [image] = await ctx.db
+        .update(productImages)
+        .set({ showOnSite: input.showOnSite })
+        .where(eq(productImages.id, input.imageId))
+        .returning({ productId: productImages.productId });
+      if (!image) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Imagem não encontrada." });
+      }
+
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "product_images.setVisibility",
+        resource: "products",
+        resourceId: image.productId,
+        metadata: { imageId: input.imageId, showOnSite: input.showOnSite },
+      });
+      revalidateTag("products", IMMEDIATE_EXPIRY);
+
+      return { success: true as const };
+    }),
+
+  /**
+   * Capa da listagem no site: a imagem vai para o início da ordem de exibição
+   * (as demais mantêm a ordem relativa) e passa a aparecer no site — não
+   * existe capa escondida.
+   */
+  setCoverImage: permissionProcedure("product_images", "update")
+    .input(z.object({ imageId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const productId = await ctx.db.transaction(async (tx) => {
+        const [image] = await tx
+          .select({ productId: productImages.productId })
+          .from(productImages)
+          .where(eq(productImages.id, input.imageId))
+          .limit(1);
+        if (!image) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Imagem não encontrada." });
+        }
+
+        const siblings = await tx
+          .select({ id: productImages.id })
+          .from(productImages)
+          .where(eq(productImages.productId, image.productId))
+          .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt));
+
+        const order = moveToFront(
+          siblings.map((row) => row.id),
+          input.imageId
+        );
+        for (const [index, id] of order.entries()) {
+          await tx
+            .update(productImages)
+            .set(id === input.imageId ? { sortOrder: index, showOnSite: true } : { sortOrder: index })
+            .where(eq(productImages.id, id));
+        }
+        return image.productId;
+      });
+
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "product_images.setCover",
+        resource: "products",
+        resourceId: productId,
+        metadata: { imageId: input.imageId },
+      });
+      revalidateTag("products", IMMEDIATE_EXPIRY);
+
+      return { success: true as const };
+    }),
+
+  /**
+   * Tamanho de um download em lote (produtos com imagem, imagens e bytes) com
+   * os MESMOS filtros da tabela — a tela mostra antes de começar e barra o que
+   * passa do limite do ZIP. Sem `includeInactive`: o ZIP nunca leva produto
+   * inativo, e o resumo tem de contar exatamente o que o ZIP vai levar.
+   */
+  imagesSummary: permissionProcedure("product_images", "download")
+    .input(portalProductFiltersSchema.omit({ includeInactive: true }))
+    .query(async ({ ctx, input }) => {
+      const [row] = await ctx.db
+        .select({
+          productCount: sql<number>`count(distinct ${products.id})::int`,
+          imageCount: sql<number>`count(${productImages.id})::int`,
+          totalBytes: sql<number>`coalesce(sum(${productImages.sizeBytes}), 0)::float8`,
+        })
+        .from(products)
+        .innerJoin(productImages, eq(productImages.productId, products.id))
+        .where(portalProductConditions(ctx.db, input));
+
+      return row ?? { productCount: 0, imageCount: 0, totalBytes: 0 };
     }),
 
   categories: router({

@@ -75,6 +75,13 @@ describe("applyProductFilters", () => {
     expect(next.get("utm")).toBe("x");
   });
 
+  it("filtro novo volta à página 1, mas mantém o tamanho da página", () => {
+    const base = new URLSearchParams("search=a&page=5&perPage=50");
+    const next = applyProductFilters(base, { ...EMPTY_PRODUCT_FILTERS, search: "b" });
+    expect(next.get("page")).toBeNull();
+    expect(next.get("perPage")).toBe("50");
+  });
+
   it("não muta o URLSearchParams recebido", () => {
     const base = new URLSearchParams("search=a");
     applyProductFilters(base, { ...EMPTY_PRODUCT_FILTERS, search: "b" });
@@ -121,7 +128,7 @@ describe("toProductListInput", () => {
       published: undefined,
       featured: undefined,
       bestSeller: undefined,
-      hasImage: undefined,
+      hasSiteImage: undefined,
     });
   });
 
@@ -139,13 +146,13 @@ describe("toProductListInput", () => {
       published: false,
       featured: true,
       bestSeller: true,
-      hasImage: false,
+      hasSiteImage: false,
     });
   });
 
-  it("'sem foto' vira hasImage:false, nunca true", () => {
-    expect(toProductListInput({ ...EMPTY_PRODUCT_FILTERS, quick: ["noImage"] }).hasImage).toBe(false);
-    expect(toProductListInput(EMPTY_PRODUCT_FILTERS).hasImage).toBeUndefined();
+  it("'sem foto' vira hasSiteImage:false (sem imagem no site), nunca true", () => {
+    expect(toProductListInput({ ...EMPTY_PRODUCT_FILTERS, quick: ["noImage"] }).hasSiteImage).toBe(false);
+    expect(toProductListInput(EMPTY_PRODUCT_FILTERS).hasSiteImage).toBeUndefined();
   });
 });
 

@@ -8,6 +8,7 @@ import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
@@ -29,6 +30,7 @@ import type {
   ProductListItem,
 } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { interpolate } from "@/shared/lib/interpolate";
 import { ProductRowActions } from "./product-row-actions";
 
 const BADGE_LABEL_KEY: Record<ProductBadge, keyof PortalDictionary["products"]["badges"]> = {
@@ -66,7 +68,10 @@ type ProductTableProps = {
   canPublish: boolean;
   /** `products:delete`. */
   canDelete: boolean;
+  /** `product_images:download` — a coluna de fotos abre a galeria de download. */
+  canOpenImages: boolean;
   onEdit: (product: ProductListItem) => void;
+  onOpenImages: (product: ProductListItem) => void;
   onTogglePublished: (product: ProductListItem) => void;
   onToggleFeatured: (product: ProductListItem) => void;
   onToggleBestSeller: (product: ProductListItem) => void;
@@ -108,6 +113,76 @@ function ProductThumb({ src }: { src: string | null }) {
         <HideImageIcon fontSize="small" />
       )}
     </Box>
+  );
+}
+
+/**
+ * Fotos da linha: total de imagens e quantas vão ao site. Produto com fotos
+ * mas nenhuma no site ganha o aviso — no site ele aparece sem imagem. Com
+ * `onOpen` (permissão de download), o número abre a galeria das originais.
+ */
+function PhotosCell({
+  product,
+  dictionary,
+  onOpen,
+}: {
+  product: ProductListItem;
+  dictionary: PortalDictionary["products"]["table"];
+  onOpen?: () => void;
+}) {
+  if (product.imageCount === 0) {
+    return (
+      <Chip
+        label={dictionary.noPhoto}
+        size="small"
+        color={product.published ? "warning" : "default"}
+        variant="outlined"
+      />
+    );
+  }
+
+  const count = (
+    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+      <PhotoCameraOutlinedIcon fontSize="small" />
+      <Typography variant="body2">{product.imageCount}</Typography>
+    </Box>
+  );
+
+  return (
+    <Stack spacing={0.5} sx={{ alignItems: "center" }}>
+      {onOpen ? (
+        <Tooltip title={interpolate(dictionary.openImages, { name: product.namePt })}>
+          <ButtonBase
+            onClick={onOpen}
+            aria-label={interpolate(dictionary.openImages, { name: product.namePt })}
+            sx={{
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              color: "primary.main",
+              "&:hover": { bgcolor: "action.hover" },
+              "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" },
+            }}
+          >
+            {count}
+          </ButtonBase>
+        </Tooltip>
+      ) : (
+        <Box sx={{ color: "text.secondary" }}>{count}</Box>
+      )}
+      {product.siteImageCount === 0 ? (
+        <Chip
+          label={dictionary.noSitePhoto}
+          size="small"
+          color={product.published ? "warning" : "default"}
+          variant="outlined"
+        />
+      ) : product.siteImageCount < product.imageCount ? (
+        <Typography variant="caption" color="text.secondary" noWrap>
+          {interpolate(dictionary.onSite, { count: product.siteImageCount })}
+        </Typography>
+      ) : null}
+    </Stack>
   );
 }
 
@@ -174,7 +249,9 @@ export function ProductTable({
   canWrite,
   canPublish,
   canDelete,
+  canOpenImages,
   onEdit,
+  onOpenImages,
   onTogglePublished,
   onToggleFeatured,
   onToggleBestSeller,
@@ -346,26 +423,11 @@ export function ProductTable({
                     </TableCell>
 
                     <TableCell align="center" sx={{ display: FROM_LG }}>
-                      {product.imageCount > 0 ? (
-                        <Box
-                          sx={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                            color: "text.secondary",
-                          }}
-                        >
-                          <PhotoCameraOutlinedIcon fontSize="small" />
-                          <Typography variant="body2">{product.imageCount}</Typography>
-                        </Box>
-                      ) : (
-                        <Chip
-                          label={dictionary.table.noPhoto}
-                          size="small"
-                          color={product.published ? "warning" : "default"}
-                          variant="outlined"
-                        />
-                      )}
+                      <PhotosCell
+                        product={product}
+                        dictionary={dictionary.table}
+                        onOpen={canOpenImages ? () => onOpenImages(product) : undefined}
+                      />
                     </TableCell>
 
                     <TableCell sx={{ display: FROM_LG }}>
@@ -387,7 +449,9 @@ export function ProductTable({
                         product={product}
                         canEdit={canWrite}
                         canDelete={canDelete}
+                        canOpenImages={canOpenImages}
                         onEdit={onEdit}
+                        onOpenImages={onOpenImages}
                         onCopyLink={onCopyLink}
                         onShareWhatsapp={onShareWhatsapp}
                         onDelete={onDelete}

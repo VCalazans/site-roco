@@ -1,27 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AddIcon from "@mui/icons-material/Add";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  keepPreviousData,
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import type { Locale } from "@/i18n/config";
+import { applyPaging, parsePaging, type Paging } from "@/modules/portal/lib/pagination";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
 import {
   EMPTY_PRODUCT_FILTERS,
@@ -43,9 +38,12 @@ import {
 import type { ProductListItem } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
+import { PortalPagination } from "../shared/portal-pagination";
 import { DeleteProductDialog } from "./delete-product-dialog";
 import { ProductFiltersBar } from "./product-filters-bar";
 import { ProductFormDialog } from "./product-form-dialog";
+import { ProductImagesBulkDownloadDialog } from "./product-images-bulk-download-dialog";
+import { ProductImagesDialog } from "./product-images-dialog";
 import { ProductTable } from "./product-table";
 import { SyncBar } from "./sync-bar";
 
@@ -58,10 +56,9 @@ type ProductsPageClientProps = {
 type Feedback = { message: string; severity: "success" | "error" };
 
 const SEARCH_DEBOUNCE_MS = 300;
-const PAGE_SIZE = 20;
 
 /**
- * Grava os filtros na URL SEM navegar: `history.replaceState` é integrado ao
+ * Grava parâmetros na URL SEM navegar: `history.replaceState` é integrado ao
  * roteador do Next (o `useSearchParams` reflete a mudança) e evita a ida ao
  * servidor que um `router.replace` faria a cada tecla — a página é dinâmica
  * (sessão) e reexecutaria o Server Component só para devolver o mesmo HTML.
@@ -69,11 +66,10 @@ const PAGE_SIZE = 20;
  * Parte SEMPRE da URL viva (`window.location`), nunca do `searchParams` do
  * render: a atualização do `useSearchParams` acontece numa transição do Next e
  * pode chegar depois de um segundo clique rápido, que então apagaria o
- * primeiro filtro.
+ * primeiro.
  */
-function replaceProductFilters(next: ProductFilters) {
-  const params = applyProductFilters(new URLSearchParams(window.location.search), next);
-  const query = params.toString();
+function replaceSearchParams(update: (current: URLSearchParams) => URLSearchParams) {
+  const query = update(new URLSearchParams(window.location.search)).toString();
   window.history.replaceState(
     null,
     "",
@@ -81,8 +77,21 @@ function replaceProductFilters(next: ProductFilters) {
   );
 }
 
+/** Filtros novos sempre recomeçam na página 1 (`applyProductFilters` tira a página). */
+function replaceProductFilters(next: ProductFilters) {
+  replaceSearchParams((current) => applyProductFilters(current, next));
+}
+
+function replacePaging(next: Paging) {
+  replaceSearchParams((current) => applyPaging(current, next));
+}
+
 function readLiveFilters(): ProductFilters {
   return parseProductFilters(new URLSearchParams(window.location.search));
+}
+
+function readLivePaging(): Paging {
+  return parsePaging(new URLSearchParams(window.location.search));
 }
 
 /** Copia para a área de transferência; cai no `execCommand` fora de contexto seguro. */
@@ -111,22 +120,25 @@ async function copyText(text: string): Promise<boolean> {
 /**
  * Orquestrador client-side da página de produtos.
  *
- * Os filtros (busca, categoria, status, filtros rápidos) vivem NA URL e são a
- * fonte de verdade: a busca da sidebar (`router.push('?search=…')`), os
+ * Filtros (busca, categoria, status, filtros rápidos) e paginação vivem NA URL
+ * e são a fonte de verdade: a busca da sidebar (`router.push('?search=…')`), os
  * indicadores do painel e links compartilhados abrem a lista já filtrada, e o
  * "voltar" do navegador funciona. Só o texto do campo de busca tem estado
  * local (feedback imediato enquanto se digita), gravado na URL com debounce.
  *
- * Tabela paginada por cursor (`useInfiniteQuery` + "Carregar mais" — o cursor
- * não expõe "página N"), barra de sync do ERP e diálogos de criar/editar/excluir.
- * Quem só tem `products:read` (representante) usa o mesmo catálogo sem as ações
- * de escrita, mas com ver no site, copiar link e compartilhar.
+ * Tabela com paginação numerada (`PortalPagination`, a mesma das outras listas
+ * do portal), barra de sync do ERP e diálogos de criar/editar/excluir. Quem só
+ * tem `products:read` (representante) usa o mesmo catálogo sem as ações de
+ * escrita, mas com ver no site, copiar link, compartilhar e — com
+ * `product_images:download` — baixar as imagens originais, de um produto ou
+ * de todos os produtos do filtro.
  */
 export function ProductsPageClient({ portal, user, locale }: ProductsPageClientProps) {
   const dictionary = portal.products;
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
+  const tableTopRef = useRef<HTMLDivElement | null>(null);
 
   // Permissões espelham exatamente `permissionProcedure(resource, action)` de
   // `src/server/trpc/routers/products.ts`/`sync.ts` — cada ação de escrita
@@ -138,10 +150,12 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
   const canDelete = can(user, "products", "delete");
   const canSyncTrigger = can(user, "sync", "trigger");
   const canSyncRead = can(user, "sync", "read");
+  const canDownloadImages = can(user, "product_images", "download");
   const readOnly = !canWrite && !canCreate;
 
-  // --- Filtros (URL = fonte de verdade) -------------------------------------
+  // --- Filtros e paginação (URL = fonte de verdade) -------------------------
   const filters = useMemo(() => parseProductFilters(searchParams), [searchParams]);
+  const paging = useMemo(() => parsePaging(searchParams), [searchParams]);
 
   const [searchInput, setSearchInput] = useState(filters.search);
   // Último `?search=` da URL já refletido no campo, e último termo que ESTA
@@ -188,36 +202,44 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
     replaceProductFilters(EMPTY_PRODUCT_FILTERS);
   }
 
+  /** Troca de página leva ao topo da TABELA (não da página), sem animação para quem pediu menos movimento. */
+  function goToPage(page: number) {
+    replacePaging({ ...readLivePaging(), page });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    tableTopRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  }
+
+  function setPerPage(perPage: number) {
+    replacePaging({ page: 1, perPage });
+  }
+
   // --- Dados ----------------------------------------------------------------
   const categoriesQuery = useQuery(trpc.products.categories.list.queryOptions());
 
-  const listQuery = useInfiniteQuery(
-    trpc.products.list.infiniteQueryOptions(
-      { ...toProductListInput(filters), limit: PAGE_SIZE },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        // Mantém a lista anterior na tela enquanto a nova carrega: digitar ou
-        // trocar um filtro não pisca o esqueleto a cada consulta.
-        placeholderData: keepPreviousData,
-      }
+  const listQuery = useQuery(
+    trpc.products.list.queryOptions(
+      { ...toProductListInput(filters), page: paging.page, perPage: paging.perPage },
+      // Mantém a página anterior na tela enquanto a nova carrega: trocar de
+      // página ou de filtro não pisca o esqueleto a cada consulta.
+      { placeholderData: keepPreviousData }
     )
   );
 
-  const items: ProductListItem[] = useMemo(
-    () => listQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [listQuery.data]
-  );
+  const items: ProductListItem[] = listQuery.data?.items ?? [];
+  const total = listQuery.data?.total ?? 0;
+  const effectivePage = listQuery.data?.page ?? paging.page;
 
-  // `total` é o mesmo valor em todas as páginas (contagem do filtro aplicado,
-  // não da página carregada) — a primeira página já basta.
-  const total = listQuery.data?.pages[0]?.total ?? 0;
+  // O servidor limita a página ao intervalo real (?page=99 depois de um filtro
+  // que sobrou 2 páginas devolve a 2): a URL adota a página efetiva. Só com a
+  // resposta DESTA consulta — o placeholder é da consulta anterior.
+  const serverPage = listQuery.isPlaceholderData ? undefined : listQuery.data?.page;
+  useEffect(() => {
+    if (serverPage !== undefined && serverPage !== readLivePaging().page) {
+      replacePaging({ ...readLivePaging(), page: serverPage });
+    }
+  }, [serverPage]);
 
-  /**
-   * `pathFilter()` (e não `queryKey()`): a lista é uma query INFINITA, cuja
-   * chave carrega `type: "infinite"`; `queryKey()` monta `type: "query"` e não
-   * casaria — a lista nunca era refetchada depois de publicar/editar/excluir.
-   * O painel também lê `products.stats`, então ele entra na invalidação.
-   */
+  /** A tabela, a capa/contagem de fotos e os indicadores do painel mudam junto. */
   function invalidateCatalog() {
     queryClient.invalidateQueries(trpc.products.list.pathFilter());
     queryClient.invalidateQueries(trpc.products.stats.pathFilter());
@@ -242,6 +264,10 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
   // de graça, sem efeito nenhum do lado de lá.
   const [formInstance, setFormInstance] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<ProductListItem | null>(null);
+  // Galeria de download: o produto fica guardado até o fim da animação de saída.
+  const [imagesTarget, setImagesTarget] = useState<ProductListItem | null>(null);
+  const [imagesOpen, setImagesOpen] = useState(false);
+  const [bulkDownloadOpen, setBulkDownloadOpen] = useState(false);
 
   // --- Mutations por linha --------------------------------------------------
   const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -341,6 +367,11 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
     invalidateCatalog();
   }
 
+  function openImagesDialog(product: ProductListItem) {
+    setImagesTarget(product);
+    setImagesOpen(true);
+  }
+
   // `?new=1` (atalho "Novo produto" do painel) abre o diálogo de criação uma
   // vez e some da URL, para um F5 não reabri-lo. Cobre também o caso de já
   // estar na página quando o parâmetro aparece.
@@ -355,20 +386,16 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
 
   useEffect(() => {
     if (!wantsNew) return;
-    const params = new URLSearchParams(window.location.search);
-    params.delete(PRODUCT_NEW_PARAM);
-    const query = params.toString();
-    window.history.replaceState(
-      null,
-      "",
-      query ? `${window.location.pathname}?${query}` : window.location.pathname
-    );
+    replaceSearchParams((current) => {
+      current.delete(PRODUCT_NEW_PARAM);
+      return current;
+    });
   }, [wantsNew]);
 
   // --- Render ---------------------------------------------------------------
   const filtersActive = hasActiveProductFilters(filters);
   const isInitialLoading = listQuery.isLoading;
-  const isRefreshing = listQuery.isFetching && !listQuery.isFetchingNextPage && !isInitialLoading;
+  const isRefreshing = listQuery.isFetching && !isInitialLoading;
   const countLabel = interpolate(total === 1 ? dictionary.count.one : dictionary.count.other, {
     count: new Intl.NumberFormat(locale).format(total),
   });
@@ -402,11 +429,22 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
             {readOnly ? dictionary.subtitleReadOnly : dictionary.subtitle}
           </Typography>
         </Box>
-        {canCreate ? (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
-            {dictionary.form.createTitle}
-          </Button>
-        ) : null}
+        <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+          {canDownloadImages ? (
+            <Button
+              variant={canCreate ? "outlined" : "contained"}
+              startIcon={<FileDownloadOutlinedIcon />}
+              onClick={() => setBulkDownloadOpen(true)}
+            >
+              {dictionary.bulkDownload.button}
+            </Button>
+          ) : null}
+          {canCreate ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
+              {dictionary.form.createTitle}
+            </Button>
+          ) : null}
+        </Stack>
       </Stack>
 
       {canSyncRead ? (
@@ -449,7 +487,7 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
       ) : null}
 
       {isInitialLoading || items.length > 0 ? (
-        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+        <Paper ref={tableTopRef} variant="outlined" sx={{ overflow: "hidden", scrollMarginTop: 88 }}>
           {/* Faixa de altura fixa: o indicador de atualização entra sem empurrar a tabela. */}
           <Box sx={{ height: 3 }}>
             {isRefreshing ? <LinearProgress aria-label={portal.common.loading} /> : null}
@@ -463,7 +501,9 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
             canWrite={canWrite}
             canPublish={canPublish}
             canDelete={canDelete}
+            canOpenImages={canDownloadImages}
             onEdit={openEditDialog}
+            onOpenImages={openImagesDialog}
             onTogglePublished={handleTogglePublished}
             onToggleFeatured={handleToggleFeatured}
             onToggleBestSeller={handleToggleBestSeller}
@@ -472,38 +512,13 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
             onDelete={setDeleteTarget}
           />
           {!isInitialLoading ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1,
-                px: 2,
-                py: 1.5,
-                borderTop: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                {interpolate(dictionary.showing, {
-                  shown: new Intl.NumberFormat(locale).format(items.length),
-                  total: new Intl.NumberFormat(locale).format(total),
-                })}
-              </Typography>
-              {listQuery.hasNextPage ? (
-                <Button
-                  size="small"
-                  onClick={() => listQuery.fetchNextPage()}
-                  disabled={listQuery.isFetchingNextPage}
-                  startIcon={
-                    listQuery.isFetchingNextPage ? <CircularProgress size={16} /> : null
-                  }
-                >
-                  {dictionary.loadMore}
-                </Button>
-              ) : null}
-            </Box>
+            <PortalPagination
+              page={effectivePage}
+              perPage={paging.perPage}
+              total={total}
+              onPageChange={goToPage}
+              onPerPageChange={setPerPage}
+            />
           ) : null}
         </Paper>
       ) : null}
@@ -520,6 +535,29 @@ export function ProductsPageClient({ portal, user, locale }: ProductsPageClientP
         user={user}
         locale={locale}
       />
+
+      <ProductImagesDialog
+        product={imagesTarget}
+        open={imagesOpen}
+        onClose={() => setImagesOpen(false)}
+        onExited={() => setImagesTarget(null)}
+        dictionary={dictionary}
+        errorLabel={portal.errors.generic}
+        locale={locale}
+      />
+
+      {canDownloadImages ? (
+        <ProductImagesBulkDownloadDialog
+          open={bulkDownloadOpen}
+          onClose={() => setBulkDownloadOpen(false)}
+          filters={filters}
+          dictionary={dictionary}
+          cancelLabel={portal.common.cancel}
+          errorLabel={portal.errors.generic}
+          locale={locale}
+          onStarted={() => showFeedback(dictionary.bulkDownload.started)}
+        />
+      ) : null}
 
       <DeleteProductDialog
         open={Boolean(deleteTarget)}

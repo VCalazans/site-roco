@@ -14,7 +14,6 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
-import TablePagination from "@mui/material/TablePagination";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -22,13 +21,13 @@ import { useTRPC } from "@/core/trpc-client";
 import type { Locale } from "@/i18n/config";
 import type { PortalLeadsDictionary } from "@/modules/portal/lib/leads-dictionary";
 import type { ContactSubject } from "@/server/lib/contact-submit";
+import { DEFAULT_PORTAL_PER_PAGE } from "@/modules/portal/lib/pagination";
+import { PortalPagination } from "../shared/portal-pagination";
 import { LeadDetailDialog } from "./lead-detail-dialog";
 import { LeadsTable } from "./leads-table";
 import { SUBJECT_FILTER_ORDER, type LeadReplyTemplates } from "./leads-helpers";
 
 const SEARCH_DEBOUNCE_MS = 350;
-const PER_PAGE_OPTIONS = [10, 20, 50] as const;
-const DEFAULT_PER_PAGE = 20;
 
 type SubjectFilter = ContactSubject | "all";
 
@@ -51,8 +50,8 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState<SubjectFilter>("all");
-  const [page, setPage] = useState(0);
-  const [perPage, setPerPage] = useState<number>(DEFAULT_PER_PAGE);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState<number>(DEFAULT_PORTAL_PER_PAGE);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -64,7 +63,7 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
       const next = searchInput.trim();
       if (next !== search) {
         setSearch(next);
-        setPage(0);
+        setPage(1);
       }
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timeout);
@@ -75,7 +74,7 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
       {
         search: search || undefined,
         subject: subject === "all" ? undefined : subject,
-        page: page + 1,
+        page,
         perPage,
       },
       // Trocar de página/filtro mantém a tabela anterior na tela (esmaecida) em vez de piscar o esqueleto.
@@ -85,14 +84,13 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
 
   const items = listQuery.data?.items ?? [];
   const total = listQuery.data?.total ?? 0;
-  const lastPage = Math.max(0, Math.ceil(total / perPage) - 1);
   const hasFilters = search !== "" || subject !== "all";
 
   function clearFilters() {
     setSearchInput("");
     setSearch("");
     setSubject("all");
-    setPage(0);
+    setPage(1);
   }
 
   function openDetail(id: string) {
@@ -129,7 +127,7 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
         value={subject}
         onChange={(_event, value: SubjectFilter) => {
           setSubject(value);
-          setPage(0);
+          setPage(1);
         }}
         variant="scrollable"
         scrollButtons="auto"
@@ -205,16 +203,14 @@ export function LeadsPageClient({ locale, dictionary, replyTemplates }: LeadsPag
               onOpen={openDetail}
             />
           </Box>
-          <TablePagination
-            component="div"
-            count={total}
-            page={Math.min(page, lastPage)}
-            onPageChange={(_event, next) => setPage(next)}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={[...PER_PAGE_OPTIONS]}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value));
-              setPage(0);
+          <PortalPagination
+            page={page}
+            perPage={perPage}
+            total={total}
+            onPageChange={setPage}
+            onPerPageChange={(next) => {
+              setPerPage(next);
+              setPage(1);
             }}
           />
         </Paper>

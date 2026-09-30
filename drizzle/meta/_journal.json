@@ -85,6 +85,20 @@
       "when": 1790770311323,
       "tag": "0011_ensure_portal_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790778700615,
+      "tag": "0012_product_images_show_on_site",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790778715274,
+      "tag": "0013_product_images_permissions",
+      "breakpoints": true
     }
   ]
 }

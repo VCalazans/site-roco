@@ -652,8 +652,11 @@ export function ProductFormDialog({
                 dictionary={dictionary.form.images}
                 saveLabel={dictionary.form.images.upload}
                 removeLabel={dictionary.form.images.remove}
+                locale={locale}
                 canUpload={can(user, "product_images", "create")}
+                canUpdate={can(user, "product_images", "update")}
                 canDelete={can(user, "product_images", "delete")}
+                canDownload={can(user, "product_images", "download")}
                 onImagesChanged={() => {
                   queryClient.invalidateQueries({
                     queryKey: trpc.products.byId.queryKey({ id: currentProductId }),

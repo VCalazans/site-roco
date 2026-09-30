@@ -77,7 +77,7 @@ export function FeaturedProductsManager({
 
   const canSearch = canManage && search.length >= MIN_SEARCH_CHARS;
   const searchQuery = useQuery(
-    trpc.products.list.queryOptions({ search, limit: SEARCH_RESULTS }, { enabled: canSearch })
+    trpc.products.list.queryOptions({ search, perPage: SEARCH_RESULTS }, { enabled: canSearch })
   );
   const options = canSearch ? (searchQuery.data?.items ?? []) : [];
 

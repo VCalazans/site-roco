@@ -57,8 +57,14 @@ export type ProductListItem = {
   updatedAt: string;
   categories: { id: string; namePt: string }[];
   badges: ProductBadge[];
+  /** Todas as imagens do produto (as do site e as só do portal). */
   imageCount: number;
-  /** URL pública da capa (1ª imagem); `null` sem foto ou sem `R2_PUBLIC_URL`. */
+  /** Imagens marcadas para aparecer no site; 0 = o site mostra o espaço reservado. */
+  siteImageCount: number;
+  /**
+   * Miniatura: a capa do site (1ª imagem visível); sem imagem visível, a 1ª do
+   * portal. `null` sem foto ou sem `R2_PUBLIC_URL`.
+   */
   coverUrl: string | null;
   /**
    * TODAS as embalagens, já ordenadas (`sortPackagings`). Não existe embalagem
@@ -71,15 +77,23 @@ export type ProductListItem = {
 };
 
 /**
- * `products.list` pagina por cursor (`nextCursor`, não `page`/`perPage` como
- * `representatives.list`) mas agora também expõe `total` — a contagem cheia
- * do filtro aplicado, não só da página carregada (usada em "X produtos" na
- * página de listagem, não para paginar).
+ * Página de `products.list` (paginação numerada, como `representatives.list`).
+ * `total` é a contagem cheia do filtro; `page` é a página EFETIVA — o servidor
+ * limita a pedida ao intervalo real, e o cliente adota esta.
  */
 export type ProductListResult = {
   items: ProductListItem[];
-  nextCursor?: string;
   total: number;
+  page: number;
+  perPage: number;
+};
+
+/** Espelho de `products.imagesSummary` — tamanho de um download em lote. */
+export type ProductImagesSummary = {
+  /** Produtos do filtro que têm ao menos uma imagem. */
+  productCount: number;
+  imageCount: number;
+  totalBytes: number;
 };
 
 /** Espelho de `products.stats()` — usado nos cards do dashboard. */
@@ -90,7 +104,7 @@ export type ProductStats = {
   unpublished: number;
   featured: number;
   bestSeller: number;
-  /** Publicados sem nenhuma imagem: é o que o visitante vê com placeholder. */
+  /** Publicados sem nenhuma imagem NO SITE: é o que o visitante vê com o espaço reservado. */
   publishedWithoutImage: number;
 };
 
@@ -109,11 +123,16 @@ export type ProductPackagingInput = {
   barcodeEan13?: string | null;
 };
 
+/** Imagem no cadastro do produto (`products.byId`), na ordem de exibição. */
 export type ProductImage = {
   id: string;
   url: string;
   filename: string;
+  contentType: string;
+  sizeBytes: number;
   altPt: string | null;
+  /** Aparece no site? Desmarcada, fica só no portal (download dos representantes). */
+  showOnSite: boolean;
 };
 
 export type ProductDetail = {

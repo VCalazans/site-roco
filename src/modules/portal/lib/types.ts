@@ -498,6 +498,8 @@ export type PortalMaterialsDictionary = {
     confirm: string;
     cancel: string;
   };
+  /** Erros em texto simples da rota de download (`/api/portal/materials/[id]/download`). */
+  downloadErrors: { forbidden: string; notFound: string; unavailable: string };
 };
 
 export type PortalRolesDictionary = {
@@ -683,9 +685,6 @@ export type PortalProductsDictionary = {
   searchPlaceholder: string;
   /** Placeholder literal `{count}`. */
   count: { one: string; other: string };
-  /** Placeholders literais `{shown}` e `{total}`. */
-  showing: string;
-  loadMore: string;
   filters: {
     statusAll: string;
     categoryAll: string;
@@ -708,6 +707,8 @@ export type PortalProductsDictionary = {
     viewOnSite: string;
     copyLink: string;
     shareWhatsapp: string;
+    /** Abre a galeria com o download das imagens originais. */
+    images: string;
     delete: string;
   };
   share: {
@@ -743,6 +744,12 @@ export type PortalProductsDictionary = {
     published: string;
     photos: string;
     noPhoto: string;
+    /** Tem imagens, mas nenhuma marcada para o site. */
+    noSitePhoto: string;
+    /** Placeholder literal `{count}`. */
+    onSite: string;
+    /** Nome acessível do botão de fotos. Placeholder literal `{name}`. */
+    openImages: string;
   };
   status: {
     published: string;
@@ -820,6 +827,13 @@ export type PortalProductsDictionary = {
       /** Botão que envia as fotos escolhidas (distinto do "Salvar Produto" do formulário). */
       upload: string;
       saveFirst: string;
+      showOnSite: string;
+      onSite: string;
+      portalOnly: string;
+      setCover: string;
+      download: string;
+      noSiteImages: string;
+      updateError: string;
     };
     actions: {
       save: string;
@@ -858,5 +872,54 @@ export type PortalProductsDictionary = {
     messageNamed: string;
     confirm: string;
     cancel: string;
+  };
+  /** Galeria de download das imagens de um produto (todas, inclusive as só do portal). */
+  imagesDialog: {
+    /** Placeholder literal `{name}`. */
+    title: string;
+    description: string;
+    downloadAll: string;
+    download: string;
+    /** Placeholder literal `{filename}`. */
+    downloadNamed: string;
+    close: string;
+    empty: string;
+  };
+  /** Download em lote (ZIP) das imagens dos produtos do filtro atual. */
+  bulkDownload: {
+    button: string;
+    title: string;
+    scopeAll: string;
+    scopeFiltered: string;
+    /** Placeholder literal `{count}`. */
+    imagesCount: { one: string; other: string };
+    /** Placeholder literal `{count}`. */
+    productsCount: { one: string; other: string };
+    /** Placeholders literais `{images}`, `{products}` e `{size}`. */
+    summary: string;
+    hint: string;
+    empty: string;
+    /** Placeholders literais `{files}` e `{size}`. */
+    tooLarge: string;
+    confirm: string;
+    started: string;
+  };
+  /** Textos das rotas de download (nomes dos arquivos e erros em texto simples). */
+  downloads: {
+    /** Sem extensão. Placeholder literal `{sku}`. */
+    productZipName: string;
+    /** Sem extensão. Placeholder literal `{date}` (AAAA-MM-DD). */
+    catalogZipName: string;
+    failureReport: { fileName: string; header: string };
+    errors: {
+      forbidden: string;
+      notFound: string;
+      empty: string;
+      tooLarge: string;
+      rateLimited: string;
+      /** Teto de ZIPs simultâneos atingido (do usuário ou do servidor). */
+      busy: string;
+      unavailable: string;
+    };
   };
 };

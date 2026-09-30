@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { auth } from "@/core/auth";
 import { hasPermission } from "@/core/auth/rbac";
 import { getPresignedDownloadUrl } from "@/core/storage/r2";
 import { db } from "@/db";
 import { materials } from "@/db/schema/materials";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getPortalDictionary } from "@/modules/portal/lib/types";
 import { buildContentDisposition } from "@/server/lib/content-disposition";
-import { defaultLocale, locales } from "@/i18n/config";
+import { authorizePortalRoute, NO_STORE_HEADERS, plainTextResponse } from "@/server/lib/portal-route-auth";
 
 /**
  * `GET /api/portal/materials/[id]/download?modo=abrir|baixar`
@@ -27,43 +28,22 @@ import { defaultLocale, locales } from "@/i18n/config";
 export const dynamic = "force-dynamic";
 
 const DOWNLOAD_URL_TTL_SECONDS = 60;
-const NO_STORE = { "Cache-Control": "no-store" };
 const idSchema = z.string().uuid();
 
-function plainText(status: number, message: string) {
-  return new NextResponse(message, {
-    status,
-    headers: { ...NO_STORE, "Content-Type": "text/plain; charset=utf-8" },
-  });
-}
-
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
-  if (!session?.user) {
-    // Sessão expirada: volta ao login do portal no idioma do visitante e, depois
-    // de entrar, para a biblioteca de materiais.
-    const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
-    const locale = (locales as readonly string[]).includes(cookieLocale ?? "") ? cookieLocale : defaultLocale;
-    // Location RELATIVA de propósito: no servidor standalone (imagem Docker)
-    // `request.nextUrl.origin` é o host de bind (`http://0.0.0.0:3000`), e um
-    // redirect absoluto montado com ele mandava o usuário para um endereço
-    // quebrado. O navegador resolve a relativa contra o host que ele usou.
-    const callbackUrl = encodeURIComponent(`/${locale}/portal/materiais`);
-    return new NextResponse(null, {
-      status: 303,
-      headers: { ...NO_STORE, Location: `/${locale}/portal/login?callbackUrl=${callbackUrl}` },
-    });
-  }
+  const access = await authorizePortalRoute(
+    request,
+    { resource: "materials", action: "read" },
+    // Sessão expirada: depois de entrar, volta à biblioteca de materiais.
+    (locale) => `/${locale}/portal/materiais`
+  );
+  if (access.status === "unauthenticated") return access.response;
 
-  if (!hasPermission(session, "materials", "read")) {
-    return plainText(403, "Sem permissão para acessar materiais. / No permission to access materials.");
-  }
+  const errors = getPortalDictionary(await getDictionary(access.locale)).materials.downloadErrors;
+  if (access.status === "forbidden") return plainTextResponse(403, errors.forbidden);
 
-  const { id } = await params;
-  const parsedId = idSchema.safeParse(id);
-  if (!parsedId.success) {
-    return plainText(404, "Material não encontrado. / Material not found.");
-  }
+  const parsedId = idSchema.safeParse((await params).id);
+  if (!parsedId.success) return plainTextResponse(404, errors.notFound);
 
   const [row] = await db
     .select({ r2Key: materials.r2Key, filename: materials.filename, published: materials.published })
@@ -71,8 +51,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .where(eq(materials.id, parsedId.data))
     .limit(1);
 
-  if (!row || (!row.published && !hasPermission(session, "materials", "create"))) {
-    return plainText(404, "Material não encontrado. / Material not found.");
+  if (!row || (!row.published && !hasPermission(access.session, "materials", "create"))) {
+    return plainTextResponse(404, errors.notFound);
   }
 
   const mode = request.nextUrl.searchParams.get("modo") === "abrir" ? "inline" : "attachment";
@@ -83,8 +63,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     console.error("[materials.download] Falha ao gerar a URL de leitura no R2.", error);
-    return plainText(503, "Arquivo indisponível no momento. Tente novamente. / File temporarily unavailable.");
+    return plainTextResponse(503, errors.unavailable);
   }
 
-  return NextResponse.redirect(url, { status: 303, headers: NO_STORE });
+  return NextResponse.redirect(url, { status: 303, headers: NO_STORE_HEADERS });
 }

@@ -105,16 +105,6 @@ export function isRecentMaterial(publishedAt: string | Date | null | undefined, 
   return ageMs >= 0 && ageMs <= MATERIAL_NEW_DAYS * 24 * 60 * 60 * 1000;
 }
 
-/** Tamanho em KB/MB com o separador decimal do idioma. */
-export function formatFileSize(bytes: number, locale: string): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "—";
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString(locale)} KB`;
-  }
-  const megabytes = bytes / (1024 * 1024);
-  return `${megabytes.toLocaleString(locale, { maximumFractionDigits: megabytes >= 10 ? 0 : 1 })} MB`;
-}
-
 /**
  * Link de leitura de um material. Passa pela rota autenticada
  * `/api/portal/materials/[id]/download`, que confere sessão e permissão e só

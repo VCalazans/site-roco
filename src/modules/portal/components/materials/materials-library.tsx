@@ -38,7 +38,6 @@ import { useTRPC } from "@/core/trpc-client";
 import type { Locale } from "@/i18n/config";
 import {
   MATERIAL_CATEGORY_ORDER,
-  formatFileSize,
   groupMaterialsByCategory,
   isRecentMaterial,
   matchesMaterialSearch,
@@ -49,6 +48,7 @@ import {
   type MaterialCategory,
   type MaterialKind,
 } from "@/modules/portal/lib/materials-library";
+import { formatFileSize } from "@/shared/lib/file-size";
 import type { PortalMaterialsDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
 
