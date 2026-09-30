@@ -112,7 +112,7 @@ operador e para o representante.
 
 ### Marca (HU01)
 - **RF01** (HU01) — O site DEVE exibir a logo 2D branca no header, a versão com slogan no
-  rodapé e a logo 3D como peça central do hero quando o slide não traz mídia própria.
+  rodapé e a logo 3D como peça central do hero em todos os slides (vídeo enviado, YouTube e o slide de reserva; alterado em 2026-09-30 a pedido do stakeholder — antes, só quando o slide não trazia mídia própria).
 - **RF02** (HU01) — O portal DEVE exibir a logo adequada ao tema (clara no tema escuro,
   azul no tema claro) sem distorção de proporção.
 - **RF03** (HU01) — O site DEVE servir favicon e ícone Apple com o monograma da nova marca.

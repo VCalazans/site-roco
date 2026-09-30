@@ -418,6 +418,12 @@
       busca por e-mail). Contas e auditoria de teste apagadas. Container conferido.
 - [x] Testes: 12 arquivos novos → 1744 em 75 arquivos (antes 1660 em 63).
 
+### Pós-5ª rodada (2026-09-30)
+- [x] **"Baixar Catálogo" → catálogo online** (`https://catalogo.roco.com.br/catalogo-roco`): padrão de `siteLinks.catalog` via `ONLINE_CATALOG_URL`; vale para o CTA do slide do hero, o CTA de reserva e o link do rodapé (nova aba, sem `?origem=`). Página `/catalogo` segue no ar, sem link.
+- [x] Texto do bloco "Catálogo em PDF" (Configurações do Site) corrigido em pt/en — não é mais o arquivo do botão da home.
+- [x] Manual de uso do sistema com 48 telas reais (site, acesso, equipe, representante) e resumo de entregas para o cliente publicados como artifacts privados: manual https://claude.ai/artifact/RWXamY1MKBeUWhBiqa6BeD · resumo https://claude.ai/artifact/Y8PMi7dqU4u1vtwHtDWGno. Capturas feitas no container local com contas temporárias (apagadas ao final) e nomes reais mascarados.
+- [x] **Logo 3D em todos os slides do hero** (upload, YouTube e reserva) — antes ficava oculta no slide de vídeo enviado; teste de render novo (`hero-slider-render.test.tsx`), 1749 testes.
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
 - [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada)
@@ -518,6 +524,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
       `memory-bank/specs/002-embalagens-gs1.md`, com 4 decisões pendentes do stakeholder.
 
 ### Site (pós-MVP home/produtos)
+- [ ] **Página `/catalogo` sem link** (2026-09-30): decidir se redireciona para o catálogo online ou sai do sitemap (hoje continua indexável, com formulário e PDF próprios).
 - [ ] **Dados de `site_settings` não têm dimensão de locale** (2026-08-30, Médio): os endereços e a
       descrição da unidade fabril vêm do banco em PORTUGUÊS e renderizam assim na versão em inglês,
       sem `lang="pt"` (WCAG SC 3.1.2, "Language of Parts") — o rodapé está em toda página de `(site)`.

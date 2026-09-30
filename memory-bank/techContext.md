@@ -49,7 +49,7 @@ npm run dev        # http://localhost:3000
 | NEXT_PUBLIC_CONTACT_EMAIL    | não    | E-mail de contato (CTA — fase futura)      |
 | NEXT_PUBLIC_WHATSAPP_NUMBER  | não    | WhatsApp de contato (fase futura)          |
 | NEXT_PUBLIC_PRODUCTS_URL     | não    | Destino do CTA "Conheça nossos Produtos"   |
-| NEXT_PUBLIC_CATALOG_URL      | não    | Destino do CTA "Baixar Catálogo" (PDF)     |
+| NEXT_PUBLIC_CATALOG_URL      | não    | Destino do botão "Baixar Catálogo". Vazio = catálogo online `https://catalogo.roco.com.br/catalogo-roco` (`ONLINE_CATALOG_URL` em `src/core/config/site.ts`); preencha só para apontar para outro endereço |
 | NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED | não | **(Removido 2026-08-23)** Mautic saiu; substituído por RD Station — ver `NEXT_PUBLIC_RDSTATION_*` abaixo. |
 | NEXT_PUBLIC_RDSTATION_SCRIPT_URL  | não    | URL do script RD Station (carregado via `next/script`); entra na CSP `script-src` quando configurado. Stub em src/shared/components/analytics/rdstation-tracking.tsx. |
 | NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED | não | Liga/desliga o tracking RD Station (prod: `"false"` por padrão; dev: idem). |
@@ -402,6 +402,8 @@ Use `scripts\docker-build.cmd` (contexto via tar/stdin, binário-seguro via cmd)
 build-time — imagem local NÃO envia dados reais a terceiros):
   - `NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=false` (desde 2026-08-11)
   - `NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=false` (desde 2026-09-30)
+
+**Fotos na imagem local (2026-09-30)**: o `scripts\docker-build.cmd` passa `R2_PUBLIC_URL`/`R2_ACCOUNT_ID` a partir de `%R2_PUBLIC_URL%`/`%R2_ACCOUNT_ID%` do ambiente. Os valores ficam no `.env` (NÃO no `.env.local`): exporte-os do `.env` antes de rodar o script. Sem eles o build passa, mas a imagem sobe sem o host do R2 na CSP e no `images.remotePatterns` — o site e o portal ficam sem as fotos dos produtos. Conferência rápida: `curl -sI http://localhost:3000/pt/produtos` tem que trazer `r2.dev` no `img-src`.
 
 ## Rotas Novas (Spec 001 — 2026-09-30)
 - `/{locale}/orcamento` — lista de orçamento multi-produto (ex-carrinho); `/{locale}/carrinho` redireciona
