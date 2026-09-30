@@ -62,10 +62,10 @@ Detalhes no decisionLog (três entradas de 2026-09-30: contas, aviso, área de a
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch: `feat/porta-mais-site` — 5ª rodada commitada: `c632d6a` (spec 002), `4a5ab10` (feature: contas,
-  aviso, área de atuação, correções) e o commit de documentação — ainda SEM push (3 commits à frente do
-  remoto). A 4ª rodada (`852a916` + `283bc3b`) e as anteriores já estão no remoto. Merge em `main` pendente.
-- Testes: 1744 em 75 arquivos (+84 sobre os 1660 da 4ª rodada; 12 arquivos novos — ver progress.md).
+- Branch: `feat/porta-mais-site` — a 5ª rodada já está no remoto. Depois dela, SEM push: `1f94551` (catálogo
+  online + logo em todos os slides), `af8403e` (docs) e o merge da `main` (`4ae5a02`, com os 6 commits de
+  produção). A branch contém a `main` inteira: levá-la para a `main` agora é fast-forward.
+- Testes: 1749 em 76 arquivos (+5 depois da 5ª rodada: logo do hero e destino do catálogo).
 - Build de produção verde; lint 0 erros (6 avisos antigos em `site-settings.ts`).
 - Banco local: migrations 0014 e 0015 aplicadas (journal com 16, 0000–0015).
 - Container local reconstruído com o código desta rodada e conferido (ver progress.md).
@@ -105,6 +105,6 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
   (aviso de lead; o SMTP das contas é outro canal).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
 - Bucket R2 separado para conteúdo privado (ver progress.md, Riscos).
-- **Push + merge `feat/porta-mais-site` → `main`** (5ª rodada já commitada).
+- **Push + levar `feat/porta-mais-site` para a `main`** (a branch já contém a `main`: fast-forward).
 - **Seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local).
 - Publicar o site em produção (main está ~70+ commits atrás).
