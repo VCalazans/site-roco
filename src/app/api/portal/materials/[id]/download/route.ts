@@ -44,9 +44,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // de entrar, para a biblioteca de materiais.
     const cookieLocale = request.cookies.get("NEXT_LOCALE")?.value;
     const locale = (locales as readonly string[]).includes(cookieLocale ?? "") ? cookieLocale : defaultLocale;
-    const loginUrl = new URL(`/${locale}/portal/login`, request.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", `/${locale}/portal/materiais`);
-    return NextResponse.redirect(loginUrl, { status: 303, headers: NO_STORE });
+    // Location RELATIVA de propósito: no servidor standalone (imagem Docker)
+    // `request.nextUrl.origin` é o host de bind (`http://0.0.0.0:3000`), e um
+    // redirect absoluto montado com ele mandava o usuário para um endereço
+    // quebrado. O navegador resolve a relativa contra o host que ele usou.
+    const callbackUrl = encodeURIComponent(`/${locale}/portal/materiais`);
+    return new NextResponse(null, {
+      status: 303,
+      headers: { ...NO_STORE, Location: `/${locale}/portal/login?callbackUrl=${callbackUrl}` },
+    });
   }
 
   if (!hasPermission(session, "materials", "read")) {

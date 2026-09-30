@@ -90,3 +90,4 @@ Detalhes: @memory-bank/systemPatterns.md
 - `src/proxy.ts` precisa ficar em `src/` (ao lado de `app/`): na raiz do repo ele compila mas NUNCA roda.
 - Permissão nova de módulo: seed E migration idempotente (ex.: `drizzle/0011_*`) — o seed não roda no boot.
 - O header do site vive no layout `(site)` (não remonta entre páginas); páginas não renderizam `SiteHeader`.
+- Route Handler que redireciona para o próprio site: `Location` relativa — no standalone (Docker) `request.nextUrl.origin` vira `http://0.0.0.0:3000`.

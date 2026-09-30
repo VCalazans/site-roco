@@ -5,7 +5,7 @@ Revisão pós-entrega da spec 001: **7 itens implementados e validados localment
 produção `next build` verde + navegador). **Commitado e enviado** na branch
 `feat/porta-mais-site` (a pedido do stakeholder): `d459363` (deps), `add519a` (entrega da
 spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. Container
-`site-roco` parado (imagem anterior; rebuild da imagem Docker pendente por falta de memória).
+`site-roco` RODANDO com a imagem nova (Next 16.3.7, reconstruída e conferida no fim da sessão).
 
 **Mudanças (a–g)**:
 - Embalagens: todas aparecem (sem padrão); descrição gerada
@@ -47,7 +47,8 @@ spec 001 + revisão) e o commit de documentação. Merge em `main` NÃO feito. C
 - Branch: `feat/porta-mais-site` — tudo commitado e enviado ao remoto; sem merge em `main`
 - Migrations: `0010_product_flags.sql` (57 produtos migrados de `top` para `best_seller`) e
   `0011_ensure_portal_permissions.sql` aplicadas no banco local (journal com 12 linhas)
-- Container local: parado (imagem é ainda a anterior às últimas correções de segurança)
+- Container local: rodando com a imagem reconstruída em 2026-09-30 (migrations 0000–0011; smoke: home, produtos,
+  orçamento, login do portal 200; `/carrinho` 308; download sem sessão → 303 relativo para o login)
 - Dados de teste: revertidos (0 destaques, sem layout salvo, sem contas QA; "Teste Spec 001 Orçamento" mantida como exemplo)
 
 ## RD Station — VALIDADO em 2026-08-31
@@ -68,7 +69,5 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
   (hoje `email_status = "not_configured"` em todo lead).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
 - merge `feat/porta-mais-site` → `main` (a branch já está no remoto)
-- reconstruir a imagem Docker local (`scripts\docker-build.cmd` + `docker compose up -d --no-build web`)
-  quando houver memória livre — a atual é anterior à spec 001
 - seed em produção: `npm run db:seed` com `DATABASE_URL` de produção
 - Publicar o site em produção (main está ~70+ commits atrás)

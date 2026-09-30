@@ -302,7 +302,7 @@
 - [x] Next 16.3.7 + sharp 0.35.5 (CVEs: GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36, GHSA-rgj7-g3m4-5g8c)
 - [x] Tracking RD Station desligado em builds Docker locais (ARG + `docker-compose.yml`)
 - [x] Validação no navegador: site + portal com 3 perfis de teste (admin, `sales_manager`, só-read); dados de teste revertidos
-- [ ] **PENDENTE**: reconstruir a imagem Docker local (o `next build` final passou; a imagem não foi refeita por falta de memória na máquina)
+- [x] Imagem Docker local reconstruída (Next 16.3.7) e container no ar; o smoke no container achou e corrigiu o redirect absoluto `0.0.0.0` da rota de download (agora `Location` relativa)
 - [x] Upload REAL de imagem da home contra o R2 — assinatura de tipo/tamanho aceita, PUT adulterado recusado (2026-09-30)
 - [x] RF07 conferido: com 0 destaques a vitrine mostra 8 campeões com troféu (2026-09-30)
 - [x] Permissões `home_content:*`, `leads:read` e `materials:read` do representante chegam pela migration 0011 no boot (o seed continua válido)

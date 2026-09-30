@@ -173,6 +173,9 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
 - A página aponta para uma rota autenticada (`GET /api/portal/materials/[id]/download`) que confere
   sessão e permissão no clique e redireciona (303) para uma URL do R2 de 60 s com
   `Content-Disposition` seguro (`src/server/lib/content-disposition.ts`).
+- Redirect para dentro do próprio site em Route Handler usa `Location` RELATIVA: no servidor
+  standalone (Docker) `request.nextUrl.origin` é o host de bind (`http://0.0.0.0:3000`), e um
+  redirect absoluto montado com ele quebra. (No middleware `request.url` chega com o host certo.)
 
 ### Embalagens sem "padrão"
 - Não existe embalagem "padrão": todas as cadastradas aparecem, sempre na ordem de `sortPackagings`

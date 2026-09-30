@@ -11,7 +11,7 @@
 |-------|-------|
 | ID | 001 |
 | Slug | `site-v2-marca-vitrine-painel` |
-| Status | Implementada e validada localmente (build de produção Next 16.3.7 verde; imagem Docker ainda não reconstruída — ver "Resultado da validação") |
+| Status | Implementada, validada localmente e commitada (branch `feat/porta-mais-site`; imagem Docker reconstruída) |
 | Criada em | 2026-09-29 |
 | Atualizada em | 2026-09-30 |
 | Responsável | Victor Calazans (stakeholder) · implementação: Claude Code |
@@ -372,8 +372,7 @@ container local · **[http]** curl/HTML servido · **[db]** consulta no Postgres
 - [x] (RNF02) `homeContent.update` exige `home_content:update`; chave fora de `site/home/`
       é recusada pelo schema; imagem nova conferida por HEAD (tipo, tamanho, extensão). [rev][unit]
 - [x] (RNF05) Lint 0 erros, 1571 testes verdes e `next build` de produção verde com
-      Next 16.3.7 e todas as correções [unit][http]. A IMAGEM Docker não foi reconstruída
-      (memória da máquina) — o container local `site-roco` segue parado com a imagem antiga.
+      Next 16.3.7 e todas as correções [unit][http]; imagem Docker reconstruída e conferida no container.
 
 ### Revisão pós-entrega (2026-09-30, pedido do stakeholder)
 
