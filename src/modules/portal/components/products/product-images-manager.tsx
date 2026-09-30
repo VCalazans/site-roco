@@ -46,6 +46,8 @@ type ProductImagesManagerProps = {
   canUpload: boolean;
   canDelete: boolean;
   onImagesChanged: () => void;
+  /** O diálogo do produto já abre a seção com o título "Imagens": evita o cabeçalho duplicado. */
+  hideTitle?: boolean;
 };
 
 /**
@@ -65,6 +67,7 @@ export function ProductImagesManager({
   canUpload,
   canDelete,
   onImagesChanged,
+  hideTitle = false,
 }: ProductImagesManagerProps) {
   const trpc = useTRPC();
   const [pending, setPending] = useState<PendingImage[]>([]);
@@ -149,7 +152,7 @@ export function ProductImagesManager({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="subtitle1">{dictionary.title}</Typography>
+      {hideTitle ? null : <Typography variant="subtitle1">{dictionary.title}</Typography>}
 
       {canUpload ? (
         <Paper
@@ -186,6 +189,11 @@ export function ProductImagesManager({
                 label={dictionary.altText}
                 value={item.alt}
                 onChange={(event) => updatePendingAlt(item.key, event.target.value)}
+                // O gerenciador vive DENTRO do <form> do diálogo do produto: sem
+                // isto, o Enter ao descrever a foto salvaria o produto inteiro.
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
               />
               <IconButton
                 size="small"

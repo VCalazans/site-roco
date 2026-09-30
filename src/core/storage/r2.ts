@@ -54,14 +54,30 @@ function getBucket(): string {
 export async function getPresignedUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 300
+  expiresIn = 300,
+  options: {
+    /**
+     * Tamanho declarado pelo cliente. Informado, a URL passa a ASSINAR
+     * `content-type` e `content-length`: um PUT com outro tipo ou outro
+     * tamanho falha na assinatura, em vez de gravar bytes arbitrários no
+     * bucket público (o presigner deixa `content-type` fora da assinatura por
+     * padrão). O navegador já manda os dois iguais aos declarados
+     * (`uploadFileDirect`). Opt-in: fluxos antigos seguem como estavam.
+     */
+    sizeBytes?: number;
+  } = {}
 ): Promise<string> {
+  const bindSize = options.sizeBytes !== undefined;
   const command = new PutObjectCommand({
     Bucket: getBucket(),
     Key: key,
     ContentType: contentType,
+    ...(bindSize ? { ContentLength: options.sizeBytes } : {}),
   });
-  return getSignedUrl(getClient(), command, { expiresIn });
+  return getSignedUrl(getClient(), command, {
+    expiresIn,
+    ...(bindSize ? { signableHeaders: new Set(["content-type", "content-length"]) } : {}),
+  });
 }
 
 /** URL pública (via `R2_PUBLIC_URL`, ex.: domínio custom ou r2.dev) do objeto. */
@@ -77,8 +93,19 @@ export function getPublicUrl(key: string): string {
  * URL presignada para GET (leitura temporária) — usada para objetos privados
  * (ex.: documentos de representantes), que não têm `R2_PUBLIC_URL`.
  */
-export async function getPresignedDownloadUrl(key: string, expiresIn = 300): Promise<string> {
-  const command = new GetObjectCommand({ Bucket: getBucket(), Key: key });
+export async function getPresignedDownloadUrl(
+  key: string,
+  expiresIn = 300,
+  options: {
+    /** Sobrescreve o `Content-Disposition` da resposta (`inline`/`attachment; filename=…`). */
+    contentDisposition?: string;
+  } = {}
+): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: getBucket(),
+    Key: key,
+    ...(options.contentDisposition ? { ResponseContentDisposition: options.contentDisposition } : {}),
+  });
   return getSignedUrl(getClient(), command, { expiresIn });
 }
 

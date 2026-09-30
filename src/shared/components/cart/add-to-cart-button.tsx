@@ -1,52 +1,57 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ClipboardCheck, ClipboardPlus } from "lucide-react";
 import { cn } from "@/core/lib/utils";
-import { addItem } from "@/shared/lib/cart-store";
+import { quotePath } from "@/core/config/site";
+import { addItem, useCartItems } from "@/shared/lib/cart-store";
+import { interpolate } from "@/shared/lib/interpolate";
 import type { Locale } from "@/i18n/config";
 
-/** Mesmo shape de `dictionary.cart.addButton` — reaproveitado direto, sem
- *  remapear chaves. */
-export type AddToCartLabels = { label: string; added: string };
+/** Mesmo shape de `dictionary.cart.addButton` — reaproveitado direto. */
+export type AddToCartLabels = {
+  label: string;
+  added: string;
+  /** "No orçamento ({count})" — `{count}` = unidades já na lista. */
+  inQuote: string;
+  viewQuote: string;
+};
 
 type AddToCartButtonProps = {
   slug: string;
   name: string;
   sku: string;
-  /** Recebido para manter o contrato pedido pela feature; o item já guarda
-   *  nome/SKU no idioma resolvido pelo componente que renderiza — nada aqui
-   *  varia por locale hoje (fica disponível para uso futuro, ex. telemetria,
-   *  sem precisar mudar a assinatura). */
+  /** Capa do produto — miniatura na página "Meu orçamento". */
+  image?: string;
   locale: Locale;
   labels: AddToCartLabels;
   /**
-   * `"card"` (padrão): pílula pequena — cabe no rodapé apertado do
-   * `ProductCard` (ícone sempre visível, rótulo só a partir de `sm`).
-   * `"detail"`: pílula `.btn-neon` inteira, para ficar ao lado do CTA de
-   * orçamento no detalhe do produto.
+   * `"card"` (padrão): botão de largura total no rodapé do `ProductCard`.
+   * `"detail"`: botão `.btn-neon` completo no detalhe do produto, com atalho
+   * "Ver orçamento" quando o item já está na lista.
    */
   variant?: "card" | "detail";
   className?: string;
 };
 
-const FEEDBACK_MS = 1500;
+const FEEDBACK_MS = 1600;
 
 /**
- * Botão "adicionar ao carrinho" — Client Component pequeno e isolado (regra
- * do projeto: interatividade nunca sobe para a árvore inteira). Usado dentro
- * de `ProductCard` (Server Component) e no detalhe do produto, ao lado de
- * `QuoteCtaButton`.
+ * "Adicionar ao orçamento" (antes "Adicionar ao carrinho" — spec 001, RF22/
+ * RF24). Client Component pequeno e isolado; usado dentro do `ProductCard`
+ * (Server Component) e no detalhe do produto.
+ *
+ * Três estados visíveis: normal; "Adicionado ao orçamento!" logo após o
+ * clique; e "No orçamento (n)" quando o produto já está na lista — a pessoa
+ * vê de relance o que já separou, sem abrir a página do orçamento. Um novo
+ * clique continua SOMANDO uma unidade (o ajuste fino fica na página).
  */
-export function AddToCartButton({
-  slug,
-  name,
-  sku,
-  labels,
-  variant = "card",
-  className,
-}: AddToCartButtonProps) {
-  const [added, setAdded] = useState(false);
+export function AddToCartButton({ slug, name, sku, image, locale, labels, variant = "card", className }: AddToCartButtonProps) {
+  const items = useCartItems();
+  const quantityInQuote = items.find((item) => item.slug === slug)?.quantity ?? 0;
+
+  const [justAdded, setJustAdded] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -57,50 +62,63 @@ export function AddToCartButton({
   );
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
-    // `ProductCard` inteiro é clicável (um `<Link>` para o detalhe); este
-    // botão fica por CIMA da imagem, como irmão do link (nunca aninhado nele
-    // — botão dentro de âncora é HTML inválido e dispararia os dois cliques).
-    // `stopPropagation` é defensivo: impede que um clique aqui borbulhe para
-    // qualquer handler de clique de um ancestral.
+    // O card inteiro é um `<Link>` IRMÃO deste botão (nunca aninhado — botão
+    // dentro de âncora é HTML inválido). `stopPropagation` é defensivo.
     event.preventDefault();
     event.stopPropagation();
 
-    addItem({ slug, name, sku }, 1);
+    addItem({ slug, name, sku, image }, 1);
 
-    setAdded(true);
+    setJustAdded(true);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => setAdded(false), FEEDBACK_MS);
+    timeoutRef.current = setTimeout(() => setJustAdded(false), FEEDBACK_MS);
   }
 
-  const label = added ? labels.added : labels.label;
+  const inQuote = quantityInQuote > 0;
+  const label = justAdded
+    ? labels.added
+    : inQuote
+      ? interpolate(labels.inQuote, { count: quantityInQuote })
+      : labels.label;
+  const Icon = inQuote || justAdded ? ClipboardCheck : ClipboardPlus;
 
   if (variant === "detail") {
     return (
-      <button type="button" onClick={handleClick} className={cn("btn-neon w-fit", className)}>
-        <Plus className="size-4" aria-hidden />
-        <span aria-live="polite">{label}</span>
-      </button>
+      <div className={cn("flex flex-wrap items-center gap-3", className)}>
+        <button type="button" onClick={handleClick} className="btn-neon w-fit">
+          <Icon className="size-4" aria-hidden />
+          <span aria-live="polite">{label}</span>
+        </button>
+        {inQuote ? (
+          <Link
+            href={quotePath(locale)}
+            className="inline-flex items-center gap-1.5 text-meta font-semibold text-neon-amber-bright underline-offset-4 transition hover:underline"
+          >
+            {labels.viewQuote}
+            <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        ) : null}
+      </div>
     );
   }
 
+  // Variante "card": botão de rodapé do card, largura total. `min-h` fixa a
+  // altura para o rótulo que quebra em 2 linhas no card estreito do mobile
+  // não desalinhar os cards de uma mesma fileira.
   return (
     <button
       type="button"
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-neon-cyan/40 bg-neon-cyan/10 px-2 py-1 text-micro font-semibold text-neon-cyan-bright shadow-[0_0_18px_rgba(53,217,255,0.25)] backdrop-blur-sm transition hover:border-neon-cyan hover:bg-neon-cyan/20",
+        "flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-center text-micro font-semibold leading-tight transition",
+        inQuote || justAdded
+          ? "border-neon-amber/60 bg-neon-amber/10 text-neon-amber-bright shadow-[0_0_18px_-6px_rgba(255,180,84,0.5)] hover:border-neon-amber hover:bg-neon-amber/15"
+          : "border-neon-cyan/35 bg-neon-cyan/[0.06] text-neon-cyan-bright hover:border-neon-cyan hover:bg-neon-cyan/15 hover:shadow-[0_0_18px_-6px_rgba(53,217,255,0.5)]",
         className
       )}
     >
-      <Plus className="size-3.5 shrink-0" aria-hidden />
-      {/* `sr-only sm:not-sr-only`: UM único nó de texto, sempre no cálculo do
-          nome acessível (nunca fica sem nome no recorte "só ícone" abaixo de
-          `sm`) e visível a partir de `sm` — evita duplicar o rótulo em dois
-          nós (um sempre-presente + um só-visível), que faria o leitor de
-          tela anunciar o texto duas vezes a partir de `sm`. */}
-      <span aria-live="polite" className="sr-only sm:not-sr-only">
-        {label}
-      </span>
+      <Icon className="size-3.5 shrink-0" aria-hidden />
+      <span aria-live="polite">{label}</span>
     </button>
   );
 }

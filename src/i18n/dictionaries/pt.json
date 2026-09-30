@@ -37,7 +37,16 @@
     "language": {
       "action": "Mudar idioma"
     },
-    "portalLogin": "Entrar no Portal ROCO"
+    "portalLogin": "Entrar no Portal ROCO",
+    "search": {
+      "open": "Buscar produtos",
+      "label": "Buscar produtos",
+      "placeholder": "Buscar por nome ou código…",
+      "submit": "Buscar",
+      "close": "Fechar busca"
+    },
+    "skipToContent": "Pular para o conteúdo",
+    "backToTop": "Voltar ao topo"
   },
   "home": {
     "brand": "ROCO",
@@ -54,7 +63,27 @@
         "href": "#catalogo"
       },
       "sceneAlt": "Ambiente futurista da ROCO com iluminação neon ciano e âmbar",
-      "scrollCue": "Rolar para o conteúdo"
+      "scrollCue": "Rolar para o conteúdo",
+      "carousel": {
+        "prev": "Slide anterior",
+        "next": "Próximo slide",
+        "goTo": "Ir para o slide {index} de {total}",
+        "slideLabel": "{index} de {total}",
+        "pause": "Pausar apresentação",
+        "play": "Retomar apresentação",
+        "roleDescription": "carrossel",
+        "slideRoleDescription": "slide"
+      }
+    },
+    "facade": {
+      "eyebrow": "Nossa estrutura",
+      "headline": "Onde tudo se conecta",
+      "text": "Da matriz em Blumenau à unidade fabril em Gaspar, em Santa Catarina: estrutura própria para desenvolver, produzir e entregar soluções hidrossanitárias e hidráulicas para todo o Brasil.",
+      "imageAlt": "Vista aérea de uma unidade da ROCO, com o galpão identificado pela marca",
+      "cta": {
+        "label": "Conheça a ROCO",
+        "href": "#sobre"
+      }
     },
     "about": {
       "eyebrow": "ROCO",
@@ -135,16 +164,24 @@
           "image": "/images/home/categorias/flexiveis.jpg",
           "alt": ""
         }
-      ]
+      ],
+      "carousel": {
+        "prev": "Categorias anteriores",
+        "next": "Próximas categorias"
+      }
     },
     "featured": {
-      "eyebrow": "Destaque",
-      "headline": "Produtos em Evidência",
-      "description": "Confira uma seleção de produtos de destaque no nosso portfólio. Navegue pelos destaques e descubra soluções alinhadas às suas necessidades.",
+      "eyebrow": "Destaques",
+      "headline": "Produtos em destaque",
+      "description": "Uma seleção de produtos ROCO escolhida pela nossa equipe. Use as setas para navegar e encontre a solução certa para o seu projeto.",
       "emptyState": "Explore nossa linha completa em Produtos.",
       "cta": {
         "label": "Ver Catálogo Completo",
         "href": "/produtos"
+      },
+      "carousel": {
+        "prev": "Ver produtos anteriores",
+        "next": "Ver próximos produtos"
       }
     },
     "portalCta": {
@@ -265,6 +302,10 @@
           {
             "label": "Baixar catálogo em PDF",
             "href": "#catalogo"
+          },
+          {
+            "label": "Meu orçamento",
+            "href": "#orcamento"
           }
         ]
       },
@@ -370,7 +411,7 @@
     "listing": {
       "headline": "Produtos",
       "description": "Explore nossa linha completa de soluções hidrossanitárias e hidráulicas.",
-      "searchPlaceholder": "Buscar produto por nome ou código (SKU)...",
+      "searchPlaceholder": "Buscar por nome ou código…",
       "categoryAllLabel": "Todas as categorias",
       "emptyState": "Nenhum produto encontrado. Ajuste os filtros e tente novamente.",
       "loadError": "Não foi possível carregar os produtos. Verifique sua conexão e tente novamente.",
@@ -379,12 +420,30 @@
       "pagination": {
         "previous": "Anterior",
         "next": "Próximo",
-        "pageLabel": "Página {page} de {totalPages}"
-      }
+        "pageLabel": "Página {page} de {totalPages}",
+        "label": "Paginação",
+        "goToPage": "Ir para a página {page}"
+      },
+      "filtersTitle": "Filtrar produtos",
+      "searchLabel": "Buscar no catálogo",
+      "categoriesLabel": "Categorias",
+      "allProducts": "Todos os produtos",
+      "bestSellerFilter": "Somente campeões de vendas",
+      "clearFilters": "Limpar filtros",
+      "clearSearch": "Limpar busca",
+      "openFilters": "Filtros",
+      "closeFilters": "Fechar filtros",
+      "showResults": "Ver {count} produtos",
+      "activeFilters": "Filtros ativos",
+      "removeFilter": "Remover filtro: {label}",
+      "searchChip": "Busca: “{term}”",
+      "resultsRange": "Mostrando {from}–{to} de {total} produtos"
     },
     "card": {
       "viewDetails": "Ver detalhes",
-      "codeLabel": "Cód."
+      "codeLabel": "Cód.",
+      "bestSeller": "Campeão de vendas",
+      "bestSellerShort": "Campeão"
     },
     "detail": {
       "breadcrumbHome": "Home",
@@ -392,15 +451,30 @@
       "codeLabel": "Código",
       "descriptionHeadline": "Características",
       "packagingsHeadline": "Embalagens Disponíveis",
+      "packagingsNote": "Este produto é vendido em todas as embalagens abaixo.",
       "badgesHeadline": "Destaques",
       "relatedHeadline": "Produtos Relacionados",
       "notFoundTitle": "Produto não encontrado",
       "notFoundDescription": "O produto que você está procurando não existe ou foi removido. Volte ao catálogo para explorar outras opções.",
       "backToListing": "Voltar ao catálogo",
-      "quoteCta": "Solicitar orçamento",
+      "quoteCta": "Solicitar orçamento agora",
       "noPackagings": "Informações de embalagem não disponíveis",
       "noBadges": "Nenhum destaque associado",
-      "noRelated": "Nenhum produto relacionado encontrado"
+      "noRelated": "Nenhum produto relacionado encontrado",
+      "breadcrumbLabel": "Você está em",
+      "back": "Voltar aos produtos",
+      "previousProduct": "Produto anterior",
+      "nextProduct": "Próximo produto",
+      "adjacentLabel": "Navegar entre produtos da categoria",
+      "gallery": {
+        "label": "Galeria de imagens do produto",
+        "prev": "Imagem anterior",
+        "next": "Próxima imagem",
+        "thumb": "Ver imagem {index} de {total}"
+      },
+      "bestSeller": "Campeão de vendas",
+      "bestSellerNote": "Um dos produtos mais vendidos da ROCO.",
+      "quoteHint": "Adicione este e outros produtos ao seu orçamento e envie tudo de uma vez — ou peça o orçamento só deste item agora."
     },
     "badges": {
       "nacional": "Fabricação Nacional",
@@ -414,6 +488,19 @@
       "blister": "Blister",
       "caixa": "Caixa",
       "saco_plastico": "Saco Plástico"
+    },
+    "packagingInfo": {
+      "types": {
+        "peca": "Peça",
+        "blister": "Blister",
+        "saco_plastico": "Saco plástico",
+        "caixa": "Caixa"
+      },
+      "singlePieceTitle": "Peça avulsa",
+      "singlePiece": "Vendida por unidade",
+      "unitsOne": "{count} unidade por embalagem",
+      "unitsOther": "{count} unidades por embalagem",
+      "ean": "EAN"
     }
   },
   "portal": {
@@ -430,15 +517,396 @@
       "registerPrompt": "Ainda não tem acesso?",
       "registerLink": "Obtenha seu acesso ao Portal ROCO"
     },
+    "homeContent": {
+      "title": "Página inicial",
+      "subtitle": "Edite os textos, as imagens, os links e a ordem das seções da página inicial do site. Campo em branco usa o texto padrão.",
+      "viewSite": "Ver site",
+      "newTab": "abre em uma nova aba",
+      "readOnly": "Você pode consultar o conteúdo da página inicial, mas não tem permissão para alterá-lo.",
+      "loadError": "Não foi possível carregar o conteúdo da página inicial.",
+      "retry": "Tentar novamente",
+      "navigator": {
+        "title": "Seções da página",
+        "description": "Escolha uma seção para editar. Use as setas para mudar a ordem e o interruptor para exibir ou ocultar cada seção no site.",
+        "heroName": "Hero (vídeos)",
+        "heroDescription": "Slides de vídeo da primeira dobra. Ficam sempre no topo da página.",
+        "heroAction": "Gerenciar slides",
+        "heroLocked": "Você não tem permissão para gerenciar os slides.",
+        "pinned": "Fixo no topo",
+        "showOnSite": "Exibir no site",
+        "hidden": "Oculta",
+        "moveUpAria": "Mover a seção {section} para cima",
+        "moveDownAria": "Mover a seção {section} para baixo",
+        "customized": "Personalizada",
+        "usingDefault": "Padrão",
+        "unsaved": "Não salva",
+        "saveLayout": "Salvar ordem e visibilidade",
+        "savingLayout": "Salvando…",
+        "discardLayout": "Descartar",
+        "layoutUnsaved": "A ordem ou a visibilidade das seções mudou. Salve para publicar no site.",
+        "layoutSaved": "Ordem e visibilidade salvas."
+      },
+      "sections": {
+        "facade": {
+          "name": "Fachada",
+          "description": "Faixa logo abaixo do vídeo, com a foto da fábrica, um título curto e um botão."
+        },
+        "about": {
+          "name": "Institucional",
+          "description": "Apresentação da ROCO: textos, destaques e o botão para os produtos."
+        },
+        "categories": {
+          "name": "Categorias",
+          "description": "Cards das famílias de produtos, cada um com imagem e link."
+        },
+        "featured": {
+          "name": "Produtos em destaque",
+          "description": "Textos da vitrine e escolha dos produtos que aparecem nela."
+        },
+        "portalCta": {
+          "name": "Chamada do Portal ROCO",
+          "description": "Convite para representantes se cadastrarem na força de vendas."
+        }
+      },
+      "editor": {
+        "save": "Salvar seção",
+        "saving": "Salvando…",
+        "discard": "Descartar alterações",
+        "reset": "Restaurar padrão",
+        "statusDefault": "Usando o padrão",
+        "statusCustom": "Personalizada",
+        "statusUnsaved": "Alterações não salvas",
+        "lastUpdated": "Última alteração em {date}",
+        "defaultsNote": "Esta seção ainda usa o conteúdo padrão do site. O texto em cinza é o que aparece hoje; escreva por cima para personalizar.",
+        "saved": "Seção salva. A mudança aparece no site em instantes.",
+        "resetDone": "Seção restaurada para o padrão.",
+        "fixErrors": "Corrija os campos destacados antes de salvar.",
+        "saveFailed": "Não foi possível salvar a seção. Tente novamente.",
+        "forbidden": "Você não tem permissão para alterar a página inicial.",
+        "imageMissing": "Uma das imagens não foi encontrada no armazenamento. Envie o arquivo novamente.",
+        "resetFailed": "Não foi possível restaurar o padrão. Tente novamente.",
+        "resetDialog": {
+          "title": "Restaurar o padrão desta seção?",
+          "message": "Os textos, links e imagens personalizados desta seção serão descartados e o site voltará a usar o conteúdo padrão. Esta ação não pode ser desfeita.",
+          "confirm": "Restaurar padrão",
+          "cancel": "Cancelar"
+        }
+      },
+      "fields": {
+        "languagePt": "PT",
+        "languageEn": "EN",
+        "groupImage": "Imagem",
+        "groupTexts": "Textos",
+        "groupButton": "Botão",
+        "localizedLabel": "{label} ({language})",
+        "emptyUsesDefault": "Vazio = usa o texto padrão",
+        "counter": "{count}/{max}",
+        "eyebrow": "Chamada acima do título",
+        "headline": "Título",
+        "description": "Descrição",
+        "text": "Texto",
+        "paragraphs": "Parágrafos",
+        "emptyState": "Mensagem quando não há produtos",
+        "ctaLabel": "Texto do botão",
+        "ctaHref": "Link do botão",
+        "showCta": "Exibir o botão",
+        "imageAlt": "Descrição da imagem (texto alternativo)",
+        "itemLabel": "Título",
+        "itemValue": "Descrição",
+        "itemHref": "Link",
+        "hrefHelper": "O link aceita um caminho do site (/produtos), uma âncora (#catalogo) ou um endereço completo (https://…).",
+        "hrefUsesDefault": "Vazio = usa o link padrão ({href})",
+        "paragraphsHelper": "Separe os parágrafos com uma linha em branco.",
+        "imageAltHelper": "Lida por leitores de tela e exibida se a imagem não carregar."
+      },
+      "image": {
+        "defaultBadge": "Imagem padrão",
+        "customBadge": "Imagem personalizada",
+        "useDefault": "Usar a imagem padrão",
+        "previewUnavailable": "Imagem enviada. A pré-visualização não está disponível neste ambiente.",
+        "dropzone": "Arraste uma imagem aqui ou clique para escolher",
+        "maxSize": "Tamanho máximo: {size}",
+        "accepted": "Formatos aceitos: {formats}",
+        "errorType": "Formato não aceito. Use {formats}.",
+        "errorSize": "Imagem acima do limite de {size}.",
+        "uploadError": "Não foi possível enviar a imagem. Tente novamente.",
+        "remove": "Limpar seleção",
+        "replace": "Trocar imagem",
+        "uploading": "Enviando imagem…"
+      },
+      "facade": {
+        "imageHelper": "Use uma foto horizontal e nítida (recomendado: 1600 px de largura ou mais).",
+        "showCtaHelper": "Desligado, a faixa aparece só com imagem e texto.",
+        "ctaTargetHidden": "O botão leva à seção Institucional, que está oculta. Enquanto ela estiver oculta, o botão não aparece no site — mostre a seção ou informe outro link."
+      },
+      "about": {
+        "showCatalogStats": "Exibir o total de produtos e categorias",
+        "showCatalogStatsHelper": "Mostra, entre os destaques, um cartão automático com a quantidade real de produtos e categorias do catálogo.",
+        "highlights": {
+          "title": "Destaques",
+          "description": "Cartões curtos ao lado do texto (por exemplo, “Desde 2014”). Cada um tem um título e uma frase de apoio.",
+          "usingDefault": "Usando os destaques padrão do site. Personalize para editar, incluir ou remover itens.",
+          "customize": "Personalizar destaques",
+          "useDefaultList": "Voltar aos destaques padrão",
+          "add": "Adicionar destaque",
+          "itemTitle": "Destaque {position}",
+          "removeAria": "Remover o destaque {position}",
+          "moveUpAria": "Mover o destaque {position} para cima",
+          "moveDownAria": "Mover o destaque {position} para baixo",
+          "maxReached": "Limite de {max} destaques atingido.",
+          "minOne": "A lista precisa ter ao menos um destaque. Para descartar os seus, use “Voltar aos destaques padrão”."
+        }
+      },
+      "categories": {
+        "items": {
+          "title": "Cards de categorias",
+          "description": "Cada card leva a uma parte do catálogo. Você pode trocar a imagem, o título e o link de cada um.",
+          "usingDefault": "Usando os cards padrão do site. Personalize para trocar imagens e links, incluir ou remover cards.",
+          "customize": "Personalizar cards",
+          "useDefaultList": "Voltar aos cards padrão",
+          "add": "Adicionar card",
+          "newItem": "Novo card",
+          "itemTitle": "{position}. {label}",
+          "expandAria": "Mostrar ou ocultar os campos de {name}",
+          "removeAria": "Remover o card {name}",
+          "moveUpAria": "Mover o card {name} para cima",
+          "moveDownAria": "Mover o card {name} para baixo",
+          "maxReached": "Limite de {max} cards atingido.",
+          "minOne": "A lista precisa ter ao menos um card. Para descartar os seus, use “Voltar aos cards padrão”.",
+          "altHelper": "Deixe em branco se a imagem for só decorativa."
+        }
+      },
+      "featured": {
+        "limit": "Produtos exibidos na página inicial",
+        "limitHelper": "Escolha de {min} a {max}. Se a vitrine tiver mais produtos, só os primeiros aparecem.",
+        "products": {
+          "title": "Produtos na vitrine",
+          "description": "Defina quais produtos aparecem em “Produtos em destaque” e em que ordem. O site só exibe produtos publicados.",
+          "immediate": "As mudanças nesta lista valem na hora, sem precisar salvar a seção.",
+          "fallback": "Sem produtos em destaque, a vitrine mostra os campeões de vendas e, na falta deles, os produtos mais recentes.",
+          "empty": "Nenhum produto em destaque. Adicione produtos abaixo para montar a vitrine.",
+          "addLabel": "Adicionar produto à vitrine",
+          "addPlaceholder": "Busque por nome ou código (SKU)",
+          "sku": "SKU {sku}",
+          "typeMore": "Digite ao menos {count} caracteres para buscar.",
+          "noOptions": "Nenhum produto encontrado.",
+          "loading": "Buscando…",
+          "inShowcase": "Já na vitrine",
+          "notPublished": "Não publicado",
+          "bestSeller": "Campeão de vendas",
+          "overLimit": "Acima do limite",
+          "overLimitHelp": "Não aparece na página inicial: só os {limit} primeiros produtos publicados são exibidos.",
+          "removeAria": "Remover {name} da vitrine",
+          "moveUpAria": "Mover {name} para cima",
+          "moveDownAria": "Mover {name} para baixo",
+          "added": "Produto adicionado à vitrine.",
+          "removed": "Produto removido da vitrine.",
+          "reordered": "Ordem da vitrine atualizada.",
+          "actionFailed": "Não foi possível atualizar a vitrine. Tente novamente.",
+          "loadFailed": "Não foi possível carregar os produtos da vitrine.",
+          "noPermission": "Para alterar a vitrine é preciso ter permissão de edição de produtos.",
+          "noRead": "Para gerenciar a vitrine é preciso ter permissão de consulta de produtos."
+        }
+      },
+      "errors": {
+        "tooLong": "Use no máximo {max} caracteres.",
+        "invalidHref": "Link inválido. Use /caminho, #âncora, https://… ou mailto:.",
+        "labelRequired": "Informe o título em pelo menos um idioma.",
+        "hrefRequired": "Informe o link.",
+        "imageRequired": "Escolha uma imagem.",
+        "invalid": "Valor inválido."
+      }
+    },
+    "leads": {
+      "title": "Solicitações",
+      "subtitle": "Contatos, pedidos de orçamento e downloads do catálogo recebidos pelo site.",
+      "refresh": "Atualizar",
+      "search": {
+        "label": "Buscar solicitações",
+        "placeholder": "Nome, e-mail, empresa, telefone ou produto"
+      },
+      "filters": {
+        "all": "Todas",
+        "subjectAria": "Filtrar por assunto"
+      },
+      "subjects": {
+        "call_back": "Ligamos pra você",
+        "quote": "Orçamento de produto",
+        "general": "Contato",
+        "catalog": "Catálogo",
+        "cart": "Lista de orçamento"
+      },
+      "table": {
+        "receivedAt": "Recebida em",
+        "name": "Nome",
+        "company": "Empresa",
+        "subject": "Assunto",
+        "items": "Itens",
+        "origin": "Origem",
+        "channels": "Envio",
+        "actions": "Ações",
+        "viewDetails": "Ver detalhes de {name}"
+      },
+      "items": {
+        "productsOne": "{count} produto",
+        "productsOther": "{count} produtos",
+        "unitsOne": "{count} un.",
+        "unitsOther": "{count} un.",
+        "listSummary": "{products} · {units}",
+        "sku": "SKU {sku}"
+      },
+      "origins": {
+        "home-hero": "Home — primeira dobra (hero)",
+        "home-fachada": "Home — seção da fachada",
+        "home-sobre": "Home — seção institucional",
+        "home-categorias": "Home — categorias",
+        "home-destaques": "Home — produtos em destaque",
+        "home-portal": "Home — chamada do Portal ROCO",
+        "produtos-listagem": "Listagem de produtos",
+        "produto-detalhe": "Detalhe do produto",
+        "catalogo": "Página do catálogo",
+        "menu": "Menu de navegação",
+        "rodape": "Rodapé",
+        "orcamento": "Lista de orçamento"
+      },
+      "channels": {
+        "rdStation": "RD Station",
+        "rdStationShort": "RD",
+        "email": "E-mail",
+        "tooltip": "{channel}: {status}",
+        "status": {
+          "sent": "Enviado",
+          "failed": "Falhou",
+          "pending": "Pendente",
+          "not_configured": "Não configurado",
+          "skipped": "Não enviado",
+          "unknown": "Indefinido"
+        }
+      },
+      "empty": {
+        "title": "Nenhuma solicitação por aqui ainda",
+        "description": "Quando alguém enviar o formulário de contato, pedir um orçamento ou baixar o catálogo, a solicitação aparece nesta lista.",
+        "filteredTitle": "Nenhuma solicitação encontrada",
+        "filteredDescription": "Nenhum resultado para a busca ou o assunto escolhido. Tente outros termos ou limpe os filtros.",
+        "clearFilters": "Limpar filtros"
+      },
+      "error": {
+        "title": "Não foi possível carregar as solicitações",
+        "description": "Verifique sua conexão e tente novamente.",
+        "retry": "Tentar novamente"
+      },
+      "detail": {
+        "close": "Fechar",
+        "newTab": "abre em uma nova aba",
+        "sections": {
+          "contact": "Contato",
+          "request": "Solicitação",
+          "message": "Mensagem",
+          "products": "Produtos",
+          "delivery": "Envio para os canais internos"
+        },
+        "fields": {
+          "name": "Nome",
+          "email": "E-mail",
+          "phone": "Telefone",
+          "company": "Empresa",
+          "cnpj": "CNPJ",
+          "subject": "Assunto",
+          "receivedAt": "Recebida em",
+          "origin": "Origem no site",
+          "campaign": "Campanha",
+          "language": "Idioma do visitante",
+          "consent": "Consentimento (LGPD)"
+        },
+        "languages": {
+          "pt": "Português",
+          "en": "Inglês"
+        },
+        "campaign": {
+          "source": "origem: {source}",
+          "medium": "mídia: {medium}",
+          "campaign": "campanha: {campaign}"
+        },
+        "consentGranted": "Concedido em {date}",
+        "consentMissing": "Não registrado",
+        "noMessage": "O visitante não escreveu nenhuma mensagem.",
+        "singleProduct": "Produto de interesse",
+        "itemsTable": {
+          "product": "Produto",
+          "sku": "SKU",
+          "quantity": "Qtd.",
+          "viewOnSite": "Ver no site"
+        },
+        "delivery": {
+          "description": "Resultado do envio automático desta solicitação ao RD Station e ao e-mail do time comercial. O registro fica salvo aqui de qualquer forma.",
+          "rdStation": "RD Station",
+          "email": "E-mail",
+          "reason": "Motivo: {error}",
+          "errors": {
+            "not_configured": "Envio de e-mail ainda não configurado neste ambiente.",
+            "missing_api_key": "Chave de API do RD Station ainda não configurada neste ambiente.",
+            "validation": "O RD Station recusou os dados enviados.",
+            "validation_retry_ok": "Enviado sem os campos personalizados. Confira se eles existem no RD Station.",
+            "validation_retry_failed": "O RD Station recusou os dados, mesmo sem os campos personalizados.",
+            "rate_limited": "Limite de requisições do RD Station atingido.",
+            "network": "Falha de rede ao contatar o serviço.",
+            "http": "O serviço respondeu com erro (HTTP {code}).",
+            "unknown": "Erro não identificado ({code})."
+          }
+        },
+        "actions": {
+          "replyEmail": "Responder por e-mail",
+          "whatsapp": "WhatsApp",
+          "copyEmail": "Copiar e-mail",
+          "copied": "E-mail copiado",
+          "copyFailed": "Não foi possível copiar",
+          "openWhatsapp": "Abrir no WhatsApp"
+        },
+        "replySubject": "ROCO — {subject}",
+        "replyGreeting": "Olá, {name},\n\nObrigado pelo contato com a ROCO.\n\n",
+        "whatsappGreeting": "Olá, {name}! Aqui é da equipe comercial da ROCO. Recebemos a sua solicitação e estamos entrando em contato.",
+        "error": {
+          "description": "Não foi possível carregar os detalhes desta solicitação.",
+          "notFound": "Esta solicitação não foi encontrada. Ela pode ter sido removida.",
+          "retry": "Tentar novamente"
+        }
+      }
+    },
     "shell": {
       "appName": "ROCO Portal",
+      "brandCaption": "Portal",
       "nav": {
         "dashboard": "Painel",
         "onboarding": "Cadastro",
         "products": "Produtos",
         "representatives": "Representantes",
         "welcome": "Boas-vindas",
-        "hero": "Hero da Home"
+        "hero": "Hero da Home",
+        "homeContent": "Página inicial",
+        "leads": "Solicitações"
+      },
+      "navGroups": {
+        "overview": "Visão geral",
+        "catalog": "Catálogo",
+        "relationship": "Relacionamento",
+        "site": "Site",
+        "admin": "Administração"
+      },
+      "navLabel": "Navegação do portal",
+      "skipToContent": "Ir para o conteúdo",
+      "sidebar": {
+        "collapse": "Recolher menu lateral",
+        "expand": "Expandir menu lateral"
+      },
+      "search": {
+        "label": "Buscar produtos",
+        "placeholder": "Buscar produtos",
+        "shortcut": "Ctrl K",
+        "shortcutMac": "⌘K"
+      },
+      "viewSite": {
+        "label": "Ver site",
+        "aria": "Ver site (abre em uma nova aba)"
       },
       "comingSoon": "Em desenvolvimento",
       "userMenu": {
@@ -453,8 +921,81 @@
     },
     "dashboard": {
       "title": "Painel de Controle",
-      "welcome": "Bem-vindo, {name}!",
-      "emptyState": "Nenhum dado para exibir no momento."
+      "welcome": "Olá, {name}!",
+      "subtitle": "Acompanhe o catálogo, a vitrine do site e o que precisa da sua atenção hoje.",
+      "emptyState": "Nenhum dado para exibir no momento.",
+      "partialError": "Alguns indicadores não puderam ser carregados. Atualize a página para tentar de novo.",
+      "indicatorsLabel": "Indicadores",
+      "kpis": {
+        "published": {
+          "label": "Produtos publicados",
+          "hint": "de {total} no catálogo"
+        },
+        "featured": {
+          "label": "Destaques na home",
+          "hint": "Vitrine da página inicial"
+        },
+        "bestSeller": {
+          "label": "Campeões de vendas",
+          "hint": "Produtos com selo de troféu"
+        },
+        "noPhoto": {
+          "label": "Publicados sem foto",
+          "hint": "Aparecem sem imagem no site",
+          "ok": "Todos os publicados têm foto"
+        },
+        "reviews": {
+          "label": "Cadastros para revisar",
+          "hint": "Representantes aguardando aprovação",
+          "ok": "Nenhum cadastro pendente"
+        },
+        "leads": {
+          "label": "Solicitações recebidas",
+          "hint": "Nos últimos {days} dias"
+        }
+      },
+      "quickActions": {
+        "title": "Atalhos",
+        "newProduct": {
+          "label": "Novo produto",
+          "hint": "Cadastrar um item no catálogo"
+        },
+        "editHome": {
+          "label": "Editar página inicial",
+          "hint": "Textos, imagens e seções da home"
+        },
+        "manageHero": {
+          "label": "Gerenciar hero",
+          "hint": "Slides e vídeo da primeira seção"
+        },
+        "viewSite": {
+          "label": "Ver o site",
+          "hint": "Abrir o site público em uma nova aba"
+        }
+      },
+      "recentLeads": {
+        "title": "Solicitações recentes",
+        "viewAll": "Ver todas",
+        "empty": "Nenhuma solicitação recebida ainda.",
+        "subjects": {
+          "call_back": "Ligamos pra você",
+          "quote": "Orçamento de produto",
+          "general": "Contato geral",
+          "catalog": "Catálogo",
+          "cart": "Lista de orçamento"
+        }
+      },
+      "health": {
+        "title": "Saúde do catálogo",
+        "subtitle": "O que o visitante encontra no site",
+        "published": "Publicados",
+        "withPhoto": "Publicados com foto",
+        "ofTotal": "{value} de {total}",
+        "healthy": "Catálogo em dia: todos os produtos publicados têm foto.",
+        "noProducts": "Nenhum produto cadastrado ainda.",
+        "reviewNoPhoto": "Ver produtos sem foto",
+        "reviewUnpublished": "Ver não publicados ({count})"
+      }
     },
     "admin": {
       "title": "Administração",
@@ -531,8 +1072,56 @@
     },
     "products": {
       "title": "Produtos",
-      "subtitle": "Gerenciador de catálogo ROCO — 769 itens",
-      "searchPlaceholder": "Buscar por SKU, nome ou categoria...",
+      "subtitle": "Gerencie o catálogo ROCO: cadastro, vitrine do site e publicação.",
+      "subtitleReadOnly": "Consulte o catálogo, copie o link de um produto e compartilhe com seus clientes.",
+      "searchPlaceholder": "Buscar por SKU ou nome...",
+      "count": {
+        "one": "{count} produto",
+        "other": "{count} produtos"
+      },
+      "showing": "Exibindo {shown} de {total}",
+      "loadMore": "Carregar mais",
+      "filters": {
+        "statusAll": "Todos",
+        "categoryAll": "Todas as categorias",
+        "quickLabel": "Filtros rápidos",
+        "featured": "Destaques",
+        "bestSeller": "Campeões de vendas",
+        "noImage": "Sem foto",
+        "clear": "Limpar filtros"
+      },
+      "flags": {
+        "featuredAdd": "Destacar na home",
+        "featuredRemove": "Remover dos destaques da home",
+        "bestSellerAdd": "Marcar como campeão de vendas",
+        "bestSellerRemove": "Remover selo de campeão de vendas"
+      },
+      "actions": {
+        "more": "Mais ações",
+        "edit": "Editar",
+        "viewOnSite": "Ver no site",
+        "copyLink": "Copiar link",
+        "shareWhatsapp": "Compartilhar no WhatsApp",
+        "delete": "Excluir"
+      },
+      "share": {
+        "message": "Olá! Veja este produto da ROCO: {name}\n{url}"
+      },
+      "feedback": {
+        "linkCopied": "Link copiado!",
+        "copyFailed": "Não foi possível copiar o link.",
+        "saved": "Produto salvo.",
+        "created": "Produto criado. Agora você já pode enviar as imagens.",
+        "publishedOn": "Produto publicado no site.",
+        "publishedOff": "Produto removido do site.",
+        "featuredAdded": "Produto adicionado ao fim da vitrine da home.",
+        "featuredAddedUnpublished": "Adicionado à vitrine, mas só aparece na home depois de publicado.",
+        "featuredRemoved": "Produto removido da vitrine da home.",
+        "bestSellerOn": "Selo de campeão de vendas aplicado.",
+        "bestSellerOff": "Selo de campeão de vendas removido.",
+        "deleted": "Produto excluído.",
+        "actionFailed": "Não foi possível concluir a ação. Tente novamente."
+      },
       "table": {
         "sku": "SKU",
         "name": "Nome",
@@ -541,7 +1130,12 @@
         "badges": "Selos",
         "status": "Status",
         "updatedAt": "Atualizado em",
-        "actions": "Ações"
+        "actions": "Ações",
+        "product": "Produto",
+        "showcase": "Vitrine",
+        "published": "Publicado",
+        "photos": "Fotos",
+        "noPhoto": "Sem foto"
       },
       "status": {
         "published": "Publicado",
@@ -559,6 +1153,43 @@
       "form": {
         "createTitle": "Novo Produto",
         "editTitle": "Editar Produto",
+        "sections": {
+          "identification": {
+            "title": "Identificação",
+            "hint": "SKU e códigos fiscais e de barras do produto."
+          },
+          "copy": {
+            "title": "Nome e descrição",
+            "hint": "Como o produto é apresentado no site, em português e em inglês."
+          },
+          "categories": {
+            "title": "Categorias e selos",
+            "hint": "Onde o produto aparece na navegação do site e quais selos ele exibe."
+          },
+          "showcase": {
+            "title": "Vitrine do site",
+            "hint": "Controle a publicação e a presença do produto na página inicial."
+          },
+          "packaging": {
+            "title": "Embalagens",
+            "hint": "Todas as formas de venda do produto. Ele pode ser vendido em várias embalagens ao mesmo tempo — nenhuma é a principal, e todas aparecem no site."
+          },
+          "images": {
+            "title": "Imagens",
+            "hint": "A primeira imagem enviada é a capa do produto no catálogo."
+          }
+        },
+        "validation": {
+          "required": "Campo obrigatório.",
+          "positiveNumber": "Informe um número inteiro maior que zero.",
+          "duplicatePackaging": "Embalagem repetida: já existe outra com este tipo e esta quantidade.",
+          "wholeNumber": "Informe um número inteiro a partir de 0."
+        },
+        "errors": {
+          "duplicate": "Já existe um produto com este SKU ou nome. Ajuste os dados e tente novamente.",
+          "forbidden": "Você não tem permissão para salvar este produto.",
+          "invalid": "Confira os campos destacados antes de salvar."
+        },
         "fields": {
           "sku": "SKU",
           "erpCode": "Código ERP",
@@ -566,12 +1197,21 @@
           "nameEn": "Nome (English)",
           "description": "Descrição (Português)",
           "descriptionEn": "Descrição (English)",
-          "category": "Categoria",
+          "category": "Categorias",
+          "primaryCategory": "Categoria principal",
+          "primaryCategoryHelper": "Categoria de referência do produto no site.",
           "ncm": "NCM (Classificação Fiscal)",
           "barcode": "Código de Barras",
           "packagingType": "Tipo de Embalagem",
           "unitsPerPack": "Unidades por Embalagem",
-          "published": "Publicado no site"
+          "published": "Publicado no site",
+          "publishedHelper": "Só produtos publicados aparecem no site.",
+          "featured": "Destaque na home",
+          "featuredHelper": "Aparece na vitrine “Produtos em destaque” da página inicial (só se estiver publicado).",
+          "featuredOrder": "Posição na vitrine",
+          "featuredOrderHelper": "O menor número aparece primeiro. Também dá para reordenar no editor da página inicial.",
+          "bestSeller": "Campeão de vendas",
+          "bestSellerHelper": "Exibe o selo de troféu no card e na página do produto."
         },
         "packagingTypes": {
           "peca": "Peça",
@@ -585,14 +1225,20 @@
           "altText": "Texto alternativo (descrição da imagem)",
           "cover": "Capa do catálogo",
           "remove": "Remover imagem",
-          "uploadError": "Erro ao fazer upload. Tente novamente."
+          "uploadError": "Erro ao fazer upload. Tente novamente.",
+          "upload": "Enviar imagens",
+          "saveFirst": "Salve o produto para poder enviar as imagens."
         },
         "actions": {
           "save": "Salvar Produto",
           "cancel": "Cancelar",
+          "close": "Fechar",
           "delete": "Deletar Produto",
           "publish": "Publicar",
-          "unpublish": "Despublicar"
+          "unpublish": "Despublicar",
+          "addPackaging": "Adicionar embalagem",
+          "removePackaging": "Remover embalagem",
+          "viewOnSite": "Ver no site"
         }
       },
       "sync": {
@@ -609,9 +1255,14 @@
         "title": "Nenhum produto encontrado",
         "description": "Crie o primeiro produto ou ajuste sua busca."
       },
+      "emptyFiltered": {
+        "title": "Nenhum produto com esses filtros",
+        "description": "Tente outros termos ou limpe os filtros para ver todo o catálogo."
+      },
       "deleteConfirm": {
         "title": "Deletar Produto",
         "message": "Tem certeza? Esta ação não pode ser desfeita.",
+        "messageNamed": "Tem certeza que deseja excluir “{name}”? Esta ação não pode ser desfeita.",
         "confirm": "Sim, deletar",
         "cancel": "Cancelar"
       }
@@ -700,6 +1351,12 @@
         "title": "Nenhum representante aguardando revisão",
         "description": "Novos cadastros aparecerão aqui para análise."
       },
+      "emptyByStatus": {
+        "draft": "Nenhum cadastro em rascunho",
+        "approved": "Nenhum representante aprovado",
+        "rejected": "Nenhum representante rejeitado",
+        "hint": "Mude a aba acima para ver outros status."
+      },
       "edit": {
         "title": "Editar cadastro",
         "save": "Salvar alterações",
@@ -744,14 +1401,17 @@
         "outro": "Confira no vídeo a seguir o passo a passo completo de utilização do sistema."
       },
       "materialsFeed": {
-        "title": "Materiais para você",
-        "subtitle": "Acesse os materiais de suporte publicados pela ROCO para auxiliar seu trabalho como representante.",
+        "title": "Materiais recentes",
+        "subtitle": "Os últimos materiais publicados pela ROCO. Veja a biblioteca completa, organizada por assunto.",
         "empty": "Nenhum material publicado ainda.",
         "error": "Não foi possível carregar os materiais. Tente novamente em instantes.",
         "forbidden": "Seu acesso ainda não tem permissão para ver os materiais. Fale com a equipe ROCO.",
         "downloadLabel": "Baixar",
+        "openLabel": "Abrir",
         "watchLabel": "Assistir",
-        "publishedOn": "Publicado em {date}"
+        "publishedOn": "Publicado em {date}",
+        "viewAll": "Ver todos os materiais",
+        "newBadge": "Novo"
       },
       "closing": {
         "paragraph1": "Esta página reúne tudo o que você precisa para iniciar sua jornada como representante ROCO com segurança e clareza. Sempre que surgir uma dúvida ou necessidade, volte aqui.",
@@ -822,7 +1482,9 @@
           "onboarding": "Onboarding",
           "hero_slides": "Hero da home",
           "materials": "Materiais",
-          "roles": "Perfis e permissões"
+          "roles": "Perfis e permissões",
+          "home_content": "Página inicial",
+          "leads": "Solicitações"
         },
         "actionsLabels": {
           "create": "Criar",
@@ -979,6 +1641,56 @@
     "materials": {
       "title": "Materiais",
       "subtitle": "Gerencie materiais de suporte e conteúdo compartilhado com representantes.",
+      "library": {
+        "title": "Materiais de apoio",
+        "subtitle": "Tudo o que a ROCO publica para apoiar suas vendas, organizado por assunto.",
+        "searchLabel": "Buscar materiais",
+        "searchPlaceholder": "Buscar por título ou descrição",
+        "sectorsLabel": "Filtrar por assunto",
+        "all": "Todos",
+        "recentTitle": "Publicados recentemente",
+        "newBadge": "Novo",
+        "countOne": "{count} material",
+        "countOther": "{count} materiais",
+        "open": "Abrir",
+        "download": "Baixar",
+        "watch": "Assistir",
+        "downloadAria": "Baixar {title}",
+        "publishedOn": "Publicado em {date}",
+        "otherTitle": "Outros materiais",
+        "empty": {
+          "title": "Nenhum material publicado ainda",
+          "description": "Assim que a equipe ROCO publicar materiais, eles aparecem aqui, organizados por assunto."
+        },
+        "emptyFilter": {
+          "title": "Nenhum material encontrado",
+          "description": "Tente outras palavras ou veja todos os assuntos.",
+          "clear": "Limpar filtros"
+        },
+        "error": "Não foi possível carregar os materiais. Tente novamente em instantes.",
+        "retry": "Tentar novamente",
+        "forbidden": "Seu acesso ainda não tem permissão para ver os materiais. Fale com a equipe ROCO.",
+        "fileTypes": {
+          "pdf": "PDF",
+          "video": "Vídeo",
+          "image": "Imagem",
+          "spreadsheet": "Planilha",
+          "presentation": "Apresentação",
+          "document": "Documento",
+          "archive": "Arquivo ZIP",
+          "file": "Arquivo"
+        },
+        "sectors": {
+          "commercial_policy": "Condições comerciais, prazos e tabelas.",
+          "logistics": "Entregas, fretes e prazos de expedição.",
+          "contacts": "Com quem falar em cada área da ROCO.",
+          "training": "Treinamentos e apresentações de produto.",
+          "other": "Demais materiais de apoio."
+        },
+        "viewAsRepresentative": "Ver como representante",
+        "backToManage": "Voltar à gestão de materiais",
+        "previewNotice": "Pré-visualização: é assim que o representante vê os materiais publicados (rascunhos não aparecem)."
+      },
       "table": {
         "title": "Título",
         "category": "Categoria",
@@ -1045,13 +1757,77 @@
     },
     "settings": {
       "title": "Configurações do Site",
-      "subtitle": "Dados de contato e redes sociais exibidos no site público.",
+      "subtitle": "Dados de contato, redes sociais e catálogo exibidos no site público.",
+      "blocks": {
+        "contact": {
+          "title": "Contato",
+          "description": "Telefone e e-mail exibidos no rodapé e nos botões de contato do site."
+        },
+        "addresses": {
+          "title": "Endereços",
+          "description": "Matriz e unidade fabril exibidas no rodapé."
+        },
+        "social": {
+          "title": "Redes sociais",
+          "description": "Cole o endereço completo de cada perfil. Redes deixadas em branco não aparecem no site."
+        },
+        "catalog": {
+          "title": "Catálogo em PDF",
+          "description": "Arquivo entregue no botão “Baixar catálogo” do site."
+        }
+      },
+      "fields": {
+        "phone": {
+          "label": "Telefone / WhatsApp",
+          "hint": "Com código do país e DDD. Ex.: 55 47 3335-2012"
+        },
+        "email": {
+          "label": "E-mail público",
+          "hint": "Ex.: vendas@roco.com.br"
+        },
+        "addressMatriz": {
+          "label": "Endereço da matriz",
+          "hint": "Ex.: Rua Amsterdam, 853 - Itoupavazinha, Blumenau - SC, CEP 89070-490"
+        },
+        "addressFilial": {
+          "label": "Descrição da unidade fabril",
+          "hint": "Texto descritivo da unidade fabril em Gaspar."
+        },
+        "instagram": {
+          "label": "Instagram",
+          "hint": "Ex.: https://www.instagram.com/suaempresa"
+        },
+        "linkedin": {
+          "label": "LinkedIn",
+          "hint": "Ex.: https://www.linkedin.com/company/suaempresa"
+        },
+        "youtube": {
+          "label": "YouTube",
+          "hint": "Ex.: https://www.youtube.com/@suaempresa"
+        },
+        "whatsapp": {
+          "label": "WhatsApp (link)",
+          "hint": "Ex.: https://wa.me/554733352012"
+        },
+        "catalogPdf": {
+          "label": "Link do catálogo (PDF)",
+          "hint": "Endereço completo (https://…) ou caminho iniciado por /"
+        }
+      },
       "form": {
-        "saved": "Salvo!",
         "save": "Salvar",
+        "saving": "Salvando...",
+        "reset": "Descartar alterações",
+        "unsaved": "Alterações não salvas",
+        "blockSaved": "Alterações salvas.",
         "errors": {
           "required": "Este campo é obrigatório.",
-          "saveFailed": "Erro ao salvar. Tente novamente."
+          "saveFailed": "Erro ao salvar. Tente novamente.",
+          "invalidUrl": "Informe um endereço completo, começando com http:// ou https://.",
+          "invalidEmail": "Informe um e-mail válido.",
+          "invalidPhone": "Informe um telefone válido, com código do país e DDD.",
+          "invalidPath": "Informe um endereço completo (https://…) ou um caminho iniciado por /.",
+          "storedInvalid": "O valor salvo das redes sociais estava em formato inválido e foi ignorado. Salvar irá substituí-lo."
         }
       },
       "errors": {
@@ -1061,38 +1837,44 @@
   },
   "cart": {
     "seo": {
-      "title": "Carrinho de Cotação — ROCO",
-      "description": "Organize seus produtos de interesse e envie uma solicitação de cotação à ROCO. Nossa equipe comercial entrará em contato para elaborar uma proposta personalizada."
+      "title": "Meu orçamento — ROCO",
+      "description": "Monte sua lista de produtos ROCO e envie uma solicitação de orçamento. Nossa equipe comercial retorna com uma proposta personalizada."
     },
     "nav": {
-      "label": "Carrinho de Cotação",
-      "empty": "Carrinho vazio"
+      "label": "Meu orçamento",
+      "empty": "Seu orçamento está vazio"
     },
     "addButton": {
-      "label": "Adicionar ao Carrinho",
-      "added": "Adicionado!"
+      "label": "Adicionar ao orçamento",
+      "added": "Adicionado ao orçamento!",
+      "inQuote": "No orçamento ({count})",
+      "viewQuote": "Ver orçamento"
     },
     "page": {
-      "headline": "Carrinho de Cotação",
-      "subheadline": "Organize os produtos de seu interesse e envie uma solicitação de cotação à ROCO.",
-      "emptyTitle": "Carrinho Vazio",
-      "emptyMessage": "Você ainda não adicionou nenhum produto. Navegue pelo catálogo e selecione os itens de seu interesse para criar uma cotação.",
-      "emptyCta": "Explorar Catálogo",
-      "itemsHeading": "Produtos Selecionados",
+      "headline": "Meu orçamento",
+      "subheadline": "Revise os produtos, ajuste as quantidades e envie sua solicitação — nossa equipe comercial retorna com uma proposta personalizada.",
+      "emptyTitle": "Seu orçamento está vazio",
+      "emptyMessage": "Navegue pelo catálogo e use “Adicionar ao orçamento” nos produtos de seu interesse. Você pode reunir vários itens e enviar tudo de uma vez.",
+      "emptyCta": "Explorar produtos",
+      "itemsHeading": "Produtos no orçamento",
       "quantityLabel": "Quantidade",
-      "removeItem": "Remover",
-      "clearCart": "Esvaziar Carrinho",
-      "clearCartConfirm": "Tem certeza que deseja remover todos os itens?",
-      "skuLabel": "Cód."
+      "removeItem": "Remover do orçamento",
+      "clearCart": "Limpar orçamento",
+      "clearCartConfirm": "Remover todos os produtos do orçamento?",
+      "skuLabel": "Cód.",
+      "itemsSummary": "{count} produtos · {units} unidades",
+      "decrease": "Diminuir quantidade de {name}",
+      "increase": "Aumentar quantidade de {name}",
+      "continueBrowsing": "Adicionar mais produtos"
     },
     "form": {
-      "title": "Envie sua Solicitação de Cotação",
+      "title": "Enviar solicitação de orçamento",
       "name": "Nome completo",
       "email": "E-mail",
       "phone": "Telefone",
       "companyName": "Empresa (opcional)",
       "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
-      "submit": "Solicitar Cotação",
+      "submit": "Solicitar orçamento",
       "sending": "Enviando…"
     },
     "validation": {
@@ -1107,16 +1889,16 @@
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
       "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
       "generic": "Não foi possível enviar sua solicitação agora. Tente novamente em instantes.",
-      "cartEmpty": "Nenhum produto de sua lista foi encontrado no catálogo. Eles podem ter sido removidos ou despublicados. Volte ao catálogo e selecione novos itens."
+      "cartEmpty": "Nenhum produto da sua lista está disponível no catálogo agora — eles podem ter sido removidos ou despublicados. Volte ao catálogo e selecione novos itens."
     },
     "success": {
-      "title": "Solicitação Recebida!",
-      "message": "Obrigado! Sua solicitação de cotação foi enviada com sucesso. Nossa equipe comercial analisará seus produtos de interesse e retornará em breve com um orçamento personalizado."
+      "title": "Solicitação de orçamento enviada!",
+      "message": "Obrigado! Recebemos sua lista de produtos. Nossa equipe comercial vai analisar e retornar em breve com uma proposta personalizada."
     },
     "whatsapp": {
-      "buttonLabel": "Enviar também por WhatsApp",
+      "buttonLabel": "Enviar pelo WhatsApp",
       "messageIntro": "Olá! Gostaria de um orçamento para os seguintes produtos:",
-      "moreItemsSuffix": "+ {count} itens — lista completa enviada por e-mail"
+      "moreItemsSuffix": "+ {count} itens — lista completa enviada pelo formulário do site"
     }
   },
   "site": {

@@ -22,10 +22,12 @@ export interface UploadLimit {
 }
 
 /** Campos de upload conhecidos hoje. Adicionar aqui ao introduzir um novo. */
-export type UploadField = "heroVideo" | "heroPoster" | "material";
+export type UploadField = "heroVideo" | "heroPoster" | "material" | "siteImage";
 
 const HERO_VIDEO_MAX_BYTES = 200 * 1024 * 1024; // hero vídeos podem ser maiores que imagens
 const HERO_POSTER_MAX_BYTES = 10 * 1024 * 1024; // mesmo teto usado para imagens de produto
+/** Imagens editáveis da home (fachada, cards de categoria) — mesmo teto do pôster. */
+const SITE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 /**
  * 50 MB (era 20). Catálogo comercial em PDF com fotos passa de 20 MB com
  * facilidade, e apresentação em PowerPoint idem — o teto antigo barrava
@@ -85,6 +87,12 @@ const UPLOAD_LIMITS: Record<UploadField, Record<string, UploadLimit>> = {
     "image/png": { extension: "png", maxBytes: MATERIAL_IMAGE_MAX_BYTES },
     "image/webp": { extension: "webp", maxBytes: MATERIAL_IMAGE_MAX_BYTES },
   },
+  /** Imagens da página inicial editadas no painel (spec 001) — só raster web. */
+  siteImage: {
+    "image/jpeg": { extension: "jpg", maxBytes: SITE_IMAGE_MAX_BYTES },
+    "image/png": { extension: "png", maxBytes: SITE_IMAGE_MAX_BYTES },
+    "image/webp": { extension: "webp", maxBytes: SITE_IMAGE_MAX_BYTES },
+  },
 };
 
 /** Tipos de conteúdo aceitos por campo, na ordem declarada (útil para `z.enum(...)`). */
@@ -95,11 +103,14 @@ export function getAllowedContentTypes(field: UploadField): [string, ...string[]
 
 /** `null` se o `contentType` não é aceito neste campo. */
 export function getUploadLimit(field: UploadField, contentType: string): UploadLimit | null {
-  return UPLOAD_LIMITS[field][contentType] ?? null;
+  const limits = UPLOAD_LIMITS[field];
+  // Só chave PRÓPRIA: `"constructor"`/`"__proto__"` existem em todo objeto via
+  // protótipo e não podem valer como tipo aceito (revisão de 2026-09-30).
+  return Object.hasOwn(limits, contentType) ? limits[contentType] : null;
 }
 
 export function isContentTypeAllowed(field: UploadField, contentType: string): boolean {
-  return contentType in UPLOAD_LIMITS[field];
+  return Object.hasOwn(UPLOAD_LIMITS[field], contentType);
 }
 
 /** `null` se o `contentType` não é aceito neste campo (chame `isContentTypeAllowed` antes se precisar diferenciar "tipo errado" de "tamanho errado"). */

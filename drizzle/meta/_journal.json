@@ -71,6 +71,20 @@
       "when": 1788132311173,
       "tag": "0009_youthful_gressill",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790735168923,
+      "tag": "0010_product_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790770311323,
+      "tag": "0011_ensure_portal_permissions",
+      "breakpoints": true
     }
   ]
 }

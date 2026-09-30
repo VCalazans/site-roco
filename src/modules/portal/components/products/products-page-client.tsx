@@ -1,77 +1,204 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AddIcon from "@mui/icons-material/Add";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
+import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
-import Select, { type SelectChangeEvent } from "@mui/material/Select";
+import Snackbar from "@mui/material/Snackbar";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import type { Locale } from "@/i18n/config";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
+import {
+  EMPTY_PRODUCT_FILTERS,
+  PRODUCT_NEW_PARAM,
+  PRODUCT_SEARCH_MAX_LENGTH,
+  applyProductFilters,
+  hasActiveProductFilters,
+  parseProductFilters,
+  toProductListInput,
+  toggleQuickFilter,
+  type ProductFilters,
+  type ProductQuickFilter,
+  type ProductStatusFilter,
+} from "@/modules/portal/lib/product-filters";
+import {
+  buildWhatsappShareUrl,
+  productPublicUrl,
+} from "@/modules/portal/lib/product-links";
 import type { ProductListItem } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { interpolate } from "@/shared/lib/interpolate";
 import { DeleteProductDialog } from "./delete-product-dialog";
+import { ProductFiltersBar } from "./product-filters-bar";
 import { ProductFormDialog } from "./product-form-dialog";
 import { ProductTable } from "./product-table";
 import { SyncBar } from "./sync-bar";
 
-type PublishedFilter = "all" | "published" | "unpublished";
-
 type ProductsPageClientProps = {
   portal: PortalDictionary;
   user: PortalPermissionUser;
+  locale: Locale;
 };
+
+type Feedback = { message: string; severity: "success" | "error" };
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PAGE_SIZE = 20;
 
 /**
- * Orquestrador client-side da página de produtos: busca (debounced), filtro
- * por categoria e por status de publicação, tabela paginada por cursor
- * (`useInfiniteQuery` + botão "carregar mais" — escolhido em vez de
- * `TablePagination` porque cursor não expõe contagem total nem "página N"),
- * barra de sync do ERP e dialogs de criar/editar/excluir.
+ * Grava os filtros na URL SEM navegar: `history.replaceState` é integrado ao
+ * roteador do Next (o `useSearchParams` reflete a mudança) e evita a ida ao
+ * servidor que um `router.replace` faria a cada tecla — a página é dinâmica
+ * (sessão) e reexecutaria o Server Component só para devolver o mesmo HTML.
+ *
+ * Parte SEMPRE da URL viva (`window.location`), nunca do `searchParams` do
+ * render: a atualização do `useSearchParams` acontece numa transição do Next e
+ * pode chegar depois de um segundo clique rápido, que então apagaria o
+ * primeiro filtro.
  */
-export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
+function replaceProductFilters(next: ProductFilters) {
+  const params = applyProductFilters(new URLSearchParams(window.location.search), next);
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    query ? `${window.location.pathname}?${query}` : window.location.pathname
+  );
+}
+
+function readLiveFilters(): ProductFilters {
+  return parseProductFilters(new URLSearchParams(window.location.search));
+}
+
+/** Copia para a área de transferência; cai no `execCommand` fora de contexto seguro. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const field = document.createElement("textarea");
+      field.value = text;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(field);
+      return copied;
+    } catch {
+      return false;
+    }
+  }
+}
+
+/**
+ * Orquestrador client-side da página de produtos.
+ *
+ * Os filtros (busca, categoria, status, filtros rápidos) vivem NA URL e são a
+ * fonte de verdade: a busca da sidebar (`router.push('?search=…')`), os
+ * indicadores do painel e links compartilhados abrem a lista já filtrada, e o
+ * "voltar" do navegador funciona. Só o texto do campo de busca tem estado
+ * local (feedback imediato enquanto se digita), gravado na URL com debounce.
+ *
+ * Tabela paginada por cursor (`useInfiniteQuery` + "Carregar mais" — o cursor
+ * não expõe "página N"), barra de sync do ERP e diálogos de criar/editar/excluir.
+ * Quem só tem `products:read` (representante) usa o mesmo catálogo sem as ações
+ * de escrita, mas com ver no site, copiar link e compartilhar.
+ */
+export function ProductsPageClient({ portal, user, locale }: ProductsPageClientProps) {
   const dictionary = portal.products;
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<string>("");
-  const [publishedFilter, setPublishedFilter] = useState<PublishedFilter>("all");
+  // Permissões espelham exatamente `permissionProcedure(resource, action)` de
+  // `src/server/trpc/routers/products.ts`/`sync.ts` — cada ação de escrita
+  // tem seu próprio par resource:action no contrato (não existe um
+  // "products:update" genérico cobrindo publish/create).
+  const canCreate = can(user, "products", "create");
+  const canWrite = can(user, "products", "update");
+  const canPublish = can(user, "products", "publish");
+  const canDelete = can(user, "products", "delete");
+  const canSyncTrigger = can(user, "sync", "trigger");
+  const canSyncRead = can(user, "sync", "read");
+  const readOnly = !canWrite && !canCreate;
+
+  // --- Filtros (URL = fonte de verdade) -------------------------------------
+  const filters = useMemo(() => parseProductFilters(searchParams), [searchParams]);
+
+  const [searchInput, setSearchInput] = useState(filters.search);
+  // Último `?search=` da URL já refletido no campo, e último termo que ESTA
+  // página gravou. Se a URL muda por fora (sidebar, voltar/avançar, link) o
+  // campo adota o valor novo; se a mudança é a eco da nossa própria gravação,
+  // o campo já tem o texto (e pode ter avançado alguns caracteres) — não se
+  // mexe. "Ajustar estado durante o render", condicional, sem efeito.
+  const [syncedSearch, setSyncedSearch] = useState(filters.search);
+  const [lastWrittenSearch, setLastWrittenSearch] = useState(filters.search);
+  if (filters.search !== syncedSearch) {
+    setSyncedSearch(filters.search);
+    if (filters.search !== lastWrittenSearch) {
+      setSearchInput(filters.search);
+      setLastWrittenSearch(filters.search);
+    }
+  }
 
   useEffect(() => {
-    const timeout = setTimeout(() => setSearch(searchInput.trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timeout);
+    const timeout = window.setTimeout(() => {
+      const term = searchInput.trim().slice(0, PRODUCT_SEARCH_MAX_LENGTH);
+      const live = readLiveFilters();
+      if (term === live.search) return;
+      setLastWrittenSearch(term);
+      replaceProductFilters({ ...live, search: term });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
-  const published =
-    publishedFilter === "all" ? undefined : publishedFilter === "published";
+  function setCategory(categoryId: string) {
+    replaceProductFilters({ ...readLiveFilters(), categoryId });
+  }
 
+  function setStatus(status: ProductStatusFilter) {
+    replaceProductFilters({ ...readLiveFilters(), status });
+  }
+
+  function toggleQuick(filter: ProductQuickFilter) {
+    replaceProductFilters(toggleQuickFilter(readLiveFilters(), filter));
+  }
+
+  function clearFilters() {
+    setSearchInput("");
+    setLastWrittenSearch("");
+    replaceProductFilters(EMPTY_PRODUCT_FILTERS);
+  }
+
+  // --- Dados ----------------------------------------------------------------
   const categoriesQuery = useQuery(trpc.products.categories.list.queryOptions());
 
   const listQuery = useInfiniteQuery(
     trpc.products.list.infiniteQueryOptions(
-      {
-        search: search || undefined,
-        categoryId: categoryId || undefined,
-        published,
-        limit: PAGE_SIZE,
-      },
+      { ...toProductListInput(filters), limit: PAGE_SIZE },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
+        // Mantém a lista anterior na tela enquanto a nova carrega: digitar ou
+        // trocar um filtro não pisca o esqueleto a cada consulta.
+        placeholderData: keepPreviousData,
       }
     )
   );
@@ -85,6 +212,27 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
   // não da página carregada) — a primeira página já basta.
   const total = listQuery.data?.pages[0]?.total ?? 0;
 
+  /**
+   * `pathFilter()` (e não `queryKey()`): a lista é uma query INFINITA, cuja
+   * chave carrega `type: "infinite"`; `queryKey()` monta `type: "query"` e não
+   * casaria — a lista nunca era refetchada depois de publicar/editar/excluir.
+   * O painel também lê `products.stats`, então ele entra na invalidação.
+   */
+  function invalidateCatalog() {
+    queryClient.invalidateQueries(trpc.products.list.pathFilter());
+    queryClient.invalidateQueries(trpc.products.stats.pathFilter());
+  }
+
+  // --- Feedback -------------------------------------------------------------
+  const [feedback, setFeedback] = useState<Feedback>({ message: "", severity: "success" });
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  function showFeedback(message: string, severity: Feedback["severity"] = "success") {
+    setFeedback({ message, severity });
+    setFeedbackOpen(true);
+  }
+
+  // --- Estado dos diálogos --------------------------------------------------
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   // Incrementado a cada abertura do dialog e usado como `key` — força o
@@ -95,52 +243,135 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
   const [formInstance, setFormInstance] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<ProductListItem | null>(null);
 
-  function invalidateList() {
-    queryClient.invalidateQueries({ queryKey: trpc.products.list.queryKey() });
-  }
+  // --- Mutations por linha --------------------------------------------------
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
 
-  const setPublishedMutation = useMutation(
-    trpc.products.setPublished.mutationOptions({
-      onSuccess: invalidateList,
-    })
-  );
-
+  const setPublishedMutation = useMutation(trpc.products.setPublished.mutationOptions());
+  const setFlagsMutation = useMutation(trpc.products.setFlags.mutationOptions());
   const deleteMutation = useMutation(
     trpc.products.delete.mutationOptions({
       onSuccess: () => {
-        invalidateList();
+        invalidateCatalog();
         setDeleteTarget(null);
+        showFeedback(dictionary.feedback.deleted);
       },
+      onError: () => showFeedback(dictionary.feedback.actionFailed, "error"),
     })
   );
 
-  // Permissões espelham exatamente `permissionProcedure(resource, action)` de
-  // `src/server/trpc/routers/products.ts`/`sync.ts` — cada ação de escrita
-  // tem seu próprio par resource:action no contrato (não existe um
-  // "products:update" genérico cobrindo publish/create).
-  const canCreate = can(user, "products", "create");
-  const canWrite = can(user, "products", "update");
-  const canPublish = can(user, "products", "publish");
-  const canDelete = can(user, "products", "delete");
-  const canSyncTrigger = can(user, "sync", "trigger");
-  const canSyncRead = can(user, "sync", "read");
+  /** Marca o produto como ocupado durante a ação; ignora clique enquanto ocupado. */
+  async function runForProduct(id: string, action: () => Promise<void>) {
+    if (busyIds.has(id)) return;
+    setBusyIds((current) => new Set(current).add(id));
+    try {
+      await action();
+      invalidateCatalog();
+    } catch {
+      showFeedback(dictionary.feedback.actionFailed, "error");
+    } finally {
+      setBusyIds((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
 
+  function handleTogglePublished(product: ProductListItem) {
+    void runForProduct(product.id, async () => {
+      await setPublishedMutation.mutateAsync({ id: product.id, published: !product.published });
+      showFeedback(
+        product.published ? dictionary.feedback.publishedOff : dictionary.feedback.publishedOn
+      );
+    });
+  }
+
+  function handleToggleFeatured(product: ProductListItem) {
+    void runForProduct(product.id, async () => {
+      await setFlagsMutation.mutateAsync({ id: product.id, featured: !product.featured });
+      showFeedback(
+        product.featured
+          ? dictionary.feedback.featuredRemoved
+          : product.published
+            ? dictionary.feedback.featuredAdded
+            : dictionary.feedback.featuredAddedUnpublished
+      );
+    });
+  }
+
+  function handleToggleBestSeller(product: ProductListItem) {
+    void runForProduct(product.id, async () => {
+      await setFlagsMutation.mutateAsync({ id: product.id, bestSeller: !product.bestSeller });
+      showFeedback(
+        product.bestSeller ? dictionary.feedback.bestSellerOff : dictionary.feedback.bestSellerOn
+      );
+    });
+  }
+
+  async function handleCopyLink(product: ProductListItem) {
+    const url = productPublicUrl(window.location.origin, locale, product.slug);
+    if (await copyText(url)) {
+      showFeedback(dictionary.feedback.linkCopied);
+    } else {
+      showFeedback(dictionary.feedback.copyFailed, "error");
+    }
+  }
+
+  function handleShareWhatsapp(product: ProductListItem) {
+    const url = productPublicUrl(window.location.origin, locale, product.slug);
+    const message = interpolate(dictionary.share.message, { name: product.namePt, url });
+    window.open(buildWhatsappShareUrl(message), "_blank", "noopener,noreferrer");
+  }
+
+  // --- Diálogos (abrir/fechar) ---------------------------------------------
   function openCreateDialog() {
     setEditingId(null);
     setFormInstance((instance) => instance + 1);
     setFormOpen(true);
   }
 
-  function openEditDialog(id: string) {
-    setEditingId(id);
+  function openEditDialog(product: ProductListItem) {
+    setEditingId(product.id);
     setFormInstance((instance) => instance + 1);
     setFormOpen(true);
   }
 
   function closeFormDialog() {
     setFormOpen(false);
-    invalidateList();
+    invalidateCatalog();
   }
+
+  // `?new=1` (atalho "Novo produto" do painel) abre o diálogo de criação uma
+  // vez e some da URL, para um F5 não reabri-lo. Cobre também o caso de já
+  // estar na página quando o parâmetro aparece.
+  const wantsNew = searchParams.get(PRODUCT_NEW_PARAM) === "1";
+  const [handledNew, setHandledNew] = useState(false);
+  if (wantsNew && !handledNew) {
+    setHandledNew(true);
+    if (canCreate) openCreateDialog();
+  } else if (!wantsNew && handledNew) {
+    setHandledNew(false);
+  }
+
+  useEffect(() => {
+    if (!wantsNew) return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete(PRODUCT_NEW_PARAM);
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${window.location.pathname}?${query}` : window.location.pathname
+    );
+  }, [wantsNew]);
+
+  // --- Render ---------------------------------------------------------------
+  const filtersActive = hasActiveProductFilters(filters);
+  const isInitialLoading = listQuery.isLoading;
+  const isRefreshing = listQuery.isFetching && !listQuery.isFetchingNextPage && !isInitialLoading;
+  const countLabel = interpolate(total === 1 ? dictionary.count.one : dictionary.count.other, {
+    count: new Intl.NumberFormat(locale).format(total),
+  });
 
   return (
     <Box>
@@ -154,24 +385,21 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
         }}
       >
         <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "baseline" }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            useFlexGap
+            sx={{ alignItems: "baseline", flexWrap: "wrap" }}
+          >
             <Typography variant="h4" component="h1" gutterBottom>
               {dictionary.title}
             </Typography>
-            {/* Contagem real do filtro aplicado (`products.list.total`), sem
-                chave de dicionário dedicada para "X produtos": reaproveita
-                `dictionary.title` ("Produtos"/"Products", já plural nos dois
-                locales) como rótulo do número — ver relatório final. */}
-            {!listQuery.isLoading ? (
-              <Chip
-                label={`${total} ${dictionary.title}`}
-                size="small"
-                variant="outlined"
-              />
+            {!isInitialLoading ? (
+              <Chip label={countLabel} size="small" variant="outlined" aria-live="polite" />
             ) : null}
           </Stack>
           <Typography variant="body1" color="text.secondary">
-            {dictionary.subtitle}
+            {readOnly ? dictionary.subtitleReadOnly : dictionary.subtitle}
           </Typography>
         </Box>
         {canCreate ? (
@@ -181,96 +409,104 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
         ) : null}
       </Stack>
 
-      {canSyncRead ? <SyncBar dictionary={dictionary.sync} canTrigger={canSyncTrigger} /> : null}
+      {canSyncRead ? (
+        <SyncBar dictionary={dictionary.sync} locale={locale} canTrigger={canSyncTrigger} />
+      ) : null}
 
-      <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField
-            label={portal.common.search}
-            placeholder={dictionary.searchPlaceholder}
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            fullWidth
-            size="small"
-          />
-          {/* `size="small"` + `fullWidth={false}` deliberados: filtro compacto
-              ao lado da busca (que ocupa o espaço restante) — ver "Regra de
-              densidade de campos" em `src/core/theme/index.ts`. Sem
-              `fullWidth={false}` aqui, o default global (`MuiFormControl`)
-              esticaria os dois filtros para dividir a barra igualmente com a
-              busca, achatando o layout pretendido (busca larga + filtros
-              estreitos). */}
-          <FormControl size="small" fullWidth={false} sx={{ minWidth: 220 }}>
-            <InputLabel id="products-category-filter">{dictionary.table.category}</InputLabel>
-            <Select
-              labelId="products-category-filter"
-              label={dictionary.table.category}
-              value={categoryId}
-              onChange={(event: SelectChangeEvent) => setCategoryId(event.target.value)}
-            >
-              <MenuItem value="">{portal.common.clear}</MenuItem>
-              {(categoriesQuery.data ?? []).map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.namePt}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl size="small" fullWidth={false} sx={{ minWidth: 180 }}>
-            <InputLabel id="products-published-filter">{dictionary.table.status}</InputLabel>
-            <Select
-              labelId="products-published-filter"
-              label={dictionary.table.status}
-              value={publishedFilter}
-              onChange={(event: SelectChangeEvent) =>
-                setPublishedFilter(event.target.value as PublishedFilter)
-              }
-            >
-              <MenuItem value="all">{portal.common.filter}</MenuItem>
-              <MenuItem value="published">{dictionary.status.published}</MenuItem>
-              <MenuItem value="unpublished">{dictionary.status.unpublished}</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      </Paper>
+      <ProductFiltersBar
+        dictionary={dictionary}
+        searchLabel={portal.common.search}
+        categories={categoriesQuery.data ?? []}
+        filters={filters}
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        onCategoryChange={setCategory}
+        onStatusChange={setStatus}
+        onToggleQuick={toggleQuick}
+        onClear={clearFilters}
+      />
 
-      {listQuery.isError ? <Alert severity="error">{portal.errors.generic}</Alert> : null}
+      {listQuery.isError ? (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {portal.errors.generic}
+        </Alert>
+      ) : null}
 
-      {!listQuery.isLoading && items.length === 0 ? (
+      {!isInitialLoading && !listQuery.isError && items.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 6, textAlign: "center" }}>
-          <Typography variant="h6">{dictionary.empty.title}</Typography>
-          <Typography color="text.secondary">{dictionary.empty.description}</Typography>
+          <Typography variant="h6">
+            {filtersActive ? dictionary.emptyFiltered.title : dictionary.empty.title}
+          </Typography>
+          <Typography color="text.secondary" sx={{ mb: filtersActive ? 2 : 0 }}>
+            {filtersActive ? dictionary.emptyFiltered.description : dictionary.empty.description}
+          </Typography>
+          {filtersActive ? (
+            <Button variant="outlined" onClick={clearFilters}>
+              {dictionary.filters.clear}
+            </Button>
+          ) : null}
         </Paper>
-      ) : (
-        <Paper variant="outlined">
+      ) : null}
+
+      {isInitialLoading || items.length > 0 ? (
+        <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+          {/* Faixa de altura fixa: o indicador de atualização entra sem empurrar a tabela. */}
+          <Box sx={{ height: 3 }}>
+            {isRefreshing ? <LinearProgress aria-label={portal.common.loading} /> : null}
+          </Box>
           <ProductTable
             dictionary={dictionary}
+            locale={locale}
             items={items}
-            isLoading={listQuery.isLoading}
+            isLoading={isInitialLoading}
+            busyIds={busyIds}
             canWrite={canWrite}
             canPublish={canPublish}
             canDelete={canDelete}
             onEdit={openEditDialog}
-            onTogglePublished={(product) =>
-              setPublishedMutation.mutate({ id: product.id, published: !product.published })
-            }
+            onTogglePublished={handleTogglePublished}
+            onToggleFeatured={handleToggleFeatured}
+            onToggleBestSeller={handleToggleBestSeller}
+            onCopyLink={handleCopyLink}
+            onShareWhatsapp={handleShareWhatsapp}
             onDelete={setDeleteTarget}
           />
-          {listQuery.hasNextPage ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-              <Button
-                onClick={() => listQuery.fetchNextPage()}
-                disabled={listQuery.isFetchingNextPage}
-                startIcon={
-                  listQuery.isFetchingNextPage ? <CircularProgress size={16} /> : null
-                }
-              >
-                {portal.common.loading}
-              </Button>
+          {!isInitialLoading ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1,
+                px: 2,
+                py: 1.5,
+                borderTop: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {interpolate(dictionary.showing, {
+                  shown: new Intl.NumberFormat(locale).format(items.length),
+                  total: new Intl.NumberFormat(locale).format(total),
+                })}
+              </Typography>
+              {listQuery.hasNextPage ? (
+                <Button
+                  size="small"
+                  onClick={() => listQuery.fetchNextPage()}
+                  disabled={listQuery.isFetchingNextPage}
+                  startIcon={
+                    listQuery.isFetchingNextPage ? <CircularProgress size={16} /> : null
+                  }
+                >
+                  {dictionary.loadMore}
+                </Button>
+              ) : null}
             </Box>
           ) : null}
         </Paper>
-      )}
+      ) : null}
 
       <ProductFormDialog
         key={formInstance}
@@ -282,6 +518,7 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
         errorLabel={portal.errors.generic}
         categories={categoriesQuery.data ?? []}
         user={user}
+        locale={locale}
       />
 
       <DeleteProductDialog
@@ -294,7 +531,26 @@ export function ProductsPageClient({ portal, user }: ProductsPageClientProps) {
         }}
         isDeleting={deleteMutation.isPending}
         dictionary={dictionary.deleteConfirm}
+        productName={deleteTarget?.namePt}
       />
+
+      <Snackbar
+        open={feedbackOpen}
+        autoHideDuration={4000}
+        onClose={(_event, reason) => {
+          if (reason !== "clickaway") setFeedbackOpen(false);
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <Alert
+          severity={feedback.severity}
+          variant="filled"
+          onClose={() => setFeedbackOpen(false)}
+          sx={{ width: "100%" }}
+        >
+          {feedback.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

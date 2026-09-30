@@ -37,7 +37,16 @@
     "language": {
       "action": "Change language"
     },
-    "portalLogin": "Sign in to the ROCO Portal"
+    "portalLogin": "Sign in to the ROCO Portal",
+    "search": {
+      "open": "Search products",
+      "label": "Search products",
+      "placeholder": "Search by name or code…",
+      "submit": "Search",
+      "close": "Close search"
+    },
+    "skipToContent": "Skip to content",
+    "backToTop": "Back to top"
   },
   "home": {
     "brand": "ROCO",
@@ -54,7 +63,27 @@
         "href": "#catalogo"
       },
       "sceneAlt": "Futuristic ROCO environment with cyan and amber neon lighting",
-      "scrollCue": "Scroll to content"
+      "scrollCue": "Scroll to content",
+      "carousel": {
+        "prev": "Previous slide",
+        "next": "Next slide",
+        "goTo": "Go to slide {index} of {total}",
+        "slideLabel": "{index} of {total}",
+        "pause": "Pause slideshow",
+        "play": "Resume slideshow",
+        "roleDescription": "carousel",
+        "slideRoleDescription": "slide"
+      }
+    },
+    "facade": {
+      "eyebrow": "Our facilities",
+      "headline": "Where everything connects",
+      "text": "From our headquarters in Blumenau to our manufacturing plant in Gaspar, Santa Catarina: our own facilities to develop, manufacture and deliver plumbing and hydraulic solutions across Brazil.",
+      "imageAlt": "Aerial view of a ROCO facility, with the warehouse bearing the brand",
+      "cta": {
+        "label": "About ROCO",
+        "href": "#sobre"
+      }
     },
     "about": {
       "eyebrow": "ROCO",
@@ -135,16 +164,24 @@
           "image": "/images/home/categorias/flexiveis.jpg",
           "alt": ""
         }
-      ]
+      ],
+      "carousel": {
+        "prev": "Previous categories",
+        "next": "Next categories"
+      }
     },
     "featured": {
-      "eyebrow": "Featured",
-      "headline": "Featured Products",
-      "description": "Check out a selection of highlighted products in our portfolio. Browse through the featured items and discover solutions aligned with your needs.",
+      "eyebrow": "Highlights",
+      "headline": "Featured products",
+      "description": "A selection of ROCO products picked by our team. Use the arrows to browse and find the right solution for your project.",
       "emptyState": "Explore our complete line in Products.",
       "cta": {
         "label": "View Full Catalog",
         "href": "/produtos"
+      },
+      "carousel": {
+        "prev": "Show previous products",
+        "next": "Show next products"
       }
     },
     "portalCta": {
@@ -265,6 +302,10 @@
           {
             "label": "Download catalog as PDF",
             "href": "#catalogo"
+          },
+          {
+            "label": "My quote",
+            "href": "#orcamento"
           }
         ]
       },
@@ -370,7 +411,7 @@
     "listing": {
       "headline": "Products",
       "description": "Explore our complete line of plumbing and hydraulic solutions.",
-      "searchPlaceholder": "Search product by name or code (SKU)...",
+      "searchPlaceholder": "Search by name or code…",
       "categoryAllLabel": "All categories",
       "emptyState": "No products found. Adjust your filters and try again.",
       "loadError": "Could not load products. Check your connection and try again.",
@@ -379,12 +420,30 @@
       "pagination": {
         "previous": "Previous",
         "next": "Next",
-        "pageLabel": "Page {page} of {totalPages}"
-      }
+        "pageLabel": "Page {page} of {totalPages}",
+        "label": "Pagination",
+        "goToPage": "Go to page {page}"
+      },
+      "filtersTitle": "Filter products",
+      "searchLabel": "Search the catalog",
+      "categoriesLabel": "Categories",
+      "allProducts": "All products",
+      "bestSellerFilter": "Best sellers only",
+      "clearFilters": "Clear filters",
+      "clearSearch": "Clear search",
+      "openFilters": "Filters",
+      "closeFilters": "Close filters",
+      "showResults": "Show {count} products",
+      "activeFilters": "Active filters",
+      "removeFilter": "Remove filter: {label}",
+      "searchChip": "Search: “{term}”",
+      "resultsRange": "Showing {from}–{to} of {total} products"
     },
     "card": {
       "viewDetails": "View details",
-      "codeLabel": "Code"
+      "codeLabel": "Code",
+      "bestSeller": "Best seller",
+      "bestSellerShort": "Best seller"
     },
     "detail": {
       "breadcrumbHome": "Home",
@@ -392,15 +451,30 @@
       "codeLabel": "Code",
       "descriptionHeadline": "Features",
       "packagingsHeadline": "Available Packaging",
+      "packagingsNote": "This product is sold in every pack below.",
       "badgesHeadline": "Highlights",
       "relatedHeadline": "Related Products",
       "notFoundTitle": "Product not found",
       "notFoundDescription": "The product you're looking for does not exist or has been removed. Go back to the catalog to explore other options.",
       "backToListing": "Back to catalog",
-      "quoteCta": "Request a quote",
+      "quoteCta": "Request a quote now",
       "noPackagings": "Packaging information not available",
       "noBadges": "No highlights associated",
-      "noRelated": "No related products found"
+      "noRelated": "No related products found",
+      "breadcrumbLabel": "You are here",
+      "back": "Back to products",
+      "previousProduct": "Previous product",
+      "nextProduct": "Next product",
+      "adjacentLabel": "Browse products in this category",
+      "gallery": {
+        "label": "Product image gallery",
+        "prev": "Previous image",
+        "next": "Next image",
+        "thumb": "Show image {index} of {total}"
+      },
+      "bestSeller": "Best seller",
+      "bestSellerNote": "One of ROCO's best-selling products.",
+      "quoteHint": "Add this and other products to your quote and send everything at once — or request a quote for this item right now."
     },
     "badges": {
       "nacional": "National Manufacturing",
@@ -414,6 +488,19 @@
       "blister": "Blister",
       "caixa": "Box",
       "saco_plastico": "Plastic Bag"
+    },
+    "packagingInfo": {
+      "types": {
+        "peca": "Piece",
+        "blister": "Blister",
+        "saco_plastico": "Plastic bag",
+        "caixa": "Box"
+      },
+      "singlePieceTitle": "Single piece",
+      "singlePiece": "Sold individually",
+      "unitsOne": "{count} unit per pack",
+      "unitsOther": "{count} units per pack",
+      "ean": "EAN"
     }
   },
   "portal": {
@@ -430,15 +517,396 @@
       "registerPrompt": "Don't have access yet?",
       "registerLink": "Get your ROCO Portal access"
     },
+    "homeContent": {
+      "title": "Home page",
+      "subtitle": "Edit the texts, images, links and section order of the site's home page. An empty field uses the default text.",
+      "viewSite": "View site",
+      "newTab": "opens in a new tab",
+      "readOnly": "You can view the home page content, but you don't have permission to change it.",
+      "loadError": "Could not load the home page content.",
+      "retry": "Try again",
+      "navigator": {
+        "title": "Page sections",
+        "description": "Pick a section to edit. Use the arrows to change the order and the switch to show or hide each section on the site.",
+        "heroName": "Hero (videos)",
+        "heroDescription": "Video slides at the top of the page. They are always pinned to the top.",
+        "heroAction": "Manage slides",
+        "heroLocked": "You don't have permission to manage the slides.",
+        "pinned": "Pinned to top",
+        "showOnSite": "Show on the site",
+        "hidden": "Hidden",
+        "moveUpAria": "Move the {section} section up",
+        "moveDownAria": "Move the {section} section down",
+        "customized": "Customized",
+        "usingDefault": "Default",
+        "unsaved": "Unsaved",
+        "saveLayout": "Save order and visibility",
+        "savingLayout": "Saving…",
+        "discardLayout": "Discard",
+        "layoutUnsaved": "The section order or visibility changed. Save to publish it on the site.",
+        "layoutSaved": "Order and visibility saved."
+      },
+      "sections": {
+        "facade": {
+          "name": "Facade",
+          "description": "Strip right below the video, with the plant photo, a short headline and a button."
+        },
+        "about": {
+          "name": "About",
+          "description": "ROCO introduction: texts, highlights and the button to the products."
+        },
+        "categories": {
+          "name": "Categories",
+          "description": "Product family cards, each with an image and a link."
+        },
+        "featured": {
+          "name": "Featured products",
+          "description": "Showcase texts and the choice of products that appear in it."
+        },
+        "portalCta": {
+          "name": "ROCO Portal call to action",
+          "description": "Invitation for representatives to join the sales network."
+        }
+      },
+      "editor": {
+        "save": "Save section",
+        "saving": "Saving…",
+        "discard": "Discard changes",
+        "reset": "Restore default",
+        "statusDefault": "Using the default",
+        "statusCustom": "Customized",
+        "statusUnsaved": "Unsaved changes",
+        "lastUpdated": "Last changed on {date}",
+        "defaultsNote": "This section still uses the site's default content. The grey text is what shows today; type over it to customize.",
+        "saved": "Section saved. The change shows up on the site shortly.",
+        "resetDone": "Section restored to the default.",
+        "fixErrors": "Fix the highlighted fields before saving.",
+        "saveFailed": "Could not save the section. Please try again.",
+        "forbidden": "You don't have permission to change the home page.",
+        "imageMissing": "One of the images was not found in storage. Upload the file again.",
+        "resetFailed": "Could not restore the default. Please try again.",
+        "resetDialog": {
+          "title": "Restore this section's default?",
+          "message": "The customized texts, links and images of this section will be discarded and the site will go back to the default content. This cannot be undone.",
+          "confirm": "Restore default",
+          "cancel": "Cancel"
+        }
+      },
+      "fields": {
+        "languagePt": "PT",
+        "languageEn": "EN",
+        "groupImage": "Image",
+        "groupTexts": "Texts",
+        "groupButton": "Button",
+        "localizedLabel": "{label} ({language})",
+        "emptyUsesDefault": "Empty = uses the default text",
+        "counter": "{count}/{max}",
+        "eyebrow": "Kicker above the headline",
+        "headline": "Headline",
+        "description": "Description",
+        "text": "Text",
+        "paragraphs": "Paragraphs",
+        "emptyState": "Message when there are no products",
+        "ctaLabel": "Button text",
+        "ctaHref": "Button link",
+        "showCta": "Show the button",
+        "imageAlt": "Image description (alt text)",
+        "itemLabel": "Title",
+        "itemValue": "Description",
+        "itemHref": "Link",
+        "hrefHelper": "The link accepts a site path (/produtos), an anchor (#catalogo) or a full address (https://…).",
+        "hrefUsesDefault": "Empty = uses the default link ({href})",
+        "paragraphsHelper": "Separate paragraphs with a blank line.",
+        "imageAltHelper": "Read by screen readers and shown if the image fails to load."
+      },
+      "image": {
+        "defaultBadge": "Default image",
+        "customBadge": "Custom image",
+        "useDefault": "Use the default image",
+        "previewUnavailable": "Image uploaded. A preview is not available in this environment.",
+        "dropzone": "Drag an image here or click to choose",
+        "maxSize": "Maximum size: {size}",
+        "accepted": "Accepted formats: {formats}",
+        "errorType": "Unsupported format. Use {formats}.",
+        "errorSize": "Image is larger than {size}.",
+        "uploadError": "Could not upload the image. Please try again.",
+        "remove": "Clear selection",
+        "replace": "Replace image",
+        "uploading": "Uploading image…"
+      },
+      "facade": {
+        "imageHelper": "Use a sharp, landscape photo (recommended: 1600 px wide or more).",
+        "showCtaHelper": "When off, the strip shows only the image and the text.",
+        "ctaTargetHidden": "The button leads to the About section, which is hidden. While it stays hidden, the button is not shown on the site — show the section or enter another link."
+      },
+      "about": {
+        "showCatalogStats": "Show the total of products and categories",
+        "showCatalogStatsHelper": "Adds an automatic card to the highlights with the real number of products and categories in the catalog.",
+        "highlights": {
+          "title": "Highlights",
+          "description": "Short cards next to the text (for example, “Since 2014”). Each one has a title and a supporting sentence.",
+          "usingDefault": "Using the site's default highlights. Customize to edit, add or remove items.",
+          "customize": "Customize highlights",
+          "useDefaultList": "Back to the default highlights",
+          "add": "Add highlight",
+          "itemTitle": "Highlight {position}",
+          "removeAria": "Remove highlight {position}",
+          "moveUpAria": "Move highlight {position} up",
+          "moveDownAria": "Move highlight {position} down",
+          "maxReached": "Limit of {max} highlights reached.",
+          "minOne": "The list needs at least one highlight. To discard yours, use “Back to the default highlights”."
+        }
+      },
+      "categories": {
+        "items": {
+          "title": "Category cards",
+          "description": "Each card leads to a part of the catalog. You can change the image, title and link of each one.",
+          "usingDefault": "Using the site's default cards. Customize to change images and links, or to add or remove cards.",
+          "customize": "Customize cards",
+          "useDefaultList": "Back to the default cards",
+          "add": "Add card",
+          "newItem": "New card",
+          "itemTitle": "{position}. {label}",
+          "expandAria": "Show or hide the fields of {name}",
+          "removeAria": "Remove the {name} card",
+          "moveUpAria": "Move the {name} card up",
+          "moveDownAria": "Move the {name} card down",
+          "maxReached": "Limit of {max} cards reached.",
+          "minOne": "The list needs at least one card. To discard yours, use “Back to the default cards”.",
+          "altHelper": "Leave empty if the image is purely decorative."
+        }
+      },
+      "featured": {
+        "limit": "Products shown on the home page",
+        "limitHelper": "Choose from {min} to {max}. If the showcase has more products, only the first ones appear.",
+        "products": {
+          "title": "Products in the showcase",
+          "description": "Choose which products appear in “Featured products” and in what order. The site only shows published products.",
+          "immediate": "Changes to this list take effect right away, no need to save the section.",
+          "fallback": "With no featured products, the showcase shows the best sellers and, failing that, the newest products.",
+          "empty": "No featured products. Add products below to build the showcase.",
+          "addLabel": "Add a product to the showcase",
+          "addPlaceholder": "Search by name or code (SKU)",
+          "sku": "SKU {sku}",
+          "typeMore": "Type at least {count} characters to search.",
+          "noOptions": "No products found.",
+          "loading": "Searching…",
+          "inShowcase": "Already in the showcase",
+          "notPublished": "Not published",
+          "bestSeller": "Best seller",
+          "overLimit": "Over the limit",
+          "overLimitHelp": "Not shown on the home page: only the first {limit} published products appear.",
+          "removeAria": "Remove {name} from the showcase",
+          "moveUpAria": "Move {name} up",
+          "moveDownAria": "Move {name} down",
+          "added": "Product added to the showcase.",
+          "removed": "Product removed from the showcase.",
+          "reordered": "Showcase order updated.",
+          "actionFailed": "Could not update the showcase. Please try again.",
+          "loadFailed": "Could not load the showcase products.",
+          "noPermission": "You need permission to edit products to change the showcase.",
+          "noRead": "You need permission to view products to manage the showcase."
+        }
+      },
+      "errors": {
+        "tooLong": "Use at most {max} characters.",
+        "invalidHref": "Invalid link. Use /path, #anchor, https://… or mailto:.",
+        "labelRequired": "Enter the title in at least one language.",
+        "hrefRequired": "Enter the link.",
+        "imageRequired": "Choose an image.",
+        "invalid": "Invalid value."
+      }
+    },
+    "leads": {
+      "title": "Requests",
+      "subtitle": "Contacts, quote requests and catalog downloads received through the site.",
+      "refresh": "Refresh",
+      "search": {
+        "label": "Search requests",
+        "placeholder": "Name, email, company, phone or product"
+      },
+      "filters": {
+        "all": "All",
+        "subjectAria": "Filter by subject"
+      },
+      "subjects": {
+        "call_back": "We call you",
+        "quote": "Product quote",
+        "general": "Contact",
+        "catalog": "Catalog",
+        "cart": "Quote list"
+      },
+      "table": {
+        "receivedAt": "Received",
+        "name": "Name",
+        "company": "Company",
+        "subject": "Subject",
+        "items": "Items",
+        "origin": "Origin",
+        "channels": "Delivery",
+        "actions": "Actions",
+        "viewDetails": "View details of {name}"
+      },
+      "items": {
+        "productsOne": "{count} product",
+        "productsOther": "{count} products",
+        "unitsOne": "{count} unit",
+        "unitsOther": "{count} units",
+        "listSummary": "{products} · {units}",
+        "sku": "SKU {sku}"
+      },
+      "origins": {
+        "home-hero": "Home — first screen (hero)",
+        "home-fachada": "Home — facade section",
+        "home-sobre": "Home — about section",
+        "home-categorias": "Home — categories",
+        "home-destaques": "Home — featured products",
+        "home-portal": "Home — ROCO Portal call to action",
+        "produtos-listagem": "Product listing",
+        "produto-detalhe": "Product detail",
+        "catalogo": "Catalog page",
+        "menu": "Navigation menu",
+        "rodape": "Footer",
+        "orcamento": "Quote list"
+      },
+      "channels": {
+        "rdStation": "RD Station",
+        "rdStationShort": "RD",
+        "email": "Email",
+        "tooltip": "{channel}: {status}",
+        "status": {
+          "sent": "Sent",
+          "failed": "Failed",
+          "pending": "Pending",
+          "not_configured": "Not configured",
+          "skipped": "Not sent",
+          "unknown": "Unknown"
+        }
+      },
+      "empty": {
+        "title": "No requests here yet",
+        "description": "When someone submits the contact form, asks for a quote or downloads the catalog, the request shows up in this list.",
+        "filteredTitle": "No requests found",
+        "filteredDescription": "No results for the search or subject you chose. Try other terms or clear the filters.",
+        "clearFilters": "Clear filters"
+      },
+      "error": {
+        "title": "Could not load the requests",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "detail": {
+        "close": "Close",
+        "newTab": "opens in a new tab",
+        "sections": {
+          "contact": "Contact",
+          "request": "Request",
+          "message": "Message",
+          "products": "Products",
+          "delivery": "Delivery to internal channels"
+        },
+        "fields": {
+          "name": "Name",
+          "email": "Email",
+          "phone": "Phone",
+          "company": "Company",
+          "cnpj": "CNPJ",
+          "subject": "Subject",
+          "receivedAt": "Received",
+          "origin": "Origin on the site",
+          "campaign": "Campaign",
+          "language": "Visitor's language",
+          "consent": "Consent (LGPD)"
+        },
+        "languages": {
+          "pt": "Portuguese",
+          "en": "English"
+        },
+        "campaign": {
+          "source": "source: {source}",
+          "medium": "medium: {medium}",
+          "campaign": "campaign: {campaign}"
+        },
+        "consentGranted": "Granted on {date}",
+        "consentMissing": "Not recorded",
+        "noMessage": "The visitor did not write a message.",
+        "singleProduct": "Product of interest",
+        "itemsTable": {
+          "product": "Product",
+          "sku": "SKU",
+          "quantity": "Qty",
+          "viewOnSite": "View on site"
+        },
+        "delivery": {
+          "description": "Result of the automatic delivery of this request to RD Station and to the sales team's email. The record is saved here either way.",
+          "rdStation": "RD Station",
+          "email": "Email",
+          "reason": "Reason: {error}",
+          "errors": {
+            "not_configured": "Email delivery is not configured in this environment yet.",
+            "missing_api_key": "The RD Station API key is not configured in this environment yet.",
+            "validation": "RD Station rejected the data that was sent.",
+            "validation_retry_ok": "Sent without the custom fields. Check that they exist in RD Station.",
+            "validation_retry_failed": "RD Station rejected the data even without the custom fields.",
+            "rate_limited": "RD Station request limit reached.",
+            "network": "Network failure while contacting the service.",
+            "http": "The service responded with an error (HTTP {code}).",
+            "unknown": "Unidentified error ({code})."
+          }
+        },
+        "actions": {
+          "replyEmail": "Reply by email",
+          "whatsapp": "WhatsApp",
+          "copyEmail": "Copy email",
+          "copied": "Email copied",
+          "copyFailed": "Could not copy",
+          "openWhatsapp": "Open in WhatsApp"
+        },
+        "replySubject": "ROCO — {subject}",
+        "replyGreeting": "Hello {name},\n\nThank you for contacting ROCO.\n\n",
+        "whatsappGreeting": "Hello {name}! This is the ROCO sales team. We received your request and are getting in touch.",
+        "error": {
+          "description": "Could not load the details of this request.",
+          "notFound": "This request was not found. It may have been removed.",
+          "retry": "Try again"
+        }
+      }
+    },
     "shell": {
       "appName": "ROCO Portal",
+      "brandCaption": "Portal",
       "nav": {
         "dashboard": "Dashboard",
         "onboarding": "Onboarding",
         "products": "Products",
         "representatives": "Representatives",
         "welcome": "Welcome",
-        "hero": "Home Hero"
+        "hero": "Home Hero",
+        "homeContent": "Home page",
+        "leads": "Requests"
+      },
+      "navGroups": {
+        "overview": "Overview",
+        "catalog": "Catalog",
+        "relationship": "Relationships",
+        "site": "Website",
+        "admin": "Administration"
+      },
+      "navLabel": "Portal navigation",
+      "skipToContent": "Skip to content",
+      "sidebar": {
+        "collapse": "Collapse sidebar",
+        "expand": "Expand sidebar"
+      },
+      "search": {
+        "label": "Search products",
+        "placeholder": "Search products",
+        "shortcut": "Ctrl K",
+        "shortcutMac": "⌘K"
+      },
+      "viewSite": {
+        "label": "View site",
+        "aria": "View site (opens in a new tab)"
       },
       "comingSoon": "Coming soon",
       "userMenu": {
@@ -453,8 +921,81 @@
     },
     "dashboard": {
       "title": "Dashboard",
-      "welcome": "Welcome, {name}!",
-      "emptyState": "No data to display at the moment."
+      "welcome": "Hello, {name}!",
+      "subtitle": "Keep an eye on the catalog, the site showcase and what needs your attention today.",
+      "emptyState": "No data to display at the moment.",
+      "partialError": "Some indicators could not be loaded. Refresh the page to try again.",
+      "indicatorsLabel": "Indicators",
+      "kpis": {
+        "published": {
+          "label": "Published products",
+          "hint": "of {total} in the catalog"
+        },
+        "featured": {
+          "label": "Featured on home",
+          "hint": "Home page showcase"
+        },
+        "bestSeller": {
+          "label": "Best sellers",
+          "hint": "Products with the trophy badge"
+        },
+        "noPhoto": {
+          "label": "Published without photo",
+          "hint": "Shown without an image on the site",
+          "ok": "Every published product has a photo"
+        },
+        "reviews": {
+          "label": "Registrations to review",
+          "hint": "Representatives awaiting approval",
+          "ok": "No pending registrations"
+        },
+        "leads": {
+          "label": "Requests received",
+          "hint": "In the last {days} days"
+        }
+      },
+      "quickActions": {
+        "title": "Shortcuts",
+        "newProduct": {
+          "label": "New product",
+          "hint": "Add an item to the catalog"
+        },
+        "editHome": {
+          "label": "Edit home page",
+          "hint": "Texts, images and sections of the home"
+        },
+        "manageHero": {
+          "label": "Manage hero",
+          "hint": "Slides and video of the first section"
+        },
+        "viewSite": {
+          "label": "View the site",
+          "hint": "Open the public website in a new tab"
+        }
+      },
+      "recentLeads": {
+        "title": "Recent requests",
+        "viewAll": "View all",
+        "empty": "No requests received yet.",
+        "subjects": {
+          "call_back": "Call me back",
+          "quote": "Product quote",
+          "general": "General contact",
+          "catalog": "Catalog",
+          "cart": "Quote list"
+        }
+      },
+      "health": {
+        "title": "Catalog health",
+        "subtitle": "What visitors find on the site",
+        "published": "Published",
+        "withPhoto": "Published with photo",
+        "ofTotal": "{value} of {total}",
+        "healthy": "Catalog up to date: every published product has a photo.",
+        "noProducts": "No products registered yet.",
+        "reviewNoPhoto": "View products without photo",
+        "reviewUnpublished": "View unpublished ({count})"
+      }
     },
     "admin": {
       "title": "Administration",
@@ -531,8 +1072,56 @@
     },
     "products": {
       "title": "Products",
-      "subtitle": "ROCO catalog manager — 769 items",
-      "searchPlaceholder": "Search by SKU, name, or category...",
+      "subtitle": "Manage the ROCO catalog: listings, site showcase and publishing.",
+      "subtitleReadOnly": "Browse the catalog, copy a product link and share it with your customers.",
+      "searchPlaceholder": "Search by SKU or name...",
+      "count": {
+        "one": "{count} product",
+        "other": "{count} products"
+      },
+      "showing": "Showing {shown} of {total}",
+      "loadMore": "Load more",
+      "filters": {
+        "statusAll": "All",
+        "categoryAll": "All categories",
+        "quickLabel": "Quick filters",
+        "featured": "Featured",
+        "bestSeller": "Best sellers",
+        "noImage": "No photo",
+        "clear": "Clear filters"
+      },
+      "flags": {
+        "featuredAdd": "Feature on home",
+        "featuredRemove": "Remove from home featured",
+        "bestSellerAdd": "Mark as best seller",
+        "bestSellerRemove": "Remove best seller badge"
+      },
+      "actions": {
+        "more": "More actions",
+        "edit": "Edit",
+        "viewOnSite": "View on site",
+        "copyLink": "Copy link",
+        "shareWhatsapp": "Share on WhatsApp",
+        "delete": "Delete"
+      },
+      "share": {
+        "message": "Hi! Check out this ROCO product: {name}\n{url}"
+      },
+      "feedback": {
+        "linkCopied": "Link copied!",
+        "copyFailed": "Could not copy the link.",
+        "saved": "Product saved.",
+        "created": "Product created. You can now upload its images.",
+        "publishedOn": "Product published on the site.",
+        "publishedOff": "Product removed from the site.",
+        "featuredAdded": "Product added to the end of the home showcase.",
+        "featuredAddedUnpublished": "Added to the showcase, but it only shows on the home once published.",
+        "featuredRemoved": "Product removed from the home showcase.",
+        "bestSellerOn": "Best seller badge applied.",
+        "bestSellerOff": "Best seller badge removed.",
+        "deleted": "Product deleted.",
+        "actionFailed": "Could not complete the action. Please try again."
+      },
       "table": {
         "sku": "SKU",
         "name": "Name",
@@ -541,7 +1130,12 @@
         "badges": "Badges",
         "status": "Status",
         "updatedAt": "Updated",
-        "actions": "Actions"
+        "actions": "Actions",
+        "product": "Product",
+        "showcase": "Showcase",
+        "published": "Published",
+        "photos": "Photos",
+        "noPhoto": "No photo"
       },
       "status": {
         "published": "Published",
@@ -559,6 +1153,43 @@
       "form": {
         "createTitle": "New Product",
         "editTitle": "Edit Product",
+        "sections": {
+          "identification": {
+            "title": "Identification",
+            "hint": "SKU, tax and barcode codes of the product."
+          },
+          "copy": {
+            "title": "Name and description",
+            "hint": "How the product is presented on the site, in Portuguese and English."
+          },
+          "categories": {
+            "title": "Categories and badges",
+            "hint": "Where the product appears in the site navigation and which badges it shows."
+          },
+          "showcase": {
+            "title": "Site showcase",
+            "hint": "Control the publishing and the presence of the product on the home page."
+          },
+          "packaging": {
+            "title": "Packaging",
+            "hint": "Every way the product is sold. It can be sold in several packs at once — none is the main one, and all of them appear on the site."
+          },
+          "images": {
+            "title": "Images",
+            "hint": "The first uploaded image is the product cover in the catalog."
+          }
+        },
+        "validation": {
+          "required": "Required field.",
+          "positiveNumber": "Enter a whole number greater than zero.",
+          "duplicatePackaging": "Duplicate pack: another one already has this type and quantity.",
+          "wholeNumber": "Enter a whole number from 0 up."
+        },
+        "errors": {
+          "duplicate": "A product with this SKU or name already exists. Adjust the data and try again.",
+          "forbidden": "You do not have permission to save this product.",
+          "invalid": "Check the highlighted fields before saving."
+        },
         "fields": {
           "sku": "SKU",
           "erpCode": "ERP Code",
@@ -566,12 +1197,21 @@
           "nameEn": "Name (English)",
           "description": "Description (Portuguese)",
           "descriptionEn": "Description (English)",
-          "category": "Category",
+          "category": "Categories",
+          "primaryCategory": "Primary category",
+          "primaryCategoryHelper": "The reference category of the product on the site.",
           "ncm": "NCM (Tax Classification)",
           "barcode": "Barcode",
           "packagingType": "Packaging Type",
           "unitsPerPack": "Units per Package",
-          "published": "Published on website"
+          "published": "Published on website",
+          "publishedHelper": "Only published products appear on the site.",
+          "featured": "Featured on home",
+          "featuredHelper": "Shows in the “Featured products” showcase of the home page (only when published).",
+          "featuredOrder": "Showcase position",
+          "featuredOrderHelper": "The lowest number shows first. You can also reorder it in the home page editor.",
+          "bestSeller": "Best seller",
+          "bestSellerHelper": "Shows the trophy badge on the card and on the product page."
         },
         "packagingTypes": {
           "peca": "Unit",
@@ -585,14 +1225,20 @@
           "altText": "Alt text (image description)",
           "cover": "Catalog cover",
           "remove": "Remove image",
-          "uploadError": "Upload error. Please try again."
+          "uploadError": "Upload error. Please try again.",
+          "upload": "Upload images",
+          "saveFirst": "Save the product to be able to upload images."
         },
         "actions": {
           "save": "Save Product",
           "cancel": "Cancel",
+          "close": "Close",
           "delete": "Delete Product",
           "publish": "Publish",
-          "unpublish": "Unpublish"
+          "unpublish": "Unpublish",
+          "addPackaging": "Add packaging",
+          "removePackaging": "Remove packaging",
+          "viewOnSite": "View on site"
         }
       },
       "sync": {
@@ -609,9 +1255,14 @@
         "title": "No products found",
         "description": "Create the first product or adjust your search."
       },
+      "emptyFiltered": {
+        "title": "No products match these filters",
+        "description": "Try other terms or clear the filters to see the whole catalog."
+      },
       "deleteConfirm": {
         "title": "Delete Product",
         "message": "Are you sure? This action cannot be undone.",
+        "messageNamed": "Are you sure you want to delete “{name}”? This action cannot be undone.",
         "confirm": "Yes, delete",
         "cancel": "Cancel"
       }
@@ -700,6 +1351,12 @@
         "title": "No representatives awaiting review",
         "description": "New registrations will appear here for analysis."
       },
+      "emptyByStatus": {
+        "draft": "No registrations in draft",
+        "approved": "No approved representatives",
+        "rejected": "No rejected representatives",
+        "hint": "Switch tabs above to see other statuses."
+      },
       "edit": {
         "title": "Edit record",
         "save": "Save changes",
@@ -744,14 +1401,17 @@
         "outro": "Watch the video below for a complete step-by-step guide on how to use the system."
       },
       "materialsFeed": {
-        "title": "Materials for you",
-        "subtitle": "Access support materials published by ROCO to help your work as a representative.",
+        "title": "Recent materials",
+        "subtitle": "The latest materials published by ROCO. See the full library, organized by topic.",
         "empty": "No materials published yet.",
         "error": "Could not load the materials. Please try again shortly.",
         "forbidden": "Your access does not have permission to view the materials yet. Please contact the ROCO team.",
         "downloadLabel": "Download",
+        "openLabel": "Open",
         "watchLabel": "Watch",
-        "publishedOn": "Published on {date}"
+        "publishedOn": "Published on {date}",
+        "viewAll": "See all materials",
+        "newBadge": "New"
       },
       "closing": {
         "paragraph1": "This page brings together everything you need to start your journey as a ROCO representative with confidence and clarity. Whenever a question or need arises, come back here.",
@@ -822,7 +1482,9 @@
           "onboarding": "Onboarding",
           "hero_slides": "Home hero",
           "materials": "Materials",
-          "roles": "Profiles and permissions"
+          "roles": "Profiles and permissions",
+          "home_content": "Home page",
+          "leads": "Requests"
         },
         "actionsLabels": {
           "create": "Create",
@@ -979,6 +1641,56 @@
     "materials": {
       "title": "Materials",
       "subtitle": "Manage support and shared content materials for representatives.",
+      "library": {
+        "title": "Sales materials",
+        "subtitle": "Everything ROCO publishes to support your sales, organized by topic.",
+        "searchLabel": "Search materials",
+        "searchPlaceholder": "Search by title or description",
+        "sectorsLabel": "Filter by topic",
+        "all": "All",
+        "recentTitle": "Recently published",
+        "newBadge": "New",
+        "countOne": "{count} material",
+        "countOther": "{count} materials",
+        "open": "Open",
+        "download": "Download",
+        "watch": "Watch",
+        "downloadAria": "Download {title}",
+        "publishedOn": "Published on {date}",
+        "otherTitle": "Other materials",
+        "empty": {
+          "title": "No materials published yet",
+          "description": "As soon as the ROCO team publishes materials, they will show up here, organized by topic."
+        },
+        "emptyFilter": {
+          "title": "No materials found",
+          "description": "Try other words or see every topic.",
+          "clear": "Clear filters"
+        },
+        "error": "We could not load the materials. Please try again in a moment.",
+        "retry": "Try again",
+        "forbidden": "Your access does not have permission to see the materials yet. Please contact the ROCO team.",
+        "fileTypes": {
+          "pdf": "PDF",
+          "video": "Video",
+          "image": "Image",
+          "spreadsheet": "Spreadsheet",
+          "presentation": "Presentation",
+          "document": "Document",
+          "archive": "ZIP file",
+          "file": "File"
+        },
+        "sectors": {
+          "commercial_policy": "Commercial terms, deadlines and price lists.",
+          "logistics": "Deliveries, freight and shipping times.",
+          "contacts": "Who to talk to in each ROCO department.",
+          "training": "Training and product presentations.",
+          "other": "Other support materials."
+        },
+        "viewAsRepresentative": "View as sales rep",
+        "backToManage": "Back to materials management",
+        "previewNotice": "Preview: this is how sales reps see the published materials (drafts are hidden)."
+      },
       "table": {
         "title": "Title",
         "category": "Category",
@@ -1045,13 +1757,77 @@
     },
     "settings": {
       "title": "Site Settings",
-      "subtitle": "Contact data and social links shown on the public site.",
+      "subtitle": "Contact data, social links and catalog shown on the public site.",
+      "blocks": {
+        "contact": {
+          "title": "Contact",
+          "description": "Phone and e-mail shown in the footer and in the contact buttons of the site."
+        },
+        "addresses": {
+          "title": "Addresses",
+          "description": "Headquarters and factory shown in the footer."
+        },
+        "social": {
+          "title": "Social networks",
+          "description": "Paste the full address of each profile. Networks left blank do not appear on the site."
+        },
+        "catalog": {
+          "title": "Catalog PDF",
+          "description": "File delivered by the “Download catalog” button of the site."
+        }
+      },
+      "fields": {
+        "phone": {
+          "label": "Phone / WhatsApp",
+          "hint": "With country code and area code. E.g.: 55 47 3335-2012"
+        },
+        "email": {
+          "label": "Public e-mail",
+          "hint": "E.g.: sales@roco.com.br"
+        },
+        "addressMatriz": {
+          "label": "Headquarters address",
+          "hint": "E.g.: Rua Amsterdam, 853 - Itoupavazinha, Blumenau - SC, ZIP 89070-490"
+        },
+        "addressFilial": {
+          "label": "Factory description",
+          "hint": "Descriptive text of the factory unit in Gaspar."
+        },
+        "instagram": {
+          "label": "Instagram",
+          "hint": "E.g.: https://www.instagram.com/yourcompany"
+        },
+        "linkedin": {
+          "label": "LinkedIn",
+          "hint": "E.g.: https://www.linkedin.com/company/yourcompany"
+        },
+        "youtube": {
+          "label": "YouTube",
+          "hint": "E.g.: https://www.youtube.com/@yourcompany"
+        },
+        "whatsapp": {
+          "label": "WhatsApp (link)",
+          "hint": "E.g.: https://wa.me/554733352012"
+        },
+        "catalogPdf": {
+          "label": "Catalog link (PDF)",
+          "hint": "Full address (https://…) or a path starting with /"
+        }
+      },
       "form": {
-        "saved": "Saved!",
         "save": "Save",
+        "saving": "Saving...",
+        "reset": "Discard changes",
+        "unsaved": "Unsaved changes",
+        "blockSaved": "Changes saved.",
         "errors": {
           "required": "This field is required.",
-          "saveFailed": "Failed to save. Please try again."
+          "saveFailed": "Failed to save. Please try again.",
+          "invalidUrl": "Enter a full address starting with http:// or https://.",
+          "invalidEmail": "Enter a valid e-mail.",
+          "invalidPhone": "Enter a valid phone number, with country code and area code.",
+          "invalidPath": "Enter a full address (https://…) or a path starting with /.",
+          "storedInvalid": "The saved social links value was in an invalid format and was ignored. Saving will replace it."
         }
       },
       "errors": {
@@ -1061,38 +1837,44 @@
   },
   "cart": {
     "seo": {
-      "title": "Quote Cart — ROCO",
-      "description": "Organize your products of interest and submit a quote request to ROCO. Our sales team will contact you to prepare a personalized proposal."
+      "title": "My quote — ROCO",
+      "description": "Build your list of ROCO products and send a quote request. Our sales team will get back to you with a personalized proposal."
     },
     "nav": {
-      "label": "Quote Cart",
-      "empty": "Cart is empty"
+      "label": "My quote",
+      "empty": "Your quote is empty"
     },
     "addButton": {
-      "label": "Add to Cart",
-      "added": "Added!"
+      "label": "Add to quote",
+      "added": "Added to quote!",
+      "inQuote": "In quote ({count})",
+      "viewQuote": "View quote"
     },
     "page": {
-      "headline": "Quote Cart",
-      "subheadline": "Organize the products you're interested in and submit a quote request to ROCO.",
-      "emptyTitle": "Empty Cart",
-      "emptyMessage": "You have not added any products yet. Browse the catalog and select the items you are interested in to create a quote.",
-      "emptyCta": "Browse Catalog",
-      "itemsHeading": "Selected Products",
+      "headline": "My quote",
+      "subheadline": "Review the products, adjust quantities and send your request — our sales team will get back to you with a personalized proposal.",
+      "emptyTitle": "Your quote is empty",
+      "emptyMessage": "Browse the catalog and use “Add to quote” on the products you are interested in. You can gather several items and send everything at once.",
+      "emptyCta": "Browse products",
+      "itemsHeading": "Products in your quote",
       "quantityLabel": "Quantity",
-      "removeItem": "Remove",
-      "clearCart": "Clear Cart",
-      "clearCartConfirm": "Are you sure you want to remove all items?",
-      "skuLabel": "Code"
+      "removeItem": "Remove from quote",
+      "clearCart": "Clear quote",
+      "clearCartConfirm": "Remove all products from your quote?",
+      "skuLabel": "Code",
+      "itemsSummary": "{count} products · {units} units",
+      "decrease": "Decrease quantity of {name}",
+      "increase": "Increase quantity of {name}",
+      "continueBrowsing": "Add more products"
     },
     "form": {
-      "title": "Submit Your Quote Request",
+      "title": "Send your quote request",
       "name": "Full name",
       "email": "Email",
       "phone": "Phone",
       "companyName": "Company (optional)",
       "consent": "I agree to the processing of my personal data so that ROCO can contact me, in accordance with the Privacy Policy.",
-      "submit": "Request Quote",
+      "submit": "Request quote",
       "sending": "Sending…"
     },
     "validation": {
@@ -1107,16 +1889,16 @@
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
       "unavailable": "The service is temporarily unavailable. Please try again shortly.",
       "generic": "We could not submit your request right now. Please try again shortly.",
-      "cartEmpty": "None of the products in your list were found in the catalog. They may have been removed or unpublished. Go back to the catalog and select new items."
+      "cartEmpty": "None of the products in your list are available in the catalog right now — they may have been removed or unpublished. Go back to the catalog and select new items."
     },
     "success": {
-      "title": "Request Received!",
-      "message": "Thank you! Your quote request has been sent successfully. Our sales team will review your products of interest and get back to you shortly with a personalized quote."
+      "title": "Quote request sent!",
+      "message": "Thank you! We have received your product list. Our sales team will review it and get back to you shortly with a personalized proposal."
     },
     "whatsapp": {
-      "buttonLabel": "Also send via WhatsApp",
+      "buttonLabel": "Send via WhatsApp",
       "messageIntro": "Hi! I would like a quote for the following products:",
-      "moreItemsSuffix": "+ {count} more items — full list sent by email"
+      "moreItemsSuffix": "+ {count} more items — full list sent through the website form"
     }
   },
   "site": {

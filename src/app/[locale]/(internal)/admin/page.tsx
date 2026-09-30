@@ -24,7 +24,7 @@ export async function generateMetadata({
   const portal = getPortalDictionary(dictionary);
 
   return {
-    title: portal.admin.title,
+    title: `${portal.admin.title} — ${portal.shell.appName}`,
     robots: { index: false, follow: false },
   };
 }

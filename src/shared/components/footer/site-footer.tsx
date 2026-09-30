@@ -82,8 +82,12 @@ const SOCIAL_ORDER = ["instagram", "linkedin", "youtube", "whatsapp"] as const;
 
 type SocialKey = (typeof SOCIAL_ORDER)[number];
 
-/** Mesmo logotipo 2D limpo usado no `SiteHeader` — ver comentário lá. */
-const LOGO = "/images/hero/roco-logo.png";
+/**
+ * Assinatura com slogan ("onde tudo se conecta") — identidade nova de
+ * 2026-09-29 (spec 001). O rodapé é o lugar da ASSINATURA completa; o header
+ * usa só o logotipo 2D, que cabe na faixa de 40px.
+ */
+const LOGO = "/images/logos/roco-logo-slogan-white.png";
 
 /**
  * Título de grupo — MESMO papel nas duas bandas (marca/navegação e contato),
@@ -181,14 +185,12 @@ export async function SiteFooter({ content, brand, locale }: SiteFooterProps) {
               <Image
                 src={LOGO}
                 alt={brand}
-                // Dimensões INTRÍNSECAS do arquivo (306×133) — mesma correção
-                // já aplicada no `SiteHeader`. Declaradas como 220×90, a razão
-                // errada fazia o navegador reservar 88px de largura e encolher
-                // para 82,9px ao decodificar o PNG.
-                width={306}
-                height={133}
+                // Dimensões INTRÍNSECAS do arquivo (918×506): a razão certa
+                // evita o navegador reservar largura errada antes de decodificar.
+                width={918}
+                height={506}
                 priority={false}
-                className="h-9 w-auto"
+                className="h-16 w-auto"
               />
             </Link>
             <p className={PROSE_BLOCK}>{content.tagline}</p>

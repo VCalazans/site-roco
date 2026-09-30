@@ -21,6 +21,24 @@ const nextConfig: NextConfig = {
     remotePatterns: getRemotePatterns(),
   },
 
+  /**
+   * `/carrinho` → `/orcamento` (spec 001, 2026-09-29: "carrinho" virou
+   * "orçamento" em toda referência, URL inclusa). Permanente (308) para que
+   * buscadores e links antigos (e-mails, WhatsApp já compartilhados) migrem.
+   * O destino é FIXO — só troca o segmento dentro do mesmo locale, então não
+   * há como virar open redirect. Sem prefixo de locale, o `proxy.ts` adiciona
+   * o locale antes e a regra de baixo casa na requisição seguinte.
+   */
+  async redirects() {
+    return [
+      {
+        source: "/:locale(pt|en)/carrinho",
+        destination: "/:locale/orcamento",
+        permanent: true,
+      },
+    ];
+  },
+
   // Baseline security headers
   async headers() {
     return [

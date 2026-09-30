@@ -4,13 +4,16 @@ import { notFound } from "next/navigation";
 import { ProductsExplorer } from "@/modules/products/components/products-explorer";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getPublicCategoryList, getPublicProductList } from "@/server/lib/public-products";
-import { SiteHeader } from "@/shared/components/nav";
-import { siteNavLinks } from "@/shared/lib/nav";
+import {
+  getPublicBestSellerCount,
+  getPublicCategoryCounts,
+  getPublicCategoryList,
+  getPublicProductList,
+} from "@/server/lib/public-products";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
-  searchParams: Promise<{ category?: string; search?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; search?: string; page?: string; bestSeller?: string }>;
 };
 
 /**
@@ -51,31 +54,26 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
   // Mesmo teto de `getPublicProductList` (MAX_SEARCH_LENGTH) — o input do
   // explorer deve refletir o termo que o server de fato usou.
   const search = (sp.search?.trim() || "").slice(0, 80);
+  // Mesma regra de `GET /api/products`: só "1"/"true" liga o filtro.
+  const bestSeller = sp.bestSeller === "1" || sp.bestSeller === "true";
   const requestedPage = Number(sp.page);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
   const dictionary = await getDictionary(locale);
-  const { navigation, products, cart } = dictionary;
-
-  const navLinks = siteNavLinks(navigation.links, locale);
+  const { products, cart } = dictionary;
 
   // Initial load via direct import (SSR, sem HTTP) — buscas/filtros
   // subsequentes no cliente usam `GET /api/products` (ver `ProductsExplorer`).
-  const [initialResult, categoryList] = await Promise.all([
-    getPublicProductList({ category: category || undefined, search: search || undefined, page }),
+  const [initialResult, categoryList, categoryCounts, bestSellerCount, allProducts] = await Promise.all([
+    getPublicProductList({ category: category || undefined, search: search || undefined, bestSeller, page }),
     getPublicCategoryList(),
+    getPublicCategoryCounts(),
+    getPublicBestSellerCount(),
+    getPublicProductList({ page: 1, perPage: 1 }),
   ]);
 
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">
-      <SiteHeader
-        brand={navigation.brand}
-        links={navLinks}
-        menuLabels={{ open: navigation.menu, close: navigation.close }}
-        locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
-      />
-
       {/* Faixa decorativa com a cena extraída de
           `docs/Layout pag Produtos_OK_01.psd` (nav + título "Produtos" +
           molduras neon vazias — ver preview em
@@ -106,7 +104,10 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
         initialPage={initialResult.page}
         perPage={initialResult.perPage}
         categories={categoryList}
-        initialFilters={{ category, search }}
+        categoryCounts={categoryCounts}
+        allCount={allProducts.total}
+        bestSellerCount={bestSellerCount}
+        initialFilters={{ category, search, bestSeller }}
         content={products.listing}
         cardContent={products.card}
         badgeLabels={products.badges}

@@ -1,7 +1,9 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { locales } from "@/i18n/config";
 import { activeNavIndex, externalProps, type NavLink } from "@/shared/lib/nav";
 
 type NavItemsProps = {
@@ -47,6 +49,11 @@ export function NavItems({
 }: NavItemsProps) {
   const wrap = wrapItem ?? ((node: ReactNode) => node);
   const pathname = usePathname();
+  // "Home" chega como `/` nu (é o que `isNavLinkActive` espera para acender o
+  // item só na raiz). Para NAVEGAR, o `/` custaria um redirect do middleware a
+  // cada clique — resolve para a raiz do locale atual.
+  const currentLocale = locales.find((locale) => pathname.split("/")[1] === locale);
+  const homeHref = currentLocale ? `/${currentLocale}` : "/";
   // UM único item marcado como página atual — ver `activeNavIndex`. Dois itens
   // podem levar à mesma página com intenções diferentes ("Contato" e "Ligamos
   // pra você" vão ambos para `/contato`) e acender os dois lê como defeito.
@@ -59,20 +66,37 @@ export function NavItems({
         const className = itemClassName(index, isActive);
         const style = itemStyle?.(index);
 
-        return wrap(
+        // Destino INTERNO usa `<Link>` (navegação client-side com prefetch):
+        // até a spec 001 cada item era um `<a>` cru e todo clique no menu
+        // recarregava o documento inteiro — header, fontes, providers —, o
+        // principal motivo de a navegação não parecer fluida. Externo segue
+        // `<a>` com nova aba (`externalProps`).
+        const isExternal = link.href.startsWith("http");
+        const node = isExternal ? (
           <a
             key={link.label}
             href={link.href}
             onClick={onSelect}
             className={className}
             style={style}
-            aria-current={isActive ? "page" : undefined}
             {...externalProps(link.href)}
           >
             {link.label}
-          </a>,
-          link.label
+          </a>
+        ) : (
+          <Link
+            key={link.label}
+            href={link.href === "/" ? homeHref : link.href}
+            onClick={onSelect}
+            className={className}
+            style={style}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
         );
+
+        return wrap(node, link.label);
       })}
     </>
   );

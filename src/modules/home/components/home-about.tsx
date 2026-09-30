@@ -1,38 +1,43 @@
 import Link from "next/link";
-import type { Dictionary } from "@/i18n/get-dictionary";
+import { ArrowRight } from "lucide-react";
+import { cn } from "@/core/lib/utils";
+import type { ResolvedHomeContent } from "@/modules/home/lib/home-content";
 import { interpolate } from "@/shared/lib/interpolate";
-
-type HomeAboutContent = Dictionary["home"]["about"];
-
-type HomeAboutStats = {
-  totalProducts: number;
-  totalCategories: number;
-};
+import { externalProps } from "@/shared/lib/nav";
 
 type HomeAboutProps = {
-  content: HomeAboutContent;
+  content: ResolvedHomeContent["about"];
   ctaHref: string;
-  stats: HomeAboutStats;
+  stats: {
+    totalProducts: number;
+    totalCategories: number;
+  };
 };
 
 /**
- * Seção institucional da home. Os 4 highlights (fundação, sedes, GPTW,
- * exportação) vêm prontos do dicionário; o 5º card interpola dados reais do
- * catálogo (total de produtos publicados + categorias ativas) na chave
- * `home.about.catalogHighlight` — copy nos dicionários, números do banco.
+ * Seção institucional ("Quem é a ROCO") — `id="sobre"` é o alvo do CTA da
+ * seção de fachada. Textos, destaques e CTA vêm do conteúdo EDITÁVEL da home
+ * (painel → dicionário como padrão, ver `resolveHomeContent`); o card do
+ * catálogo interpola números REAIS do banco (produtos publicados + categorias
+ * ativas) — nunca estatística inventada (decisionLog 2026-08-11) — e pode ser
+ * ocultado no painel.
  */
 export function HomeAbout({ content, ctaHref, stats }: HomeAboutProps) {
-  const catalogHighlight = {
-    label: content.catalogHighlight.label,
-    value: interpolate(content.catalogHighlight.value, {
-      totalProducts: stats.totalProducts,
-      totalCategories: stats.totalCategories,
-    }),
-  };
-  const highlights = [...content.highlights, catalogHighlight];
+  const highlights = content.showCatalogStats
+    ? [
+        ...content.highlights,
+        {
+          label: content.catalogHighlight.label,
+          value: interpolate(content.catalogHighlight.value, {
+            totalProducts: stats.totalProducts,
+            totalCategories: stats.totalCategories,
+          }),
+        },
+      ]
+    : content.highlights;
 
   return (
-    <section className="relative px-6 py-20 sm:py-24">
+    <section id="sobre" className="relative scroll-mt-20 px-6 py-20 sm:py-24">
       <div className="mx-auto max-w-6xl">
         <p className="text-glow-cyan text-meta font-semibold uppercase tracking-[0.2em] text-neon-cyan-bright">
           {content.eyebrow}
@@ -46,16 +51,22 @@ export function HomeAbout({ content, ctaHref, stats }: HomeAboutProps) {
                 {paragraph}
               </p>
             ))}
-            <Link href={ctaHref} className="btn-neon mt-2 w-fit">
+            <Link href={ctaHref} {...externalProps(ctaHref)} className="btn-neon mt-2 w-fit">
               {content.cta.label}
+              <ArrowRight className="size-4" aria-hidden />
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {highlights.map((highlight, index) => (
-              <div
-                key={highlight.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-white/20"
+              <li
+                key={`${highlight.label}-${index}`}
+                // Quantidade ímpar (ex.: 4 destaques + o card do catálogo): o
+                // último ocupa as duas colunas em vez de ficar sozinho à esquerda.
+                className={cn(
+                  "rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-white/20",
+                  highlights.length % 2 === 1 && index === highlights.length - 1 && "sm:col-span-2"
+                )}
                 style={{
                   boxShadow:
                     index % 2 === 0
@@ -73,9 +84,9 @@ export function HomeAbout({ content, ctaHref, stats }: HomeAboutProps) {
                   {highlight.label}
                 </p>
                 <p className="mt-1 text-meta text-white/70">{highlight.value}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
     </section>

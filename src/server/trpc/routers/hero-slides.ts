@@ -16,6 +16,7 @@ import {
   type HeroSlide,
 } from "@/db/schema/hero-slides";
 import { writeAuditLog } from "@/server/lib/audit";
+import { isSafeHref, MAX_HREF_LENGTH } from "@/shared/lib/safe-href";
 import {
   getExtension,
   isContentTypeAllowed,
@@ -25,6 +26,22 @@ import {
 import { permissionProcedure, router } from "../init";
 
 const MAX_HERO_SLIDES = Number(process.env.MAX_HERO_SLIDES ?? 20);
+
+/**
+ * Destino dos CTAs do slide — campo livre do marketing que vira `href` na
+ * home. Validado por allowlist (`isSafeHref`): sem isso, `javascript:` salvo
+ * no painel viraria XSS armazenado na primeira dobra do site (spec 001,
+ * RF21). String vazia continua aceita (= "sem CTA").
+ */
+const ctaHrefSchema = z
+  .string()
+  .trim()
+  .max(MAX_HREF_LENGTH)
+  .refine((value) => value === "" || isSafeHref(value), {
+    message: "Link inválido. Use um caminho do site (/…) ou um endereço http(s)://.",
+  })
+  .optional()
+  .nullable();
 
 function safePublicUrl(key: string): string | null {
   try {
@@ -48,10 +65,10 @@ const slideInputSchema = z.object({
   descriptionEn: z.string().trim().max(500).optional().nullable(),
   primaryCtaLabelPt: z.string().trim().max(60).optional().nullable(),
   primaryCtaLabelEn: z.string().trim().max(60).optional().nullable(),
-  primaryCtaHref: z.string().trim().max(500).optional().nullable(),
+  primaryCtaHref: ctaHrefSchema,
   secondaryCtaLabelPt: z.string().trim().max(60).optional().nullable(),
   secondaryCtaLabelEn: z.string().trim().max(60).optional().nullable(),
-  secondaryCtaHref: z.string().trim().max(500).optional().nullable(),
+  secondaryCtaHref: ctaHrefSchema,
   loopWindowStartSeconds: z.number().int().min(0).optional().nullable(),
   loopWindowEndSeconds: z.number().int().min(0).optional().nullable(),
   /** Carrossel: 0 ou null = sem rotação automática; max 60s (limite

@@ -34,4 +34,9 @@ describe("interpolate", () => {
   it("retorna o template intacto sem placeholders", () => {
     expect(interpolate("sem placeholder", { count: 1 })).toBe("sem placeholder");
   });
+
+  it("não interpreta padrões especiais do replace (`$&`, `$'`, `$$`) no valor", () => {
+    expect(interpolate("Olá, {name}!", { name: "Ana $& Cia" })).toBe("Olá, Ana $& Cia!");
+    expect(interpolate("Olá, {name}!", { name: "$' $` $$" })).toBe("Olá, $' $` $$!");
+  });
 });

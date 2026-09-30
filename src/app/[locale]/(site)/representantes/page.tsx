@@ -4,8 +4,6 @@ import { RegisterForm } from "@/modules/representatives/components/register-form
 import { getRepresentativesDictionary } from "@/modules/representatives/lib/types";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { SiteHeader } from "@/shared/components/nav";
-import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -48,9 +46,6 @@ export default async function RepresentativesPage({ params }: PageProps) {
 
   const dictionary = await getDictionary(locale);
   const representatives = getRepresentativesDictionary(dictionary);
-  const { navigation, cart } = dictionary;
-
-  const navLinks = siteNavLinks(navigation.links, locale);
 
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
@@ -61,15 +56,8 @@ export default async function RepresentativesPage({ params }: PageProps) {
         <div className="absolute -right-40 bottom-0 size-[30rem] rounded-full bg-neon-amber/10 blur-[140px]" />
       </div>
 
-      <SiteHeader
-        brand={navigation.brand}
-        links={navLinks}
-        menuLabels={{ open: navigation.menu, close: navigation.close }}
-        locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
-      />
 
-      <main className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">
         <div className="max-w-xl lg:sticky lg:top-32">
           <h1 className="text-glow-soft font-display text-h1 text-white">
             {representatives.headline}
@@ -84,7 +72,7 @@ export default async function RepresentativesPage({ params }: PageProps) {
           content={representatives}
           loginHref={`/${locale}/portal/login`}
         />
-      </main>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import {
-  CART_SEGMENT,
+  QUOTE_SEGMENT,
   CATALOG_SEGMENT,
   CONTACT_SEGMENT,
   PRODUCTS_SEGMENT,
@@ -48,7 +48,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: priority * 0.8,
       },
       {
-        url: `${siteUrl}/${locale}/${CART_SEGMENT}`,
+        url: `${siteUrl}/${locale}/${QUOTE_SEGMENT}`,
         lastModified: new Date(),
         changeFrequency: "monthly" as const,
         priority: priority * 0.6,

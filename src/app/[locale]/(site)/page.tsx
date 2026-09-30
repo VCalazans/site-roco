@@ -1,15 +1,19 @@
+import { Fragment, type ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { HomeHero } from "@/modules/home/components/home-hero";
+import { HomeFacade } from "@/modules/home/components/home-facade";
 import { HomeAbout } from "@/modules/home/components/home-about";
 import { HomeCategories } from "@/modules/home/components/home-categories";
 import { HomeFeatured } from "@/modules/home/components/home-featured";
 import { HomePortalCta } from "@/modules/home/components/home-portal-cta";
-import { resolveDestination } from "@/core/config/site";
+import type { HomeSectionId } from "@/modules/home/lib/home-content";
+import { resolveCtaHref } from "@/core/config/site";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { getHomeContent } from "@/server/lib/home-content";
 import { getFeaturedProducts, getPublicCategoryList, getPublicProductList } from "@/server/lib/public-products";
-import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -37,6 +41,12 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * Home. O hero (slides em `/portal/hero`) é fixo no topo; as demais seções
+ * seguem a ORDEM e a VISIBILIDADE definidas no painel (`/portal/pagina-inicial`)
+ * e o conteúdo de cada uma vem de `getHomeContent` — texto salvo no painel no
+ * idioma da página ou, vazio, o padrão do dicionário (spec 001, RF17–RF20).
+ */
 export default async function HomePage({ params }: PageProps) {
   const { locale } = await params;
 
@@ -44,74 +54,96 @@ export default async function HomePage({ params }: PageProps) {
     notFound();
   }
 
+  // Conteúdo editável + catálogo são SEMPRE do momento da requisição. Sem
+  // isto, o `next build` tentava pré-renderizar a home (por causa do
+  // `generateStaticParams` de locale), batia no banco inexistente do build e
+  // despejava stack traces de "falha ao ler o conteúdo" no log de deploy —
+  // ruído que parece erro. A rota já era dinâmica (o layout raiz lê cookie).
+  await connection();
+
   const dictionary = await getDictionary(locale);
-  const { home, navigation, products, cart } = dictionary;
+  const { home, products, cart } = dictionary;
 
-  const navLinks = siteNavLinks(navigation.links, locale);
+  const content = await getHomeContent(locale, home);
 
-  const heroFallback = {
-    eyebrow: home.hero.eyebrow,
-    headline: home.hero.headline,
-    description: home.hero.description,
-    primaryCta: {
-      ...home.hero.primaryCta,
-      href: resolveDestination(home.hero.primaryCta.href, locale, "home-hero"),
-    },
-    secondaryCta: {
-      ...home.hero.secondaryCta,
-      href: resolveDestination(home.hero.secondaryCta.href, locale, "home-hero"),
-    },
-    sceneAlt: home.hero.sceneAlt,
-    scrollCue: home.hero.scrollCue,
-  };
-
-  // Server-side data for the sections below the hero — direct imports from the
-  // `server-only` catalog helpers (no HTTP round-trip); cached via
-  // `unstable_cache` (tag "products", see `@/server/lib/public-products`).
+  // Dados do catálogo para as seções abaixo do hero — imports diretos dos
+  // helpers `server-only` (sem round-trip HTTP), cacheados via
+  // `unstable_cache` (tag "products").
   const [productStats, categoryList, featuredProducts] = await Promise.all([
     getPublicProductList({ page: 1, perPage: 1 }),
     getPublicCategoryList(),
-    getFeaturedProducts(8),
+    getFeaturedProducts(content.featured.limit),
   ]);
+
+  const cardContent = {
+    viewDetails: products.card.viewDetails,
+    codeLabel: products.card.codeLabel,
+    bestSeller: products.card.bestSeller,
+    bestSellerShort: products.card.bestSellerShort,
+  };
+
+  const sections: Record<HomeSectionId, () => ReactNode> = {
+    facade: () => (
+      <HomeFacade
+        content={content.facade}
+        ctaHref={content.facade.cta ? resolveCtaHref(content.facade.cta.href, locale, "home-fachada") : null}
+      />
+    ),
+    about: () => (
+      <HomeAbout
+        content={content.about}
+        ctaHref={resolveCtaHref(content.about.cta.href, locale, "home-sobre")}
+        stats={{ totalProducts: productStats.total, totalCategories: categoryList.length }}
+      />
+    ),
+    categories: () => (
+      <HomeCategories
+        content={content.categories}
+        categorySlugs={categoryList.map((category) => category.slug)}
+        locale={locale}
+        ctaHref={resolveCtaHref(content.categories.cta.href, locale, "home-categorias")}
+        carouselLabels={home.categories.carousel}
+      />
+    ),
+    featured: () => (
+      <HomeFeatured
+        content={content.featured}
+        items={featuredProducts}
+        locale={locale}
+        ctaHref={resolveCtaHref(content.featured.cta.href, locale, "home-destaques")}
+        cardContent={cardContent}
+        badgeLabels={products.badges}
+        cartLabels={cart.addButton}
+        carouselLabels={home.featured.carousel}
+      />
+    ),
+    portalCta: () => (
+      <HomePortalCta
+        content={content.portalCta}
+        ctaHref={resolveCtaHref(content.portalCta.cta.href, locale, "home-portal")}
+        brand={home.brand}
+      />
+    ),
+  };
 
   return (
     <>
       <HomeHero
         brand={home.brand}
-        fallback={heroFallback}
-        navLinks={navLinks}
-        menuLabels={{ open: navigation.menu, close: navigation.close }}
-        navControls={{
-          language: navigation.language,
-          portalLogin: navigation.portalLogin,
-          cart: cart.nav.label,
+        fallback={{
+          eyebrow: home.hero.eyebrow,
+          headline: home.hero.headline,
+          description: home.hero.description,
+          primaryCta: home.hero.primaryCta,
+          secondaryCta: home.hero.secondaryCta,
+          scrollCue: home.hero.scrollCue,
+          carousel: home.hero.carousel,
         }}
         locale={locale}
       />
-      <HomeAbout
-        content={home.about}
-        ctaHref={resolveDestination(home.about.cta.href, locale, "home-sobre")}
-        stats={{ totalProducts: productStats.total, totalCategories: categoryList.length }}
-      />
-      <HomeCategories
-        content={home.categories}
-        categorySlugs={categoryList.map((category) => category.slug)}
-        locale={locale}
-        ctaHref={resolveDestination(home.categories.cta.href, locale, "home-categorias")}
-      />
-      <HomeFeatured
-        content={home.featured}
-        items={featuredProducts}
-        locale={locale}
-        ctaHref={resolveDestination(home.featured.cta.href, locale, "home-destaques")}
-        cardContent={products.card}
-        badgeLabels={products.badges}
-        cartLabels={cart.addButton}
-      />
-      <HomePortalCta
-        content={home.portalCta}
-        ctaHref={resolveDestination(home.portalCta.cta.href, locale, "home-portal")}
-      />
+      {content.sections.map((id) => (
+        <Fragment key={id}>{sections[id]()}</Fragment>
+      ))}
     </>
   );
 }

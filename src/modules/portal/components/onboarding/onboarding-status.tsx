@@ -46,7 +46,7 @@ export function OnboardingStatusView({
   const Icon = STATUS_ICON[status];
 
   return (
-    <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, textAlign: "center", maxWidth: 560 }}>
+    <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, textAlign: "center", maxWidth: 560, mx: "auto" }}>
       <Stack spacing={2} sx={{ alignItems: "center" }}>
         <Icon color={STATUS_COLOR[status]} sx={{ fontSize: 56 }} />
         <Chip

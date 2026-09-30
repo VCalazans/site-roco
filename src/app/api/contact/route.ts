@@ -193,7 +193,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "validation", fields }, { status: 400 });
     }
 
-    const input = parsed.data;
+    // Lista de orçamento (`subject: "cart"`): a origem é o PRÓPRIO fluxo da
+    // lista, não a página em que o visitante estava — sobrescreve qualquer
+    // `origin` que tenha vindo no body. Aplicado aqui, uma vez, para que banco,
+    // RD Station (`cf_origem`) e e-mail recebam o MESMO valor (antes só o banco
+    // gravava a origem; os dois canais iam sem ela).
+    const input =
+      parsed.data.subject === "cart" ? { ...parsed.data, origin: "orcamento" as const } : parsed.data;
 
     // Só AGORA o balde compartilhado é cobrado — a submissão já provou ser
     // plausível (passou pelo honeypot e pelo schema). Ver o comentário de
@@ -265,10 +271,9 @@ export async function POST(request: NextRequest) {
       // fechada pelo schema (valor forjado na URL vira `undefined` →
       // NULL); os UTMs, sanitizados e truncados. Ver `lead-origin`.
       //
-      // Carrinho é exceção: a origem de um carrinho é o próprio fluxo do
-      // carrinho, não depende de querystring — grava sempre "carrinho",
-      // ignorando qualquer `origin` que porventura tenha vindo no body.
-      origin: input.subject === "cart" ? "carrinho" : (input.origin ?? null),
+      // Lista de orçamento: `input.origin` já foi fixado em "orcamento" logo
+      // após o parse (ver acima).
+      origin: input.origin ?? null,
       utmSource: input.utmSource ?? null,
       utmMedium: input.utmMedium ?? null,
       utmCampaign: input.utmCampaign ?? null,

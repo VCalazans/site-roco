@@ -64,10 +64,18 @@ const UNID_TO_PACKAGING_TYPE: Record<string, PackagingType> = {
 const BADGE_COLUMNS: { column: string; badge: BadgeSlug }[] = [
   { column: "@NACIONAL", badge: "nacional" },
   { column: "@UNIVERSAL", badge: "universal" },
-  { column: "@TOP", badge: "top" },
   { column: "@3EM1", badge: "tres_em_um" },
   { column: "@SEGURO", badge: "seguro" },
 ];
+
+/**
+ * `@TOP` NÃO é mais um selo: desde a spec 001 (migration 0010) vira a flag
+ * `products.best_seller` ("Campeão de vendas", com troféu no site). Só é
+ * aplicada em produto NOVO — no UPDATE fica de fora, como `published`/`active`,
+ * porque a flag passou a ser curada no portal e reimportar não pode desfazer
+ * essa curadoria.
+ */
+const BEST_SELLER_COLUMN = "@TOP";
 
 interface SheetRow {
   COD?: unknown;
@@ -131,6 +139,7 @@ interface CatalogProduct {
   barcodeEan13?: string;
   defaultPackaging?: { packagingType: PackagingType; unitsPerPack: number };
   badges: BadgeSlug[];
+  bestSeller: boolean;
 }
 
 function parseSheetRows(rows: SheetRow[], skipped: string[]): CatalogProduct[] {
@@ -180,6 +189,7 @@ function parseSheetRows(rows: SheetRow[], skipped: string[]): CatalogProduct[] {
       barcodeEan13: toTrimmedString(row["COD BARRAS"]),
       defaultPackaging,
       badges,
+      bestSeller: row[BEST_SELLER_COLUMN] !== null && row[BEST_SELLER_COLUMN] !== undefined,
     });
   }
 
@@ -319,11 +329,12 @@ async function main() {
           barcodeEan13: product.barcodeEan13 ?? null,
           published: false,
           active: true,
+          bestSeller: product.bestSeller,
         })
         .onConflictDoUpdate({
           target: products.sku,
-          // Deliberadamente sem `published`/`active`: reimportar não deve
-          // desfazer curadoria manual (produto publicado/despublicado à mão).
+          // Deliberadamente sem `published`/`active`/`bestSeller`: reimportar
+          // não deve desfazer curadoria manual feita no portal.
           set: {
             erpCode,
             slug,

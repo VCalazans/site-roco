@@ -1,6 +1,8 @@
 import { router } from "../init";
 import { healthRouter } from "./health";
 import { heroSlidesRouter } from "./hero-slides";
+import { homeContentRouter } from "./home-content";
+import { leadsRouter } from "./leads";
 import { materialsRouter } from "./materials";
 import { productsRouter } from "./products";
 import { representativesRouter } from "./representatives";
@@ -18,6 +20,8 @@ export const appRouter = router({
   siteSettings: siteSettingsRouter,
   materials: materialsRouter,
   roles: rolesRouter,
+  homeContent: homeContentRouter,
+  leads: leadsRouter,
 });
 
 export type AppRouter = typeof appRouter;

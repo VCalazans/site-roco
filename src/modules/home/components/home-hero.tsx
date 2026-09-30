@@ -1,107 +1,84 @@
-import { resolveDestination } from "@/core/config/site";
-import { SiteHeader } from "@/shared/components/nav";
+import { resolveCtaHref } from "@/core/config/site";
+import type { Locale } from "@/i18n/config";
 import { getCachedActiveHeroSlides, type PublicHeroSlide } from "@/server/lib/hero-slides";
-import { externalProps, type Cta, type NavLink } from "@/shared/lib/nav";
-import { HeroSlider } from "./hero-slider";
+import type { Cta } from "@/shared/lib/nav";
+import { HeroSlider, type HeroCarouselLabels } from "./hero-slider";
+
+/** Logo 3D oficial (identidade de 2026-09-29) — dimensões intrínsecas do arquivo recortado. */
+const HERO_LOGO = { src: "/images/logos/roco-logo-3d.png", width: 1474, height: 654 } as const;
 
 type HomeHeroProps = {
   brand: string;
-  /** Headline + descrição do dicionário original (`home.hero`) — usado
-   *  como fallback caso o banco não tenha nenhum slide ativo. */
+  /** Conteúdo do dicionário (`home.hero`) — fallback quando o banco não tem
+   *  nenhum slide ativo, mais os rótulos do carrossel. */
   fallback: {
     eyebrow: string;
     headline: string;
     description: string;
     primaryCta: Cta;
     secondaryCta: Cta;
-    sceneAlt: string;
     scrollCue: string;
+    carousel: HeroCarouselLabels;
   };
-  navLinks: NavLink[];
-  menuLabels: { open: string; close: string };
-  /** Rótulos dos controles da barra (idioma, carrinho, login) — ver `SiteHeader`. */
-  navControls: {
-    language: { action: string };
-    portalLogin: string;
-    cart: string;
-  };
-  locale: import("@/i18n/config").Locale;
+  locale: Locale;
 };
 
 /**
- * Hero da home no padrão WEG, agora DINÂMICO. Lê os slides ativos do banco
- * (via `getCachedActiveHeroSlides(locale)`, cache tag "hero") e entrega para
- * o `<HeroSlider>` montar o carrossel. Fallback: quando o banco está vazio
- * (dev sem seed, ou admin esvaziou tudo), renderiza o conteúdo do
- * dicionário original + pôster estático.
+ * Hero da home no padrão WEG, DINÂMICO: lê os slides ativos do banco (via
+ * `getCachedActiveHeroSlides(locale)`, cache tag "hero") e entrega para o
+ * `<HeroSlider>`. Fallback: banco vazio (dev sem seed, ou admin esvaziou
+ * tudo) → fundo de marca + logo 3D + CTA do dicionário.
+ *
+ * O header NÃO é mais renderizado aqui: desde a spec 001 ele vive no layout
+ * `(site)` e persiste entre páginas.
  */
-export async function HomeHero({
-  brand,
-  fallback,
-  navLinks,
-  menuLabels,
-  navControls,
-  locale,
-}: HomeHeroProps) {
-  const slides = (await getCachedActiveHeroSlides(locale)).map((slide) =>
-    resolveSlideCtas(slide, locale)
-  );
+export async function HomeHero({ brand, fallback, locale }: HomeHeroProps) {
+  const slides = (await getCachedActiveHeroSlides(locale)).map((slide) => resolveSlideCtas(slide, locale));
 
   return (
-    <>
-      <SiteHeader
-        brand={brand}
-        links={navLinks}
-        menuLabels={menuLabels}
-        locale={locale}
-        controls={navControls}
-      />
-      <HeroSlider
-        slides={slides}
-        copy={{
-          prev: fallback.scrollCue,
-          next: fallback.scrollCue,
-          of: "de",
-          primaryCtaFallback: fallback.primaryCta,
-          brand,
-          logoSrc: "/images/hero/roco-logo.png",
-          posterFallbackSrc: "/images/hero/hero-stage.jpg",
-          sceneAltFallback: fallback.sceneAlt,
-          scrollCue: fallback.scrollCue,
-        }}
-      />
-    </>
+    <HeroSlider
+      slides={slides}
+      copy={{
+        carousel: fallback.carousel,
+        primaryCtaFallback: {
+          ...fallback.primaryCta,
+          href: resolveCtaHref(fallback.primaryCta.href, locale, "home-hero"),
+        },
+        fallbackSlide: {
+          eyebrow: fallback.eyebrow,
+          headline: fallback.headline,
+          description: fallback.description,
+          secondaryCta: {
+            ...fallback.secondaryCta,
+            href: resolveCtaHref(fallback.secondaryCta.href, locale, "home-hero"),
+          },
+        },
+        brand,
+        logoSrc: HERO_LOGO.src,
+        logoWidth: HERO_LOGO.width,
+        logoHeight: HERO_LOGO.height,
+        scrollCue: fallback.scrollCue,
+      }}
+    />
   );
 }
 
 /**
- * Resolve os hrefs dos CTAs do slide — que são DADO, digitado em campo
- * livre pelo marketing em `/portal/hero`, e até agora iam crus para o
- * `<Link>`.
- *
- * Isso conserta dois bugs que estavam no ar: o CTA "Baixar Catálogo" do
- * hero está gravado como `#catalogo`, então virava um link morto (só
- * acrescentava a âncora à URL da home), e `/produtos` sem prefixo dependia
- * de um redirect do `proxy.ts` para não quebrar o locale. Como o campo
- * aceita URL externa, `resolveDestination` continua devolvendo intocado
- * qualquer coisa que não seja um dos placeholders conhecidos — e só anexa a
- * origem quando o destino é uma página interna de captura de lead.
+ * Resolve os hrefs dos CTAs do slide — DADO digitado em campo livre pelo
+ * marketing em `/portal/hero`. `resolveCtaHref` troca placeholders
+ * (`#catalogo` → página do catálogo), garante o prefixo de locale em caminho
+ * interno digitado sem ele (`/produtos` → `/pt/produtos`, sem depender do
+ * redirect do middleware) e só anexa a origem do lead em página de captura.
+ * O valor já chegou validado pelo servidor (`isSafeHref` no router do hero).
  */
 function resolveSlideCtas(slide: PublicHeroSlide, locale: string): PublicHeroSlide {
   return {
     ...slide,
     primaryCta: slide.primaryCta
-      ? { ...slide.primaryCta, href: resolveDestination(slide.primaryCta.href, locale, "home-hero") }
+      ? { ...slide.primaryCta, href: resolveCtaHref(slide.primaryCta.href, locale, "home-hero") }
       : null,
     secondaryCta: slide.secondaryCta
-      ? {
-          ...slide.secondaryCta,
-          href: resolveDestination(slide.secondaryCta.href, locale, "home-hero"),
-        }
+      ? { ...slide.secondaryCta, href: resolveCtaHref(slide.secondaryCta.href, locale, "home-hero") }
       : null,
   };
 }
-
-// Re-export utilitários que o caller pode precisar (mantém compat com o
-// componente anterior caso outro ponto importe `externalProps`/`Cta`).
-export { externalProps };

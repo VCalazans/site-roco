@@ -1,23 +1,25 @@
-import Image from "next/image";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { PortalLogo } from "@/modules/portal/components/shared/portal-logo";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type WelcomeHeroProps = {
   content: PortalDictionary["welcome"]["hero"];
   /** `dictionary.navigation.brand` — mesmo `alt` reaproveitado em
-   *  `portal-shell.tsx`/`login-card.tsx`, não é copy nova. */
+   *  `login-card.tsx`/`portal-shell.tsx`, não é copy nova. */
   logoAlt: string;
 };
 
 /**
  * Hero da página "Boas-vindas". Gradiente sutil ciano→âmbar via
  * `theme.palette.primary`/`secondary` (não hex soltos): funciona nos dois
- * `colorSchemes` porque lê a cor resolvida do tema em cada scheme, em vez de
- * reusar os tokens "bright" fixos do dark mode (ver design system do
- * `login-card.tsx`, que precisou de um fundo escuro FIXO só para o logo
- * branco — aqui o logo fica sobre um chip com o mesmo tratamento).
+ * `colorSchemes` porque lê a cor resolvida do tema em cada scheme.
+ *
+ * A logo com slogan usa a variante de cada esquema (`PortalLogo`: azul no
+ * claro, branca no escuro) — o gradiente é translúcido sobre
+ * `background.default`, então o contraste da logo acompanha o tema sem o
+ * "chip" escuro fixo que a logo branca antiga exigia.
  */
 export function WelcomeHero({ content, logoAlt }: WelcomeHeroProps) {
   return (
@@ -37,25 +39,7 @@ export function WelcomeHero({ content, logoAlt }: WelcomeHeroProps) {
       }}
     >
       <Stack spacing={2.5} sx={{ maxWidth: 720 }}>
-        {/* Mesmo tratamento do logo branco em `login-card.tsx`: fundo escuro
-            FIXO (não é um token do tema — é o logotipo em si que só existe em
-            branco) para manter contraste nos dois `colorSchemes`. */}
-        <Box
-          sx={{
-            bgcolor: "#05070b",
-            borderRadius: "9999px",
-            p: 1.5,
-            display: "inline-flex",
-          }}
-        >
-          <Image
-            src="/images/hero/roco-logo.png"
-            alt={logoAlt}
-            width={40}
-            height={40}
-            priority
-          />
-        </Box>
+        <PortalLogo alt={logoAlt} variant="slogan" width={168} eager />
 
         <Typography variant="h3" component="h1" sx={{ fontWeight: 700 }}>
           {content.title}

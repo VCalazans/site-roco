@@ -18,7 +18,7 @@ const SUBJECT_LABELS: Record<ContactInput["subject"], string> = {
   quote: "Solicitação de orçamento",
   general: "Contato geral",
   catalog: "Download do catálogo",
-  cart: "Carrinho de cotação",
+  cart: "Orçamento — lista de produtos",
 };
 
 /**
@@ -33,6 +33,7 @@ const SUBJECT_LABELS: Record<ContactInput["subject"], string> = {
  */
 const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   "home-hero": "Home — primeira dobra (hero)",
+  "home-fachada": "Home — seção da fachada",
   "home-sobre": "Home — seção institucional",
   "home-categorias": "Home — vitrine de categorias",
   "home-destaques": "Home — produtos em destaque",
@@ -42,7 +43,7 @@ const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   catalogo: "Página do catálogo",
   menu: "Menu de navegação",
   rodape: "Rodapé",
-  carrinho: "Carrinho de cotação",
+  orcamento: "Lista de orçamento (/orcamento)",
 };
 
 /**
@@ -79,7 +80,7 @@ export function buildContactNotificationEmail(
     !hasCartItems && meta.productName
       ? `Produto de interesse: ${meta.productName}${meta.productSku ? ` (SKU ${meta.productSku})` : ""}`
       : null,
-    hasCartItems ? "Produtos do carrinho:" : null,
+    hasCartItems ? "Produtos do orçamento:" : null,
     ...(hasCartItems
       ? meta.cartItems!.map((item) => `- SKU ${item.sku}: ${item.name} (qtd: ${item.quantity})`)
       : []),

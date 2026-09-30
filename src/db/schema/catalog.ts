@@ -63,6 +63,21 @@ export const products = pgTable("products", {
   priceCents: integer("price_cents"),
   published: boolean("published").notNull().default(false),
   active: boolean("active").notNull().default(true),
+  /**
+   * "Destaque na home" — entra na vitrine "Produtos em destaque" da página
+   * inicial, na ordem de `featuredOrder` (crescente). Curadoria do operador
+   * no portal; nunca definido por importação/sync (spec 001, RF04–RF07).
+   */
+  featured: boolean("featured").notNull().default(false),
+  /** Posição na vitrine da home (menor primeiro). Só tem sentido com `featured`. */
+  featuredOrder: integer("featured_order").notNull().default(0),
+  /**
+   * "Campeão de vendas" — selo com troféu no card/detalhe do site. Substitui o
+   * selo legado `top` (coluna `@TOP` da planilha): a migration 0010 converteu
+   * os 57 produtos com `top` e removeu o selo. O importador só define esta
+   * flag em produto NOVO; reimportação não desfaz curadoria do portal.
+   */
+  bestSeller: boolean("best_seller").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

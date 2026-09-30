@@ -2,10 +2,11 @@
 
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, Minus, Package, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { productsPath, siteLinks } from "@/core/config/site";
 import { contactSchema, HONEYPOT_FIELD, MAX_CART_ITEM_QUANTITY } from "@/server/lib/contact-submit";
+import { interpolate } from "@/shared/lib/interpolate";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
 import {
   clearCart,
@@ -56,9 +57,10 @@ function PageHeading({ content, children }: { content: CartDictionary; children:
 }
 
 /**
- * Carrinho de cotação — NÃO é e-commerce: sem preço, sem checkout. Junta
- * vários produtos numa solicitação só (`POST /api/contact`, `subject:
- * "cart"`), reaproveitando a mesma rota/canais (RD Station, e-mail,
+ * "Meu orçamento" (antes "carrinho de cotação" — spec 001) — NÃO é
+ * e-commerce: sem preço, sem checkout. Junta vários produtos numa solicitação
+ * só (`POST /api/contact`, `subject: "cart"`, identificador técnico mantido),
+ * reaproveitando a mesma rota/canais (RD Station, e-mail,
  * `contact_submissions`) dos outros formulários públicos.
  *
  * O estado do carrinho é local (`@/shared/lib/cart-store`, `localStorage`) —
@@ -156,7 +158,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           companyName: form.companyName.trim() || undefined,
           subject: "cart",
           items: items.map((item) => ({ slug: item.slug, quantity: item.quantity })),
-          // Rastreio de campanha (UTM): o servidor grava `origin: "carrinho"`
+          // Rastreio de campanha (UTM): o servidor grava `origin: "orcamento"`
           // sozinho para este assunto (ver `POST /api/contact`), então não
           // mandamos `origin` aqui — só a campanha externa, para não perder
           // atribuição de mídia paga quando o clique veio de um anúncio.
@@ -286,9 +288,17 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6"
         >
           <div className="flex items-center justify-between gap-4">
-            <h2 id="cart-items-heading" className="font-display text-h2 text-white">
-              {content.page.itemsHeading}
-            </h2>
+            <div>
+              <h2 id="cart-items-heading" className="font-display text-h2 text-white">
+                {content.page.itemsHeading}
+              </h2>
+              <p className="mt-1 text-micro text-white/55">
+                {interpolate(content.page.itemsSummary, {
+                  count: items.length,
+                  units: items.reduce((sum, item) => sum + item.quantity, 0),
+                })}
+              </p>
+            </div>
             <button
               type="button"
               onClick={handleClearCart}
@@ -319,11 +329,29 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
                 key={item.slug}
                 className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-ui font-semibold text-white">{item.name}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* Miniatura: `<img>` simples de propósito — a URL vem do
+                      `localStorage` (já saneada no store) e pode ser de uma
+                      origem fora dos `remotePatterns` do otimizador. */}
+                  <span className="relative flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#0a0f16]">
+                    {item.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.image} alt="" loading="lazy" className="size-full object-contain p-1.5" />
+                    ) : (
+                      <Package className="size-6 text-white/20" aria-hidden />
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                  <Link
+                    href={`${productsPath(locale)}/${item.slug}`}
+                    className="block truncate text-ui font-semibold text-white transition hover:text-neon-cyan-bright"
+                  >
+                    {item.name}
+                  </Link>
                   <p className="text-micro text-white/50">
                     {content.page.skuLabel} {item.sku}
                   </p>
+                  </div>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-3">
@@ -334,7 +362,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
                   >
                     <button
                       type="button"
-                      aria-label={`${content.page.quantityLabel} -1`}
+                      aria-label={interpolate(content.page.decrease, { name: item.name })}
                       disabled={item.quantity <= 1}
                       onClick={() => setQuantity(item.slug, item.quantity - 1)}
                       className="flex size-8 items-center justify-center text-white/80 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
@@ -346,7 +374,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
                     </span>
                     <button
                       type="button"
-                      aria-label={`${content.page.quantityLabel} +1`}
+                      aria-label={interpolate(content.page.increase, { name: item.name })}
                       disabled={item.quantity >= MAX_CART_ITEM_QUANTITY}
                       onClick={() => setQuantity(item.slug, item.quantity + 1)}
                       className="flex size-8 items-center justify-center text-white/80 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
@@ -369,16 +397,25 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
             ))}
           </ul>
 
-          {whatsappHref ? (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-neon btn-neon--amber mt-6 w-full justify-center sm:w-auto"
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href={productsPath(locale)}
+              className="inline-flex items-center gap-2 text-meta font-semibold text-neon-cyan-bright transition hover:text-white"
             >
-              {content.whatsapp.buttonLabel}
-            </a>
-          ) : null}
+              <ArrowLeft className="size-4" aria-hidden />
+              {content.page.continueBrowsing}
+            </Link>
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-neon btn-neon--amber w-full justify-center sm:w-auto"
+              >
+                {content.whatsapp.buttonLabel}
+              </a>
+            ) : null}
+          </div>
         </section>
 
         {/* Formulário de envio */}

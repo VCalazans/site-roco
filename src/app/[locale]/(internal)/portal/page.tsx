@@ -3,17 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { DashboardSummary } from "@/modules/portal/components/dashboard-summary";
-import {
-  PortalShell,
-  type PortalNavItem,
-} from "@/modules/portal/components/portal-shell";
-import { buildPortalNavItems } from "@/modules/portal/lib/nav-items";
-import { logoutAction } from "@/modules/portal/lib/logout-action";
+import { PortalShell } from "@/modules/portal/components/portal-shell";
 import { isRepresentativeOnly } from "@/modules/portal/lib/permissions";
 import { requirePortalSession } from "@/modules/portal/lib/require-portal-session";
+import { buildPortalShellProps } from "@/modules/portal/lib/shell-props";
 import { getPortalDictionary } from "@/modules/portal/lib/types";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { interpolate } from "@/shared/lib/interpolate";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -38,16 +35,15 @@ export async function generateMetadata({
 }
 
 /**
- * Dashboard do portal. Onda 2: nav real (`Onboarding`/`Produtos`/
- * `Representantes` conforme sessão, via `buildPortalNavItems`) + cards de
- * resumo (`DashboardSummary`, client — contagens tRPC condicionadas à mesma
- * permissão das respectivas páginas).
+ * Dashboard do portal: saudação + indicadores clicáveis, atalhos, solicitações
+ * recentes e saúde do catálogo (`DashboardSummary`, client — cada bloco só
+ * aparece, e só consulta o servidor, se a sessão tem a permissão
+ * correspondente).
  *
- * Onda 3: quem é representante "puro" (role `representative`, sem nenhuma
- * role de time interno — ver `isRepresentativeOnly`) não vê este dashboard:
+ * Quem é representante "puro" (role `representative`, sem nenhuma role de
+ * time interno — ver `isRepresentativeOnly`) não vê este dashboard:
  * `/portal/boas-vindas` é a home dele (hero + materiais de apoio + status do
- * onboarding), o dashboard de métricas (produtos/representantes) não faz
- * sentido para esse público.
+ * onboarding), o dashboard de métricas não faz sentido para esse público.
  */
 export default async function PortalDashboardPage({ params }: PageProps) {
   const { locale } = await params;
@@ -65,42 +61,25 @@ export default async function PortalDashboardPage({ params }: PageProps) {
 
   const dictionary = await getDictionary(locale);
   const portal = getPortalDictionary(dictionary);
-  const { navigation } = dictionary;
 
-  const navItems: PortalNavItem[] = buildPortalNavItems(
-    basePath,
-    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title, settings: portal.settings.title },
-    session.user
-  );
-
-  const welcomeMessage = portal.dashboard.welcome.replace(
-    "{name}",
-    session.user.name ?? session.user.email ?? ""
-  );
+  // Primeiro nome: "Olá, Victor!" soa mais natural que o nome completo do
+  // Google/cadastro. Sem nome cai no e-mail (contas só com credenciais).
+  const displayName =
+    session.user.name?.trim().split(/\s+/)[0] || session.user.email || "";
+  const greeting = interpolate(portal.dashboard.welcome, { name: displayName });
 
   return (
-    <PortalShell
-      appName={portal.shell.appName}
-      logoAlt={navigation.brand}
-      navItems={navItems}
-      comingSoonLabel={portal.shell.comingSoon}
-      menuLabels={{ open: navigation.menu, close: navigation.close }}
-      themeToggleLabels={portal.shell.themeToggle}
-      userMenu={{
-        profileLabel: portal.shell.userMenu.profile,
-        logoutLabel: portal.shell.userMenu.logout,
-      }}
-      user={session.user}
-      logoutAction={logoutAction}
-    >
-      <Box sx={{ maxWidth: 960 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          {portal.dashboard.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          {welcomeMessage}
-        </Typography>
-        <DashboardSummary portal={portal} user={session.user} />
+    <PortalShell {...buildPortalShellProps({ locale, dictionary, session })}>
+      <Box>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            {greeting}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {portal.dashboard.subtitle}
+          </Typography>
+        </Box>
+        <DashboardSummary portal={portal} user={session.user} locale={locale} />
       </Box>
     </PortalShell>
   );

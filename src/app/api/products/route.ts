@@ -9,7 +9,7 @@ const PUBLIC_PRODUCTS_RATE_LIMIT = { windowSeconds: 60, max: 120 };
 
 /**
  * Catálogo público de produtos. Dados de leitura pública — sem autenticação.
- * `?category=<slug>&search=<termo>&page=<n>&perPage=<n>`.
+ * `?category=<slug>&search=<termo>&bestSeller=1&page=<n>&perPage=<n>`.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -26,12 +26,16 @@ export async function GET(request: NextRequest) {
 
     const category = searchParams.get("category")?.trim() || undefined;
     const search = searchParams.get("search")?.trim() || undefined;
+    // Só "1"/"true" liga o filtro — qualquer outro valor é ignorado.
+    const bestSellerParam = searchParams.get("bestSeller");
+    const bestSeller = bestSellerParam === "1" || bestSellerParam === "true";
     const pageParam = Number(searchParams.get("page"));
     const perPageParam = Number(searchParams.get("perPage"));
 
     const result = await getPublicProductList({
       category,
       search,
+      bestSeller,
       page: Number.isFinite(pageParam) ? pageParam : undefined,
       perPage: Number.isFinite(perPageParam) ? perPageParam : undefined,
     });

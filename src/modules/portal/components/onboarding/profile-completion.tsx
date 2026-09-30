@@ -62,7 +62,7 @@ export function ProfileCompletion({ portal, initial, documents }: ProfileComplet
   // este componente pelo status `approved`): mostra a confirmação, não o form.
   if (completeMutation.isSuccess) {
     return (
-      <Alert severity="success" sx={{ maxWidth: 720 }}>
+      <Alert severity="success" sx={{ maxWidth: 720, mx: "auto" }}>
         {dictionary.completion.done}
       </Alert>
     );
@@ -81,7 +81,7 @@ export function ProfileCompletion({ portal, initial, documents }: ProfileComplet
   }
 
   return (
-    <Stack spacing={4} sx={{ maxWidth: 720 }}>
+    <Stack spacing={4} sx={{ maxWidth: 720, mx: "auto" }}>
       <Alert severity="success">
         <Typography sx={{ fontWeight: 600 }}>{dictionary.completion.title}</Typography>
         {dictionary.completion.subtitle}

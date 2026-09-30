@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
 import {
   LanguageSwitcher,
   type LanguageSwitcherLabels,
 } from "@/shared/components/nav/language-switcher";
+import { productSearchHref, type HeaderSearchLabels } from "@/shared/components/nav/header-search";
 import { NavItems } from "@/shared/components/nav/nav-items";
 import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
@@ -18,6 +20,8 @@ type MobileMenuProps = {
   labels: { open: string; close: string };
   locale: Locale;
   languageLabels: LanguageSwitcherLabels;
+  /** Busca de produtos no topo do painel (`dictionary.navigation.search`). */
+  searchLabels: HeaderSearchLabels;
 };
 
 /**
@@ -35,9 +39,20 @@ export function MobileMenu({
   labels,
   locale,
   languageLabels,
+  searchLabels,
 }: MobileMenuProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
+  const searchInputId = useId();
   const close = () => setOpen(false);
+
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push(productSearchHref(locale, term));
+    setTerm("");
+    close();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -111,6 +126,39 @@ export function MobileMenu({
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               className="fixed inset-x-0 top-16 z-40 flex max-h-[calc(100svh-4rem)] flex-col gap-1 overflow-y-auto border-b border-white/10 bg-[#05070b]/95 p-4 shadow-[0_24px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl md:top-20"
             >
+              {/* Busca de produtos — no mobile ela mora aqui (a barra não tem
+                  espaço para mais um botão ao lado de orçamento/login/menu).
+                  Enter leva à listagem já filtrada. */}
+              <form role="search" onSubmit={handleSearch} className="mb-2 flex items-center gap-2">
+                <label htmlFor={searchInputId} className="sr-only">
+                  {searchLabels.label}
+                </label>
+                <div className="relative flex-1">
+                  <Search
+                    className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/40"
+                    aria-hidden
+                  />
+                  <input
+                    id={searchInputId}
+                    type="search"
+                    value={term}
+                    onChange={(event) => setTerm(event.target.value)}
+                    placeholder={searchLabels.placeholder}
+                    autoComplete="off"
+                    enterKeyHint="search"
+                    maxLength={80}
+                    className="w-full rounded-full border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-body text-white outline-none transition placeholder:text-white/40 focus:border-neon-cyan focus:ring-2 focus:ring-neon-cyan/25"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  aria-label={searchLabels.submit}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-full border border-neon-cyan/50 bg-neon-cyan/10 text-neon-cyan-bright transition hover:bg-neon-cyan/20"
+                >
+                  <Search className="size-[18px]" aria-hidden />
+                </button>
+              </form>
+
               <NavItems
                 links={links}
                 onSelect={close}

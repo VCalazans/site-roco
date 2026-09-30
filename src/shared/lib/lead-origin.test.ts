@@ -21,6 +21,7 @@ describe("lead-origin", () => {
     it("exposes the closed list of site sections", () => {
       expect(LEAD_ORIGINS).toEqual([
         "home-hero",
+        "home-fachada",
         "home-sobre",
         "home-categorias",
         "home-destaques",
@@ -30,7 +31,7 @@ describe("lead-origin", () => {
         "catalogo",
         "menu",
         "rodape",
-        "carrinho",
+        "orcamento",
       ]);
     });
 

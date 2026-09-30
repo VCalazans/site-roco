@@ -98,7 +98,12 @@ export const materialsRouter = router({
       .from(materials)
       .where(eq(materials.published, true))
       .orderBy(sql`${materials.publishedAt} DESC NULLS LAST`, desc(materials.createdAt));
-    return Promise.all(rows.map(withDownloadUrl));
+    // Sem URL presignada no payload (revisão 2026-09-30): o representante abre
+    // o arquivo pela rota autenticada `/api/portal/materials/[id]/download`,
+    // que gera a URL do R2 no clique — um link de 5 min embutido na página
+    // vencia com a aba aberta e o material parecia não existir. A chave do R2
+    // continua fora do JSON.
+    return rows.map(({ r2Key: _r2Key, ...rest }) => rest); // eslint-disable-line @typescript-eslint/no-unused-vars
   }),
 
   /** Cria novo material (upload já confirmado via `confirmUpload`). */

@@ -1,271 +1,201 @@
 "use client";
 
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
-import CloseIcon from "@mui/icons-material/Close";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import ImageIcon from "@mui/icons-material/Image";
-import Inventory2Icon from "@mui/icons-material/Inventory2";
-import LibraryBooksIcon from "@mui/icons-material/LibraryBooks";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MenuIcon from "@mui/icons-material/Menu";
-import PeopleIcon from "@mui/icons-material/People";
-import PersonIcon from "@mui/icons-material/Person";
-import SettingsIcon from "@mui/icons-material/Settings";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
-import WavingHandIcon from "@mui/icons-material/WavingHand";
+import MenuIcon from "@mui/icons-material/Menu";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AppBar from "@mui/material/AppBar";
-import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
+import Button from "@mui/material/Button";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
-import Typography from "@mui/material/Typography";
-import { ThemeToggle, type ThemeToggleLabels } from "@/core/theme/theme-toggle";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
+import { ThemeToggle } from "@/core/theme/theme-toggle";
+import type { Locale } from "@/i18n/config";
+import type { PortalNavItem } from "@/modules/portal/lib/nav-items";
+import type { PortalDictionary } from "@/modules/portal/lib/types";
+import {
+  getSidebarCollapsedServerSnapshot,
+  getSidebarCollapsedSnapshot,
+  setSidebarCollapsed,
+  subscribeSidebarCollapsed,
+} from "./shell/sidebar-collapse-store";
+import { SidebarContent } from "./shell/sidebar-content";
+import { UserMenu, type PortalShellUser } from "./shell/user-menu";
+
+// Os tipos de navegação moram em `lib/nav-items.ts` (puros, testáveis); o
+// reexport mantém quem já importava daqui.
+export type { PortalNavGroupKey, PortalNavItem, PortalNavKey } from "@/modules/portal/lib/nav-items";
+export type { PortalShellUser } from "./shell/user-menu";
 
 const DRAWER_WIDTH = 260;
 const DRAWER_COLLAPSED_WIDTH = 72;
-const SIDEBAR_COLLAPSE_STORAGE_KEY = "portal_sidebar_collapsed";
+/** Largura máxima do conteúdo de TODAS as páginas do painel (centralizado). */
+const PORTAL_CONTENT_MAX_WIDTH = 1280;
 
-export type PortalNavKey =
-  | "dashboard"
-  | "onboarding"
-  | "products"
-  | "representatives"
-  | "welcome"
-  | "hero"
-  | "materials"
-  | "roles"
-  | "settings";
-
-export type PortalNavItem = {
-  key: PortalNavKey;
-  label: string;
-  href: string;
-  /** Item "em breve" — desabilitado no drawer, mostra `comingSoonLabel`. */
-  disabled?: boolean;
-};
-
-type PortalUser = {
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
-
-type PortalShellProps = {
-  appName: string;
-  /** `alt` do logotipo — reaproveita `dictionary.navigation.brand`. */
+type PortalShellComponentProps = {
+  /** `portal.shell` inteiro: rótulos do cabeçalho, grupos, busca, menu e toggles. */
+  labels: PortalDictionary["shell"];
+  /** `alt` da logo — reaproveita `dictionary.navigation.brand`. */
   logoAlt: string;
-  navItems: PortalNavItem[];
-  comingSoonLabel: string;
   /** Reaproveita `dictionary.navigation.{menu,close}`, já existentes nos dois
    *  locales — o portal não precisa de chaves próprias só para o hambúrguer. */
   menuLabels: { open: string; close: string };
-  themeToggleLabels: ThemeToggleLabels;
-  userMenu: { profileLabel: string; logoutLabel: string };
-  /** Sessão do usuário — ainda não disponível nesta onda (depende de
-   *  `@/core/auth`, em construção em paralelo). `undefined` cai no avatar
-   *  com iniciais placeholder. */
-  user?: PortalUser;
+  /** Locale da rota: destino do "Ver site" (`/{locale}`). */
+  locale: Locale;
+  navItems: PortalNavItem[];
+  /** Destino da busca de produtos da sidebar. Só é passado a quem tem
+   *  `products:read` — sem ele o campo nem é renderizado. */
+  productSearchHref?: string;
+  user?: PortalShellUser;
   logoutAction: () => Promise<void>;
   children: ReactNode;
 };
 
-const NAV_ICONS: Record<PortalNavKey, ComponentType<{ fontSize?: "small" }>> = {
-  dashboard: DashboardIcon,
-  onboarding: RocketLaunchIcon,
-  products: Inventory2Icon,
-  representatives: PeopleIcon,
-  welcome: WavingHandIcon,
-  hero: ImageIcon,
-  materials: LibraryBooksIcon,
-  roles: AdminPanelSettingsIcon,
-  settings: SettingsIcon,
-};
-
-function DrawerHeader({
-  appName,
-  logoAlt,
-  onClose,
-  closeLabel,
-}: {
-  appName: string;
-  logoAlt: string;
-  onClose?: () => void;
-  closeLabel?: string;
-}) {
-  return (
-    <Toolbar sx={{ gap: 1.5 }}>
-      <Image src="/images/hero/roco-logo.png" alt={logoAlt} width={28} height={28} />
-      <Typography
-        variant="subtitle1"
-        noWrap
-        sx={{ flexGrow: 1, fontWeight: 700 }}
-      >
-        {appName}
-      </Typography>
-      {onClose ? (
-        <IconButton aria-label={closeLabel} onClick={onClose} size="small">
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      ) : null}
-    </Toolbar>
-  );
-}
-
-function NavList({
-  navItems,
-  comingSoonLabel,
-  pathname,
-  onNavigate,
-  collapsed = false,
-}: {
-  navItems: PortalNavItem[];
-  comingSoonLabel: string;
-  pathname: string | null;
-  onNavigate: () => void;
-  /**
-   * `true` no modo colapsado (WEG-style — só ícones, largura 72px). Omite o
-   * rótulo e o sublabel; centraliza o botão. O tooltip nativo do botão
-   * aparece no hover (acessibilidade sem desperdiçar 192px de coluna).
-   */
-  collapsed?: boolean;
-}) {
-  return (
-    <List sx={{ flexGrow: 1, p: collapsed ? 0.5 : 0 }}>
-      {navItems.map((item) => {
-        const Icon = NAV_ICONS[item.key];
-        const selected = pathname === item.href;
-
-        if (collapsed) {
-          return (
-            <ListItem
-              key={item.key}
-              disablePadding
-              sx={{ display: "flex", justifyContent: "center" }}
-            >
-              <Tooltip title={item.label} placement="right">
-                <ListItemButton
-                  component={Link}
-                  href={item.href}
-                  disabled={item.disabled}
-                  selected={selected}
-                  onClick={onNavigate}
-                  sx={{
-                    minHeight: 44,
-                    width: 44,
-                    borderRadius: 1,
-                    justifyContent: "center",
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 0, justifyContent: "center" }}>
-                    <Icon fontSize="small" />
-                  </ListItemIcon>
-                </ListItemButton>
-              </Tooltip>
-            </ListItem>
-          );
-        }
-
-        return (
-          <ListItem key={item.key} disablePadding>
-            <ListItemButton
-              component={Link}
-              href={item.href}
-              disabled={item.disabled}
-              selected={selected}
-              onClick={onNavigate}
-            >
-              <ListItemIcon>
-                <Icon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                secondary={item.disabled ? comingSoonLabel : undefined}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
-  );
-}
-
 /**
  * Shell do Portal Interno: AppBar fixa + Drawer lateral (permanente em `md+`,
  * temporário/hambúrguer abaixo disso) + menu de usuário. Todo texto chega por
- * props, vindas do dicionário (`portal.shell.*`) nas páginas que consomem
- * este componente — o shell em si não importa `getDictionary`.
+ * props, vindas do dicionário (`portal.shell.*`) — as páginas montam tudo com
+ * `buildPortalShellProps` (`lib/shell-props.ts`); o shell em si não importa
+ * `getDictionary`.
+ *
+ * Sidebar colapsável (pedido do stakeholder, 2026-08-23): recolhida = só
+ * ícones (72px), persistida por navegador (`sidebar-collapse-store.ts`). O
+ * drawer mobile é sempre expandido.
  */
 export function PortalShell({
-  appName,
+  labels,
   logoAlt,
-  navItems,
-  comingSoonLabel,
   menuLabels,
-  themeToggleLabels,
-  userMenu,
+  locale,
+  navItems,
+  productSearchHref,
   user,
   logoutAction,
   children,
-}: PortalShellProps) {
+}: PortalShellComponentProps) {
   const pathname = usePathname();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuAnchor, setUserMenuAnchor] = useState<HTMLElement | null>(
-    null
-  );
 
-  /**
-   * Sidebar colapsável (solicitação do stakeholder 2026-08-23).
-   *  - Default: expandido.
-   *  - Persistido por usuário em `localStorage` (chave
-   *    `portal_sidebar_collapsed`) — sobrevive a refresh e a troca de aba.
-   *  - Inicialização LAZY em `useState` (lê o localStorage na primeira
-   *    renderização no client) — evita o `setState` em `useEffect` que a
-   *    regra `react-hooks/set-state-in-effect` proíbe e o flash de drawer
-   *    expandido que ocorreria se hidratássemos via efeito.
-   *  - O toggle fica no AppBar (desktop `md+`); no mobile usa o botão
-   *    hambúrguer existente que abre o drawer temporário — não muda.
-   */
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem(SIDEBAR_COLLAPSE_STORAGE_KEY) === "true";
-  });
+  const collapsed = useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    getSidebarCollapsedSnapshot,
+    getSidebarCollapsedServerSnapshot
+  );
+  const drawerWidth = collapsed ? DRAWER_COLLAPSED_WIDTH : DRAWER_WIDTH;
+
+  // O drawer temporário fica `display: none` em `md+`, mas isso NÃO desmonta o
+  // Modal: com `open` preso em `true` ele continuaria travando a rolagem do
+  // body e marcando o resto da página como `aria-hidden`, sem nenhum controle
+  // visível para fechar. Ao cruzar o breakpoint (girar o tablet, redimensionar
+  // a janela) o estado é zerado aqui — padrão "ajustar estado durante o
+  // render", condicional, sem efeito.
+  if (isDesktop && mobileOpen) {
+    setMobileOpen(false);
+  }
+
+  // --- Foco na busca (Ctrl/⌘ + K e ícone do modo recolhido) ----------------
+  const desktopSearchRef = useRef<HTMLInputElement>(null);
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  // Pedidos de foco que dependem de algo montar primeiro (o campo do desktop só
+  // existe com a sidebar expandida; o do mobile só depois do drawer abrir).
+  const pendingDesktopFocus = useRef(false);
+  const pendingMobileFocus = useRef(false);
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(SIDEBAR_COLLAPSE_STORAGE_KEY, String(collapsed));
+    if (!collapsed && pendingDesktopFocus.current) {
+      pendingDesktopFocus.current = false;
+      desktopSearchRef.current?.focus();
+    }
   }, [collapsed]);
 
-  const initials = (user?.name ?? user?.email ?? "?").trim().charAt(0).toUpperCase();
-  const drawerWidth = collapsed ? DRAWER_COLLAPSED_WIDTH : DRAWER_WIDTH;
+  function focusProductSearch() {
+    if (isDesktop) {
+      if (collapsed) {
+        pendingDesktopFocus.current = true;
+        setSidebarCollapsed(false);
+      } else {
+        desktopSearchRef.current?.focus();
+        desktopSearchRef.current?.select();
+      }
+    } else {
+      pendingMobileFocus.current = true;
+      setMobileOpen(true);
+    }
+  }
+
+  // Recria o listener a cada render: ele precisa enxergar `collapsed`/
+  // `isDesktop` atuais, e o custo (um add/removeEventListener) é irrisório.
+  useEffect(() => {
+    if (!productSearchHref) return;
+    function onKeyDown(event: KeyboardEvent) {
+      const isShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "k";
+      if (!isShortcut) return;
+      // Sobrescreve o atalho do navegador (Ctrl+K = barra de endereço), como
+      // fazem GitHub/Slack: aqui ele significa "buscar".
+      event.preventDefault();
+      focusProductSearch();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   return (
     <Box sx={{ display: "flex", minHeight: "100dvh" }}>
+      <Box
+        component="a"
+        href="#portal-main"
+        sx={(t) => ({
+          position: "absolute",
+          left: 8,
+          top: -64,
+          zIndex: t.zIndex.tooltip + 1,
+          px: 2,
+          py: 1,
+          borderRadius: 1,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          color: "text.primary",
+          fontSize: 14,
+          "&:focus": { top: 8 },
+        })}
+      >
+        {labels.skipToContent}
+      </Box>
+
       <AppBar
         position="fixed"
         color="default"
         elevation={0}
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+        sx={(t) => ({
+          // Acima do drawer só em `md+`, onde o drawer permanente fica AO LADO
+          // da barra (sem sobreposição). No mobile a barra tem de ficar ABAIXO
+          // do drawer temporário (modal, z-index `drawer`): com o valor alto em
+          // todos os tamanhos ela cobria o topo do menu aberto — logo e botão de
+          // fechar inalcançáveis.
+          zIndex: { md: t.zIndex.drawer + 1 },
           borderBottom: "1px solid",
           borderColor: "divider",
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-        }}
+          transition: t.transitions.create(["width", "margin"], {
+            easing: t.transitions.easing.sharp,
+            duration: t.transitions.duration.shorter,
+          }),
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        })}
       >
         <Toolbar sx={{ gap: 1 }}>
           <IconButton
@@ -277,12 +207,13 @@ export function PortalShell({
             <MenuIcon />
           </IconButton>
           <Tooltip
-            title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
+            title={collapsed ? labels.sidebar.expand : labels.sidebar.collapse}
             placement="bottom"
           >
             <IconButton
-              aria-label={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
-              onClick={() => setCollapsed((c) => !c)}
+              aria-label={collapsed ? labels.sidebar.expand : labels.sidebar.collapse}
+              aria-expanded={!collapsed}
+              onClick={() => setSidebarCollapsed(!collapsed)}
               sx={{ display: { xs: "none", md: "inline-flex" } }}
             >
               {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
@@ -291,109 +222,145 @@ export function PortalShell({
 
           <Box sx={{ flexGrow: 1 }} />
 
-          <ThemeToggle labels={themeToggleLabels} />
-
-          <IconButton
-            aria-label={userMenu.profileLabel}
-            onClick={(event) => setUserMenuAnchor(event.currentTarget)}
-            sx={{ ml: 1 }}
+          {/* Abre o site público (`/{locale}`) numa nova aba: quem edita a home
+              ou um produto confere o resultado sem perder o lugar no painel.
+              Rótulo visível a partir de `sm`; no xs vira só o ícone (mesmo
+              nome acessível nos dois). */}
+          <Button
+            href={`/${locale}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            color="inherit"
+            size="small"
+            aria-label={labels.viewSite.aria}
+            startIcon={<OpenInNewIcon fontSize="small" />}
+            sx={{ display: { xs: "none", sm: "inline-flex" } }}
           >
-            <Avatar
-              src={user?.image ?? undefined}
-              sx={{ width: 32, height: 32, fontSize: 14 }}
-            >
-              {!user?.image ? initials : null}
-            </Avatar>
+            {labels.viewSite.label}
+          </Button>
+          <IconButton
+            href={`/${locale}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={labels.viewSite.aria}
+            sx={{ display: { xs: "inline-flex", sm: "none" } }}
+          >
+            <OpenInNewIcon fontSize="small" />
           </IconButton>
 
-          <Menu
-            anchorEl={userMenuAnchor}
-            open={Boolean(userMenuAnchor)}
-            onClose={() => setUserMenuAnchor(null)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem disabled>
-              <ListItemIcon>
-                <PersonIcon fontSize="small" />
-              </ListItemIcon>
-              {userMenu.profileLabel}
-            </MenuItem>
-            <Divider />
-            <MenuItem
-              onClick={() => {
-                setUserMenuAnchor(null);
-                // Server Action chamada direto do event handler — não precisa
-                // de <form> (ver logout-action.ts).
-                void logoutAction();
-              }}
-            >
-              <ListItemIcon>
-                <LogoutIcon fontSize="small" />
-              </ListItemIcon>
-              {userMenu.logoutLabel}
-            </MenuItem>
-          </Menu>
+          <ThemeToggle labels={labels.themeToggle} />
+
+          <UserMenu
+            user={user}
+            profileLabel={labels.userMenu.profile}
+            logoutLabel={labels.userMenu.logout}
+            logoutAction={logoutAction}
+          />
         </Toolbar>
       </AppBar>
 
-      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+      <Box
+        sx={(t) => ({
+          width: { md: drawerWidth },
+          flexShrink: { md: 0 },
+          transition: t.transitions.create("width", {
+            easing: t.transitions.easing.sharp,
+            duration: t.transitions.duration.shorter,
+          }),
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        })}
+      >
+        {/* Mobile: sempre expandido, com o campo de busca e o botão de fechar. */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
-          ModalProps={{ keepMounted: true }}
+          slotProps={{
+            root: { keepMounted: true },
+            // Ctrl+K no mobile abre o drawer e só então foca o campo (antes o
+            // input ainda está oculto e o foco cairia no vazio).
+            transition: {
+              onEntered: () => {
+                if (pendingMobileFocus.current) {
+                  pendingMobileFocus.current = false;
+                  mobileSearchRef.current?.focus();
+                }
+              },
+            },
+          }}
           sx={{
             display: { xs: "block", md: "none" },
-            "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
+            "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box" },
           }}
         >
-          <DrawerHeader
-            appName={appName}
+          <SidebarContent
+            labels={labels}
             logoAlt={logoAlt}
+            navItems={navItems}
+            pathname={pathname}
+            productSearchHref={productSearchHref}
+            searchInputRef={mobileSearchRef}
+            onNavigate={() => setMobileOpen(false)}
             onClose={() => setMobileOpen(false)}
             closeLabel={menuLabels.close}
-          />
-          <Divider />
-          <NavList
-            navItems={navItems}
-            comingSoonLabel={comingSoonLabel}
-            pathname={pathname}
-            onNavigate={() => setMobileOpen(false)}
-            collapsed={collapsed}
           />
         </Drawer>
 
         <Drawer
           variant="permanent"
           open
-          sx={{
+          sx={(t) => ({
             display: { xs: "none", md: "block" },
-            "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
-          }}
+            "& .MuiDrawer-paper": {
+              width: drawerWidth,
+              boxSizing: "border-box",
+              overflowX: "hidden",
+              transition: t.transitions.create("width", {
+                easing: t.transitions.easing.sharp,
+                duration: t.transitions.duration.shorter,
+              }),
+              "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+            },
+          })}
         >
-          <DrawerHeader appName={appName} logoAlt={logoAlt} />
-          <Divider />
-          <NavList
+          <SidebarContent
+            labels={labels}
+            logoAlt={logoAlt}
             navItems={navItems}
-            comingSoonLabel={comingSoonLabel}
             pathname={pathname}
-            onNavigate={() => {}}
             collapsed={collapsed}
+            productSearchHref={productSearchHref}
+            searchInputRef={desktopSearchRef}
+            onNavigate={() => {}}
+            onExpandRequest={focusProductSearch}
           />
         </Drawer>
       </Box>
 
       <Box
         component="main"
-        sx={{
+        id="portal-main"
+        tabIndex={-1}
+        sx={(t) => ({
           flexGrow: 1,
+          // Sem isso um filho largo (tabela) estica a coluna flex além da tela.
+          minWidth: 0,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           p: { xs: 2, sm: 3, md: 4 },
-        }}
+          outline: "none",
+          transition: t.transitions.create("width", {
+            easing: t.transitions.easing.sharp,
+            duration: t.transitions.duration.shorter,
+          }),
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
+        })}
       >
         <Toolbar />
-        {children}
+        {/* Conteúdo CENTRALIZADO numa largura única para todas as telas do
+            painel: antes cada página definia a própria largura alinhada à
+            esquerda (1200px no painel/boas-vindas, 100% nas tabelas) e o
+            conteúdo "pulava" de lugar a cada navegação. */}
+        <Box sx={{ width: "100%", maxWidth: PORTAL_CONTENT_MAX_WIDTH, mx: "auto" }}>{children}</Box>
       </Box>
     </Box>
   );

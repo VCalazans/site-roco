@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
 import { CartNavLink } from "@/shared/components/cart";
+import { HeaderSearch, type HeaderSearchLabels } from "@/shared/components/nav/header-search";
 import {
   LanguageSwitcher,
   type LanguageSwitcherLabels,
@@ -16,15 +17,12 @@ import { PortalLoginLink } from "@/shared/components/nav/portal-login-link";
 import { navLabelClass, type NavLink } from "@/shared/lib/nav";
 
 /**
- * Logotipo 2D limpo — fundo transparente de verdade.
- *
- * Substitui `roco-logo-white.png`, que carregava uma névoa branca diagonal
- * (bleed da extração do render: as letras ficam em alfa 255, mas ~37% da
- * imagem era branco semitransparente). Este asset foi gerado limpando o canal
- * alfa e recortando a bbox real das letras. Deve ser o ÚNICO logo usado no
- * site — ver também `app/layout.tsx`.
+ * Logotipo 2D oficial (branco) — identidade nova entregue em 2026-09-29
+ * (spec 001). Arquivo recortado na bbox real das letras a partir do original
+ * do stakeholder (`docs/marca/logos-originais/Logo-Roco_branco.png`, que tinha
+ * ~50% de margem transparente). 289×125 px cobre a barra de 40px em telas 3×.
  */
-const LOGO = "/images/hero/roco-logo.png";
+const LOGO = "/images/logos/roco-logo-white.png";
 
 type SiteHeaderProps = {
   brand: string;
@@ -37,9 +35,11 @@ type SiteHeaderProps = {
     language: LanguageSwitcherLabels;
     /** Nome acessível do botão de login (só ícone na barra). */
     portalLogin: string;
-    /** Nome acessível do ícone do carrinho de cotação (só ícone na barra) —
+    /** Nome acessível do ícone de "Meu orçamento" (só ícone na barra) —
      *  `dictionary.cart.nav.label`. */
     cart: string;
+    /** Busca de produtos (`dictionary.navigation.search`). */
+    search: HeaderSearchLabels;
   };
 };
 
@@ -74,7 +74,10 @@ export function SiteHeader({
   }, []);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
+    // `viewTransitionName`: âncora das transições entre páginas — o header é o
+    // ponto fixo enquanto o conteúdo troca (ver `::view-transition-*(site-header)`
+    // em globals.css e a doc local do Next 16 sobre View Transitions).
+    <header className="fixed inset-x-0 top-0 z-50" style={{ viewTransitionName: "site-header" }}>
       {/* Fundo translúcido em camada própria: `backdrop-filter` cria
           containing block para descendentes `fixed` — se ficasse no <header>,
           o painel/backdrop do MobileMenu (fixed) seria ancorado à faixa em vez
@@ -90,17 +93,15 @@ export function SiteHeader({
       />
 
       <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-6 md:h-20">
-        <Link href="/" aria-label={brand} className="flex-shrink-0">
+        <Link href={`/${locale}`} aria-label={brand} className="flex-shrink-0">
           <Image
             src={LOGO}
             alt={brand}
-            // Dimensões INTRÍNSECAS do arquivo (306×133). Estavam declaradas
-            // como 300×122: antes de decodificar o PNG o navegador reserva
-            // altura×(w/h) do que foi declarado, então a faixa reservava
-            // 98,4px de largura e encolhia para 92,0px ao carregar — ~6px de
-            // CLS no elemento mais estável da página.
-            width={306}
-            height={133}
+            // Dimensões INTRÍNSECAS do arquivo (289×125): declarar outra razão
+            // faz o navegador reservar a largura errada antes de decodificar o
+            // PNG e encolher ao carregar (CLS no elemento mais estável da página).
+            width={289}
+            height={125}
             priority
             className="h-8 w-auto md:h-10"
           />
@@ -145,6 +146,12 @@ export function SiteHeader({
           />
 
           <div className="flex items-center gap-2">
+            {/* Busca de produtos: só a partir de `lg` (no mobile mora no painel
+                do hambúrguer). Acrescenta 48px à barra (botão `size-10` + um
+                `gap-2`): 776 + 48 = 824px em pt a 1024px, contra 868px
+                disponíveis — segue cabendo sem subir o corte para `xl`. */}
+            <HeaderSearch locale={locale} labels={controls.search} className="hidden lg:flex" />
+
             {/* Seletor de idioma: pílula de texto no desktop; no mobile ele
                 vive DENTRO do painel do hambúrguer (ver `MobileMenu`), porque
                 é uma ação rara e ocuparia largura de barra que o logotipo e os
@@ -156,7 +163,7 @@ export function SiteHeader({
               className="hidden lg:inline-flex"
             />
 
-            {/* Carrinho de cotação: fica na barra em TODOS os tamanhos, como
+            {/* "Meu orçamento": fica na barra em TODOS os tamanhos, como
                 o login logo abaixo — não há painel "menu" dedicado para ele
                 (ver o comentário em `PortalLoginLink` sobre a variante
                 `"menu"`), porque não há nada a esconder abaixo de `lg`: o
@@ -174,6 +181,7 @@ export function SiteHeader({
                 labels={menuLabels}
                 locale={locale}
                 languageLabels={controls.language}
+                searchLabels={controls.search}
               />
             </div>
           </div>

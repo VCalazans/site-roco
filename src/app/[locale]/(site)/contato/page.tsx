@@ -8,9 +8,7 @@ import { getPublicProductBySlug } from "@/server/lib/public-products";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { SiteHeader } from "@/shared/components/nav";
 import { normalizeLeadOrigin } from "@/shared/lib/lead-origin";
-import { siteNavLinks } from "@/shared/lib/nav";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -86,9 +84,6 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
 
   const dictionary = await getDictionary(locale);
   const contact = getContactDictionary(dictionary);
-  const { navigation, cart } = dictionary;
-
-  const navLinks = siteNavLinks(navigation.links, locale);
 
   let productContext: { slug: string; name: string; sku: string } | null = null;
   if (produto) {
@@ -126,15 +121,8 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
         <div className="absolute -right-40 bottom-0 size-[30rem] rounded-full bg-neon-amber/10 blur-[140px]" />
       </div>
 
-      <SiteHeader
-        brand={navigation.brand}
-        links={navLinks}
-        menuLabels={{ open: navigation.menu, close: navigation.close }}
-        locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
-      />
 
-      <main className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-start gap-8 px-5 pb-12 pt-24 sm:px-6 md:pt-32 lg:grid-cols-[minmax(0,1fr)_minmax(21rem,29rem)] lg:gap-14">
         <div className="max-w-xl lg:sticky lg:top-32">
           <h1 className="text-glow-soft font-display text-h1 text-white">{contact.headline}</h1>
           <p className="mt-3 text-lede text-neon-cyan-bright">{contact.subheadline}</p>
@@ -149,7 +137,7 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
           origin={origin}
           utm={utm}
         />
-      </main>
+      </div>
     </div>
   );
 }

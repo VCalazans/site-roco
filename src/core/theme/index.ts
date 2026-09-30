@@ -41,8 +41,11 @@ import type { Locale } from "@/i18n/config";
  * contextos de alta densidade onde o campo é secundário à leitura de dados
  * tabulares, nunca o único campo de uma tela ou de um formulário principal:
  *   - Filtros de listagem acima de uma tabela (busca/`Select` de categoria e
- *     status em `products-page-client.tsx`) — todos pequenos entre si, nunca
+ *     status em `product-filters-bar.tsx`) — todos pequenos entre si, nunca
  *     misturado com um campo `medium` na mesma barra.
+ *   - Campo de busca de produtos da sidebar (`shell/sidebar-search.tsx`): é um
+ *     atalho utilitário numa coluna densa de navegação, nunca o único campo de
+ *     uma tela.
  *   - Campos inline DENTRO de uma linha de lista/tabela já editável em loco
  *     (embalagens em `product-form-dialog.tsx`; `alt` de imagem pendente em
  *     `product-images-manager.tsx`) — a linha inteira (inputs + ícones) é

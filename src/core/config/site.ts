@@ -5,6 +5,7 @@
  * time, so they must be present when `next build` runs). Fallbacks keep the
  * buttons working even when a var is not set in a given environment.
  */
+import { locales } from "@/i18n/config";
 import { withLeadOrigin, type LeadOrigin } from "@/shared/lib/lead-origin";
 
 export const siteLinks = {
@@ -43,8 +44,20 @@ export const PRODUCTS_SEGMENT = "produtos";
 /** Route segment of the public contact page. */
 export const CONTACT_SEGMENT = "contato";
 
-/** Route segment of the quote-cart page. */
-export const CART_SEGMENT = "carrinho";
+/**
+ * Route segment of the quote-list page ("Meu orçamento").
+ *
+ * Era `carrinho` até a spec 001 (2026-09-29): o stakeholder pediu que toda
+ * referência visível a "carrinho" virasse "orçamento" — a URL inclusa. O
+ * caminho antigo segue funcionando via redirect permanente em
+ * `next.config.ts` (`LEGACY_QUOTE_SEGMENT`). Identificadores técnicos internos
+ * (`subject: "cart"`, `cart-store`, `roco_cart_v1`) ficaram como estão: não
+ * aparecem para ninguém e renomeá-los só traria risco (ver decisionLog).
+ */
+export const QUOTE_SEGMENT = "orcamento";
+
+/** Segmento antigo da lista de orçamento — só existe para o redirect 308. */
+export const LEGACY_QUOTE_SEGMENT = "carrinho";
 
 /**
  * Segmentos do login do portal interno. Não são traduzidos (o route group
@@ -76,9 +89,9 @@ export function contactPath(locale: string): string {
   return `/${locale}/${CONTACT_SEGMENT}`;
 }
 
-/** Locale-prefixed path of the quote-cart page. */
-export function cartPath(locale: string): string {
-  return `/${locale}/${CART_SEGMENT}`;
+/** Locale-prefixed path of the quote-list page (`/pt/orcamento`). */
+export function quotePath(locale: string): string {
+  return `/${locale}/${QUOTE_SEGMENT}`;
 }
 
 /** Filename suggested to the browser when the catalog PDF is downloaded. */
@@ -129,9 +142,50 @@ export function resolveDestination(
   const capturesLeads =
     destinationPath === contactPath(locale) ||
     destinationPath === catalogPath(locale) ||
-    destinationPath === cartPath(locale);
+    destinationPath === quotePath(locale);
 
   return capturesLeads ? withLeadOrigin(destination, origin) : destination;
+}
+
+/** Prefixo de locale já presente num caminho interno (`/pt`, `/en/…`, `/pt?x`). */
+const LOCALE_PREFIX = new RegExp(`^/(${locales.join("|")})(?=/|$|\\?|#)`);
+
+/**
+ * Garante o prefixo de locale num caminho INTERNO — para links digitados no
+ * painel (CTAs da home e do hero), que o operador escreve como
+ * `/produtos?category=gas` sem saber de locale. Sem isto o link dependeria do
+ * redirect 307 do middleware (um round-trip a mais) e, pior, `/pt/…` digitado
+ * à mão levaria o visitante da versão em inglês para a portuguesa.
+ *
+ * - `/produtos?x#y` → `/{locale}/produtos?x#y`
+ * - `/pt/contato` numa página `en` → `/en/contato` (troca, não empilha)
+ * - `/` → `/{locale}`
+ * - externo (`https:`), `mailto:`, `tel:`, âncora (`#…`) e protocol-relative
+ *   (`//…`) → intocados.
+ */
+export function localizeInternalHref(href: string, locale: string): string {
+  if (!href.startsWith("/") || href.startsWith("//")) return href;
+  const match = LOCALE_PREFIX.exec(href);
+  if (match) {
+    return match[1] === locale ? href : `/${locale}${href.slice(match[0].length)}`;
+  }
+  if (href === "/") return `/${locale}`;
+  if (href.startsWith("/?") || href.startsWith("/#")) return `/${locale}${href.slice(1)}`;
+  return `/${locale}${href}`;
+}
+
+/**
+ * Destino final de um CTA EDITÁVEL: placeholders/aliases resolvidos
+ * (`resolveDestination`, com a origem do lead) e caminho interno sempre com
+ * locale (`localizeInternalHref`). Usado pelas seções da home e pelos slides
+ * do hero — todo href que veio do banco passa por aqui antes do `<Link>`.
+ */
+export function resolveCtaHref(href: string, locale: string, origin?: LeadOrigin): string {
+  const localized = localizeInternalHref(resolveDestination(href, locale), locale);
+  // A origem só é anexada DEPOIS de localizar: um CTA digitado como
+  // `/contato?assunto=quote` (não é alias exato) só vira página de captura
+  // reconhecível — e ganha `?origem=` — quando já carrega o locale.
+  return origin ? resolveDestination(localized, locale, origin) : localized;
 }
 
 function resolveHref(href: string, locale: string): string {
@@ -163,6 +217,11 @@ function resolveHref(href: string, locale: string): string {
     // `aria-current="page"`.
     case "#ligamos":
       return `${contactPath(locale)}?assunto=call_back`;
+    // "Meu orçamento" (lista multi-produto) — placeholder para rodapé/CTAs
+    // editáveis; o alias literal cobre CTAs digitados no painel.
+    case "#orcamento":
+    case "/orcamento":
+      return quotePath(locale);
     default:
       return href;
   }

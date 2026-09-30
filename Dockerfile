@@ -16,6 +16,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # passe "false" para não enviar hits reais ao Mautic; em produção deixe vazio (on).
 ARG NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=
 ENV NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=$NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED
+# RD Station (substituiu o Mautic): mesmo raciocínio. Vazio = LIGADO em build de
+# produção (default do componente); o build LOCAL (scripts/docker-build.cmd) passa
+# "false" para a navegação de teste não entrar no lead scoring da conta real.
+ARG NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=
+ENV NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=$NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED
 ARG NEXT_PUBLIC_SITE_URL=
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 # R2_PUBLIC_URL e R2_ACCOUNT_ID são lidos em next.config.ts (build-time) para

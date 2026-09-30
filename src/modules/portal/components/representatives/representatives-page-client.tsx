@@ -268,12 +268,10 @@ export function RepresentativesPageClient({ portal, user }: RepresentativesPageC
       {!listQuery.isLoading && items.length === 0 && !hasActiveFilters ? (
         <Paper variant="outlined" sx={{ p: 6, textAlign: "center" }}>
           <Typography variant="h6">
-            {status === "submitted"
-              ? dictionary.empty.title
-              : `Nenhum representante ${portal.onboarding.status[status].toLowerCase()}.`}
+            {status === "submitted" ? dictionary.empty.title : dictionary.emptyByStatus[status]}
           </Typography>
           <Typography color="text.secondary">
-            {status === "submitted" ? dictionary.empty.description : "Mude a aba acima para ver outros status."}
+            {status === "submitted" ? dictionary.empty.description : dictionary.emptyByStatus.hint}
           </Typography>
         </Paper>
       ) : null}

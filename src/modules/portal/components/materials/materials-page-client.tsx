@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -19,6 +20,8 @@ type MaterialsPageClientProps = {
   portal: PortalDictionary;
   canWrite: boolean;
   canDelete: boolean;
+  /** Link da pré-visualização da biblioteca como o representante a vê. */
+  previewHref?: string;
 };
 
 /**
@@ -27,7 +30,7 @@ type MaterialsPageClientProps = {
  * `materials.listPublished` no router tRPC), não há um campo `sortOrder`
  * editável pelo admin.
  */
-export function MaterialsPageClient({ portal, canWrite, canDelete }: MaterialsPageClientProps) {
+export function MaterialsPageClient({ portal, canWrite, canDelete, previewHref }: MaterialsPageClientProps) {
   const dictionary = portal.materials;
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -97,11 +100,18 @@ export function MaterialsPageClient({ portal, canWrite, canDelete }: MaterialsPa
             {dictionary.subtitle}
           </Typography>
         </Box>
-        {canWrite ? (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            {dictionary.actions.newMaterial}
-          </Button>
-        ) : null}
+        <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap" }}>
+          {previewHref ? (
+            <Button variant="outlined" startIcon={<VisibilityIcon />} href={previewHref}>
+              {dictionary.library.viewAsRepresentative}
+            </Button>
+          ) : null}
+          {canWrite ? (
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
+              {dictionary.actions.newMaterial}
+            </Button>
+          ) : null}
+        </Stack>
       </Stack>
 
       {listQuery.isError ? <Alert severity="error">{portal.errors.generic}</Alert> : null}

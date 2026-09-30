@@ -8,8 +8,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Teste local: nunca enviar hits reais ao Mautic (flag é build-time).
+        # Teste local: nunca enviar hits reais ao Mautic nem ao RD Station
+        # (flags build-time; mesmo valor de scripts/docker-build.cmd).
         - NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED=${NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED:-false}
+        - NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=${NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED:-false}
         - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     image: site-roco:latest
     container_name: site-roco

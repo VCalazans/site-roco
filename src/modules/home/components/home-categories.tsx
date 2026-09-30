@@ -1,30 +1,45 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { resolveCtaHref } from "@/core/config/site";
 import type { Locale } from "@/i18n/config";
-import type { Dictionary } from "@/i18n/get-dictionary";
 import { resolveCategoryCardHref } from "@/modules/home/lib/category-cards";
-
-type HomeCategoriesContent = Dictionary["home"]["categories"];
+import type { ResolvedHomeContent } from "@/modules/home/lib/home-content";
+import { Carousel } from "@/shared/components/carousel/carousel";
+import { externalProps } from "@/shared/lib/nav";
 
 type HomeCategoriesProps = {
-  content: HomeCategoriesContent;
+  content: ResolvedHomeContent["categories"];
   /** Slugs reais do catálogo — valida os hrefs `?category=` dos cards. */
   categorySlugs: string[];
   locale: Locale;
   ctaHref: string;
+  carouselLabels: { prev: string; next: string };
 };
 
 /**
- * Vitrine de categorias da home, fiel ao PSD "Layout pag Produtos_OK_01.psd"
- * (docs/): 6 cards verticais com moldura neon ciano→âmbar, arte line-art neon
- * extraída do composite do PSD (as ilustrações não são camadas separáveis —
- * ver decisionLog 2026-08-23) e rótulo vivo em caixa alta. Os cards são as 6
- * MACRO-FAMÍLIAS de marketing aprovadas no design — não as 16 categorias do
- * ERP (essas ficam no filtro de `/produtos`); o mapa card→filtro vive nos
- * dicionários e degrada para a listagem completa se a categoria sumir do
- * catálogo (`resolveCategoryCardHref`).
+ * Destino de um card: caminho da listagem SEM locale (`/produtos?category=…`,
+ * formato dos cards padrão do dicionário e o que o operador digita no painel)
+ * passa pela validação de categoria existente; placeholders e URLs externas
+ * vão por `resolveCtaHref`.
  */
-export function HomeCategories({ content, categorySlugs, locale, ctaHref }: HomeCategoriesProps) {
+function cardHref(href: string, locale: Locale, categorySlugs: string[]): string {
+  const isLocalePrefixed = /^\/(pt|en)(\/|$|\?)/.test(href);
+  if (href.startsWith("/") && !href.startsWith("//") && !isLocalePrefixed) {
+    return resolveCategoryCardHref(href, locale, categorySlugs);
+  }
+  return resolveCtaHref(href, locale, "home-categorias");
+}
+
+/**
+ * Vitrine de categorias da home, fiel ao PSD "Layout pag Produtos_OK_01.psd":
+ * cards verticais com moldura neon ciano→âmbar, arte line-art e rótulo vivo
+ * em caixa alta. Cards, artes e textos são EDITÁVEIS no painel (padrão: as 6
+ * macro-famílias do dicionário). No desktop os 6 cabem numa linha e o
+ * carrossel some sozinho; no mobile vira trilho com setas e arraste — em vez
+ * de 3 linhas de 2 cards altos.
+ */
+export function HomeCategories({ content, categorySlugs, locale, ctaHref, carouselLabels }: HomeCategoriesProps) {
   return (
     <section className="relative overflow-hidden px-6 py-20 sm:py-24">
       {/* Glows de ambiente dual-tone — eco do piso refletivo do PSD. */}
@@ -41,41 +56,51 @@ export function HomeCategories({ content, categorySlugs, locale, ctaHref }: Home
             <h2 className="mt-3 font-display text-h1 text-white">{content.headline}</h2>
             <p className="mt-3 text-body text-white/70">{content.description}</p>
           </div>
-          <Link href={ctaHref} className="btn-neon shrink-0">
+          <Link href={ctaHref} {...externalProps(ctaHref)} className="btn-neon shrink-0">
             {content.cta.label}
+            <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>
 
-        <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-5">
-          {content.items.map((item) => (
-            <Link
-              key={item.label}
-              href={resolveCategoryCardHref(item.href, locale, categorySlugs)}
-              className="card-neon group aspect-[45/82]"
-            >
-              <span className="relative block h-full w-full overflow-hidden rounded-[25px] bg-background">
-                <Image
-                  src={item.image}
-                  alt={item.alt}
-                  fill
-                  sizes="(min-width: 1024px) 16vw, (min-width: 640px) 33vw, 50vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
-                />
-                {/* Scrim atrás do rótulo: em 2 das 6 artes o reflexo neon do
-                    piso cai exatamente sob o texto (contraste ~1:1 medido na
-                    revisão) — o degradê garante WCAG 1.4.3 sem alterar o
-                    resto da arte. */}
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background via-background/55 to-transparent"
-                />
-                <span className="card-neon-label absolute inset-x-2 bottom-5 text-center text-ui font-semibold uppercase tracking-[0.14em]">
-                  {item.label}
+        <Carousel
+          className="mt-12"
+          labels={carouselLabels}
+          ariaLabel={content.headline}
+          gapClassName="gap-4 lg:gap-5"
+          itemClassName="w-[42%] sm:w-[30%] lg:w-[calc((100%-100px)/6)] pt-2"
+        >
+          {content.items.map((item, index) => {
+            const href = cardHref(item.href, locale, categorySlugs);
+            return (
+              <Link
+                key={`${item.label}-${index}`}
+                href={href}
+                {...externalProps(href)}
+                className="card-neon group block aspect-[45/82]"
+              >
+                <span className="relative block h-full w-full overflow-hidden rounded-[25px] bg-background">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.alt}
+                    fill
+                    sizes="(min-width: 1024px) 16vw, (min-width: 640px) 30vw, 42vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                  />
+                  {/* Scrim atrás do rótulo: em 2 das 6 artes o reflexo neon do
+                      piso cai exatamente sob o texto (contraste ~1:1 medido na
+                      revisão) — o degradê garante WCAG 1.4.3. */}
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background via-background/55 to-transparent"
+                  />
+                  <span className="card-neon-label absolute inset-x-2 bottom-5 text-center text-ui font-semibold uppercase tracking-[0.14em]">
+                    {item.label}
+                  </span>
                 </span>
-              </span>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            );
+          })}
+        </Carousel>
       </div>
     </section>
   );

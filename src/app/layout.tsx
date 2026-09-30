@@ -18,15 +18,13 @@ const poppins = Poppins({
   display: "swap",
 });
 
+// Favicon e ícone Apple vêm da CONVENÇÃO de arquivos do App Router
+// (`src/app/icon.png` 512×512 e `src/app/apple-icon.png` 180×180): monograma
+// "R" da logo nova sobre o navy da marca com os brilhos ciano/âmbar — legível
+// em aba clara e escura (o favicon anterior era o logotipo BRANCO sobre
+// transparência, que sumia em abas de tema claro). Spec 001, RF03.
 export const metadata: Metadata = {
   ...defaultMetadata,
-  icons: {
-    // Mesmo logo limpo (fundo transparente) usado no header das páginas.
-    // Nota: é um logotipo BRANCO — em abas de tema claro ele fica pouco
-    // visível. Um favicon dedicado, com a marca em cor sólida ou sobre fundo
-    // da marca, resolveria; depende de a ROCO fornecer a versão apropriada.
-    icon: [{ url: "/images/hero/roco-logo.png", type: "image/png" }],
-  },
 };
 
 export default async function RootLayout({

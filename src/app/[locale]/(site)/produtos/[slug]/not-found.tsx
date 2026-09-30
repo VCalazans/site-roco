@@ -3,8 +3,6 @@ import { cookies, headers } from "next/headers";
 import { productsPath } from "@/core/config/site";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { SiteHeader } from "@/shared/components/nav";
-import { siteNavLinks } from "@/shared/lib/nav";
 
 /**
  * Not-found boundary for `/{locale}/produtos/[slug]`.
@@ -54,26 +52,17 @@ async function resolveLocale(): Promise<Locale> {
 export default async function ProductNotFound() {
   const locale = await resolveLocale();
   const dictionary = await getDictionary(locale);
-  const { navigation, products, cart } = dictionary;
-
-  const navLinks = siteNavLinks(navigation.links, locale);
+  const { products } = dictionary;
 
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">
-      <SiteHeader
-        brand={navigation.brand}
-        links={navLinks}
-        menuLabels={{ open: navigation.menu, close: navigation.close }}
-        locale={locale}
-        controls={{ language: navigation.language, portalLogin: navigation.portalLogin, cart: cart.nav.label }}
-      />
-      <main className="relative z-10 mx-auto flex min-h-[70svh] max-w-2xl flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
+      <div className="relative z-10 mx-auto flex min-h-[70svh] max-w-2xl flex-col items-center justify-center gap-4 px-6 pt-24 text-center">
         <h1 className="font-display text-h1 text-white">{products.detail.notFoundTitle}</h1>
         <p className="text-body text-white/70">{products.detail.notFoundDescription}</p>
         <Link href={productsPath(locale)} className="btn-neon mt-4">
           {products.detail.backToListing}
         </Link>
-      </main>
+      </div>
     </div>
   );
 }

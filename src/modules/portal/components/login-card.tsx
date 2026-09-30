@@ -1,7 +1,6 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import Image from "next/image";
 import NextLink from "next/link";
 import GoogleIcon from "@mui/icons-material/Google";
 import MuiLink from "@mui/material/Link";
@@ -15,6 +14,7 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { PortalLogo } from "@/modules/portal/components/shared/portal-logo";
 
 type LoginCardProps = {
   /** `alt` do logotipo — reaproveita `dictionary.navigation.brand` ("ROCO"),
@@ -93,24 +93,9 @@ export function LoginCard({
     <Card variant="outlined" sx={{ width: "100%" }}>
       <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
         <Stack spacing={3} sx={{ alignItems: "center", textAlign: "center" }}>
-          {/* Logo branco: precisa de um fundo escuro fixo para ter contraste
-              tanto no color scheme dark quanto no light do portal. */}
-          <Box
-            sx={{
-              bgcolor: "#05070b",
-              borderRadius: "9999px",
-              p: 1.5,
-              display: "inline-flex",
-            }}
-          >
-            <Image
-              src="/images/hero/roco-logo.png"
-              alt={logoAlt}
-              width={40}
-              height={40}
-              priority
-            />
-          </Box>
+          {/* Logo com slogan, azul no tema claro e branca no escuro (a troca é
+              por CSS, sem fundo fixo atrás — ver `PortalLogo`). */}
+          <PortalLogo alt={logoAlt} variant="slogan" width={168} eager />
 
           <Stack spacing={0.5}>
             <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>

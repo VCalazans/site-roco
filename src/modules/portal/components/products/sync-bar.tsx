@@ -9,10 +9,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import type { Locale } from "@/i18n/config";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 
 type SyncBarProps = {
   dictionary: PortalDictionary["products"]["sync"];
+  /** Locale da rota: a data da última sincronização sai no formato do idioma
+   *  (sem ele o navegador usava o idioma DELE, não o do painel). */
+  locale: Locale;
   /** Esconde o botão de disparo se o usuário não tiver `products:sync` (ou
    *  equivalente) — mesmo padrão de gate de UI usado nas demais ações
    *  destrutivas/administrativas desta página. */
@@ -23,7 +27,7 @@ type SyncBarProps = {
  * Barra de sincronização ERP: dispara `sync.trigger()` e acompanha
  * `sync.status()`, com poll a cada 3s enquanto o status for `running`.
  */
-export function SyncBar({ dictionary, canTrigger }: SyncBarProps) {
+export function SyncBar({ dictionary, locale, canTrigger }: SyncBarProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
@@ -67,7 +71,7 @@ export function SyncBar({ dictionary, canTrigger }: SyncBarProps) {
           <Typography variant="body2" color="text.secondary">
             {statusLabel}
             {statusQuery.data?.lastRunAt
-              ? ` · ${dictionary.lastRun}: ${new Date(statusQuery.data.lastRunAt).toLocaleString()}`
+              ? ` · ${dictionary.lastRun}: ${new Date(statusQuery.data.lastRunAt).toLocaleString(locale)}`
               : null}
           </Typography>
         </Stack>

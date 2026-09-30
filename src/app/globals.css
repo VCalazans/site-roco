@@ -158,6 +158,110 @@
 
 html {
   scroll-behavior: smooth;
+  /* Header fixo (h-16 / md:h-20): âncoras (#sobre, #fachada) e o "voltar ao
+     topo dos resultados" param ABAIXO da faixa, não escondidos atrás dela. */
+  scroll-padding-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Navegação fluida — View Transitions (spec 001, RF15)
+   O React canary empacotado pelo Next 16 dispara `startViewTransition` nas
+   navegações; o `<ViewTransition>` do layout `(site)` faz o crossfade do
+   conteúdo. Doc local: node_modules/next/dist/docs/01-app/02-guides/
+   view-transitions.md. Sem suporte no navegador, a troca é instantânea.
+   ------------------------------------------------------------------------ */
+
+/* Crossfade curto: rápido o bastante para não atrasar quem navega muito. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+
+/* Header ANCORADO: é o ponto fixo enquanto o conteúdo troca por baixo. */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+/* Foto do card → capa do detalhe (mesmo `name`): morph com leve desfoque no
+   meio do caminho, que esconde a interpolação de pixels. */
+::view-transition-group(.product-morph) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-image-pair(.product-morph) {
+  animation-name: vt-via-blur;
+}
+@keyframes vt-via-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
+
+/* Cliques durante a transição chegam à página real. */
+::view-transition {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
+/* Barra de progresso do slide ativo no hero (enche no tempo do slide). */
+.hero-progress {
+  width: 0;
+  animation-name: hero-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes hero-progress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Indicador "role para baixo" do hero — balanço suave e contínuo. */
+.hero-scroll-cue {
+  animation: hero-bob 2.4s ease-in-out infinite;
+}
+@keyframes hero-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-scroll-cue {
+    animation: none;
+  }
+  .hero-progress {
+    animation: none;
+    width: 100%;
+  }
 }
 
 body {

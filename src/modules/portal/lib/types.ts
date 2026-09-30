@@ -24,6 +24,8 @@ export type PortalDictionary = {
   };
   shell: {
     appName: string;
+    /** Legenda ao lado da logo no topo da sidebar ("Portal"). */
+    brandCaption: string;
     nav: {
       dashboard: string;
       onboarding: string;
@@ -31,6 +33,35 @@ export type PortalDictionary = {
       representatives: string;
       welcome: string;
       hero: string;
+      homeContent: string;
+      leads: string;
+    };
+    /** Títulos dos grupos da sidebar (chaves = `PortalNavGroupKey`). */
+    navGroups: {
+      overview: string;
+      catalog: string;
+      relationship: string;
+      site: string;
+      admin: string;
+    };
+    /** `aria-label` do landmark de navegação da sidebar. */
+    navLabel: string;
+    skipToContent: string;
+    sidebar: {
+      collapse: string;
+      expand: string;
+    };
+    /** Busca de produtos da sidebar (só para quem tem `products:read`). */
+    search: {
+      label: string;
+      placeholder: string;
+      /** Dica de atalho fora do macOS / no macOS (nomes de tecla). */
+      shortcut: string;
+      shortcutMac: string;
+    };
+    viewSite: {
+      label: string;
+      aria: string;
     };
     comingSoon: string;
     userMenu: {
@@ -43,11 +74,7 @@ export type PortalDictionary = {
       system: string;
     };
   };
-  dashboard: {
-    title: string;
-    welcome: string;
-    emptyState: string;
-  };
+  dashboard: PortalDashboardDictionary;
   admin: {
     title: string;
     underConstruction: string;
@@ -106,93 +133,7 @@ export type PortalDictionary = {
       fileTooLarge: string;
     };
   };
-  products: {
-    title: string;
-    subtitle: string;
-    searchPlaceholder: string;
-    table: {
-      sku: string;
-      name: string;
-      category: string;
-      packaging: string;
-      badges: string;
-      status: string;
-      updatedAt: string;
-      actions: string;
-    };
-    status: {
-      published: string;
-      unpublished: string;
-      active: string;
-      inactive: string;
-    };
-    badges: {
-      nacional: string;
-      universal: string;
-      top: string;
-      tresEmUm: string;
-      seguro: string;
-    };
-    form: {
-      createTitle: string;
-      editTitle: string;
-      fields: {
-        sku: string;
-        erpCode: string;
-        name: string;
-        nameEn: string;
-        description: string;
-        descriptionEn: string;
-        category: string;
-        ncm: string;
-        barcode: string;
-        packagingType: string;
-        unitsPerPack: string;
-        published: string;
-      };
-      packagingTypes: {
-        peca: string;
-        blister: string;
-        caixa: string;
-        sacoPlastico: string;
-      };
-      images: {
-        title: string;
-        dropzone: string;
-        altText: string;
-        cover: string;
-        remove: string;
-        uploadError: string;
-      };
-      actions: {
-        save: string;
-        cancel: string;
-        delete: string;
-        publish: string;
-        unpublish: string;
-      };
-    };
-    sync: {
-      title: string;
-      triggerButton: string;
-      lastRun: string;
-      statusIdle: string;
-      statusRunning: string;
-      statusError: string;
-      successMessage: string;
-      errorMessage: string;
-    };
-    empty: {
-      title: string;
-      description: string;
-    };
-    deleteConfirm: {
-      title: string;
-      message: string;
-      confirm: string;
-      cancel: string;
-    };
-  };
+  products: PortalProductsDictionary;
   representatives: {
     title: string;
     subtitle: string;
@@ -284,6 +225,13 @@ export type PortalDictionary = {
       title: string;
       description: string;
     };
+    /** Estado vazio das abas que não são "aguardando revisão" (`submitted`). */
+    emptyByStatus: {
+      draft: string;
+      approved: string;
+      rejected: string;
+      hint: string;
+    };
   };
   welcome: {
     hero: { title: string; subtitle: string; description: string };
@@ -304,9 +252,14 @@ export type PortalDictionary = {
       error: string;
       forbidden: string;
       downloadLabel: string;
+      /** PDF/imagem abrem no navegador — botão "Abrir", não "Baixar". */
+      openLabel: string;
       watchLabel: string;
       /** Placeholder literal `{date}` — usar `interpolate()`. */
       publishedOn: string;
+      /** Link para a biblioteca completa (`/portal/materiais`). */
+      viewAll: string;
+      newBadge: string;
     };
     closing: { paragraph1: string; paragraph2: string };
     comingSoon: string;
@@ -434,9 +387,60 @@ export type PortalHeroDictionary = {
   autoAdvanceHelper: string;
 };
 
+export type PortalMaterialsLibraryDictionary = {
+  title: string;
+  subtitle: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  sectorsLabel: string;
+  all: string;
+  recentTitle: string;
+  newBadge: string;
+  /** Placeholder literal `{count}`. */
+  countOne: string;
+  countOther: string;
+  open: string;
+  download: string;
+  watch: string;
+  /** Placeholder literal `{title}`. */
+  downloadAria: string;
+  /** Placeholder literal `{date}`. */
+  publishedOn: string;
+  /** Título do setor "other" (a categoria `other` do formulário é singular). */
+  otherTitle: string;
+  empty: { title: string; description: string };
+  emptyFilter: { title: string; description: string; clear: string };
+  error: string;
+  retry: string;
+  forbidden: string;
+  fileTypes: {
+    pdf: string;
+    video: string;
+    image: string;
+    spreadsheet: string;
+    presentation: string;
+    document: string;
+    archive: string;
+    file: string;
+  };
+  /** Uma linha de apoio por setor, embaixo do título da seção. */
+  sectors: {
+    commercial_policy: string;
+    logistics: string;
+    contacts: string;
+    training: string;
+    other: string;
+  };
+  viewAsRepresentative: string;
+  backToManage: string;
+  previewNotice: string;
+};
+
 export type PortalMaterialsDictionary = {
   title: string;
   subtitle: string;
+  /** Biblioteca somente-leitura do REPRESENTANTE, organizada por setor (revisão 2026-09-30). */
+  library: PortalMaterialsLibraryDictionary;
   table: {
     title: string;
     category: string;
@@ -560,18 +564,283 @@ export type PortalRolesDictionary = {
   };
 };
 
+type SettingsFieldCopy = { label: string; hint: string };
+type SettingsBlockCopy = { title: string; description: string };
+
 export type PortalSettingsDictionary = {
   title: string;
   subtitle: string;
+  blocks: {
+    contact: SettingsBlockCopy;
+    addresses: SettingsBlockCopy;
+    social: SettingsBlockCopy;
+    catalog: SettingsBlockCopy;
+  };
+  fields: {
+    phone: SettingsFieldCopy;
+    email: SettingsFieldCopy;
+    addressMatriz: SettingsFieldCopy;
+    addressFilial: SettingsFieldCopy;
+    instagram: SettingsFieldCopy;
+    linkedin: SettingsFieldCopy;
+    youtube: SettingsFieldCopy;
+    whatsapp: SettingsFieldCopy;
+    catalogPdf: SettingsFieldCopy;
+  };
   form: {
-    saved: string;
     save: string;
+    saving: string;
+    reset: string;
+    unsaved: string;
+    blockSaved: string;
     errors: {
       required: string;
       saveFailed: string;
+      invalidUrl: string;
+      invalidEmail: string;
+      invalidPhone: string;
+      invalidPath: string;
+      storedInvalid: string;
     };
   };
   errors: {
     loadFailed: string;
+  };
+};
+
+/** Assuntos de solicitação (espelha `CONTACT_SUBJECTS` do servidor). */
+export type PortalLeadSubject = "call_back" | "quote" | "general" | "catalog" | "cart";
+
+export type PortalDashboardDictionary = {
+  title: string;
+  /** Placeholder literal `{name}` — usar `interpolate()`. */
+  welcome: string;
+  subtitle: string;
+  emptyState: string;
+  partialError: string;
+  /** `aria-label` da região dos indicadores. */
+  indicatorsLabel: string;
+  kpis: {
+    /** `hint` com placeholder `{total}`. */
+    published: { label: string; hint: string };
+    featured: { label: string; hint: string };
+    bestSeller: { label: string; hint: string };
+    /** `ok` aparece no lugar de `hint` quando o indicador está zerado (é bom sinal). */
+    noPhoto: { label: string; hint: string; ok: string };
+    reviews: { label: string; hint: string; ok: string };
+    /** `hint` com placeholder `{days}`. */
+    leads: { label: string; hint: string };
+  };
+  quickActions: {
+    title: string;
+    newProduct: { label: string; hint: string };
+    editHome: { label: string; hint: string };
+    manageHero: { label: string; hint: string };
+    viewSite: { label: string; hint: string };
+  };
+  recentLeads: {
+    title: string;
+    viewAll: string;
+    empty: string;
+    subjects: Record<PortalLeadSubject, string>;
+  };
+  health: {
+    title: string;
+    subtitle: string;
+    published: string;
+    withPhoto: string;
+    /** Placeholders literais `{value}` e `{total}`. */
+    ofTotal: string;
+    healthy: string;
+    noProducts: string;
+    reviewNoPhoto: string;
+    /** Placeholder literal `{count}`. */
+    reviewUnpublished: string;
+  };
+};
+
+export type PortalProductsDictionary = {
+  title: string;
+  subtitle: string;
+  /** Subtítulo para quem só consulta o catálogo (sem `products:update`/`create`). */
+  subtitleReadOnly: string;
+  searchPlaceholder: string;
+  /** Placeholder literal `{count}`. */
+  count: { one: string; other: string };
+  /** Placeholders literais `{shown}` e `{total}`. */
+  showing: string;
+  loadMore: string;
+  filters: {
+    statusAll: string;
+    categoryAll: string;
+    quickLabel: string;
+    featured: string;
+    bestSeller: string;
+    noImage: string;
+    clear: string;
+  };
+  /** Textos do tooltip dos botões de destaque/campeão na tabela (a AÇÃO do clique). */
+  flags: {
+    featuredAdd: string;
+    featuredRemove: string;
+    bestSellerAdd: string;
+    bestSellerRemove: string;
+  };
+  actions: {
+    more: string;
+    edit: string;
+    viewOnSite: string;
+    copyLink: string;
+    shareWhatsapp: string;
+    delete: string;
+  };
+  share: {
+    /** Placeholders literais `{name}` e `{url}`. */
+    message: string;
+  };
+  feedback: {
+    linkCopied: string;
+    copyFailed: string;
+    saved: string;
+    created: string;
+    publishedOn: string;
+    publishedOff: string;
+    featuredAdded: string;
+    featuredAddedUnpublished: string;
+    featuredRemoved: string;
+    bestSellerOn: string;
+    bestSellerOff: string;
+    deleted: string;
+    actionFailed: string;
+  };
+  table: {
+    sku: string;
+    name: string;
+    category: string;
+    packaging: string;
+    badges: string;
+    status: string;
+    updatedAt: string;
+    actions: string;
+    product: string;
+    showcase: string;
+    published: string;
+    photos: string;
+    noPhoto: string;
+  };
+  status: {
+    published: string;
+    unpublished: string;
+    active: string;
+    inactive: string;
+  };
+  badges: {
+    nacional: string;
+    universal: string;
+    /** Selo legado (migrado para "campeão de vendas") — não é mais oferecido no formulário. */
+    top: string;
+    tresEmUm: string;
+    seguro: string;
+  };
+  form: {
+    createTitle: string;
+    editTitle: string;
+    sections: {
+      identification: { title: string; hint: string };
+      copy: { title: string; hint: string };
+      categories: { title: string; hint: string };
+      showcase: { title: string; hint: string };
+      packaging: { title: string; hint: string };
+      images: { title: string; hint: string };
+    };
+    validation: {
+      required: string;
+      positiveNumber: string;
+      /** Mesma embalagem (tipo + quantidade) repetida no formulário. */
+      duplicatePackaging: string;
+      wholeNumber: string;
+    };
+    errors: {
+      duplicate: string;
+      forbidden: string;
+      invalid: string;
+    };
+    fields: {
+      sku: string;
+      erpCode: string;
+      name: string;
+      nameEn: string;
+      description: string;
+      descriptionEn: string;
+      category: string;
+      primaryCategory: string;
+      primaryCategoryHelper: string;
+      ncm: string;
+      barcode: string;
+      packagingType: string;
+      unitsPerPack: string;
+      published: string;
+      publishedHelper: string;
+      featured: string;
+      featuredHelper: string;
+      featuredOrder: string;
+      featuredOrderHelper: string;
+      bestSeller: string;
+      bestSellerHelper: string;
+    };
+    packagingTypes: {
+      peca: string;
+      blister: string;
+      caixa: string;
+      sacoPlastico: string;
+    };
+    images: {
+      title: string;
+      dropzone: string;
+      altText: string;
+      cover: string;
+      remove: string;
+      uploadError: string;
+      /** Botão que envia as fotos escolhidas (distinto do "Salvar Produto" do formulário). */
+      upload: string;
+      saveFirst: string;
+    };
+    actions: {
+      save: string;
+      cancel: string;
+      close: string;
+      delete: string;
+      publish: string;
+      unpublish: string;
+      addPackaging: string;
+      removePackaging: string;
+      viewOnSite: string;
+    };
+  };
+  sync: {
+    title: string;
+    triggerButton: string;
+    lastRun: string;
+    statusIdle: string;
+    statusRunning: string;
+    statusError: string;
+    successMessage: string;
+    errorMessage: string;
+  };
+  empty: {
+    title: string;
+    description: string;
+  };
+  emptyFiltered: {
+    title: string;
+    description: string;
+  };
+  deleteConfirm: {
+    title: string;
+    message: string;
+    /** Placeholder literal `{name}`. */
+    messageNamed: string;
+    confirm: string;
+    cancel: string;
   };
 };

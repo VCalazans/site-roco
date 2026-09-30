@@ -9,6 +9,7 @@ import {
   heroSlides,
 } from "@/db/schema/hero-slides";
 import type { Locale } from "@/i18n/config";
+import { isSafeHref } from "@/shared/lib/safe-href";
 
 type Database = typeof dbClient;
 
@@ -66,13 +67,16 @@ function toPublic(row: HeroSlide, locale: Locale): PublicHeroSlide {
   const eyebrow = pickLocalized(row.eyebrowPt, row.eyebrowEn, locale);
   const description = pickLocalized(row.descriptionPt, row.descriptionEn, locale);
 
+  // `isSafeHref` também na LEITURA (defesa em profundidade): slides gravados
+  // antes da validação do router (spec 001, RF21) podem ter qualquer string;
+  // um href fora da allowlist derruba só o CTA, nunca vai para o `<Link>`.
   const primaryLabel = pickLocalized(row.primaryCtaLabelPt, row.primaryCtaLabelEn, locale);
-  const primary = primaryLabel && row.primaryCtaHref
+  const primary = primaryLabel && row.primaryCtaHref && isSafeHref(row.primaryCtaHref)
     ? { label: primaryLabel, href: row.primaryCtaHref }
     : null;
 
   const secondaryLabel = pickLocalized(row.secondaryCtaLabelPt, row.secondaryCtaLabelEn, locale);
-  const secondary = secondaryLabel && row.secondaryCtaHref
+  const secondary = secondaryLabel && row.secondaryCtaHref && isSafeHref(row.secondaryCtaHref)
     ? { label: secondaryLabel, href: row.secondaryCtaHref }
     : null;
 

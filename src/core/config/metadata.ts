@@ -27,9 +27,13 @@ const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "") || "https://roc
  */
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // Sem sufixo de marca no template: TODO título de página já carrega "ROCO"
+  // (dicionários `*.seo.title`, "{produto} — ROCO", "{tela} — ROCO Portal"), e
+  // o antigo "%s | ROCO" duplicava a marca em todas elas ("Meu orçamento —
+  // ROCO | ROCO").
   title: {
     default: "ROCO — Soluções Hidrossanitárias e Hidráulicas",
-    template: "%s | ROCO",
+    template: "%s",
   },
   description:
     "ROCO. Soluções em hidrossanitários, hidráulica e componentes industriais. Fabricante brasileira com presença nacional e exportação.",

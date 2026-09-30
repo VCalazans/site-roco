@@ -37,14 +37,15 @@ export const RD_CUSTOM_FIELD_PREFIX = "cf_";
  * (diferente dos `cf_*`, não exige cadastro prévio no painel), então separar
  * as cinco custa nada e o funil do RD passa a distinguir pedido de
  * orçamento, download de catálogo, pedido de ligação, contato geral e
- * carrinho de cotação — que antes colapsavam em dois identificadores.
+ * lista de orçamento — que antes colapsavam em dois identificadores. A lista
+ * era `carrinho_cotacao` até a spec 001 (2026-09-29, vocabulário "orçamento").
  */
 const CONVERSION_IDENTIFIERS: Record<ContactInput["subject"], string> = {
   quote: "orcamento_produto",
   catalog: "download_catalogo",
   call_back: "ligamos_pra_voce",
   general: "contato_geral",
-  cart: "carrinho_cotacao",
+  cart: "orcamento_lista_produtos",
 };
 
 /**

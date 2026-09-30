@@ -76,6 +76,16 @@ const PERMISSIONS: PermissionSeed[] = [
   // por padrão (via "*") — um admin real pode delegá-la depois pela
   // própria UI.
   { resource: "roles", action: "manage" },
+  // Conteúdo da página inicial (spec 001, 2026-09-29): editor
+  // /portal/pagina-inicial — textos PT/EN, imagens, CTAs, visibilidade e
+  // ordem das seções. `read` abre a tela; `update` salva/restaura.
+  { resource: "home_content", action: "read" },
+  { resource: "home_content", action: "update" },
+  // Caixa de Solicitações (spec 001): leads/orçamentos recebidos pelo site
+  // (`contact_submissions`). Somente leitura — contém dados pessoais, então é
+  // uma permissão própria (nunca derivada de `products:read`) e cada detalhe
+  // aberto gera audit log.
+  { resource: "leads", action: "read" },
 ];
 
 const ROLES: { slug: string; name: string; description: string; isSystem: boolean }[] = [
@@ -122,6 +132,11 @@ const ROLE_PERMISSIONS: Record<string, PermissionSeed[] | "*"> = {
     { resource: "materials", action: "read" },
     { resource: "materials", action: "create" },
     { resource: "materials", action: "update" },
+    // Home e solicitações: o gerente comercial é quem opera o marketing do
+    // site e atende os pedidos de orçamento (spec 001).
+    { resource: "home_content", action: "read" },
+    { resource: "home_content", action: "update" },
+    { resource: "leads", action: "read" },
   ],
   representative: [
     { resource: "onboarding", action: "create" },

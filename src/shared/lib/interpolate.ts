@@ -10,8 +10,11 @@ export function interpolate(
   template: string,
   values: Record<string, string | number>
 ): string {
+  // Substituição por FUNÇÃO: com string, `replaceAll` interpreta `$&`, `$'`,
+  // `` $` `` e `$$` no valor — um nome de visitante "Ana $& Cia" embaralhava
+  // o texto montado (resposta por e-mail/WhatsApp do portal).
   return Object.entries(values).reduce(
-    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, () => String(value)),
     template
   );
 }

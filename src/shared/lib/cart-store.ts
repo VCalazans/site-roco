@@ -28,6 +28,10 @@ export type CartItem = {
   name: string;
   sku: string;
   quantity: number;
+  /** Foto de capa para a miniatura da lista (opcional: itens gravados antes
+   *  da spec 001 não têm, e continuam válidos). Só exibição — o servidor
+   *  nunca lê este campo. */
+  image?: string;
 };
 
 /** O que `addItem` recebe — a quantidade é um parâmetro separado (padrão 1). */
@@ -54,11 +58,38 @@ function clampQuantity(quantity: number): number {
   return Math.min(rounded, MAX_CART_ITEM_QUANTITY);
 }
 
+/** Espaço, caractere de controle ou `\` — o parser de URL do navegador ignora/normaliza. */
+function hasUnsafeUrlChars(value: string): boolean {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code <= 0x20 || code === 0x7f || char === "\\") return true;
+  }
+  return false;
+}
+
+/**
+ * Aceita só URL http(s) com host ou caminho interno como imagem — um
+ * `localStorage` adulterado não pode injetar `javascript:`/`data:` num `src`.
+ * Espaço, controle e `\` barrados em qualquer posição: `/\evil.com/x.png`,
+ * `/<TAB>/evil.com` e `/<LF>/evil.com` PARECEM caminho interno, mas o
+ * navegador os resolve para outro host (revisão de segurança 2026-09-30).
+ */
+export function sanitizeImage(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length > 2048 || hasUnsafeUrlChars(value)) return undefined;
+  if (value.startsWith("/")) return value.startsWith("//") ? undefined : value;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.host ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Valida e normaliza UM item cru do `localStorage`. `null` = descartar. */
 function sanitizeItem(value: unknown): CartItem | null {
   if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
-  const { slug, name, sku, quantity } = record;
+  const { slug, name, sku, quantity, image } = record;
 
   if (typeof slug !== "string" || slug.trim() === "") return null;
   if (typeof name !== "string" || typeof sku !== "string") return null;
@@ -67,7 +98,10 @@ function sanitizeItem(value: unknown): CartItem | null {
   const safeQuantity = clampQuantity(quantity);
   if (safeQuantity <= 0) return null;
 
-  return { slug, name, sku, quantity: safeQuantity };
+  const safeImage = sanitizeImage(image);
+  return safeImage
+    ? { slug, name, sku, quantity: safeQuantity, image: safeImage }
+    : { slug, name, sku, quantity: safeQuantity };
 }
 
 /**
@@ -120,7 +154,10 @@ export function applyAddItem(items: CartItem[], item: NewCartItem, quantityToAdd
     if (items.length >= MAX_CART_ITEMS) return items;
     const quantity = clampQuantity(quantityToAdd);
     if (quantity <= 0) return items;
-    return [...items, { ...item, quantity }];
+    const next: CartItem = { slug: item.slug, name: item.name, sku: item.sku, quantity };
+    const image = sanitizeImage(item.image);
+    if (image) next.image = image;
+    return [...items, next];
   }
 
   const existing = items[existingIndex];

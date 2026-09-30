@@ -743,11 +743,11 @@ describe("buildCartProductsSummary", () => {
       expect(payload.payload).not.toHaveProperty("cf_produtos_carrinho");
     });
 
-    it("cart conversion_identifier is 'carrinho_cotacao'", () => {
+    it("cart conversion_identifier is 'orcamento_lista_produtos'", () => {
       const input = createContactInput({ subject: "cart" });
       const meta = createMeta({ cartItems: [{ name: "Item", sku: "SKU", quantity: 1 }] });
       const payload = buildRdStationConversionPayload(input, meta);
-      expect(payload.payload.conversion_identifier).toBe("carrinho_cotacao");
+      expect(payload.payload.conversion_identifier).toBe("orcamento_lista_produtos");
     });
   });
 });

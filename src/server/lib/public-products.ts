@@ -1,7 +1,9 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { and, asc, desc, eq, exists, ilike, inArray, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, inArray, lt, sql } from "drizzle-orm";
 import { getPublicUrl } from "@/core/storage/r2";
+import { matchAllTerms } from "@/server/lib/sql-like";
+import { sortPackagings } from "@/shared/lib/packaging";
 import { db } from "@/db";
 import {
   categories,
@@ -17,18 +19,12 @@ const MAX_PER_PAGE = 100;
 /** Teto do termo de busca — limita o custo do ILIKE com input do usuário. */
 const MAX_SEARCH_LENGTH = 80;
 
-/**
- * Escapa os metacaracteres do LIKE/ILIKE (`\`, `%`, `_`) para que o termo do
- * usuário seja tratado como literal — sem isso, `%a%b%c%` multiplica o custo
- * do scan e `_` vira curinga de um caractere (achado da revisão de segurança).
- */
-function escapeLikePattern(value: string): string {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
 
 export interface PublicProductListParams {
   category?: string;
   search?: string;
+  /** Só campeões de vendas (filtro da barra lateral, spec 001 RF25). */
+  bestSeller?: boolean;
   page?: number;
   perPage?: number;
 }
@@ -74,7 +70,7 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
         productId: productPackagings.productId,
         packagingType: productPackagings.packagingType,
         unitsPerPack: productPackagings.unitsPerPack,
-        isDefault: productPackagings.isDefault,
+        barcodeEan13: productPackagings.barcodeEan13,
       })
       .from(productPackagings)
       .where(inArray(productPackagings.productId, productIds)),
@@ -107,14 +103,21 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
     badgesByProduct.set(row.productId, list);
   }
 
+  // TODAS as embalagens do produto, em ordem estável (tipo → quantidade) e sem
+  // `isDefault`: a embalagem pode ser composta e nenhuma é a "padrão" (regra do
+  // negócio — ver `@/shared/lib/packaging`). O EAN da embalagem vai junto:
+  // algumas variantes têm código de barras próprio.
   const packagingsByProduct = new Map<
     string,
-    { packagingType: string; unitsPerPack: number; isDefault: boolean }[]
+    { packagingType: string; unitsPerPack: number; barcodeEan13: string | null }[]
   >();
   for (const row of packagingRows) {
     const list = packagingsByProduct.get(row.productId) ?? [];
-    list.push({ packagingType: row.packagingType, unitsPerPack: row.unitsPerPack, isDefault: row.isDefault });
+    list.push({ packagingType: row.packagingType, unitsPerPack: row.unitsPerPack, barcodeEan13: row.barcodeEan13 });
     packagingsByProduct.set(row.productId, list);
+  }
+  for (const [productId, list] of packagingsByProduct) {
+    packagingsByProduct.set(productId, sortPackagings(list));
   }
 
   // altPt/altEn serializados separadamente — quem escolhe é o componente,
@@ -140,6 +143,9 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
     nameEn: product.nameEn,
     descriptionPt: product.descriptionPt,
     descriptionEn: product.descriptionEn,
+    /** "Campeão de vendas" — selo com troféu no card/detalhe (spec 001, RF08). */
+    bestSeller: product.bestSeller,
+    featured: product.featured,
     categories: categoriesByProduct.get(product.id) ?? [],
     badges: badgesByProduct.get(product.id) ?? [],
     packagings: packagingsByProduct.get(product.id) ?? [],
@@ -159,13 +165,16 @@ async function queryPublicProductList(params: PublicProductListParams) {
 
   const conditions = [eq(products.published, true), eq(products.active, true)];
 
+  if (params.bestSeller) {
+    conditions.push(eq(products.bestSeller, true));
+  }
+
   if (search) {
-    // `nameEn` incluído: no locale EN o card exibe nameEn — o usuário precisa
-    // conseguir buscar exatamente o nome que vê na tela (achado da revisão).
-    const term = `%${escapeLikePattern(search)}%`;
-    conditions.push(
-      or(ilike(products.sku, term), ilike(products.namePt, term), ilike(products.nameEn, term))!
-    );
+    // Todas as palavras, em qualquer ordem, sem ligar para acento/caixa
+    // ("flexivel gas" acha "FLEXÍVEL PARA GÁS"). `nameEn` incluído: no locale
+    // EN o card exibe nameEn — o usuário precisa achar o nome que vê na tela.
+    const match = matchAllTerms(search, [products.sku, products.namePt, products.nameEn]);
+    if (match) conditions.push(match);
   }
 
   if (categorySlug) {
@@ -215,20 +224,48 @@ const getCachedProductList = unstable_cache(queryPublicProductList, ["public-pro
   revalidate: 300,
 });
 
+/** Última página que entra na CHAVE do cache: 200 × 20 = 4.000 produtos (o catálogo tem ~740). */
+const MAX_CACHED_PAGE = 200;
+/** Tamanhos de página que a própria UI pede (listagem e contagens) — só eles são cacheados. */
+const CACHEABLE_PER_PAGE: ReadonlySet<number> = new Set([DEFAULT_PER_PAGE, 1]);
+
 /**
  * Catálogo público (`GET /api/products` + SSR de `/produtos`).
  *
- * Navegação por categoria/página usa `unstable_cache` (tag `"products"`,
- * invalidada pelas mutações do tRPC e pelo sync do ERP): o espaço de chaves é
- * limitado (categorias × páginas). Busca livre NÃO é cacheada — a chave viria
- * do input do usuário, e cada termo único gravaria uma entrada nova no data
- * cache em disco, crescimento não limitado que um atacante controla (achado
- * da revisão de segurança). O termo também é truncado em MAX_SEARCH_LENGTH.
+ * A chave do `unstable_cache` (tag `"products"`, invalidada pelas mutações do
+ * tRPC e pelo sync do ERP) vem da querystring, então o ESPAÇO de chaves é
+ * fechado aqui — senão cada valor inventado grava uma entrada nova no data
+ * cache em disco, crescimento que quem faz a requisição controla (revisões de
+ * segurança de 2026-08-12 e 2026-09-30):
+ * - categoria: só slug que EXISTE (lista cacheada); desconhecida devolve lista
+ *   vazia sem tocar cache nem banco (e `%00` deixa de virar 500);
+ * - página e tamanho: fora de `MAX_CACHED_PAGE`/`CACHEABLE_PER_PAGE` a consulta
+ *   roda direto, sem cache — funciona, só não ocupa disco;
+ * - busca livre: nunca cacheada (e truncada em MAX_SEARCH_LENGTH).
  */
 export async function getPublicProductList(params: PublicProductListParams) {
   const search = params.search?.trim().slice(0, MAX_SEARCH_LENGTH) || undefined;
-  const normalized: PublicProductListParams = { ...params, search };
-  return search ? queryPublicProductList(normalized) : getCachedProductList(normalized);
+  const category = params.category?.trim() || undefined;
+  const { page, perPage } = normalizePagination(params.page, params.perPage);
+
+  if (category) {
+    const knownCategories = await getPublicCategoryList();
+    if (!knownCategories.some((item) => item.slug === category)) {
+      return { items: [], total: 0, page: 1, perPage };
+    }
+  }
+
+  // Montado campo a campo: nada além do contrato entra na chave. E
+  // `bestSeller: false` vira `undefined` — o mesmo filtro, uma entrada só.
+  const normalized: PublicProductListParams = {
+    category,
+    search,
+    bestSeller: params.bestSeller || undefined,
+    page,
+    perPage,
+  };
+  const cacheable = !search && page <= MAX_CACHED_PAGE && CACHEABLE_PER_PAGE.has(perPage);
+  return cacheable ? getCachedProductList(normalized) : queryPublicProductList(normalized);
 }
 
 /** Detalhe público por slug (`GET /api/products/[slug]`) — somente `published && active`. */
@@ -307,49 +344,123 @@ export const getPublicCategoryList = unstable_cache(
 );
 
 /**
- * Produtos em destaque para a seção "produtos em destaque" da home —
- * prioriza quem tem o badge `"top"` (mais recentes primeiro) e, se não
- * houver o suficiente, completa com os produtos publicados mais recentes,
- * sem repetir nenhum já escolhido.
+ * Vitrine "Produtos em destaque" da home (spec 001, RF06/RF07).
+ *
+ * 1. Produtos com a flag `featured`, na ordem definida pelo operador
+ *    (`featured_order`, depois SKU). Curadoria explícita NÃO é completada com
+ *    outros produtos — a vitrine mostra exatamente o que foi escolhido.
+ * 2. Nenhum destaque publicado → campeões de vendas (mais recentes primeiro).
+ * 3. Nem isso → os publicados mais recentes. A home nunca fica sem vitrine.
  */
 export const getFeaturedProducts = unstable_cache(
   async (limit = 8) => {
+    const safeLimit = Math.min(Math.max(Math.floor(limit) || 8, 1), 24);
     const baseConditions = [eq(products.published, true), eq(products.active, true)];
 
-    const topRows = await db
+    const featuredRows = await db
       .select()
       .from(products)
-      .where(
-        and(
-          ...baseConditions,
-          exists(
-            db
-              .select({ one: sql`1` })
-              .from(productBadges)
-              .where(and(eq(productBadges.productId, products.id), eq(productBadges.badge, "top")))
-          )
-        )
-      )
-      .orderBy(desc(products.createdAt))
-      .limit(limit);
+      .where(and(...baseConditions, eq(products.featured, true)))
+      .orderBy(asc(products.featuredOrder), asc(products.sku))
+      .limit(safeLimit);
+    if (featuredRows.length > 0) return assembleProducts(featuredRows);
 
-    const remaining = limit - topRows.length;
-    let fillRows: (typeof products.$inferSelect)[] = [];
+    const bestSellerRows = await db
+      .select()
+      .from(products)
+      .where(and(...baseConditions, eq(products.bestSeller, true)))
+      .orderBy(desc(products.createdAt), asc(products.sku))
+      .limit(safeLimit);
+    if (bestSellerRows.length > 0) return assembleProducts(bestSellerRows);
 
-    if (remaining > 0) {
-      const excludeIds = topRows.map((row) => row.id);
-      fillRows = await db
-        .select()
-        .from(products)
-        .where(
-          and(...baseConditions, excludeIds.length > 0 ? notInArray(products.id, excludeIds) : undefined)
+    const newestRows = await db
+      .select()
+      .from(products)
+      .where(and(...baseConditions))
+      .orderBy(desc(products.createdAt), asc(products.sku))
+      .limit(safeLimit);
+    return assembleProducts(newestRows);
+  },
+  ["public-featured-products-v2"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/**
+ * Quantos produtos PUBLICADOS cada categoria tem — contagem da barra lateral
+ * da listagem (spec 001, RF25). Uma query agrupada, cacheada com o catálogo.
+ */
+export const getPublicCategoryCounts = unstable_cache(
+  async (): Promise<Record<string, number>> => {
+    const rows = await db
+      .select({
+        slug: categories.slug,
+        total: sql<number>`count(distinct ${productCategories.productId})::int`,
+      })
+      .from(productCategories)
+      .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+      .innerJoin(products, eq(products.id, productCategories.productId))
+      .where(and(eq(products.published, true), eq(products.active, true), eq(categories.active, true)))
+      .groupBy(categories.slug);
+
+    return Object.fromEntries(rows.map((row) => [row.slug, row.total]));
+  },
+  ["public-category-counts"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/** Total de campeões de vendas publicados (rótulo do filtro lateral). */
+export const getPublicBestSellerCount = unstable_cache(
+  async (): Promise<number> => {
+    const [row] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(products)
+      .where(and(eq(products.published, true), eq(products.active, true), eq(products.bestSeller, true)));
+    return row?.total ?? 0;
+  },
+  ["public-best-seller-count"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/**
+ * Produto anterior/próximo dentro da MESMA categoria, na ordem da listagem
+ * (SKU crescente) — setas do detalhe do produto (spec 001, RF13). Sem
+ * categoria, navega pelo catálogo inteiro. Cacheado: o espaço de chaves é
+ * limitado ao próprio catálogo (slug × categoria reais).
+ */
+export const getAdjacentProducts = unstable_cache(
+  async (sku: string, categorySlug: string | null) => {
+    const conditions = [eq(products.published, true), eq(products.active, true)];
+    if (categorySlug) {
+      conditions.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(productCategories)
+            .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+            .where(and(eq(productCategories.productId, products.id), eq(categories.slug, categorySlug)))
         )
-        .orderBy(desc(products.createdAt))
-        .limit(remaining);
+      );
     }
 
-    return assembleProducts([...topRows, ...fillRows]);
+    const [previousRows, nextRows] = await Promise.all([
+      db
+        .select()
+        .from(products)
+        .where(and(...conditions, lt(products.sku, sku)))
+        .orderBy(desc(products.sku))
+        .limit(1),
+      db
+        .select()
+        .from(products)
+        .where(and(...conditions, gt(products.sku, sku)))
+        .orderBy(asc(products.sku))
+        .limit(1),
+    ]);
+
+    const [previous] = await assembleProducts(previousRows);
+    const [next] = await assembleProducts(nextRows);
+    return { previous: previous ?? null, next: next ?? null };
   },
-  ["public-featured-products"],
+  ["public-adjacent-products"],
   { tags: ["products"], revalidate: 300 }
 );

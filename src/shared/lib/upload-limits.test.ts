@@ -161,6 +161,14 @@ describe("upload-limits", () => {
   });
 
   describe("isContentTypeAllowed", () => {
+    it("chaves herdadas do protótipo nunca valem como tipo aceito", () => {
+      for (const probe of ["constructor", "__proto__", "toString", "hasOwnProperty"]) {
+        expect(isContentTypeAllowed("siteImage", probe)).toBe(false);
+        expect(getUploadLimit("siteImage", probe)).toBeNull();
+        expect(getExtension("siteImage", probe)).toBeNull();
+      }
+    });
+
     describe("type differences across fields", () => {
       it("image/jpeg is allowed in heroPoster", () => {
         expect(isContentTypeAllowed("heroPoster", "image/jpeg")).toBe(true);
@@ -539,3 +547,69 @@ describe("upload-limits", () => {
     });
   });
 });
+
+  describe("siteImage field (spec 001)", () => {
+    it("returns tuple with image types for siteImage field", () => {
+      const types = getAllowedContentTypes("siteImage");
+      expect(types).toContain("image/jpeg");
+      expect(types).toContain("image/png");
+      expect(types).toContain("image/webp");
+      expect(types.length).toBe(3);
+    });
+
+    it("returns limit for siteImage jpeg", () => {
+      const limit = getUploadLimit("siteImage", "image/jpeg");
+      expect(limit?.extension).toBe("jpg");
+      expect(limit?.maxBytes).toBe(10 * 1024 * 1024);
+    });
+
+    it("returns limit for siteImage png", () => {
+      const limit = getUploadLimit("siteImage", "image/png");
+      expect(limit?.extension).toBe("png");
+      expect(limit?.maxBytes).toBe(10 * 1024 * 1024);
+    });
+
+    it("returns limit for siteImage webp", () => {
+      const limit = getUploadLimit("siteImage", "image/webp");
+      expect(limit?.extension).toBe("webp");
+      expect(limit?.maxBytes).toBe(10 * 1024 * 1024);
+    });
+
+    it("returns null for unsupported type (video/mp4)", () => {
+      const limit = getUploadLimit("siteImage", "video/mp4");
+      expect(limit).toBeNull();
+    });
+
+    it("returns null for unsupported type (application/pdf)", () => {
+      const limit = getUploadLimit("siteImage", "application/pdf");
+      expect(limit).toBeNull();
+    });
+
+    it("isContentTypeAllowed works for siteImage", () => {
+      expect(isContentTypeAllowed("siteImage", "image/jpeg")).toBe(true);
+      expect(isContentTypeAllowed("siteImage", "image/png")).toBe(true);
+      expect(isContentTypeAllowed("siteImage", "image/webp")).toBe(true);
+      expect(isContentTypeAllowed("siteImage", "video/mp4")).toBe(false);
+    });
+
+    it("getMaxBytes works for siteImage", () => {
+      expect(getMaxBytes("siteImage", "image/jpeg")).toBe(10 * 1024 * 1024);
+      expect(getMaxBytes("siteImage", "image/png")).toBe(10 * 1024 * 1024);
+      expect(getMaxBytes("siteImage", "video/mp4")).toBeNull();
+    });
+
+    it("getExtension works for siteImage", () => {
+      expect(getExtension("siteImage", "image/jpeg")).toBe("jpg");
+      expect(getExtension("siteImage", "image/png")).toBe("png");
+      expect(getExtension("siteImage", "image/webp")).toBe("webp");
+      expect(getExtension("siteImage", "video/mp4")).toBeNull();
+    });
+
+    it("isSizeWithinLimit works for siteImage", () => {
+      expect(isSizeWithinLimit("siteImage", "image/jpeg", 5 * 1024 * 1024)).toBe(true);
+      expect(isSizeWithinLimit("siteImage", "image/jpeg", 10 * 1024 * 1024)).toBe(true);
+      expect(isSizeWithinLimit("siteImage", "image/jpeg", 11 * 1024 * 1024)).toBe(false);
+      expect(isSizeWithinLimit("siteImage", "image/jpeg", 0)).toBe(false);
+      expect(isSizeWithinLimit("siteImage", "video/mp4", 5 * 1024 * 1024)).toBe(false);
+    });
+  });

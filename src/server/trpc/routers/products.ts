@@ -1,8 +1,9 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, exists, gt, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, exists, gt, inArray, not, sql } from "drizzle-orm";
 import { z } from "zod";
+import { hasPermission } from "@/core/auth/rbac";
 import { deleteObject, getPresignedUploadUrl, getPublicUrl, headObject } from "@/core/storage/r2";
 import { db as dbClient } from "@/db";
 import {
@@ -19,6 +20,8 @@ import { writeAuditLog } from "@/server/lib/audit";
 import { translateDbError } from "@/server/lib/db-error";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import { slugify } from "@/server/lib/slugify";
+import { matchAllTerms } from "@/server/lib/sql-like";
+import { sortPackagings } from "@/shared/lib/packaging";
 import { permissionProcedure, router } from "../init";
 
 /** Compartilhado com `representatives.presignDocumentUpload` — mesmo balde por usuário. */
@@ -53,17 +56,35 @@ const packagingInputSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
+/**
+ * Texto opcional que o operador pode APAGAR no formulário: `null` limpa a
+ * coluna; ausente (`undefined`) = "não mexer" no update / vazio no create.
+ * Antes só existia o `undefined`, então esvaziar um campo no painel não
+ * tinha efeito — o valor antigo voltava depois de salvar.
+ */
+const clearable = <T extends z.ZodString>(schema: T) => schema.nullable().optional();
+
 const productMutableFields = {
   sku: z.string().trim().min(1).max(20),
   namePt: z.string().trim().min(1),
   slug: z.string().trim().min(1).max(220).optional(),
-  erpCode: z.string().trim().max(20).optional(),
-  nameEn: z.string().trim().min(1).optional(),
-  descriptionPt: z.string().trim().min(1).optional(),
-  descriptionEn: z.string().trim().min(1).optional(),
-  ncm: z.string().trim().max(8).optional(),
-  barcodeEan13: z.string().trim().max(13).optional(),
+  erpCode: clearable(z.string().trim().max(20)),
+  nameEn: clearable(z.string().trim().min(1)),
+  descriptionPt: clearable(z.string().trim().min(1)),
+  descriptionEn: clearable(z.string().trim().min(1)),
+  ncm: clearable(z.string().trim().max(8)),
+  barcodeEan13: clearable(z.string().trim().max(13)),
+  /**
+   * Publicar/despublicar exige `products:publish` também por aqui (não só no
+   * `setPublished`): quem só tem create/update não pode pôr produto no ar
+   * pelo formulário — ver a checagem em `create`/`update`.
+   */
   published: z.boolean().optional(),
+  /** Vitrine da home (spec 001). Ao ligar sem `featuredOrder`, entra no fim da fila. */
+  featured: z.boolean().optional(),
+  featuredOrder: z.number().int().min(0).max(100_000).optional(),
+  /** "Campeão de vendas" — selo com troféu no site. */
+  bestSeller: z.boolean().optional(),
   categoryIds: z.array(z.string().uuid()),
   primaryCategoryId: z.string().uuid().optional(),
   badges: z.array(z.enum(productBadgeEnum.enumValues)),
@@ -77,9 +98,57 @@ const listInputSchema = z.object({
   search: z.string().trim().min(1).max(200).optional(),
   categoryId: z.string().uuid().optional(),
   published: z.boolean().optional(),
+  /** Filtros de vitrine/saúde do catálogo (spec 001, RF10). */
+  featured: z.boolean().optional(),
+  bestSeller: z.boolean().optional(),
+  hasImage: z.boolean().optional(),
+  /** Inclui produtos excluídos (soft delete, `active = false`). Padrão: só ativos. */
+  includeInactive: z.boolean().optional(),
   cursor: z.string().uuid().optional(),
   limit: z.number().int().min(1).max(100).default(25),
 });
+
+/**
+ * TODA mutação de catálogo feita no portal expira o cache do site NA HORA
+ * (e não `"max"`, stale-while-revalidate): o operador salva — marca destaque,
+ * cadastra uma embalagem, troca uma foto — e abre o site para conferir. Com
+ * `"max"` a PRIMEIRA visita ainda mostrava o conteúdo antigo e a mudança
+ * parecia não ter sido gravada ("as embalagens cadastradas não aparecem").
+ * Edição manual é rara; a regeneração bloqueante da visita seguinte custa pouco.
+ * O sync em lote do ERP não passa por aqui.
+ */
+const IMMEDIATE_EXPIRY = { expire: 0 };
+
+/** Teto da vitrine gerenciável — bem acima do que a home exibe (máx. 12). */
+const MAX_FEATURED_REORDER = 100;
+
+/** Próxima posição livre no fim da vitrine (`max(featured_order) + 1`). */
+async function nextFeaturedOrder(db: Database): Promise<number> {
+  const [row] = await db
+    .select({ value: sql<number>`coalesce(max(${products.featuredOrder}), -1)::int` })
+    .from(products)
+    .where(eq(products.featured, true));
+  return (row?.value ?? -1) + 1;
+}
+
+/** Capa (1ª imagem por `sortOrder`) de cada produto do lote — para miniaturas. */
+async function loadCoverUrls(db: Database, productIds: string[]): Promise<Map<string, string>> {
+  const covers = new Map<string, string>();
+  if (productIds.length === 0) return covers;
+  const rows = await db
+    .select({ productId: productImages.productId, r2Key: productImages.r2Key })
+    .from(productImages)
+    .where(inArray(productImages.productId, productIds))
+    .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt));
+  for (const row of rows) {
+    if (covers.has(row.productId)) continue;
+    const url = safePublicUrl(row.r2Key);
+    if (url) covers.set(row.productId, url);
+  }
+  return covers;
+}
+
+type PackagingSummary = { packagingType: PackagingTypeSlug; unitsPerPack: number };
 
 /** Categorias + badges + packagings + imagens de um lote de produtos, indexados por productId. */
 async function loadProductRelations(db: Database, productIds: string[]) {
@@ -87,15 +156,12 @@ async function loadProductRelations(db: Database, productIds: string[]) {
     return {
       categoriesByProduct: new Map<string, (typeof categories.$inferSelect)[]>(),
       badgesByProduct: new Map<string, BadgeSlug[]>(),
-      defaultPackagingByProduct: new Map<
-        string,
-        { packagingType: PackagingTypeSlug; unitsPerPack: number }
-      >(),
+      packagingsByProduct: new Map<string, PackagingSummary[]>(),
       imageCountByProduct: new Map<string, number>(),
     };
   }
 
-  const [categoryRows, badgeRows, defaultPackagingRows, imageCountRows] = await Promise.all([
+  const [categoryRows, badgeRows, packagingRows, imageCountRows] = await Promise.all([
     db
       .select({ productId: productCategories.productId, category: categories })
       .from(productCategories)
@@ -111,8 +177,10 @@ async function loadProductRelations(db: Database, productIds: string[]) {
         packagingType: productPackagings.packagingType,
         unitsPerPack: productPackagings.unitsPerPack,
       })
+      // TODAS as embalagens (não só a "padrão"): a embalagem pode ser composta
+      // e nenhuma é a principal — a tabela do portal mostra todas.
       .from(productPackagings)
-      .where(and(inArray(productPackagings.productId, productIds), eq(productPackagings.isDefault, true))),
+      .where(inArray(productPackagings.productId, productIds)),
     db
       .select({ productId: productImages.productId, total: sql<number>`count(*)::int` })
       .from(productImages)
@@ -134,15 +202,14 @@ async function loadProductRelations(db: Database, productIds: string[]) {
     badgesByProduct.set(row.productId, list);
   }
 
-  const defaultPackagingByProduct = new Map<
-    string,
-    { packagingType: PackagingTypeSlug; unitsPerPack: number }
-  >();
-  for (const row of defaultPackagingRows) {
-    defaultPackagingByProduct.set(row.productId, {
-      packagingType: row.packagingType,
-      unitsPerPack: row.unitsPerPack,
-    });
+  const packagingsByProduct = new Map<string, PackagingSummary[]>();
+  for (const row of packagingRows) {
+    const list = packagingsByProduct.get(row.productId) ?? [];
+    list.push({ packagingType: row.packagingType, unitsPerPack: row.unitsPerPack });
+    packagingsByProduct.set(row.productId, list);
+  }
+  for (const [productId, list] of packagingsByProduct) {
+    packagingsByProduct.set(productId, sortPackagings(list));
   }
 
   const imageCountByProduct = new Map<string, number>();
@@ -150,7 +217,7 @@ async function loadProductRelations(db: Database, productIds: string[]) {
     imageCountByProduct.set(row.productId, row.total);
   }
 
-  return { categoriesByProduct, badgesByProduct, defaultPackagingByProduct, imageCountByProduct };
+  return { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountByProduct };
 }
 
 /** Monta o shape completo de um produto (`byId`/`create`/`update`/`setPublished`). */
@@ -235,17 +302,40 @@ export const productsRouter = router({
   list: permissionProcedure("products", "read")
     .input(listInputSchema)
     .query(async ({ ctx, input }) => {
-      const { search, categoryId, published, cursor, limit } = input;
+      const { search, categoryId, published, featured, bestSeller, hasImage, includeInactive, cursor, limit } =
+        input;
 
       // Filtros do input (sem o cursor) — reaproveitados no COUNT, que reflete
       // o total de resultados do filtro, não da página atual.
       const filterConditions = [];
+      // Produto "excluído" é soft delete (`active = false`, ver `delete`):
+      // não aparece na lista a menos que se peça explicitamente.
+      if (!includeInactive) {
+        filterConditions.push(eq(products.active, true));
+      }
       if (published !== undefined) {
         filterConditions.push(eq(products.published, published));
       }
+      if (featured !== undefined) {
+        filterConditions.push(eq(products.featured, featured));
+      }
+      if (bestSeller !== undefined) {
+        filterConditions.push(eq(products.bestSeller, bestSeller));
+      }
+      if (hasImage !== undefined) {
+        const imageExists = exists(
+          ctx.db
+            .select({ one: sql`1` })
+            .from(productImages)
+            .where(eq(productImages.productId, products.id))
+        );
+        filterConditions.push(hasImage ? imageExists : not(imageExists));
+      }
       if (search) {
-        const term = `%${search}%`;
-        filterConditions.push(or(ilike(products.sku, term), ilike(products.namePt, term)));
+        // Mesma busca do site: todas as palavras, sem acento/caixa, em SKU,
+        // código ERP, nome PT ou EN (termos escapados — LIKE literal).
+        const match = matchAllTerms(search, [products.sku, products.erpCode, products.namePt, products.nameEn]);
+        if (match) filterConditions.push(match);
       }
       if (categoryId) {
         filterConditions.push(
@@ -291,18 +381,19 @@ export const productsRouter = router({
       const hasMore = rows.length > limit;
       const page = hasMore ? rows.slice(0, limit) : rows;
 
-      const { categoriesByProduct, badgesByProduct, defaultPackagingByProduct, imageCountByProduct } =
-        await loadProductRelations(
-          ctx.db,
-          page.map((product) => product.id)
-        );
+      const pageIds = page.map((product) => product.id);
+      const [
+        { categoriesByProduct, badgesByProduct, packagingsByProduct, imageCountByProduct },
+        coverByProduct,
+      ] = await Promise.all([loadProductRelations(ctx.db, pageIds), loadCoverUrls(ctx.db, pageIds)]);
 
       const items = page.map((product) => ({
         ...product,
         categories: categoriesByProduct.get(product.id) ?? [],
         badges: badgesByProduct.get(product.id) ?? [],
         imageCount: imageCountByProduct.get(product.id) ?? 0,
-        defaultPackaging: defaultPackagingByProduct.get(product.id) ?? null,
+        coverUrl: coverByProduct.get(product.id) ?? null,
+        packagings: packagingsByProduct.get(product.id) ?? [],
       }));
 
       return {
@@ -312,18 +403,132 @@ export const productsRouter = router({
       };
     }),
 
-  /** Uma query agregada (FILTER) para os cards do dashboard. */
+  /**
+   * Uma query agregada (FILTER) para os cards do dashboard. Contagens de
+   * vitrine/saúde consideram só produtos ativos; "sem foto" olha os
+   * PUBLICADOS — é o que o visitante vê com placeholder no site.
+   */
   stats: permissionProcedure("products", "read").query(async ({ ctx }) => {
+    const hasNoImage = sql`not exists (select 1 from ${productImages} where ${productImages.productId} = ${products.id})`;
     const [row] = await ctx.db
       .select({
-        total: sql<number>`count(*)::int`,
-        published: sql<number>`count(*) filter (where ${products.published} = true)::int`,
+        total: sql<number>`count(*) filter (where ${products.active} = true)::int`,
+        published: sql<number>`count(*) filter (where ${products.published} = true and ${products.active} = true)::int`,
         active: sql<number>`count(*) filter (where ${products.active} = true)::int`,
+        unpublished: sql<number>`count(*) filter (where ${products.published} = false and ${products.active} = true)::int`,
+        featured: sql<number>`count(*) filter (where ${products.featured} = true and ${products.active} = true)::int`,
+        bestSeller: sql<number>`count(*) filter (where ${products.bestSeller} = true and ${products.active} = true)::int`,
+        publishedWithoutImage: sql<number>`count(*) filter (where ${products.published} = true and ${products.active} = true and ${hasNoImage})::int`,
       })
       .from(products);
 
-    return row ?? { total: 0, published: 0, active: 0 };
+    return (
+      row ?? {
+        total: 0,
+        published: 0,
+        active: 0,
+        unpublished: 0,
+        featured: 0,
+        bestSeller: 0,
+        publishedWithoutImage: 0,
+      }
+    );
   }),
+
+  /** Alterna as flags de vitrine em um clique (tabela do portal). */
+  setFlags: permissionProcedure("products", "update")
+    .input(
+      z
+        .object({
+          id: z.string().uuid(),
+          featured: z.boolean().optional(),
+          bestSeller: z.boolean().optional(),
+        })
+        .refine((value) => value.featured !== undefined || value.bestSeller !== undefined, {
+          message: "Informe ao menos uma flag.",
+        })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const [existing] = await ctx.db
+        .select({ featured: products.featured })
+        .from(products)
+        .where(eq(products.id, input.id))
+        .limit(1);
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Produto não encontrado." });
+      }
+
+      const setValues: Partial<typeof products.$inferInsert> = { updatedAt: new Date() };
+      if (input.bestSeller !== undefined) setValues.bestSeller = input.bestSeller;
+      if (input.featured !== undefined) {
+        setValues.featured = input.featured;
+        // Entrou agora na vitrine → vai para o fim da fila (RF05).
+        if (input.featured && !existing.featured) {
+          setValues.featuredOrder = await nextFeaturedOrder(ctx.db);
+        }
+      }
+
+      await ctx.db.update(products).set(setValues).where(eq(products.id, input.id));
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "products.setFlags",
+        resource: "products",
+        resourceId: input.id,
+        metadata: { featured: input.featured, bestSeller: input.bestSeller },
+      });
+      revalidateTag("products", IMMEDIATE_EXPIRY);
+
+      return loadProductDetail(ctx.db, input.id);
+    }),
+
+  /** Vitrine da home na ordem de exibição (inclui não publicados, sinalizados na UI). */
+  featuredList: permissionProcedure("products", "read").query(async ({ ctx }) => {
+    const rows = await ctx.db
+      .select({
+        id: products.id,
+        sku: products.sku,
+        slug: products.slug,
+        namePt: products.namePt,
+        nameEn: products.nameEn,
+        published: products.published,
+        active: products.active,
+        bestSeller: products.bestSeller,
+        featuredOrder: products.featuredOrder,
+      })
+      .from(products)
+      .where(and(eq(products.featured, true), eq(products.active, true)))
+      .orderBy(asc(products.featuredOrder), asc(products.sku))
+      .limit(MAX_FEATURED_REORDER);
+
+    const covers = await loadCoverUrls(
+      ctx.db,
+      rows.map((row) => row.id)
+    );
+    return rows.map((row) => ({ ...row, coverUrl: covers.get(row.id) ?? null }));
+  }),
+
+  /** Reordena a vitrine: a posição é o índice no array recebido. */
+  reorderFeatured: permissionProcedure("products", "update")
+    .input(z.object({ orderedIds: z.array(z.string().uuid()).min(1).max(MAX_FEATURED_REORDER) }))
+    .mutation(async ({ ctx, input }) => {
+      if (new Set(input.orderedIds).size !== input.orderedIds.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Lista com produto repetido." });
+      }
+      await ctx.db.transaction(async (tx) => {
+        for (const [index, id] of input.orderedIds.entries()) {
+          await tx
+            .update(products)
+            .set({ featuredOrder: index, updatedAt: new Date() })
+            .where(and(eq(products.id, id), eq(products.featured, true)));
+        }
+      });
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "products.reorderFeatured",
+        resource: "products",
+        metadata: { count: input.orderedIds.length },
+      });
+      revalidateTag("products", IMMEDIATE_EXPIRY);
+      return { ok: true as const };
+    }),
 
   byId: permissionProcedure("products", "read")
     .input(z.object({ id: z.string().uuid() }))
@@ -332,10 +537,16 @@ export const productsRouter = router({
   create: permissionProcedure("products", "create")
     .input(createInputSchema)
     .mutation(async ({ ctx, input }) => {
+      if (input.published && !hasPermission(ctx.session, "products", "publish")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para publicar produtos." });
+      }
       const slug = input.slug || slugify(input.namePt);
       if (!slug) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Não foi possível gerar um slug válido." });
       }
+
+      const featured = input.featured ?? false;
+      const featuredOrder = featured ? (input.featuredOrder ?? (await nextFeaturedOrder(ctx.db))) : 0;
 
       let productId: string;
       try {
@@ -353,6 +564,9 @@ export const productsRouter = router({
               ncm: input.ncm ?? null,
               barcodeEan13: input.barcodeEan13 ?? null,
               published: input.published ?? false,
+              featured,
+              featuredOrder,
+              bestSeller: input.bestSeller ?? false,
             })
             .returning({ id: products.id });
 
@@ -373,7 +587,7 @@ export const productsRouter = router({
         resourceId: productId,
         metadata: { sku: input.sku, namePt: input.namePt },
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return loadProductDetail(ctx.db, productId);
     }),
@@ -394,13 +608,32 @@ export const productsRouter = router({
       if (patch.ncm !== undefined) setValues.ncm = patch.ncm;
       if (patch.barcodeEan13 !== undefined) setValues.barcodeEan13 = patch.barcodeEan13;
       if (patch.published !== undefined) setValues.published = patch.published;
+      if (patch.bestSeller !== undefined) setValues.bestSeller = patch.bestSeller;
+      if (patch.featured !== undefined) setValues.featured = patch.featured;
+      if (patch.featuredOrder !== undefined) setValues.featuredOrder = patch.featuredOrder;
       setValues.updatedAt = new Date();
 
       try {
         await ctx.db.transaction(async (tx) => {
-          const [existing] = await tx.select({ id: products.id }).from(products).where(eq(products.id, id)).limit(1);
+          const [existing] = await tx
+            .select({ id: products.id, featured: products.featured, published: products.published })
+            .from(products)
+            .where(eq(products.id, id))
+            .limit(1);
           if (!existing) {
             throw new TRPCError({ code: "NOT_FOUND", message: "Produto não encontrado." });
+          }
+          // O formulário reenvia o `published` atual; só MUDAR exige a permissão.
+          if (
+            patch.published !== undefined &&
+            patch.published !== existing.published &&
+            !hasPermission(ctx.session, "products", "publish")
+          ) {
+            throw new TRPCError({ code: "FORBIDDEN", message: "Sem permissão para publicar produtos." });
+          }
+          // Entrou agora na vitrine sem posição explícita → fim da fila (RF05).
+          if (patch.featured === true && !existing.featured && patch.featuredOrder === undefined) {
+            setValues.featuredOrder = await nextFeaturedOrder(tx);
           }
 
           await tx.update(products).set(setValues).where(eq(products.id, id));
@@ -426,7 +659,7 @@ export const productsRouter = router({
         resourceId: id,
         metadata: { changedFields: Object.keys(patch) },
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return loadProductDetail(ctx.db, id);
     }),
@@ -449,7 +682,7 @@ export const productsRouter = router({
         resource: "products",
         resourceId: input.id,
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return { success: true as const };
     }),
@@ -473,7 +706,7 @@ export const productsRouter = router({
         resourceId: input.id,
         metadata: { published: input.published },
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return loadProductDetail(ctx.db, input.id);
     }),
@@ -579,7 +812,7 @@ export const productsRouter = router({
         resourceId: input.productId,
         metadata: { imageId: image.id },
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return { ...image, url: safePublicUrl(image.r2Key) ?? "" };
     }),
@@ -612,7 +845,7 @@ export const productsRouter = router({
         resourceId: image.productId,
         metadata: { imageId: image.id },
       });
-      revalidateTag("products", "max");
+      revalidateTag("products", IMMEDIATE_EXPIRY);
 
       return { success: true as const };
     }),

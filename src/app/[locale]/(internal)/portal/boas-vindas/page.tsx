@@ -5,20 +5,16 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FactoryIcon from "@mui/icons-material/Factory";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import Box from "@mui/material/Box";
-import {
-  PortalShell,
-  type PortalNavItem,
-} from "@/modules/portal/components/portal-shell";
+import { PortalShell } from "@/modules/portal/components/portal-shell";
 import { WelcomeClosing } from "@/modules/portal/components/welcome/welcome-closing";
 import { WelcomeDwSystemCard } from "@/modules/portal/components/welcome/welcome-dw-system-card";
 import { WelcomeHero } from "@/modules/portal/components/welcome/welcome-hero";
 import { WelcomeMaterialsFeed } from "@/modules/portal/components/welcome/welcome-materials-feed";
 import { WelcomeSectionCard } from "@/modules/portal/components/welcome/welcome-section-card";
 import { OnboardingStatusAlert } from "@/modules/portal/components/welcome/onboarding-status-alert";
-import { buildPortalNavItems } from "@/modules/portal/lib/nav-items";
-import { logoutAction } from "@/modules/portal/lib/logout-action";
 import { REPRESENTATIVE_ROLE_SLUG } from "@/modules/portal/lib/permissions";
 import { requirePortalSession } from "@/modules/portal/lib/require-portal-session";
+import { buildPortalShellProps } from "@/modules/portal/lib/shell-props";
 import { getPortalDictionary } from "@/modules/portal/lib/types";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -72,29 +68,11 @@ export default async function PortalWelcomePage({ params }: PageProps) {
   const { navigation } = dictionary;
   const welcome = portal.welcome;
 
-  const navItems: PortalNavItem[] = buildPortalNavItems(
-    basePath,
-    { ...portal.shell.nav, materials: portal.materials.title, roles: portal.roles.title, settings: portal.settings.title },
-    session.user
-  );
   const isRepresentative = session.user.roles?.includes(REPRESENTATIVE_ROLE_SLUG) ?? false;
 
   return (
-    <PortalShell
-      appName={portal.shell.appName}
-      logoAlt={navigation.brand}
-      navItems={navItems}
-      comingSoonLabel={portal.shell.comingSoon}
-      menuLabels={{ open: navigation.menu, close: navigation.close }}
-      themeToggleLabels={portal.shell.themeToggle}
-      userMenu={{
-        profileLabel: portal.shell.userMenu.profile,
-        logoutLabel: portal.shell.userMenu.logout,
-      }}
-      user={session.user}
-      logoutAction={logoutAction}
-    >
-      <Box sx={{ maxWidth: 1200 }}>
+    <PortalShell {...buildPortalShellProps({ locale, dictionary, session })}>
+      <Box>
         <WelcomeHero content={welcome.hero} logoAlt={navigation.brand} />
 
         {/* Só o representante tem um cadastro de onboarding para checar —
@@ -106,6 +84,18 @@ export default async function PortalWelcomePage({ params }: PageProps) {
             dictionary={portal.onboarding}
           />
         ) : null}
+
+        {/* Materiais primeiro: é o conteúdo que muda e que o representante
+            veio buscar (revisão 2026-09-30). Antes ficavam no fim da página,
+            abaixo de três cards estáticos. A biblioteca completa, por setor,
+            fica em /portal/materiais (item "Materiais" do menu). */}
+        <Box sx={{ mb: 3 }}>
+          <WelcomeMaterialsFeed
+            locale={locale}
+            dictionary={welcome.materialsFeed}
+            libraryHref={`${basePath}/materiais`}
+          />
+        </Box>
 
         <Box
           sx={{
@@ -134,10 +124,6 @@ export default async function PortalWelcomePage({ params }: PageProps) {
 
         <Box sx={{ mt: 3 }}>
           <WelcomeDwSystemCard content={welcome.dwSystem} icon={<ComputerIcon fontSize="large" />} />
-        </Box>
-
-        <Box sx={{ mt: 3 }}>
-          <WelcomeMaterialsFeed locale={locale} dictionary={welcome.materialsFeed} />
         </Box>
 
         <WelcomeClosing content={welcome.closing} />

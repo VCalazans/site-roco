@@ -31,6 +31,7 @@
  */
 export const LEAD_ORIGINS = [
   "home-hero",
+  "home-fachada",
   "home-sobre",
   "home-categorias",
   "home-destaques",
@@ -41,13 +42,15 @@ export const LEAD_ORIGINS = [
   "menu",
   "rodape",
   /**
-   * Origem fixa do formulário de carrinho de cotação (`subject: "cart"`) —
-   * diferente dos demais valores, nunca chega via querystring: a rota grava
-   * `"carrinho"` direto, porque a origem de um carrinho é o próprio fluxo do
-   * carrinho, não depende de qual página o visitante estava (ver
-   * `POST /api/contact`).
+   * Origem fixa da lista de orçamento (`subject: "cart"`, página
+   * `/{locale}/orcamento`) — diferente dos demais valores, nunca chega via
+   * querystring: a rota grava `"orcamento"` direto, porque a origem de uma
+   * lista de orçamento é o próprio fluxo da lista, não a página em que o
+   * visitante estava (ver `POST /api/contact`). Era `"carrinho"` até a spec
+   * 001 — o valor aparece no `cf_origem` do RD Station, então acompanhou a
+   * troca de vocabulário pedida pelo stakeholder.
    */
-  "carrinho",
+  "orcamento",
 ] as const;
 
 export type LeadOrigin = (typeof LEAD_ORIGINS)[number];

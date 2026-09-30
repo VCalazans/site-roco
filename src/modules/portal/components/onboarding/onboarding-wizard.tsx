@@ -201,7 +201,7 @@ export function OnboardingWizard({ portal, sessionUser }: OnboardingWizardProps)
   const documents = meQuery.data?.documents ?? [];
 
   return (
-    <Stack spacing={4} sx={{ maxWidth: 720 }}>
+    <Stack spacing={4} sx={{ maxWidth: 720, mx: "auto" }}>
       <Stepper activeStep={activeStep} alternativeLabel>
         {ONBOARDING_STEP_KEYS.map((key) => (
           <Step key={key}>
