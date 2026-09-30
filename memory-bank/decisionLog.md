@@ -1873,3 +1873,136 @@ Revisão OWASP pelo agente `security`: 0 crítico, 1 alto, 4 médios, baixos.
     - GET do ZIP com efeito colateral;
     - SDK sem timeout de requisição;
     - índice em `product_images(product_id)`.
+
+## 2026-09-30 — Contas: confirmação de e-mail, redefinição de senha por link e Google oculto
+Pedido do stakeholder (5ª rodada): ocultar o acesso Google por enquanto e tornar a criação de conta e a
+recuperação de senha confiáveis, com links por e-mail e os devidos cuidados de segurança — SMTP com as
+variáveis prontas no `.env` para ele preencher. (A discussão das embalagens GS1 foi só documentada:
+`memory-bank/specs/002-embalagens-gs1.md`, em espera.)
+
+**Decisão**:
+- **Google oculto por flag**: `AUTH_GOOGLE_ENABLED` (liga só com `"true"` E `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`;
+  `src/core/auth/google.ts`). Desligado, o provider nem é registrado (`/api/auth/providers` lista só
+  credentials) e o botão some do login. Mantém dormente o achado ALTO da 4ª rodada (role `representative`
+  concedida no 1º login Google).
+- **Confirmação de e-mail no pré-cadastro**: `POST /api/representatives/register` cria o `user` com
+  `emailVerified` nulo e o representante em `draft`; o link sai por e-mail depois da resposta (`after()`).
+  Só a confirmação leva o cadastro a `submitted` (fila do admin). O login por senha recusa conta não
+  confirmada com aviso próprio (`?error=email_not_verified`, com link de reenvio) — SÓ depois de a senha
+  conferir; senha errada segue com o erro genérico.
+- **Redefinição de senha por link**: `/{locale}/portal/esqueci-senha` → e-mail → `/{locale}/portal/redefinir-senha`.
+  Grava bcrypt 12 e `passwordChangedAt`, invalida os outros links de reset e manda o aviso "Sua senha foi
+  alterada". O JWT guarda `authAt`; na revalidação (≤ 5 min) a sessão cai se a senha mudou depois do login.
+- **Tokens** (`account_tokens`, migration `drizzle/0014_account_tokens.sql`): 32 bytes aleatórios em
+  base64url, só o SHA-256 no banco, validade 24 h (confirmação) / 60 min (reset), uso único por UPDATE
+  condicional, e pedir outro link invalida os anteriores. O token vai no FRAGMENTO do link (`#token=`): não
+  chega a servidor, log, proxy nem Referer; a página o tira da barra de endereço, confere sem consumir e só
+  consome no clique do botão (antivírus e pré-visualização de e-mail que abrem o link não gastam o token).
+- **Anti-enumeração**: esqueci-senha e reenviar confirmação respondem igual exista ou não a conta, e o
+  e-mail sai depois da resposta (o tempo não denuncia). Limites fail-closed por IP (cobrado ANTES de ler o
+  corpo) e por e-mail (hash do e-mail normalizado na chave do Redis).
+- **CNPJ compartilhado entre pré-cadastros não confirmados**: vários podem usar o mesmo CNPJ — nenhum apaga
+  o outro (`isUnconfirmedPreRegistration`); o primeiro a confirmar entra na fila; os seguintes ficam com o
+  e-mail confirmado, fora da fila (`cnpjConflict`), e são avisados para falar com a ROCO. CNPJ de cadastro
+  confirmado continua 409. E-mail repetido continua 409.
+- **Limpeza sem job agendado**: a cada pré-cadastro (`after()`), `purgeStaleAccountData` apaga as contas de
+  pré-cadastros do site que nunca confirmaram em 7 dias (mesmas condições acima + `onboardingStep = 0`) e
+  os links usados/vencidos há mais de 30 dias.
+- **Política de senha única** (`src/shared/lib/password-policy.ts`, navegador e servidor): NIST SP 800-63B —
+  mínimo 8 caracteres, máximo 72 BYTES (limite do bcrypt), sem regra de composição; recusa as mais comuns,
+  repetições, sequências e o nome do e-mail ou pedaços dele (separados por `. _ - +`, com 4+ letras).
+- **E-mail por SMTP** (`nodemailer` 10.0.10): envs `SMTP_*`, `MAIL_FROM`, `MAIL_REPLY_TO` (criadas vazias no
+  `.env` local). Links montados de `AUTH_URL` → `NEXT_PUBLIC_SITE_URL`, nunca do cabeçalho Host. A saudação
+  usa só o primeiro nome, só com letras.
+
+**Alternativas**: link mágico sem senha (mudaria o login inteiro); token na querystring (vaza em log,
+proxy e Referer); Resend também para as contas (o stakeholder pediu SMTP); manter o CNPJ preso por
+cadastro não confirmado (um e-mail digitado errado o prenderia); apagar o pré-cadastro não confirmado ao
+chegar outro com o mesmo CNPJ (primeira versão desta rodada — um terceiro poderia apagar o cadastro
+pendente de outra empresa; trocado na revisão de segurança); substituir o cadastro pendente com o MESMO
+e-mail (trocaria a senha de quem ainda vai clicar no link).
+**Justificativa**: pedido explícito; a confirmação impede cadastro com e-mail alheio ou inexistente na fila
+do admin, e o reset por link substitui o "fale com a ROCO" de quem esquece a senha.
+**Impacto**:
+- 5 rotas JSON `POST /api/account/{token, verification/resend, verification/confirm, password/forgot,
+  password/reset}` (limites no techContext) e 3 páginas públicas do portal (`confirmar-email`,
+  `esqueci-senha`, `redefinir-senha`), liberadas no `src/proxy.ts`.
+- Migration 0014: tabela `account_tokens`, coluna `user.passwordChangedAt` e `emailVerified = now()` em
+  TODAS as contas que já existiam (ninguém fica trancado no deploy; `emailVerified` já existia, vinda do
+  adapter do Auth.js). Seed: o admin nasce confirmado.
+- Lista de representantes do admin com o selo "E-mail não confirmado".
+- **SMTP é obrigatório em produção**: sem ele o desenvolvimento mostra o e-mail no console, mas a produção
+  só registra `[mailer] SMTP não configurado` — ninguém confirma o pré-cadastro nem troca a senha.
+
+### Revisão de segurança desta rodada (agente `security`, 2026-09-30)
+0 crítico, 0 alto, 3 médios, 9 baixos, 9 informativos. **Corrigido no mesmo dia**:
+- (M1) Pré-cadastro como disparador de e-mail com a marca da ROCO e texto do atacante no nome: o nome aceita
+  só letras (acento, espaço, apóstrofo, ponto, hífen; `isValidPersonName`), a saudação usa só o primeiro nome
+  higienizado (`greetingName`) e há limite por caixa de destino (3/h, sem o `+tag` — `mailboxRateLimitKey`).
+- (M2) Login: o teto GLOBAL (30 tentativas/5 min para todo mundo) travava o login de todos, inclusive do
+  admin — trocado por limite por IP (20/5 min); o limite por e-mail (5/5 min) passou a usar o hash do e-mail.
+- (M3) Login fail-closed (`productionSafe`); a tela explica "muitas tentativas" e "indisponível"
+  (`?error=rate_limited|unavailable`) sem revelar se a conta existe.
+- (B1) Conta inexistente/sem senha também roda o bcrypt (hash fixo) — o tempo não denuncia a conta.
+- (B3) Substituição destrutiva por CNPJ trocada por cadastros coexistentes + conflito na confirmação + limpeza.
+- (B4) `representatives.review` só aprova/reprova cadastro `submitted` com e-mail confirmado.
+- (B5) A promoção à fila só acontece quando a confirmação é AGORA, só para o pré-cadastro do site
+  (`onboardingStep = 0`) e com CNPJ, telefone e razão social válidos.
+- (B6) Logs sem parâmetros: o pré-cadastro loga só o código do erro do banco; o SMTP troca endereços por
+  `<e-mail>` (`describeMailError`).
+- (B8) Corpo das rotas de conta limitado a 16 KiB (`readJsonBody`); o pré-cadastro passou a exigir JSON e
+  cobra o teto global e o por destinatário só depois do parse.
+- (I5) `callbackUrl`/caminho do login recusam barra invertida e caractere de controle.
+- **Achado na validação**: o tRPC devolvia ao cliente a mensagem ORIGINAL de erro inesperado — com o Drizzle,
+  a consulta SQL com os parâmetros. Agora `errorFormatter` troca por `internal_error` só nos erros
+  inesperados (`isUnexpectedError`, `src/server/lib/trpc-errors.ts`) e a produção passou a logar path +
+  código do banco. E a busca por nome/e-mail da lista de representantes dava 500 (a contagem não fazia o JOIN
+  com `user`) — corrigido.
+- **Registrado, não corrigido** (ver progress.md, Riscos): 409 de e-mail/CNPJ existente (B2, aceito), IP do
+  `X-Forwarded-For` (B7, infra), confirmação de cadastro alheio sem mostrar a empresa (B9), backfill que
+  marcou como confirmados pré-cadastros antigos (I1), CSP de `/portal` com `'unsafe-inline'` e CDNs do RD
+  (I3), lista curta de senhas comuns (I4), `AUTH_URL` https obrigatório em produção e `NODE_ENV=production`
+  em staging (I6/I7), sem MFA (I8), sem auditoria de pedidos de reset/reenvio (I9), rastreio de clique do
+  provedor SMTP reescrevendo o link (H5).
+
+## 2026-09-30 — Aviso de "cadastro em análise" no portal
+**Decisão**: quem entra no portal SEM nenhum perfil (`isAwaitingAccess`: o pré-cadastro espera a aprovação,
+que é quem concede a role `representative`) não vê mais o painel vazio: `/portal` mostra
+`PendingAccessPanel` com a situação lida no servidor (`getPendingAccessRecord`) — em análise (data do
+envio, empresa, etapas enviado → análise → acesso liberado), aprovado mas a sessão ainda sem o perfil (até
+5 min; "saia e entre de novo"), reprovado (com a observação da análise), rascunho (link para concluir),
+CNPJ já em análise noutro cadastro (`cnpjConflict`) ou conta sem cadastro. Data por extenso no fuso de
+Brasília (`formatSubmittedDate`).
+**Alternativas**: banner em todas as páginas do portal (quem não tem perfil só acessa o painel); mandar
+e-mail na aprovação (fica como sugestão — não pedido).
+**Justificativa**: pedido explícito ("deixe um alerta no acesso dele pra ele não ficar perdido").
+**Impacto**: textos em `portal.pendingAccess`; testes de render nos dois idiomas e em todos os estados.
+
+## 2026-09-30 — Área de atuação do representante com a base de localidades do IBGE
+**Decisão**: a "região" de texto livre vira ÁREA DE ATUAÇÃO escolhida numa base do IBGE — um campo de busca
+único para estados inteiros, regiões (MESORREGIÕES: "Vale do Itajaí", "Oeste Catarinense") e cidades,
+quantos precisar (até 60). Escolha do stakeholder entre três modelos (só estados; estados + cidades;
+estados + regiões + cidades).
+- **Base**: `scripts/build-ibge-localidades.mjs` baixa da API de localidades do IBGE e grava
+  `src/shared/data/ibge-localidades.json` (27 estados, 137 mesorregiões, 5.571 municípios; ~200 KB, ~57 KB
+  comprimido) — versionado, sem depender da API do IBGE no ar. O navegador a carrega sob demanda (import
+  dinâmico, só quando o campo aparece); o servidor a importa para validar.
+- **Dado**: tabela `representative_territories` (kind `state|region|city`, código IBGE, UF; migration
+  `drizzle/0015_representative_territories.sql`) — o admin filtra por estado pela UF. `representatives.region`
+  continua com o resumo legível ("Paraná · Vale do Itajaí — SC · Blumenau — SC"), então as listas e os
+  cadastros antigos de texto livre seguem funcionando.
+- **Onde**: wizard (passo território), conclusão do cadastro no 1º acesso, edição do admin (a área só vai no
+  salvamento se o admin mexer — não apaga o texto livre dos cadastros antigos, que aparece como referência) e
+  o filtro "Estado de atuação" da lista (no lugar do "Filtrar por região", que derivava as opções só da
+  página carregada). O servidor recusa código que não está na base (`invalid_territory`).
+**Alternativas**: chamar a API do IBGE em tempo real (dependência externa na tela e na CSP); regiões
+intermediárias de 2017 no lugar das mesorregiões (os nomes do comercial são os das mesorregiões); tabelas
+de estados/cidades no banco (migration de ~5.700 linhas sem ganho sobre o arquivo); jsonb no representante
+(filtrar por UF ficaria sem índice).
+**Justificativa**: pedido explícito ("ter regiões e etc já pré-cadastradas… base de cidades, estados… IBGE").
+**Impacto**: `src/shared/lib/territory.ts` (busca sem acento — sigla acha o estado, UF no fim filtra —,
+validação, resumo) e `territory-schema.ts`; `src/server/lib/representative-territory.ts`;
+`TerritoryPicker` (`src/modules/portal/components/shared/`); textos em `portal.territory`. 14 nomes são
+iguais entre mesorregião e cidade ("Campinas — SP"): a sugestão mostra o tipo, o chip da região leva
+"· Região" e a chave é o código IBGE. O `db:seed:qa` dá ao representante de teste "Vale do Itajaí — SC ·
+Curitiba — PR".

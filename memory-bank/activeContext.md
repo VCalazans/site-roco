@@ -1,64 +1,53 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-09-30, quarta rodada)
-Pedido do stakeholder: paginação de verdade nos produtos do portal ("carregar mais não é um bom
-padrão"), código limpo e componentes reaproveitáveis, dados de teste cadastrados, escolher quais
-imagens do produto vão ao site e liberar o download das imagens — sem perda de qualidade — para os
-representantes. **Implementado, validado no navegador e por script, e commitado** na branch
-`feat/porta-mais-site` (feature + documentação; sem push, sem merge em `main`). `tsc` limpo, lint 0
-erros, 1660 testes em 63 arquivos, `next build` verde, `npm audit --omit=dev` = 0. Revisão de
-segurança OWASP feita (ver progress.md): 3 médios e os baixos de código corrigidos; 1 alto
-pré-existente e latente registrado (Google SSO) — decisão do stakeholder antes de ligar o SSO.
+## Sessão atual (2026-09-30, quinta rodada)
+Pedidos do stakeholder: (1) documentar a discussão das embalagens no padrão GS1 SEM implementar
+(spec 002, em espera); (2) ocultar o login com Google por enquanto; (3) criação de conta e
+recuperação de senha confiáveis, com links por e-mail e os devidos cuidados de segurança — SMTP com
+as variáveis prontas no `.env` para ele preencher; depois, no meio da rodada: (4) um aviso para quem
+ainda não foi aprovado não ficar perdido ao entrar; (5) regiões pré-cadastradas (base do IBGE) para
+a área de atuação do representante — escolhido: estados + regiões + cidades numa busca única, sem
+endereço da empresa. **Tudo implementado, validado e commitado** na branch `feat/porta-mais-site`
+(`c632d6a` spec 002, `4a5ab10` feature e o commit de documentação; sem push, sem merge em `main`).
+`tsc` limpo, lint 0 erros, 1744 testes em 75 arquivos, `next build` verde, `npm audit --omit=dev` = 0.
+Detalhes no decisionLog (três entradas de 2026-09-30: contas, aviso, área de atuação).
 
-**Rodada anterior (terceira, já commitada em `cc8423e` + `c46569e`) — resumo**:
-- "Força de Vendas" → "Portal ROCO", filtros combinados em `/produtos` (várias categorias em OU,
-  vários termos em E), redes sociais por @perfil/nome/número
+**Mudanças desta rodada**:
+- Google oculto por flag (`AUTH_GOOGLE_ENABLED`); desligado, o provider nem é registrado.
+- Pré-cadastro com confirmação de e-mail; login avisa "e-mail não confirmado" (só depois da senha conferir).
+- Esqueci/redefinir senha por link (60 min), aviso "Sua senha foi alterada", sessões antigas caem em ≤ 5 min.
+- Tokens no fragmento do link, só o hash no banco, uso único; respostas genéricas e envio em `after()`.
+- Política de senha única (NIST); CNPJ compartilhado entre pré-cadastros não confirmados (o primeiro a
+  confirmar entra na fila); limpeza dos nunca confirmados em 7 dias.
+- Revisão de segurança (0 crítico, 0 alto): corrigidos os 3 médios (nome/saudação/limite por destinatário;
+  login sem teto global; login fail-closed) e os baixos B1, B3, B4, B5, B6, B8, I5.
+- `/portal` para quem entra sem perfil: aviso "Seu cadastro está em análise" (e os demais estados).
+- Área de atuação com a base do IBGE (tabela `representative_territories`, migration 0015), no wizard, na
+  conclusão do cadastro e no admin (edição e filtro "Estado de atuação").
+- Achados e corrigidos na validação: erro inesperado do tRPC vazava a consulta SQL com parâmetros para o
+  cliente; a busca por nome/e-mail da lista de representantes dava 500.
 
-**Rodada retrasada (segunda, já commitada em `add519a` + `5dd95b5`) — resumo**:
-- Embalagens sem padrão, cache expira na hora, painel centralizado, materiais por setor,
-  material via rota autenticada, permissões no boot, upload home assinado
+**Validação**:
+- Contas ponta a ponta no navegador + capturador SMTP local (cadastro, confirmação, reenvio, esqueci a
+  senha, troca de senha derrubando a sessão, limites, anti-enumeração) — ver progress.md.
+- Correções da revisão pela API do dev server: nome com frase de golpe → 400; saudação "Olá, Ana!"; dois
+  cadastros com o mesmo CNPJ → o segundo a confirmar recebe `cnpjConflict`; 6ª tentativa de login →
+  "Muitas tentativas"; conta inexistente leva o mesmo tempo que senha errada (bcrypt sempre).
+- Aviso no navegador: em análise (data, empresa, etapas), aprovado com a sessão antiga e conflito de CNPJ.
+- Área de atuação no navegador (busca "vale" → regiões primeiro; "pr" → Paraná; chips; conclusão salva
+  com 3 áreas e o resumo) e no admin pela API (filtro por UF, troca de áreas, código inválido 400, editar
+  notas mantém as áreas). A aba do navegador ficou em segundo plano (o Chrome atrasa timers e capturas de
+  tela) — parte da validação foi feita pelo DOM e pela API.
+- Contas e auditoria de teste apagadas; o representante do `db:seed:qa` agora tem áreas ("Vale do
+  Itajaí — SC · Curitiba — PR"). O navegador ficou logado numa conta de teste já apagada — basta entrar de
+  novo como admin.
 
-**Mudanças desta rodada** (detalhes no decisionLog, entrada de 2026-09-30 "Paginação numerada…"):
-- **Paginação numerada**: 4 listas (Produtos, Solicitações, Representantes, Usuários) usam agora
-  `PortalPagination` (reaproveitável) com primeira/última + 1 vizinha, 20/50/100 itens/página.
-  Em Produtos a URL é a fonte da verdade (`?page=`/`?perPage=`), mudar filtro volta à página 1 e o
-  servidor limita a página ao intervalo real. Em Representantes, filtro novo volta à página 1
-  (bug pré-existente).
-- **Imagens do produto editáveis**: coluna `product_images.show_on_site` (migration 0012). Portal:
-  chave "Exibir no site" por imagem, "Usar como capa" (leva ao início e marca visível), chips
-  "Capa da listagem"/"No site"/"Só no portal". Site: só mostra imagens visíveis, primeira é a capa
-  da listagem. Aviso se publicado sem foto no site.
-- **Download de imagens originais**: permissão `product_images:download` (admin, sales_manager,
-  representative). Rotas: `GET /api/portal/products/images/[imageId]/download` (individual, 303 →
-  R2 com `Content-Disposition` seguro) e `GET /api/portal/products/images/zip` (bulk com filtros,
-  streaming, teto 3000 arquivos / 2 GiB, rate limit 20/10min, no máximo 2 ZIPs simultâneos por
-  usuário e 5 por processo, encerra após 2 min sem progresso). ZIP com pastas por produto, nomes
-  saneados, arquivo de erros se houver. Migration 0013 garante a permissão no boot.
-- **Dados de teste**: `npm run db:seed:qa` (só banco local) cria representante aprovado
-  `representante.teste@roco.local` (senha em `QA_REPRESENTATIVE_PASSWORD` no `.env.local`), imagens
-  de teste nos SKUs 1000/1001 e dois materiais "(TESTE)"; idempotente; `--remover` desfaz.
-- **Correções da revisão de segurança**: saneador de nomes do ZIP seguro por construção (Zip Slip
-  pelo nome de pasta de reserva, ReDoS, bidi, nomes reservados do Windows, guarda final de
-  caminho); teto de ZIPs simultâneos + tempo máximo sem progresso; `imagesSummary` sem
-  `includeInactive`; filtros no audit do ZIP; `seed-qa` recusa host na querystring e e-mail que não
-  seja `.local`.
-
-**Validação (dev server + script com login real + container)**:
-- **Paginação** (navegador, 737 produtos): `?page=3` → "41–60 de 737"; última página "721–737";
-  `?page=99` → URL adota `?page=37`; 50 por página → 15 páginas; ligar "Campeões" na página 2 →
-  página 1 mantendo 50 ("1–50 de 57").
-- **Imagens** (navegador, admin, SKU 1000): chips "Capa da listagem", "No site", "Só no portal"
-  (esmaecida); ligar a imagem oculta e "Usar como capa" refletiram na hora na API pública e no
-  detalhe; o estado original foi RESTAURADO em seguida (o site volta a mostrar 2 imagens, sem a oculta).
-- **Download**: resumo "3 imagens originais de 1 produto (1,1 MB)" com filtro e "617 imagens
-  originais de 593 produtos (336 MB)" sem filtro. Como representante (script com login real):
-  mutação de visibilidade → 403; avulso → 303 para o R2 com o nome original; ZIP do produto
-  idêntico aos originais (sha256); ZIP filtrado com pasta por produto; filtro vazio → 404; catálogo
-  inteiro válido (617 arquivos) em 35 s; 3 downloads abortados sem erro no log. A tela de Produtos
-  do representante mostra só "Baixar imagens" (sem "Novo Produto"/"Sincronizar"); ele vê os 2
-  materiais de teste.
-- **Dados de teste**: seed rodado 2 vezes sem duplicar. O `--remover` não foi executado (os dados
-  ficam para validação).
+**Rodadas anteriores (commitadas e já em `origin/feat/porta-mais-site`)**:
+- 4ª (`852a916` + `283bc3b`): paginação numerada no portal, imagens do produto no site
+  (exibir/capa), download dos originais (avulso e ZIP), dados de teste (`db:seed:qa`), revisão OWASP.
+- 3ª (`cc8423e` + `c46569e`): "Portal ROCO", filtros combinados em `/produtos`, redes sociais por @perfil.
+- 2ª (`add519a` + `5dd95b5`): embalagens sem padrão, cache imediato, painel centralizado, materiais
+  por setor, material via rota autenticada, permissões no boot, upload da home assinado.
 
 ## Validação no Navegador (2026-09-30)
 - **Home**: hero com setas WEG + indicadores + pausa; logo 3D quando sem vídeo; fachada com upload 2-step presigned;
@@ -73,17 +62,13 @@ pré-existente e latente registrado (Google SSO) — decisão do stakeholder ant
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch: `feat/porta-mais-site` — commitada nesta rodada (`852a916` feature + commit de
-  documentação; sem push); merge em `main` pendente.
-  Dados de teste do `db:seed:qa` PERMANECEM no banco local e no bucket `roco-test` (pedido do
-  stakeholder: "deixe materiais de testes cadastrados"); nenhuma outra alteração do painel ficou salva.
-- Testes: 1660 em 63 arquivos (+50 sobre os 1610 da rodada anterior; 7 arquivos novos:
-  `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7,
-  `pull-stream` 5, `download-slots` 4).
-- Build de produção: verde (`npm run build`); lint 0 erros (6 avisos antigos).
-- Banco local: migrations 0012/0013 aplicadas (journal com 14); no host foram aplicadas com
-  `node --env-file=.env.local scripts/migrate.mjs` (o `npm run db:migrate` não lê o `.env.local`).
-- Container local: reconstruído com o código final e conferido (ver progress.md).
+- Branch: `feat/porta-mais-site` — 5ª rodada commitada: `c632d6a` (spec 002), `4a5ab10` (feature: contas,
+  aviso, área de atuação, correções) e o commit de documentação — ainda SEM push (3 commits à frente do
+  remoto). A 4ª rodada (`852a916` + `283bc3b`) e as anteriores já estão no remoto. Merge em `main` pendente.
+- Testes: 1744 em 75 arquivos (+84 sobre os 1660 da 4ª rodada; 12 arquivos novos — ver progress.md).
+- Build de produção verde; lint 0 erros (6 avisos antigos em `site-settings.ts`).
+- Banco local: migrations 0014 e 0015 aplicadas (journal com 16, 0000–0015).
+- Container local reconstruído com o código desta rodada e conferido (ver progress.md).
 
 ## RD Station — VALIDADO em 2026-08-31
 Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
@@ -95,16 +80,27 @@ silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles 
 nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 
 ## Pending
-- **Antes de ligar o Google SSO (stakeholder + dev)**: corrigir a concessão automática da role
-  `representative` no 1º login Google (achado ALTO da revisão — ver progress.md, Riscos).
+- **SMTP (stakeholder)**: preencher `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` e
+  `MAIL_FROM` no `.env` (e nas envs de produção). Sem isso os e-mails de confirmação e de
+  redefinição NÃO saem — ninguém conclui o pré-cadastro nem troca a senha (o container local
+  também não envia). Conferir `AUTH_URL` https de produção (vai nos links) e desligar o rastreio de
+  clique do provedor SMTP.
+- **Spec 002 (embalagens GS1)**: em espera, com 4 decisões do stakeholder
+  (`memory-bank/specs/002-embalagens-gs1.md`).
+- **Sugestões abertas**: e-mail avisando a aprovação/reprovação; ação do admin para reenviar/confirmar
+  cadastro sem confirmação; itens abertos da revisão de segurança (progress.md, Riscos).
+- **Antes de ligar o Google SSO**: corrigir a concessão automática da role `representative` no 1º
+  login Google (achado ALTO latente — ver progress.md, Riscos) e decidir o `emailVerified` das
+  contas criadas por ele.
 - **Decisão de produto**: representante baixa imagens de produtos NÃO publicados? Hoje sim
   (coerente com a listagem do portal, onde ele já os vê).
 - **Atualizar Node local para 22** (AWS SDK exigirá em jan/2027; Docker já usa node:22-alpine).
 - **RD Station (stakeholder)**: criar `cf_origem` no painel — é o ÚNICO campo que o código envia e
   a conta não tem. Sem ele, a seção do site que gerou o lead some em silêncio.
-- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`.
+- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
+  (aviso de lead; o SMTP das contas é outro canal).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
-- **push + merge `feat/porta-mais-site` → `main`**.
-- **seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local — dado
-  de teste nunca chega à produção).
+- Bucket R2 separado para conteúdo privado (ver progress.md, Riscos).
+- **Push + merge `feat/porta-mais-site` → `main`** (5ª rodada já commitada).
+- **Seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local).
 - Publicar o site em produção (main está ~70+ commits atrás).

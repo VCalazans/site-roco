@@ -232,5 +232,37 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
   - nomes de pasta/arquivo sempre pelo saneador (`zip-entry-names.ts`), com guarda final de caminho
     (`isSafeZipPath`).
 
+### Links de conta por e-mail (confirmação e redefinição de senha — 2026-09-30)
+- O token vai no FRAGMENTO do link (`/{locale}/portal/<página>#token=…`): o navegador não o envia ao
+  servidor, então não aparece em log, proxy nem Referer. A página o tira da barra de endereço
+  (`history.replaceState`), confere com `POST /api/account/token` (sem consumir) e só consome no clique
+  do botão — antivírus e pré-visualização de e-mail que abrem o link não gastam o token.
+- No banco só o SHA-256 (`account_tokens`, busca pelo hash); uso único por UPDATE condicional (não usado
+  e não vencido) na mesma transação da mudança; pedir outro link invalida os anteriores.
+- Esqueci-senha e reenviar confirmação respondem sempre igual, e o e-mail sai em `after()` (depois da
+  resposta): nem o conteúdo nem o tempo da resposta dizem se a conta existe.
+- Rotas de conta: limite por IP ANTES de ler o corpo, corpo só JSON e até 16 KiB (`readJsonBody`), limite
+  por e-mail depois do parse (hash do e-mail normalizado na chave do Redis); tudo fail-closed.
+- Links montados de `AUTH_URL` → `NEXT_PUBLIC_SITE_URL` (`src/server/lib/app-url.ts`), nunca do Host.
+- Sessão: o JWT guarda `authAt`; na revalidação (≤ 5 min) ela cai se `passwordChangedAt` for posterior.
+- Política de senha única no navegador e no servidor: `src/shared/lib/password-policy.ts`.
+- Texto digitado por visitante que vai para e-mail da ROCO passa por higienização: nome só com letras
+  (`isValidPersonName`) e saudação só com o primeiro nome (`greetingName`).
+
+### Erro inesperado do tRPC não vaza para o cliente
+- `errorFormatter` em `src/server/trpc/init.ts`: erro INESPERADO (o tRPC embrulhou uma exceção qualquer —
+  `isUnexpectedError`) chega ao cliente só como `internal_error`; a mensagem do Drizzle traz a consulta com
+  os parâmetros. `TRPCError` lançado de propósito passa como está.
+- Produção loga só path + código do banco (`unexpectedErrorCode`); desenvolvimento, a mensagem inteira.
+
+### Área de atuação (base do IBGE)
+- Base versionada em `src/shared/data/ibge-localidades.json` (tuplas), gerada por
+  `scripts/build-ibge-localidades.mjs`; lógica pura em `src/shared/lib/territory.ts` com a base por parâmetro.
+- Navegador: import dinâmico sob demanda (`loadTerritoryIndex`/`useTerritoryIndex`,
+  `src/modules/portal/lib/territory-client.ts`) — o bundle das páginas não carrega os ~200 KB. Servidor:
+  import estático (`getTerritoryIndex`, `src/server/lib/representative-territory.ts`).
+- Grava-se só `{ kind, code }` + UF em `representative_territories`; o rótulo vem da base (validação no
+  servidor) e o resumo legível fica em `representatives.region` (`replaceRepresentativeTerritory`).
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

@@ -78,24 +78,35 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
    (`prefers-reduced-motion`).
 
 ### Fluxo de Representante (Portal)
-**Canal padrão (2026-08-11): pré-cadastro pelo SITE.**
+**Canal padrão (2026-08-11, com confirmação de e-mail desde 2026-09-30):**
 0. Visitante acessa `/{locale}/representantes` (nav "Portal ROCO") → pré-cadastro com CNPJ
-   obrigatório + nome/e-mail/telefone/razão social/senha → `representatives.status = "submitted"`
-   direto na fila do admin. Aprovação (review existente) concede a role `representative`.
-   Primeiro acesso pós-aprovação: wizard "modo conclusão" (território + documentos, `completeProfile`).
+   obrigatório + nome/e-mail/telefone/razão social/senha → conta criada com o e-mail AINDA NÃO
+   confirmado e o cadastro em `draft` (fora da fila) → e-mail com o link de confirmação (vale 24 h; a
+   tela de sucesso permite reenviar). "Confirmar e-mail" → `submitted`, na fila do admin. Enquanto não
+   confirma, o login avisa "e-mail não confirmado", com link para reenviar.
+   Depois de confirmar, ao entrar no portal ele vê o aviso "Seu cadastro está em análise" (data do envio,
+   etapas enviado → análise → acesso liberado) — nada de painel vazio. Aprovação (review existente)
+   concede a role `representative`.
+   Esqueceu a senha: "Esqueci minha senha" no login → link por e-mail (60 min) → senha nova; as
+   sessões abertas em outros aparelhos caem em até 5 min.
+   Primeiro acesso pós-aprovação: wizard "modo conclusão" (área de atuação + documentos, `completeProfile`).
+   A área de atuação é escolhida numa busca única na base do IBGE: estados inteiros, regiões
+   (mesorregiões, ex.: "Vale do Itajaí") ou cidades, quantos precisar.
 
-**Fluxo alternativo (onboarding completo pós-login):**
-1. Acessa `/portal/login` (link de convite via WhatsApp/e-mail é fase futura).
-2. Login com Google (SSO) → primeira vez: onboarding wizard (MUI Stepper).
+**Fluxo alternativo (onboarding completo pós-login, Google desligado por padrão em 2026-09-30):**
+1. Acessa `/portal/login` (Google SSO só aparece se `AUTH_GOOGLE_ENABLED=true` E credenciais configuradas).
+2. Login com Google (só quando ligado) → primeira vez: onboarding wizard (MUI Stepper). Quem entra por
+   senha veio do pré-cadastro do site (canal padrão acima) e não passa por este wizard completo.
    - **Passo 1**: Dados pessoais (nome/e-mail da sessão Google readonly + telefone com máscara).
    - **Passo 2**: Empresa (razão social, CNPJ com validação/formatação — `cnpj.ts`).
-   - **Passo 3**: Território (região de atuação + observações).
+   - **Passo 3**: Área de atuação (busca na base do IBGE: estados, regiões ou cidades) + observações.
    - **Passo 4**: Documentos (upload presigned → R2 privado; PDF/JPG/PNG, 10MB).
    - **Passo 5**: Revisão e envio.
    - Autosave no banco a cada "Avançar" (`saveOnboarding`, status `draft`).
 3. Submit → `representatives.status = "submitted"` (+ `submittedAt`).
-4. Time interno revisa em `/portal/representantes` → aprova/rejeita com notas (audit log;
-   auto-aprovação bloqueada no servidor).
+4. Time interno revisa em `/portal/representantes` (filtro por "Estado de atuação"; selo "E-mail não
+   confirmado") → aprova/rejeita com notas (audit log; auto-aprovação bloqueada no servidor; só cadastro
+   enviado e com e-mail confirmado pode ser aprovado/reprovado).
 5. Se aprovado: usuário ganha a role `representative` (userRoles) — JWT revalida em ≤5min.
 6. Entra direto nas **boas-vindas** ("Painel" não aparece para o representante): "Materiais recentes" no topo e
    o item **Materiais** no menu → biblioteca por assunto (política comercial, logística, contatos, treinamento,

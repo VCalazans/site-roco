@@ -28,7 +28,8 @@
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
 - **sharp** 0.35.5 (otimizador de imagens; 0.35.3 → 0.35.5 por CVE GHSA-rgj7-g3m4-5g8c)
 - **client-zip** 2.5.1 (streaming ZIP de imagens, modo "store" sem recompressão)
-- **vitest** 4 (test runner, 1660 testes em 63 arquivos em 2026-09-30, 4ª rodada)
+- **nodemailer** 10.0.10 (SMTP das contas; fixado com `overrides` no package.json: o next-auth declara nodemailer ^7 como peer opcional e a 8.x tinha advisories altos — 2026-09-30)
+- **vitest** 4 (test runner, 1744 testes em 75 arquivos em 2026-09-30, 5ª rodada)
 - **happy-dom** (DOM simulation para testes)
 - **tsx** (devDependency; scripts db:seed + db:seed:qa + db:import-catalog + db:import-images — Node 20 local sem `--experimental-strip-types`)
 
@@ -60,11 +61,30 @@ npm run dev        # http://localhost:3000
 |------------------------------|:------:|--------------------------------------------|
 | DATABASE_URL                 | sim    | PostgreSQL: `postgresql://user:pwd@host/db` |
 | AUTH_SECRET                  | sim    | Segredo para JWT (min. 32 chars)            |
-| AUTH_GOOGLE_ID               | sim    | Google OAuth: client ID                    |
-| AUTH_GOOGLE_SECRET           | sim    | Google OAuth: client secret                |
+| AUTH_GOOGLE_ID               | não    | Google OAuth: client ID (só vale com `AUTH_GOOGLE_ENABLED=true`) |
+| AUTH_GOOGLE_SECRET           | não    | Google OAuth: client secret (idem)         |
 | PORTAL_ADMIN_EMAIL           | não    | E-mail do admin bootstrap (seed: cria/atualiza se definido) |
 | PORTAL_ADMIN_PASSWORD        | não    | Senha do admin bootstrap (mín. 12 chars; seed: idempotente, rejeita <12) |
 | PORTAL_INTERNAL_EMAIL_DOMAIN | não    | Domínio interno (ex.: `@roco.com.br`); usuários deste domínio recebem role `viewer` automaticamente |
+| AUTH_GOOGLE_ENABLED          | não    | Liga o login com Google só com o valor exato `true` E `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET` preenchidos (padrão: desligado — o provider nem é registrado) |
+
+### E-mail das contas — SMTP (2026-09-30, 5ª rodada)
+| Variável                     | Obrig. | Descrição                                  |
+|------------------------------|:------:|--------------------------------------------|
+| SMTP_HOST                    | **sim em produção** | Servidor SMTP. Sem ele o e-mail de confirmação e o de redefinição de senha não saem |
+| SMTP_PORT                    | não    | Porta (padrão 587; 465 com `SMTP_SECURE=true`) |
+| SMTP_SECURE                  | não    | `true` = TLS desde a conexão (porta 465) |
+| SMTP_REQUIRE_TLS             | não    | Exige STARTTLS na 587 (padrão `true`; só `false` desliga) |
+| SMTP_USER                    | não    | Usuário SMTP (se o servidor exigir autenticação) |
+| SMTP_PASSWORD                | não    | Senha SMTP                                 |
+| MAIL_FROM                    | **sim em produção** | Remetente, ex.: `ROCO <nao-responda@dominio>` |
+| MAIL_REPLY_TO                | não    | Endereço de resposta (opcional)            |
+
+Sem `SMTP_HOST`: em desenvolvimento o e-mail inteiro vai para o console (dá para testar o fluxo); em
+produção o envio só registra `[mailer] SMTP não configurado` — ninguém confirma o pré-cadastro nem
+troca a senha. Transporte com timeouts (10 s conexão, 10 s saudação, 20 s socket) e sem leitura de
+arquivo/URL pelo nodemailer. Os links dos e-mails usam `AUTH_URL` (https em produção). Desligue o
+rastreio de clique do provedor SMTP nos e-mails transacionais (ele reescreveria o link com o token).
 
 ### Redis / Fila ERP
 | Variável                     | Obrig. | Descrição                                  |
@@ -170,6 +190,9 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **`GET /api/portal/products/images/[imageId]/download`** (privada, `product_images:download`): original de uma imagem de produto ativo — 303 para presignada R2 60 s com `attachment` e o nome do arquivo.
 - **`GET /api/portal/products/images/zip`** (privada, `product_images:download`): ZIP em streaming dos originais — `?product=<uuid>` ou os filtros da listagem do portal (sem filtro: catálogo inteiro de ativos). 3000 arquivos / 2 GiB (413), 20 por 10 min por usuário (429, fail-open), 2 simultâneos por usuário e 5 por processo (429 `busy`), 2 min sem progresso encerram; audit `product_images.download`.
 - **`POST /api/contact`** (pública): captura lead (contact_submissions), RD Station + Resend best-effort, rate limit fail-closed.
+- **`POST /api/account/*`** (públicas, só JSON até 16 KiB, limites fail-closed, IP antes de ler o corpo — 2026-09-30): `token` (estado do link sem consumir; IP 60/15 min), `verification/resend` e `password/forgot` (resposta sempre genérica; IP 10/15 min + e-mail 3/60 min), `verification/confirm` (IP 30/15 min), `password/reset` (IP 20/15 min).
+- **`POST /api/representatives/register`** (pública, só JSON): IP 20/10 min antes do corpo; global 60/5 min e por caixa de destino 3/60 min depois do parse; fail-closed.
+- **Login por senha** (Auth.js credentials): por IP 20/5 min + por e-mail (hash) 5/5 min, fail-closed; sem teto global desde 2026-09-30.
 - **`POST /api/webhooks/erp`** (pública, secretizada): enfileira sync de produtos.
 - **`GET /api/health`** (pública): liveness uncondicional; com `x-health-token`: uptime + métricas.
 
@@ -181,8 +204,8 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **Audit log**: tabela audit_logs (user_id, action, resource, timestamp, metadata).
 
 ### Testes
-- **Vitest 4**: 1610 testes em 56 arquivos (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
-  combinados e redes sociais).
+- **Vitest 4**: 1744 testes em 75 arquivos (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
+  combinados e redes sociais; +50 na 4ª; +84 na 5ª: contas, aviso de cadastro em análise e área de atuação).
   Lógica pura (rbac, cnpj, telefone, busca SQL, home-content, embalagens, materiais, links, orçamento…)
   + render SSR de telas do portal (shell, dashboard, produtos, configurações, home-content, solicitações).
 - **Happy-dom**: DOM simulation para testes de helpers.
@@ -253,6 +276,9 @@ site com fotos). Ordem para produção:
    funcionar — 503), `ERP_WEBHOOK_SECRET`, `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/
    `R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_URL`, `AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`
    (quando o stakeholder criar — sem eles o login Google falha ao clicar; credenciais funcionam).
+   ⚠️ Desde 2026-09-30: `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`MAIL_FROM` (obrigatórios:
+   confirmação de cadastro e redefinição de senha) e `AUTH_URL` https com o domínio público (vai nos links
+   dos e-mails). O Google só aparece com `AUTH_GOOGLE_ENABLED=true`.
 4. **Carga inicial — UM COMANDO da máquina local** (2026-08-24): `npm run db:bootstrap-producao`.
    Credencial em `.env.producao.local` (gitignored) como `PRODUCTION_DATABASE_URL=...` — nome
    separado de `DATABASE_URL` de propósito, para o ambiente local seguir apontando para o
@@ -391,6 +417,16 @@ Criadas e concedidas no boot pela migration `0011_ensure_portal_permissions` (e 
 - **`leads:read`** (admin, sales_manager) — caixa de solicitações; abrir o detalhe grava a ação
   `leads.view` no audit log (não é permissão)
 - **`materials:read`** garantida também para `representative` (biblioteca de materiais)
+
+## Rotas, Migrations e Dados Novos (5ª rodada — 2026-09-30)
+- Páginas públicas do portal: `/{locale}/portal/confirmar-email`, `/{locale}/portal/esqueci-senha`,
+  `/{locale}/portal/redefinir-senha` (liberadas no `src/proxy.ts` por `PORTAL_PUBLIC_SEGMENTS`).
+- Rotas `POST /api/account/*` (ver "API Routes Públicas e Privadas").
+- Migration `0014_account_tokens`: tabela `account_tokens`, coluna `user.passwordChangedAt` e
+  `emailVerified = now()` nas contas que já existiam. Migration `0015_representative_territories`: tabela
+  das áreas de atuação. Journal com 16 migrations (0000–0015).
+- Base do IBGE: `node scripts/build-ibge-localidades.mjs` regrava `src/shared/data/ibge-localidades.json`
+  (rodar de novo quando o IBGE criar/renomear municípios).
 
 ## Rotas e Permissões Novas (4ª rodada — 2026-09-30)
 - Rotas: `GET /api/portal/products/images/[imageId]/download` e `GET /api/portal/products/images/zip`

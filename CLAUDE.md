@@ -5,8 +5,9 @@
 Site institucional da **ROCO**, fabricante industrial brasileira, e **Portal ROCO** (painel da
 equipe e dos representantes) — um único app Next.js. Site público (pt/en): home editável pelo
 painel, catálogo de produtos, orçamento, contato, catálogo PDF e pré-cadastro de representantes.
-Portal: produtos, página inicial, hero, solicitações (leads), representantes, materiais,
-configurações e perfis/permissões. Specs de feature em `memory-bank/specs/`.
+Portal: produtos, página inicial, hero, solicitações (leads), representantes (área de atuação pela
+base do IBGE), materiais, configurações e perfis/permissões; contas com confirmação de e-mail e
+redefinição de senha por link (SMTP). Specs de feature em `memory-bank/specs/`.
 
 ## 🧠 Memory Bank — Carregar Sempre
 Leia no início de cada sessão, nesta ordem:
@@ -93,3 +94,4 @@ Detalhes: @memory-bank/systemPatterns.md
 - Route Handler que redireciona para o próprio site: `Location` relativa — no standalone (Docker) `request.nextUrl.origin` vira `http://0.0.0.0:3000`.
 - Objeto do R2 em stream que pode ser cancelado (download): nunca `transformToWebStream()` (= `Readable.toWeb`) — cancelado com leitura agendada, faz `enqueue` num controller fechado e solta `uncaughtException` (`ERR_INVALID_STATE`). Use `getObjectStream`/`toPullStream` (`src/core/storage/`).
 - No host, `npm run db:migrate` sai com código 1 sem mensagem: o `drizzle.config.ts` não lê o `.env.local`. Migre com `node --env-file=.env.local scripts/migrate.mjs`.
+- Contas de usuário dependem de e-mail: sem SMTP (`SMTP_*`, `MAIL_FROM`) em produção ninguém confirma pré-cadastro nem redefine senha; Google oculto por padrão (`AUTH_GOOGLE_ENABLED=false`).

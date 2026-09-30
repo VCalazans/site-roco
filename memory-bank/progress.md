@@ -374,9 +374,53 @@
       próximo passa; 2 ZIPs parados sem leitura → vagas devolvidas sozinhas em 120 s (log do servidor
       registra "Download sem progresso há 120 s"); downloads abortados sem exceção no log.
 
+### Contas, aviso de cadastro em análise e área de atuação com o IBGE (2026-09-30, 5ª rodada)
+- [x] **Google oculto** por `AUTH_GOOGLE_ENABLED` (só `true` + credenciais ligam; o provider nem é registrado).
+- [x] **Pré-cadastro com confirmação de e-mail**: conta com e-mail não confirmado + cadastro em rascunho;
+      só o link leva à fila do admin. Login antes de confirmar: aviso próprio (só depois da senha
+      conferir) com link de reenvio; tela de sucesso com "Reenviar e-mail" (espera de 60 s).
+- [x] **Esqueci/redefinir senha por link** (60 min): senha nova (bcrypt 12), `passwordChangedAt`, aviso
+      "Sua senha foi alterada"; sessões antigas caem na revalidação (≤ 5 min, `authAt` no JWT).
+- [x] **Tokens**: fragmento do link (`#token=`), só SHA-256 no banco, uso único atômico, 24 h / 60 min,
+      novo pedido invalida os anteriores; confirmação exige clique (antivírus não gasta o link).
+- [x] **5 rotas `POST /api/account/*`** (só JSON até 16 KiB, fail-closed) e 3 páginas públicas do portal;
+      esqueci-senha e reenviar com resposta genérica e envio em `after()` (anti-enumeração).
+- [x] **Política de senha única** (NIST SP 800-63B, navegador e servidor): mín. 8 caracteres, máx. 72 bytes,
+      recusa comuns, repetições, sequências e o nome do e-mail ou pedaços dele.
+- [x] **CNPJ compartilhado entre pré-cadastros não confirmados** (nenhum apaga o outro; o primeiro a
+      confirmar entra na fila; os demais recebem o aviso de conflito) + **limpeza** dos nunca confirmados
+      em 7 dias e dos links velhos (`purgeStaleAccountData`, a cada pré-cadastro).
+- [x] **SMTP** (nodemailer 10.0.10); envs vazias no `.env` local; links de `AUTH_URL`, nunca do Host.
+- [x] **Migration 0014**: `account_tokens`, `user.passwordChangedAt` e `emailVerified = now()` nas contas
+      que já existiam; seed cria o admin já confirmado; selo "E-mail não confirmado" no admin.
+- [x] **Revisão de segurança** (agente `security`: 0 crítico, 0 alto, 3 médios, 9 baixos): corrigidos M1
+      (nome só com letras + saudação só com o primeiro nome + limite por destinatário), M2 (login sem teto
+      global — por IP), M3 (login fail-closed com mensagens próprias), B1, B3, B4, B5, B6, B8 e I5 — ver
+      decisionLog. Os demais em Riscos.
+- [x] **Aviso "cadastro em análise"** no `/portal` para quem entra sem perfil (em análise com data e
+      etapas; aprovado com a sessão ainda sem perfil; reprovado com a observação; rascunho; CNPJ em
+      conflito; sem cadastro) — `PendingAccessPanel`.
+- [x] **Área de atuação com a base do IBGE** (27 estados, 137 mesorregiões, 5.571 municípios, versionada):
+      busca única no wizard, na conclusão do cadastro e na edição do admin; tabela
+      `representative_territories` (migration 0015); filtro "Estado de atuação" na lista do admin; resumo em
+      `region`; código fora da base recusado; o `db:seed:qa` dá áreas ao representante de teste.
+- [x] **Bugs achados na validação e corrigidos**: senha com PEDAÇO do e-mail era aceita; o texto do link
+      "já utilizado" não cobria o link trocado por um mais novo; o tRPC devolvia ao cliente a consulta SQL
+      com os parâmetros em erro inesperado (`errorFormatter`); a busca por nome/e-mail da lista de
+      representantes dava 500 (contagem sem JOIN com `user`).
+- [x] **Validação**: fluxo de contas ponta a ponta no navegador + capturador SMTP (cadastro → e-mail →
+      confirmação; login antes de confirmar; esqueci a senha com senha fraca/confirmação diferente
+      recusadas; sessão derrubada após troca por fora; 429 no 4º pedido; e-mail inexistente sem e-mail;
+      nome com frase de golpe recusado; saudação "Olá, Ana!"; dois cadastros com o mesmo CNPJ → o segundo
+      a confirmar fica fora da fila; 6ª tentativa de login → "Muitas tentativas"); aviso nos estados em
+      análise, aprovado e conflito; área de atuação (busca, chips, conclusão salva com 3 áreas e resumo);
+      admin pela API (filtro por UF, troca de áreas, código inválido 400, editar notas mantém as áreas,
+      busca por e-mail). Contas e auditoria de teste apagadas. Container conferido.
+- [x] Testes: 12 arquivos novos → 1744 em 75 arquivos (antes 1660 em 63).
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1660 testes em 63 arquivos; +50 sobre os 1610 da rodada anterior)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -464,6 +508,14 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] deleteDocument endpoint (UI não tem remover documento confirmado)
 - [ ] E2E + component tests; /portal/produtos com next/image (hoje <img> cru)
 - [ ] Uploads órfãos no R2 (presign sem confirm) — job de limpeza futuro
+- [ ] **Ação do admin para cadastro sem confirmação** (2026-09-30): reenviar o link ou confirmar
+      manualmente — hoje só a própria pessoa reenvia (tela de sucesso, login ou `/portal/confirmar-email`).
+- [ ] **E-mail avisando a aprovação/reprovação do cadastro** (2026-09-30, sugestão): hoje o representante
+      descobre ao entrar no portal (aviso "cadastro em análise"/"aprovado").
+- [ ] **Se o Google SSO voltar** (2026-09-30): corrigir antes a concessão automática de `representative`
+      (Riscos) e decidir o `emailVerified` das contas criadas pelo Google.
+- [ ] **Spec 002 — Embalagens no padrão GS1** (2026-09-30, EM ESPERA): discussão documentada em
+      `memory-bank/specs/002-embalagens-gs1.md`, com 4 decisões pendentes do stakeholder.
 
 ### Site (pós-MVP home/produtos)
 - [ ] **Dados de `site_settings` não têm dimensão de locale** (2026-08-30, Médio): os endereços e a
@@ -506,6 +558,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] Newsletter integrada (backlog futuro quando infra de e-mail definida)
 
 ## 🐛 Débitos Técnicos
+- **3 advisories altos só em dependências de desenvolvimento** (2026-09-30): `brace-expansion`,
+  `browserslist` e `js-yaml` (transitivas de tooling). `npm audit --omit=dev` = 0 — não vão para a imagem.
+- **Log `[auth][error] CredentialsSignin` a cada login recusado** (2026-09-30, Baixo): é o logger padrão do
+  Auth.js (com stack); ruído no log de produção. Dá para filtrar com `logger` na config do Auth.js.
 - **Miniaturas do portal carregam original** (2026-09-30): cadastro + galeria do produto usam `<img>`
   cru da original (não `next/image`). Pesa em arquivos grandes; débito pré-existente já marcado
   "/portal/produtos com next/image".
@@ -579,6 +635,25 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
 
 ## 🔐 Riscos de Segurança
+- **Revisão do fluxo de contas (2026-09-30) — itens ABERTOS** (os corrigidos estão no decisionLog):
+  - (B2, aceito) `POST /api/representatives/register` responde `email_exists`/`cnpj_exists`: enumera
+    cadastros (inclusive e-mails da equipe), mitigado pelos limites. Correção possível: 201 genérico + e-mail ao dono.
+  - (B7, infra) `getClientIp` usa o 1º valor do `X-Forwarded-For`: se a borda de produção ACRESCENTAR em vez
+    de sobrescrever, o IP vira escolha do atacante e os limites por IP perdem efeito. Confirmar na infra.
+  - (B9) Quem recebe um link de confirmação de cadastro que não fez e clica, confirma a conta com a senha de
+    outra pessoa (a página não mostra empresa/CNPJ). O e-mail já diz "se não foi você, ignore"; o dono do
+    e-mail retoma a conta por "Esqueci minha senha".
+  - (I1) A migration 0014 marcou como confirmadas TODAS as contas antigas, inclusive pré-cadastros antigos
+    ainda em análise (o selo "E-mail não confirmado" não aparece para eles).
+  - (I3) CSP de `/portal/*` herda `'unsafe-inline'` e os CDNs do RD Station do site; um XSS leria o
+    `#token` antes do `replaceState`. Sugestão: CSP própria (nonce) para o portal.
+  - (I4) Lista de senhas comuns curta (24); sem checagem contra senhas vazadas (HIBP k-anonymity).
+  - (I6/I7) `AUTH_URL` precisa ser https em produção; staging com `NODE_ENV=production` (em
+    desenvolvimento o e-mail inteiro, com o link, vai ao log). A tela de sucesso do cadastro diz "enviamos"
+    mesmo sem SMTP configurado.
+  - (I8) Sem MFA — o e-mail é a raiz de confiança também do admin; "sessões encerradas" leva até 5 min.
+  - (I9) Pedidos de reset e reenvio não são auditados (só `account_tokens.created_at/requested_ip`).
+  - (H5) Rastreio de clique do provedor SMTP reescreveria o link com o token: desligar nos transacionais.
 - **Rate limiting implementado** (2026-08-10): login 5/5min + 30/5min global, webhook 60/min,
   /api/products 120/min, presigns 30/5min via Redis fixed-window (fail-open sem REDIS_URL com WARN).
   **Nota**: sem Redis em dev, rate limit não funciona (comportamento esperado, recomendação: testar em staging com Redis).
@@ -643,7 +718,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **Sem política de retenção para `contact_submissions`** (2026-08-24, Médio/backlog): tabela contém `ip_address`/
   `userAgent` (dados pessoais). Minimização presente (gravaremos só para logs/auditoria), mas retenção indefinida
   é débito LGPD. Recomendação: definir prazo (ex.: 1 ano) e job de limpeza automática.
-- **`/api/contact` e `/api/representatives/register` sem `productionSafe: true` em paralelo** (2026-08-24, Médio/backlog):
+- ~~**`/api/contact` e `/api/representatives/register` sem `productionSafe: true` em paralelo**~~ **RESOLVIDO 2026-09-30** (5ª rodada: o register também passou a `productionSafe: true`, e o login também) (2026-08-24, Médio/backlog):
   `/api/contact` implementou com `productionSafe: true` (fail-closed), mas `/api/representatives/register` ainda
   tem `productionSafe: false` (fail-open). Recomendação: fast-follow para passar a flag também em register (foi
   mencionado como débito em 2026-08-23, ficou pendente).
@@ -677,7 +752,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`product_images(product_id)` sem índice** (2026-09-30, Baixo/operacional): irrelevante com ~620 linhas; criar se o acervo crescer muito.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1660 testes em 63 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1744 testes em 75 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+  (+84 testes em 2026-09-30, 5ª rodada — 12 arquivos novos: `password-policy`, `account-tokens`, `app-url`, `smtp-config`, `account-emails`, `google`, `mailer`, `trpc-errors`, `pending-access`, `pending-access-render`, `territory`, `territory-picker-render`; casos novos em `representative-register`, `permissions` e `portal-chrome-render`.)
   (+50 testes em 2026-09-30, 4ª rodada — 7 arquivos novos: `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7, `pull-stream` 5, `download-slots` 4.)
   (+39 testes em 2026-09-30, 3ª rodada: `listing-filters` 30 (novo), `site-settings-form` +8, `sql-like-match` +1.)
   (+473 testes em 2026-09-30 — spec 001 e revisão: lógica pura — safe-href, sql-like, paginação, memória da listagem, home-content, orçamento, embalagens, materiais, content-disposition, formulários do portal — e render SSR das telas do portal.)
