@@ -84,11 +84,12 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 - **Merge da `main` feito** (pop-ups do RD na CSP, sem botão próprio de WhatsApp — ver decisionLog
   2026-09-30); decisões abertas dos pop-ups do RD em progress.md (Site).
 - **Compartilhar com o cliente**: manual de uso e resumo de entregas são artifacts privados — o cliente só abre depois que forem compartilhados.
-- **SMTP (stakeholder)**: preencher `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` e
-  `MAIL_FROM` no `.env` (e nas envs de produção). Sem isso os e-mails de confirmação e de
-  redefinição NÃO saem — ninguém conclui o pré-cadastro nem troca a senha (o container local
-  também não envia). Conferir `AUTH_URL` https de produção (vai nos links) e desligar o rastreio de
-  clique do provedor SMTP.
+- **SMTP**: funcionando no local e na homologação (Hostinger, porta 587, remetente = caixa do login — ver
+  techContext). Falta PRODUÇÃO: remetente do domínio da ROCO, SPF/DKIM e `AUTH_URL` https; desligar o
+  rastreio de clique do provedor. Confirmar com o stakeholder a chegada dos e-mails de teste
+  (redefinição na homologação; confirmação do cadastro de teste no local).
+- **Limpar dado de teste local**: cadastro "Teste Envio SMTP" (c…@archicode.com.br, CNPJ
+  45.723.174/0001-10), criado no banco local para testar o e-mail de confirmação.
 - **Spec 002 (embalagens GS1)**: em espera, com 4 decisões do stakeholder
   (`memory-bank/specs/002-embalagens-gs1.md`).
 - **Sugestões abertas**: e-mail avisando a aprovação/reprovação; ação do admin para reenviar/confirmar

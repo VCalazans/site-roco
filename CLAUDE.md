@@ -95,3 +95,4 @@ Detalhes: @memory-bank/systemPatterns.md
 - Objeto do R2 em stream que pode ser cancelado (download): nunca `transformToWebStream()` (= `Readable.toWeb`) — cancelado com leitura agendada, faz `enqueue` num controller fechado e solta `uncaughtException` (`ERR_INVALID_STATE`). Use `getObjectStream`/`toPullStream` (`src/core/storage/`).
 - No host, `npm run db:migrate` sai com código 1 sem mensagem: o `drizzle.config.ts` não lê o `.env.local`. Migre com `node --env-file=.env.local scripts/migrate.mjs`.
 - Contas de usuário dependem de e-mail: sem SMTP (`SMTP_*`, `MAIL_FROM`) em produção ninguém confirma pré-cadastro nem redefine senha; Google oculto por padrão (`AUTH_GOOGLE_ENABLED=false`).
+- SMTP (Hostinger): `MAIL_FROM` tem de ser a própria caixa do `SMTP_USER` (senão `553 not owned by user`); a homologação bloqueia a porta 465 — use 587 com STARTTLS; senha com `#` entre aspas no `.env`; mudou o `.env` local → `docker compose up -d --no-build web`.

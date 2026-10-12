@@ -86,6 +86,22 @@ troca a senha. Transporte com timeouts (10 s conexão, 10 s saudação, 20 s soc
 arquivo/URL pelo nodemailer. Os links dos e-mails usam `AUTH_URL` (https em produção). Desligue o
 rastreio de clique do provedor SMTP nos e-mails transacionais (ele reescreveria o link com o token).
 
+**Armadilhas do SMTP (testadas em 2026-09-30, Hostinger)**:
+- **Remetente = a caixa que faz login.** `MAIL_FROM` diferente do `SMTP_USER` → `553 5.7.1 Sender address
+  rejected: not owned by user` (conexão e login passam; só o envio falha). Para um remetente
+  "nao-responda@…", crie essa caixa e use o login dela.
+- **Porta 465 bloqueada no servidor de homologação** (`ETIMEDOUT · Connection timeout` no log); a 587 com
+  STARTTLS (`SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_REQUIRE_TLS=true`) responde normalmente.
+- **Senha com `#` entre aspas duplas** no `.env`: sem aspas o Next lê vazio (o Docker lê certo e o
+  EasyPanel tira as aspas). `$` é expandido como variável pelo Next e pelo Docker — evite ou use `\$`.
+- **Mudou o `.env` do container local?** `docker compose up -d --no-build web`: o `env_file` só é lido
+  na criação do container; SMTP é de runtime, sem rebuild.
+- **Diagnóstico**: toda falha vira `[mailer] Falha ao enviar "<assunto>": <código> · <resposta>` no log.
+  "Esqueci minha senha" e "reenviar confirmação" respondem igual exista ou não a conta — e-mail só sai
+  para conta existente.
+- **Homologação**: EasyPanel, projeto `whats`, serviço `roco-test`, site `https://devroco.archicode.tech`
+  (o `AUTH_URL` de lá); SMTP Hostinger na 587.
+
 ### Redis / Fila ERP
 | Variável                     | Obrig. | Descrição                                  |
 |------------------------------|:------:|--------------------------------------------|

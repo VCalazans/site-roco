@@ -427,6 +427,10 @@
       flutuante do RD o substitui); módulos `rd-station*`, `/api/rd-lead` e formulário do Mautic da landing
       descartados em favor dos daqui — ver decisionLog.
 - [x] **Logo 3D em todos os slides do hero** (upload, YouTube e reserva) — antes ficava oculta no slide de vídeo enviado; teste de render novo (`hero-slider-render.test.tsx`), 1749 testes.
+- [x] **SMTP das contas funcionando** (Hostinger): local e homologação configurados. Achados: o remetente
+      tem de ser a caixa do login (553), a homologação bloqueia a 465 (usar 587 + STARTTLS), senha com `#`
+      entre aspas e o container local precisa ser recriado para ler o `.env`. Envios reais de redefinição e
+      de confirmação aceitos pelo servidor — ver decisionLog e techContext.
 
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
@@ -489,6 +493,9 @@ catálogo vivo via ERP → cotação como dado estruturado.
 
 ## 📋 Backlog MVP / Pós-MVP
 ### Infra (pré-launch — decisão stakeholder)
+- [ ] **E-mail de produção** (2026-09-30): remetente do domínio da ROCO (caixa própria, ex.:
+      nao-responda@roco.com.br), SPF/DKIM e `AUTH_URL` https. Hoje local e homologação enviam pela caixa
+      da Archicode.
 - [ ] **Bucket R2 separado para conteúdo privado** (Alto, infra): criar bucket sem acesso público para
       materiais/documentos de representante (hoje compartilhado com bucket público hero/produtos).
       Mitiga risco de exposição via r2.dev — ver Riscos de Segurança (TOCTOU e bucket compartilhado).

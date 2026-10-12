@@ -2125,3 +2125,17 @@ nos builds locais o tracking vem desligado, então não há botão de WhatsApp l
 herdadas da `main`: pausar o pop-up "teste" de scroll (id 9325167)? máscara de telefone internacional nos
 pop-ups (exigiria cdn.jsdelivr.net em `script-src`)? Pop-ups só reavaliam as regras no carregamento
 inicial (navegação interna não dispara).
+
+## 2026-09-30 — SMTP das contas: Hostinger na porta 587 (STARTTLS), remetente = caixa autenticada
+**Decisão**: O e-mail das contas (confirmação, redefinição, aviso de senha alterada) sai pela caixa da
+Hostinger configurada pelo stakeholder, na porta 587 com STARTTLS obrigatório e com `MAIL_FROM` igual ao
+`SMTP_USER`. Local e homologação configurados e testados.
+**Alternativas**: (a) porta 465 com SSL direto — funciona da máquina local, mas o servidor de homologação
+bloqueia a 465 de saída (a conexão esgota o tempo); (b) remetente `nao-responda@…` com o login de outra
+caixa — a Hostinger recusa (`553 Sender address rejected: not owned by user`).
+**Justificativa**: diagnóstico sem enviar e-mail (login + MAIL FROM/RCPT TO seguidos de RSET) e envios reais
+pelos fluxos do portal; no console do container de homologação a 587 respondeu `220 ESMTP` e a 465
+`ETIMEDOUT`.
+**Impacto**: `.env.example` e techContext com as armadilhas. Hoje os e-mails saem do domínio archicode.com.br.
+**Para produção**: remetente do domínio da ROCO (caixa própria, ex.: `nao-responda@roco.com.br`, com o login
+dela), SPF/DKIM no provedor e `AUTH_URL` https do domínio público.
