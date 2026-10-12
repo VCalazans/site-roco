@@ -30,6 +30,12 @@ ARG R2_PUBLIC_URL=
 ENV R2_PUBLIC_URL=$R2_PUBLIC_URL
 ARG R2_ACCOUNT_ID=
 ENV R2_ACCOUNT_ID=$R2_ACCOUNT_ID
+# Armazenamento S3 que não é o R2 (o MinIO de produção): o host da API entra no
+# `connect-src` da CSP em build-time. Sem eles, vale o endpoint do R2 acima.
+ARG S3_ENDPOINT=
+ENV S3_ENDPOINT=$S3_ENDPOINT
+ARG S3_FORCE_PATH_STYLE=
+ENV S3_FORCE_PATH_STYLE=$S3_FORCE_PATH_STYLE
 RUN npm run build
 
 # ---- Runner (standalone) ----

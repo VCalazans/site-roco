@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { storageConnectSources } from "./src/core/storage/s3-config";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
@@ -116,29 +117,28 @@ const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstati
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
 
-  // Cloudflare R2 (portal interno): o upload de imagens de produto, documentos
-  // de representante, mídia do hero e materiais é um PUT presignado feito
-  // DIRETO do navegador para o R2 (`connect-src`); as imagens públicas do
-  // catálogo são servidas do bucket público (`img-src`). Nada toca `script-src`.
+  // Armazenamento de arquivos (R2 ou MinIO — `src/core/storage/s3-config.ts`):
+  // o upload de imagens de produto, documentos de representante, mídia do hero
+  // e materiais é um PUT presignado feito DIRETO do navegador para a API S3
+  // (`connect-src`); as imagens públicas do catálogo são servidas pela URL
+  // pública do bucket (`img-src`). Nada toca `script-src`.
   //
-  // ATENÇÃO ao formato do host. O AWS SDK gera URL presignada em
-  // *virtual-hosted-style* — o bucket vira SUBDOMÍNIO:
+  // ATENÇÃO ao formato do host. Sem path-style (o R2), o AWS SDK gera URL
+  // presignada em *virtual-hosted-style* — o bucket vira SUBDOMÍNIO:
   //
   //   https://<bucket>.<conta>.r2.cloudflarestorage.com/materials/…
   //
-  // e não o *path-style* que se poderia supor
-  // (`https://<conta>.r2.cloudflarestorage.com/<bucket>/…`). Liberar só o host
-  // da conta bloqueava TODO upload vindo do navegador com
+  // Liberar só o host da conta bloqueava TODO upload vindo do navegador com
   // "violates the following Content Security Policy directive: connect-src" —
   // o que manteve o upload de documentos de representante quebrado desde que
   // foi escrito, sem ninguém notar, porque nunca foi exercitado em navegador.
+  // Por isso entra também o curinga do host (qualquer bucket da MESMA conta,
+  // nunca host de terceiro). Com `S3_FORCE_PATH_STYLE=true` (o MinIO), o bucket
+  // vai no caminho e o host do `S3_ENDPOINT` basta.
   //
-  // O curinga cobre qualquer bucket DA MESMA CONTA (o `<conta>` continua fixo),
-  // então não precisa de `R2_BUCKET` como build-arg novo e continua não
-  // permitindo host de terceiro.
-  const r2Endpoint = process.env.R2_ACCOUNT_ID
-    ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com https://*.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-    : "";
+  // `S3_ENDPOINT`/`S3_FORCE_PATH_STYLE` (ou `R2_ACCOUNT_ID`) precisam existir
+  // em BUILD-TIME — a CSP é resolvida no `next build` (ver `Dockerfile`).
+  const r2Endpoint = storageConnectSources().join(" ");
   const r2Public = process.env.R2_PUBLIC_URL
     ? new URL(process.env.R2_PUBLIC_URL).origin
     : "";

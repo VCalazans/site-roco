@@ -9,33 +9,21 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { toPullStream } from "./pull-stream";
+import { storageClientConfig } from "./s3-config";
 
 declare global {
   var __rocoR2Client: S3Client | undefined;
 }
 
 /**
- * Cliente S3 apontado para o Cloudflare R2. Lazy: só lê as env vars e
- * constrói o client no primeiro uso, então importar este módulo nunca falha
- * (necessário para `next build` sem credenciais configuradas).
+ * Cliente S3 do armazenamento de arquivos — R2 ou MinIO, conforme o ambiente
+ * (ver `./s3-config.ts`). Lazy: só lê as env vars e constrói o client no
+ * primeiro uso, então importar este módulo nunca falha (necessário para
+ * `next build` sem credenciais configuradas).
  */
 function getClient(): S3Client {
   if (!globalThis.__rocoR2Client) {
-    const accountId = process.env.R2_ACCOUNT_ID;
-    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-
-    if (!accountId || !accessKeyId || !secretAccessKey) {
-      throw new Error(
-        "Credenciais do R2 não configuradas (R2_ACCOUNT_ID/R2_ACCESS_KEY_ID/R2_SECRET_ACCESS_KEY)."
-      );
-    }
-
-    globalThis.__rocoR2Client = new S3Client({
-      region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: { accessKeyId, secretAccessKey },
-    });
+    globalThis.__rocoR2Client = new S3Client(storageClientConfig());
   }
 
   return globalThis.__rocoR2Client;

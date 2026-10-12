@@ -30,6 +30,7 @@ import bcrypt from "bcryptjs";
 import { and, asc, eq, inArray, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { storageClientConfig } from "../core/storage/s3-config";
 import { isValidCNPJ } from "../shared/components/contact-form/cnpj";
 import { users } from "./schema/auth";
 import { productImages, products } from "./schema/catalog";
@@ -421,14 +422,7 @@ async function main() {
   const pool = new Pool({ connectionString });
   const db = drizzle(pool);
   const storage: Storage = {
-    s3: new S3Client({
-      region: "auto",
-      endpoint: `https://${requireEnv("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: requireEnv("R2_ACCESS_KEY_ID"),
-        secretAccessKey: requireEnv("R2_SECRET_ACCESS_KEY"),
-      },
-    }),
+    s3: new S3Client(storageClientConfig()),
     bucket: requireEnv("R2_BUCKET"),
   };
 
