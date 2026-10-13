@@ -3,6 +3,8 @@ import type { Locale } from "@/i18n/config";
 import { getDictionary, type Dictionary } from "@/i18n/get-dictionary";
 import { getPublicCategoryCounts, getPublicCategoryList } from "@/server/lib/public-products";
 import { getContactInfo, getSocialLinks, type SocialLinks } from "@/server/lib/site-settings";
+import { getPublicCertifications } from "@/server/lib/certifications";
+import type { PublicCertification } from "@/modules/certifications/lib/certifications";
 import { buildOrganization, type OrganizationInput } from "@/modules/ai/lib/json-ld";
 
 export type CategoryFact = { slug: string; name: string; count: number };
@@ -14,6 +16,8 @@ export type SiteFacts = {
   social: SocialLinks;
   /** Só categorias ativas com produto publicado, na ordem do catálogo. */
   categories: CategoryFact[];
+  /** Selos vigentes (cadastro do portal). */
+  certifications: PublicCertification[];
 };
 
 /** Logo escura sobre transparência: legível no fundo branco dos buscadores. */
@@ -30,11 +34,12 @@ export const ORGANIZATION_LOGO_PATH = "/images/logos/roco-logo-blue.png";
 export async function getSiteFacts(locale: Locale): Promise<SiteFacts> {
   const dictionary = await getDictionary(locale);
 
-  const [contact, social, categoryList, counts] = await Promise.all([
+  const [contact, social, categoryList, counts, certificationList] = await Promise.all([
     getContactInfo().catch(() => null),
     getSocialLinks().catch(() => ({}) as SocialLinks),
     getPublicCategoryList().catch(() => []),
     getPublicCategoryCounts().catch(() => ({}) as Record<string, number>),
+    getPublicCertifications(locale),
   ]);
 
   const categories = categoryList
@@ -56,6 +61,7 @@ export async function getSiteFacts(locale: Locale): Promise<SiteFacts> {
     },
     social,
     categories,
+    certifications: certificationList,
   };
 }
 
@@ -73,7 +79,7 @@ export function productLines(dictionary: Dictionary): string[] {
 export function organizationInput(facts: SiteFacts): OrganizationInput {
   const { dictionary } = facts;
   const organization = dictionary.ai.organization;
-  const gptw = dictionary.footer.certifications.items.map((item) => `${item.label} (${item.note})`);
+  const awards = facts.certifications.map((item) => (item.note ? `${item.label} (${item.note})` : item.label));
 
   return {
     name: dictionary.navigation.brand,
@@ -90,7 +96,7 @@ export function organizationInput(facts: SiteFacts): OrganizationInput {
     // Linhas de produto da vitrine (nomes de marketing); as categorias do ERP
     // vêm em caixa alta e repetiriam as mesmas famílias.
     knowsAbout: productLines(dictionary),
-    awards: gptw,
+    awards,
     areaServed: organization.areaServed,
     logoPath: ORGANIZATION_LOGO_PATH,
     disambiguatingDescription: organization.homonyms,

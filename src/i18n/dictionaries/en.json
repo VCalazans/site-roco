@@ -382,15 +382,7 @@
       "whatsapp": "ROCO on WhatsApp"
     },
     "certifications": {
-      "title": "Certifications and seals",
-      "items": [
-        {
-          "label": "Great Place To Work®",
-          "note": "Certified · Feb 2026 – Feb 2027",
-          "image": "/images/certifications/gptw-certificada-2026-2027.png",
-          "alt": "Great Place To Work Certified badge, February 2026 to February 2027, Brazil"
-        }
-      ]
+      "title": "Certifications and seals"
     },
     "legal": {
       "askAi": "Ask AI",
@@ -2012,6 +2004,60 @@
       },
       "errors": {
         "loadFailed": "Failed to load settings."
+      },
+      "certifications": {
+        "title": "Certifications",
+        "description": "Seals shown in the website footer and on the About page (e.g. Great Place To Work). After the expiry date, the seal leaves the website automatically.",
+        "add": "New seal",
+        "addTitle": "New certification seal",
+        "editTitle": "Edit certification seal",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete the seal \"{name}\"? It leaves the website right away.",
+        "deleted": "Seal deleted.",
+        "saved": "Seal saved. The website already shows the change.",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "empty": "No seals yet. The footer does not show the certifications band.",
+        "loadFailed": "Could not load the seals.",
+        "save": "Save",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "status": {
+          "valid": "On the website · valid until {date}",
+          "expiringSoon": "On the website · expires on {date}",
+          "expired": "Off the website · expired on {date}",
+          "noExpiry": "On the website · no expiry",
+          "inactive": "Disabled · off the website"
+        },
+        "fields": {
+          "image": "Seal image",
+          "imageHelp": "Use the official artwork (a transparent PNG works best). JPEG, PNG or WebP, up to 10 MB.",
+          "namePt": "Name (Portuguese)",
+          "nameEn": "Name (English)",
+          "notePt": "Supporting line (Portuguese)",
+          "noteEn": "Supporting line (English)",
+          "noteHelp": "E.g. Certified · Feb 2026 – Feb 2027",
+          "validUntil": "Valid until",
+          "validUntilHelp": "Last day the seal is shown. Leave empty if it does not expire.",
+          "linkUrl": "Link (optional)",
+          "linkUrlHelp": "Official certification page, starting with https://",
+          "altPt": "Image description (Portuguese)",
+          "altEn": "Image description (English)",
+          "altHelp": "For screen readers. Empty uses the name.",
+          "active": "Show on the website"
+        },
+        "uploader": {
+          "dropzone": "Drag the image or click to choose",
+          "maxSize": "Up to 10 MB",
+          "accepted": "JPEG, PNG or WebP",
+          "errorType": "Unsupported format. Use JPEG, PNG or WebP.",
+          "errorSize": "Image larger than 10 MB.",
+          "remove": "Remove",
+          "replace": "Replace image",
+          "uploading": "Uploading…",
+          "uploadError": "Upload failed. Try again."
+        }
       }
     },
     "account": {

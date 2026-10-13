@@ -1,4 +1,5 @@
 import { router } from "../init";
+import { certificationsRouter } from "./certifications";
 import { healthRouter } from "./health";
 import { heroSlidesRouter } from "./hero-slides";
 import { homeContentRouter } from "./home-content";
@@ -22,6 +23,7 @@ export const appRouter = router({
   roles: rolesRouter,
   homeContent: homeContentRouter,
   leads: leadsRouter,
+  certifications: certificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

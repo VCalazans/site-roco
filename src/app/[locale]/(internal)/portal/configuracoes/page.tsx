@@ -44,7 +44,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
 
   return (
     <PortalShell {...buildPortalShellProps({ locale, dictionary, session })}>
-      <SettingsPageClient labels={portal.settings} />
+      <SettingsPageClient labels={portal.settings} locale={locale} />
     </PortalShell>
   );
 }

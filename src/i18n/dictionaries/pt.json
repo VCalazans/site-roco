@@ -382,15 +382,7 @@
       "whatsapp": "ROCO no WhatsApp"
     },
     "certifications": {
-      "title": "Certificações e selos",
-      "items": [
-        {
-          "label": "Great Place To Work®",
-          "note": "Certificada · fev 2026 – fev 2027",
-          "image": "/images/certifications/gptw-certificada-2026-2027.png",
-          "alt": "Selo Great Place To Work Certificada, fevereiro de 2026 a fevereiro de 2027, Brasil"
-        }
-      ]
+      "title": "Certificações e selos"
     },
     "legal": {
       "askAi": "Tire dúvidas com IA",
@@ -2012,6 +2004,60 @@
       },
       "errors": {
         "loadFailed": "Erro ao carregar as configurações."
+      },
+      "certifications": {
+        "title": "Certificações",
+        "description": "Selos exibidos no rodapé do site e na página Sobre (ex.: Great Place To Work). Depois da data de vencimento, o selo sai do site sozinho.",
+        "add": "Novo selo",
+        "addTitle": "Novo selo de certificação",
+        "editTitle": "Editar selo de certificação",
+        "edit": "Editar",
+        "delete": "Excluir",
+        "deleteConfirm": "Excluir o selo \"{name}\"? Ele sai do site na hora.",
+        "deleted": "Selo excluído.",
+        "saved": "Selo salvo. O site já mostra a mudança.",
+        "moveUp": "Mover para cima",
+        "moveDown": "Mover para baixo",
+        "empty": "Nenhum selo cadastrado. O rodapé não mostra a faixa de certificações.",
+        "loadFailed": "Não foi possível carregar os selos.",
+        "save": "Salvar",
+        "saving": "Salvando…",
+        "cancel": "Cancelar",
+        "status": {
+          "valid": "No site · vigente até {date}",
+          "expiringSoon": "No site · vence em {date}",
+          "expired": "Fora do site · venceu em {date}",
+          "noExpiry": "No site · sem vencimento",
+          "inactive": "Desativado · fora do site"
+        },
+        "fields": {
+          "image": "Imagem do selo",
+          "imageHelp": "Use a arte oficial (PNG com fundo transparente fica melhor). JPEG, PNG ou WebP, até 10 MB.",
+          "namePt": "Nome (português)",
+          "nameEn": "Nome (inglês)",
+          "notePt": "Linha de apoio (português)",
+          "noteEn": "Linha de apoio (inglês)",
+          "noteHelp": "Ex.: Certificada · fev 2026 – fev 2027",
+          "validUntil": "Válido até",
+          "validUntilHelp": "Último dia em que o selo aparece. Deixe vazio se não vence.",
+          "linkUrl": "Link (opcional)",
+          "linkUrlHelp": "Página oficial da certificação, começando com https://",
+          "altPt": "Descrição da imagem (português)",
+          "altEn": "Descrição da imagem (inglês)",
+          "altHelp": "Para leitores de tela. Vazio usa o nome.",
+          "active": "Exibir no site"
+        },
+        "uploader": {
+          "dropzone": "Arraste a imagem ou clique para escolher",
+          "maxSize": "Até 10 MB",
+          "accepted": "JPEG, PNG ou WebP",
+          "errorType": "Formato não suportado. Use JPEG, PNG ou WebP.",
+          "errorSize": "Imagem acima de 10 MB.",
+          "remove": "Remover",
+          "replace": "Trocar imagem",
+          "uploading": "Enviando…",
+          "uploadError": "Falha no envio. Tente de novo."
+        }
       }
     },
     "account": {

@@ -2350,3 +2350,18 @@ contas); novo tipo de token no enum do banco — exigiria migration sem ganho, o
 ambiente local de ponta a ponta (convite → link → senha → login com o perfil certo); a conta de teste foi apagada.
 Ainda falta: desativar usuário pela tela e "alterar minha senha" logado.
 
+## 2026-10-13 — Selos de certificação cadastrados pelo portal
+**Decisão**: tabela `certifications` (migration `0017_certifications`, ver `drizzle/0016_certifications.sql`) com nome,
+linha de apoio e texto alternativo em pt/en, imagem (upload `site/certificacoes/<uuid>` no bucket público, ou arquivo de
+`public/` para o selo que já existia), link opcional (só https), "válido até", ativo e ordem. A migration já cadastra o
+GPTW que era fixo no dicionário (vigência até 2027-02-28, data inferida de "fev 2026 – fev 2027" — a equipe ajusta no
+portal). Tela em **Configurações do Site › Certificações** (permissão `users:manage`, a mesma da tela; router
+`certifications`: list/create/update/delete/reorder/presignImage/confirmImage com tipo e tamanho assinados e HEAD no
+confirm). Site: rodapé, `/sobre`, JSON-LD `award` e MCP `sobre_roco` leem `getPublicCertifications` (cache com tag
+`certifications`, expirada na hora a cada mudança). **Vencido sai do site sozinho**: a data é conferida a cada render no
+fuso de Brasília (fora do cache); o portal mostra "vence em breve" (60 dias) e "Fora do site · venceu em …".
+`footer.certifications.items` saiu dos dicionários (fica só o título).
+**Alternativas**: documento jsonb em `site_settings` — sem ordem/vigência por item limpas e sem a limpeza de imagens.
+**Impacto**: migration aplicada no boot do container. Testado local ponta a ponta (cadastro com upload, rodapé e Sobre,
+vencimento tirando do site, exclusão apagando a imagem).
+

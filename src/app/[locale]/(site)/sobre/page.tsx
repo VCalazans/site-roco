@@ -18,6 +18,7 @@ import { JsonLd } from "@/shared/components/seo/json-ld";
 import { withLeadOrigin } from "@/shared/lib/lead-origin";
 import { getHomeContent } from "@/server/lib/home-content";
 import { getPublicProductList } from "@/server/lib/public-products";
+import { getPublicCertifications } from "@/server/lib/certifications";
 
 type PageProps = {
   params: Promise<{ locale: Locale }>;
@@ -54,9 +55,10 @@ export default async function AboutRoute({ params }: PageProps) {
 
   const facts = await getSiteFacts(locale);
   const { dictionary } = facts;
-  const [homeContent, productStats] = await Promise.all([
+  const [homeContent, productStats, certificationList] = await Promise.all([
     getHomeContent(locale, dictionary.home),
     getPublicProductList({ page: 1, perPage: 1 }).catch(() => ({ total: 0 })),
+    getPublicCertifications(locale),
   ]);
 
   const structuredData = [
@@ -73,7 +75,7 @@ export default async function AboutRoute({ params }: PageProps) {
       <AboutPage
         about={dictionary.about}
         organization={dictionary.ai.organization}
-        certifications={dictionary.footer.certifications}
+        certifications={certificationList}
         paragraphs={homeContent.about.paragraphs}
         contact={facts.contact}
         categories={facts.categories}

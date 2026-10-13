@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Mail } from "lucide-react";
 import { cookiesPath, privacyPath, resolveDestination, termsPath } from "@/core/config/site";
 import { getContactInfo, getSocialLinks } from "@/server/lib/site-settings";
+import { getPublicCertifications } from "@/server/lib/certifications";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { FooterLink } from "@/shared/components/footer/footer-link";
@@ -162,8 +163,11 @@ function renderSocialIcon(key: SocialKey) {
  * `footer.contact` nos dicionários).
  */
 export async function SiteFooter({ content, brand, locale }: SiteFooterProps) {
-  const [{ phone, email, addressMatriz, addressFilial }, socialLinks] =
-    await Promise.all([getContactInfo(), getSocialLinks()]);
+  const [{ phone, email, addressMatriz, addressFilial }, socialLinks, certificationList] = await Promise.all([
+    getContactInfo(),
+    getSocialLinks(),
+    getPublicCertifications(locale),
+  ]);
 
   const socials = SOCIAL_ORDER.map((key) => ({ key, href: socialLinks[key] }))
     .filter((item): item is { key: SocialKey; href: string } =>
@@ -303,49 +307,55 @@ export async function SiteFooter({ content, brand, locale }: SiteFooterProps) {
             removido; original de referência em docs/). Itens sem `image`
             caem no ícone genérico. O array nos dicionários
             (`footer.certifications.items`) comporta selos adicionais. */}
+        {certificationList.length > 0 ? (
         <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
           {/* Era `text-white/40` = 3,73:1 sobre `#05070b`, abaixo dos 4,5:1 de
-              1.4.3 (AA) e sem chegar perto dos 24px que liberariam o limiar de
-              3:1. `/60` mede 7,32:1. Mesmo motivo no copyright abaixo. */}
+              1.4.3 (AA). `/60` mede 7,32:1. Mesmo motivo no copyright abaixo. */}
           <h3 className="text-micro uppercase tracking-wide text-white/60">
             {content.certifications.title}
           </h3>
+          {/* Selos cadastrados no portal (Configurações do Site › Certificações);
+              vencidos já vêm fora da lista (`getPublicCertifications`). */}
           <ul className="flex flex-wrap gap-3">
-            {content.certifications.items.map((item) => (
-              <li
-                key={item.label}
-                className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[0_0_24px_-8px_rgba(53,217,255,0.25)]"
-              >
-                {item.image ? (
+            {certificationList.map((item) => {
+              const card = (
+                <>
                   <Image
-                    src={item.image}
+                    src={item.imageUrl}
                     alt={item.alt}
                     width={96}
                     height={161}
                     className="h-16 w-auto shrink-0"
                   />
-                ) : (
-                  <svg
-                    aria-hidden
-                    className="size-6 shrink-0 text-neon-amber-bright"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                )}
-                <div className="flex flex-col">
-                  <span className="text-meta font-semibold text-white/90">
-                    {item.label}
+                  <span className="flex flex-col">
+                    <span className="text-meta font-semibold text-white/90">{item.label}</span>
+                    {item.note ? <span className="text-micro text-white/50">{item.note}</span> : null}
                   </span>
-                  <span className="text-micro text-white/50">{item.note}</span>
-                </div>
-              </li>
-            ))}
+                </>
+              );
+              return (
+                <li
+                  key={item.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] shadow-[0_0_24px_-8px_rgba(53,217,255,0.25)]"
+                >
+                  {item.linkUrl ? (
+                    <a
+                      href={item.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-4 px-4 py-3 transition hover:border-white/25"
+                    >
+                      {card}
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-4 px-4 py-3">{card}</div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
+        ) : null}
 
         <div className="flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between">
           {/* Teto de medida também aqui: hoje a linha mede 412px a 12px (pt) e

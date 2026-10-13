@@ -1,5 +1,6 @@
 "use client";
 
+import { CertificationsManager } from "./certifications-manager";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import InstagramIcon from "@mui/icons-material/Instagram";
@@ -261,6 +262,8 @@ function SettingsBlock({
 }
 
 type SettingsPageClientProps = {
+  /** Idioma do portal (datas da lista de certificações). */
+  locale?: string;
   labels: PortalSettingsDictionary;
 };
 
@@ -273,7 +276,7 @@ type SettingsPageClientProps = {
  * canônico, que é o que vai gravado no mesmo `social.links` (JSON string) que
  * o rodapé lê. Cada campo mostra o link final e um botão para testá-lo.
  */
-export function SettingsPageClient({ labels }: SettingsPageClientProps) {
+export function SettingsPageClient({ labels, locale = "pt" }: SettingsPageClientProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
 
@@ -610,6 +613,7 @@ export function SettingsPageClient({ labels }: SettingsPageClientProps) {
             {block === "social" ? renderFooterPreview() : null}
           </SettingsBlock>
         ))}
+        <CertificationsManager copy={labels.certifications} locale={locale} />
       </Stack>
     </Box>
   );

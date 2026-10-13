@@ -707,6 +707,55 @@ type SocialFieldCopy = SettingsFieldCopy & { placeholder: string };
 type SettingsBlockCopy = { title: string; description: string };
 
 export type PortalSettingsDictionary = {
+  /** Selos de certificação (cadastro no portal). `{date}`/`{name}` interpolados. */
+  certifications: {
+    title: string;
+    description: string;
+    add: string;
+    addTitle: string;
+    editTitle: string;
+    edit: string;
+    delete: string;
+    deleteConfirm: string;
+    deleted: string;
+    saved: string;
+    moveUp: string;
+    moveDown: string;
+    empty: string;
+    loadFailed: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    status: { valid: string; expiringSoon: string; expired: string; noExpiry: string; inactive: string };
+    fields: {
+      image: string;
+      imageHelp: string;
+      namePt: string;
+      nameEn: string;
+      notePt: string;
+      noteEn: string;
+      noteHelp: string;
+      validUntil: string;
+      validUntilHelp: string;
+      linkUrl: string;
+      linkUrlHelp: string;
+      altPt: string;
+      altEn: string;
+      altHelp: string;
+      active: string;
+    };
+    uploader: {
+      dropzone: string;
+      maxSize: string;
+      accepted: string;
+      errorType: string;
+      errorSize: string;
+      remove: string;
+      replace: string;
+      uploading: string;
+      uploadError: string;
+    };
+  };
   title: string;
   subtitle: string;
   blocks: {

@@ -90,7 +90,7 @@ export const catalogSource: CatalogSource = {
       mercados: organization.areaServed,
       linhas_de_produto: productLines(dictionary),
       categorias: facts.categories.map((category) => ({ nome: category.name, produtos: category.count })),
-      certificacoes: dictionary.footer.certifications.items.map((item) => `${item.label} — ${item.note}`),
+      certificacoes: facts.certifications.map((item) => (item.note ? `${item.label} — ${item.note}` : item.label)),
       contato_comercial: {
         email: contact.email || undefined,
         telefone_whatsapp: phone,

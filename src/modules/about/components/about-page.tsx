@@ -4,12 +4,14 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import type { CategoryFact } from "@/modules/ai/server/site-facts";
+import type { PublicCertification } from "@/modules/certifications/lib/certifications";
 import { interpolate } from "@/shared/lib/interpolate";
 
 type AboutPageProps = {
   about: Dictionary["about"];
   organization: Dictionary["ai"]["organization"];
-  certifications: Dictionary["footer"]["certifications"];
+  /** Selos vigentes, cadastrados no portal. */
+  certifications: PublicCertification[];
   /** Parágrafos institucionais — os MESMOS da seção "Quem é a ROCO" da home (editáveis no painel). */
   paragraphs: string[];
   contact: { addressHeadquarters: string; addressPlant: string };
@@ -119,17 +121,15 @@ export function AboutPage({
           </section>
         ) : null}
 
-        {certifications.items.length > 0 ? (
+        {certifications.length > 0 ? (
           <section aria-labelledby="sobre-certificacoes" className="mt-16">
             <h2 id="sobre-certificacoes" className="font-display text-h2 text-white">
               {about.certificationsTitle}
             </h2>
             <ul className="mt-6 flex flex-wrap gap-6">
-              {certifications.items.map((item) => (
-                <li key={item.label} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  {item.image ? (
-                    <Image src={item.image} alt={item.alt} width={96} height={161} className="h-24 w-auto" />
-                  ) : null}
+              {certifications.map((item) => (
+                <li key={item.id} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <Image src={item.imageUrl} alt={item.alt} width={96} height={161} className="h-24 w-auto" />
                   <div>
                     <p className="text-ui font-semibold text-white">{item.label}</p>
                     <p className="text-meta text-white/70">{item.note}</p>

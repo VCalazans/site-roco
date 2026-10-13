@@ -10,3 +10,4 @@ export * from "./sync";
 export * from "./contact";
 export * from "./account-tokens";
 export * from "./representative-territories";
+export * from "./certifications";
