@@ -217,8 +217,15 @@ export async function POST(request: NextRequest) {
     // `origin` que tenha vindo no body. Aplicado aqui, uma vez, para que banco,
     // RD Station (`cf_origem`) e e-mail recebam o MESMO valor (antes só o banco
     // gravava a origem; os dois canais iam sem ela).
+    // Exceção: lista montada pela IA (link de orçamento pronto do MCP) mantém
+    // `assistente-ia`, para o RD separar o lead que veio de uma IA (spec 003).
     const input =
-      parsed.data.subject === "cart" ? { ...parsed.data, origin: "orcamento" as const } : parsed.data;
+      parsed.data.subject === "cart"
+        ? {
+            ...parsed.data,
+            origin: parsed.data.origin === "assistente-ia" ? ("assistente-ia" as const) : ("orcamento" as const),
+          }
+        : parsed.data;
 
     // Só AGORA o balde compartilhado é cobrado — a submissão já provou ser
     // plausível (passou pelo honeypot e pelo schema). Ver o comentário de

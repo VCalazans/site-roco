@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   applyAddItem,
   applySetQuantity,
+  applyImportItems,
   applyRemoveItem,
   type CartItem,
   type NewCartItem,
@@ -469,5 +470,34 @@ describe("applyRemoveItem", () => {
       expect(cart).toHaveLength(1);
       expect(cart[0].slug).toBe("item-2");
     });
+  });
+});
+
+describe("applyImportItems (link de orçamento montado pela IA)", () => {
+  const base = [{ slug: "a", name: "A", sku: "1", quantity: 5 }];
+
+  it("item existente fica com a quantidade do link; item novo entra", () => {
+    const { items, applied } = applyImportItems(base, [
+      { slug: "a", name: "A", sku: "1", quantity: 2 },
+      { slug: "b", name: "B", sku: "2", quantity: 3 },
+    ]);
+    expect(items).toEqual([
+      { slug: "a", name: "A", sku: "1", quantity: 2 },
+      { slug: "b", name: "B", sku: "2", quantity: 3 },
+    ]);
+    expect(applied).toBe(2);
+  });
+
+  it("abrir o mesmo link duas vezes não dobra as quantidades", () => {
+    const link = [{ slug: "b", name: "B", sku: "2", quantity: 3 }];
+    const once = applyImportItems(base, link).items;
+    expect(applyImportItems(once, link).items).toEqual(once);
+  });
+
+  it("respeita o teto de itens distintos", () => {
+    const full = Array.from({ length: MAX_CART_ITEMS }, (_, i) => ({ slug: `p${i}`, name: "P", sku: String(i), quantity: 1 }));
+    const { items, applied } = applyImportItems(full, [{ slug: "novo", name: "N", sku: "x", quantity: 1 }]);
+    expect(items).toHaveLength(MAX_CART_ITEMS);
+    expect(applied).toBe(0);
   });
 });

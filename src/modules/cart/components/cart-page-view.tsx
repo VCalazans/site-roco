@@ -47,6 +47,8 @@ type CartPageViewProps = {
    *  parte) — o servidor revalida de novo; aqui é só transporte, mesmo
    *  critério de `/contato` e `/catalogo`. */
   utm?: CartUtm;
+  /** `assistente-ia` quando a lista veio de um link montado pela IA (MCP). */
+  origin?: "assistente-ia";
 };
 
 const EMPTY_FORM: FormState = { name: "", email: "", phone: "", companyName: "" };
@@ -78,7 +80,7 @@ function PageHeading({ content, children }: { content: CartDictionary; children:
  * este componente só o lê/muta; a fonte de verdade para o ENVIO é sempre o
  * servidor, que re-resolve nome/SKU a partir do `slug` no submit.
  */
-export function CartPageView({ content, locale, utm }: CartPageViewProps) {
+export function CartPageView({ content, locale, utm, origin }: CartPageViewProps) {
   const items = useCartItems();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -176,6 +178,8 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           // sozinho para este assunto (ver `POST /api/contact`), então não
           // mandamos `origin` aqui — só a campanha externa, para não perder
           // atribuição de mídia paga quando o clique veio de um anúncio.
+          // Única exceção aceita pelo servidor: lista montada pela IA.
+          ...(origin ? { origin } : {}),
           ...(utm?.source ? { utmSource: utm.source } : {}),
           ...(utm?.medium ? { utmMedium: utm.medium } : {}),
           ...(utm?.campaign ? { utmCampaign: utm.campaign } : {}),

@@ -206,8 +206,8 @@
           "text": "The AI checks the official catalog: products, codes, packaging and photos."
         },
         {
-          "title": "3. Request a quote",
-          "text": "Build your list in My quote and send it to the sales team."
+          "title": "3. Send the quote",
+          "text": "The AI builds the list and gives you a link. You check it in My quote and send it to the sales team."
         }
       ],
       "connectCta": "Connect to Claude",
@@ -2186,6 +2186,10 @@
       "buttonLabel": "Send via WhatsApp",
       "messageIntro": "Hi! I would like a quote for the following products:",
       "moreItemsSuffix": "+ {count} more items — full list sent through the website form"
+    },
+    "imported": {
+      "added": "Your AI built this quote: {count} product(s) were added to the list. Check the quantities, fill in your details and send it.",
+      "missing": "{count} product(s) from the link are no longer in the catalog and were left out."
     }
   },
   "site": {
@@ -2299,8 +2303,9 @@
       "notFor": "ROCO does not sell directly to consumers through the website: there is no store, public price or delivery to individuals. To buy, request a quote from the sales team."
     },
     "mcp": {
-      "instructions": "Official, read-only server of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (Blumenau and Gaspar, Brazil). Use buscar_produtos and obter_produto for catalog data; ROCO does not publish prices — to buy, point to the quote/contact page returned by the tools.",
-      "description": "ROCO official catalog (plumbing, hydraulics, fittings, gas and flexible hoses): company, categories, products, packaging and how to buy."
+      "instructions": "Official, read-only server of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (Blumenau and Gaspar, Brazil). Use buscar_produtos and obter_produto for catalog data; ROCO does not publish prices — to request a quote, use montar_orcamento and show the customer the link it returns.",
+      "description": "ROCO official catalog (plumbing, hydraulics, fittings, gas and flexible hoses): company, categories, products, packaging and how to buy.",
+      "quoteInstructions": "Show the link to the customer: it opens My quote on the ROCO website with these items. The customer checks the quantities, fills in name, e-mail and phone and sends it; the ROCO sales team replies with the quote."
     }
   },
   "askAi": {
@@ -2329,10 +2334,10 @@
       "Use the ROCO connector: which gas hoses do you make, and in which sizes?",
       "Use the ROCO connector and show the product sheet for code 3004, with its packaging and EAN code.",
       "Use the ROCO connector: which items are best sellers in the gas line?",
-      "Use the ROCO connector and build a product list for a bathroom renovation, with the quote link for each one."
+      "Use the ROCO connector and build my quote for a bathroom renovation. At the end, give me the link so I can send it."
     ],
-    "quoteTitle": "3. Request a quote",
-    "quoteBody": "The AI can suggest products and build a list with the links. You send the request yourself: open each product, tap \"Add to quote\" and send it from My quote. That way your details go straight to ROCO.",
+    "quoteTitle": "3. Send the quote",
+    "quoteBody": "With the connector on, ask the AI to build your quote. It checks the products in the ROCO catalog and returns a link that opens My quote with the list. You review the quantities, fill in your details and send it. Your details go straight to ROCO, not through the AI.",
     "quoteCta": "Go to My quote",
     "contactCta": "Talk to the sales team",
     "connectTitle": "1. Connect ROCO's catalog to your AI",

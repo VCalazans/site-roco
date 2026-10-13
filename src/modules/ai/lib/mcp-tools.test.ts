@@ -16,6 +16,7 @@ function fakeSource(overrides: Partial<CatalogSource> = {}): CatalogSource {
     categorySlugs: vi.fn(async () => ["gas", "conexoes"]),
     search: vi.fn(async () => ({ total: 0, itens: [] })),
     product: vi.fn(async () => null),
+    buildQuote: vi.fn(async () => ({ itens: [], nao_encontrados: [], link_orcamento: null, instrucoes: "" })),
     ...overrides,
   };
 }
@@ -40,10 +41,10 @@ async function toolByName(source: CatalogSource, name: string) {
 }
 
 describe("buildMcpTools", () => {
-  it("expõe exatamente as 5 ferramentas de MCP_TOOL_NAMES, na mesma ordem", async () => {
+  it("expõe exatamente as 6 ferramentas de MCP_TOOL_NAMES, na mesma ordem", async () => {
     const tools = await buildMcpTools(fakeSource());
     expect(tools.map((tool) => tool.name)).toEqual([...MCP_TOOL_NAMES]);
-    expect(tools).toHaveLength(5);
+    expect(tools).toHaveLength(6);
   });
 
   it("todas são somente leitura (readOnlyHint true) e não destrutivas", async () => {
@@ -186,5 +187,34 @@ describe("buildMcpTools", () => {
       const tool = await toolByName(fakeSource(), "obter_produto");
       await expect(tool.run({ slug: "   " })).rejects.toBeInstanceOf(ToolInputError);
     });
+  });
+});
+
+describe("montar_orcamento", () => {
+  it("repassa itens (slug ou SKU) com quantidade padrão 1 e idioma pt", async () => {
+    const source = fakeSource();
+    const tool = await toolByName(source, "montar_orcamento");
+    await tool.run({ itens: [{ slug: "flexivel-gas", quantidade: 3 }, { sku: "3004" }] });
+    expect(source.buildQuote).toHaveBeenCalledWith({
+      locale: "pt",
+      items: [
+        { slug: "flexivel-gas", sku: undefined, quantity: 3 },
+        { slug: undefined, sku: "3004", quantity: 1 },
+      ],
+    });
+  });
+
+  it("recusa lista vazia, item sem slug/SKU, slug inválido e mais de 20 itens", async () => {
+    const tool = await toolByName(fakeSource(), "montar_orcamento");
+    await expect(tool.run({ itens: [] })).rejects.toBeInstanceOf(ToolInputError);
+    await expect(tool.run({ itens: [{ quantidade: 2 }] })).rejects.toBeInstanceOf(ToolInputError);
+    await expect(tool.run({ itens: [{ slug: "../x" }] })).rejects.toBeInstanceOf(ToolInputError);
+    const many = Array.from({ length: 21 }, (_, i) => ({ sku: String(1000 + i) }));
+    await expect(tool.run({ itens: many })).rejects.toBeInstanceOf(ToolInputError);
+  });
+
+  it("é somente leitura (não grava nada no servidor)", async () => {
+    const tool = await toolByName(fakeSource(), "montar_orcamento");
+    expect(tool.annotations?.readOnlyHint).toBe(true);
   });
 });

@@ -14,6 +14,7 @@ import type { CatalogSource, McpLocale, ProductDetail, ProductSummary } from "@/
 import { toInternationalPhone } from "@/modules/ai/lib/json-ld";
 import { getSiteFacts, officialProfiles, productLines } from "@/modules/ai/server/site-facts";
 import { withLeadOrigin } from "@/shared/lib/lead-origin";
+import { encodeQuoteItems, QUOTE_ITEMS_PARAM } from "@/shared/lib/quote-link";
 import { interpolate } from "@/shared/lib/interpolate";
 import { describePackaging } from "@/shared/lib/packaging";
 import {
@@ -180,5 +181,39 @@ export const catalogSource: CatalogSource = {
       solicitar_orcamento_url: quoteUrl(product.slug, locale),
     };
     return detail;
+  },
+
+  async buildQuote({ locale, items }) {
+    const [index, dictionary] = await Promise.all([getPublicProductIndex(), getDictionary(locale)]);
+    const found = new Map<string, { slug: string; sku: string; name: string; quantity: number }>();
+    const missing: string[] = [];
+    for (const item of items) {
+      const product = index.find((entry) => (item.slug ? entry.slug === item.slug : entry.sku === item.sku));
+      if (!product) {
+        missing.push(item.slug ?? item.sku ?? "");
+        continue;
+      }
+      const previous = found.get(product.slug);
+      found.set(product.slug, {
+        slug: product.slug,
+        sku: product.sku,
+        name: productName(product, locale),
+        quantity: (previous?.quantity ?? 0) + item.quantity,
+      });
+    }
+
+    const list = [...found.values()];
+    const encoded = encodeQuoteItems(list.map((item) => ({ slug: item.slug, quantity: item.quantity })));
+    return {
+      itens: list.map((item) => ({
+        sku: item.sku,
+        nome: item.name,
+        quantidade: item.quantity,
+        url: productUrl(item.slug, locale),
+      })),
+      nao_encontrados: missing,
+      link_orcamento: list.length > 0 ? absoluteUrl(`${quotePath(locale)}?${QUOTE_ITEMS_PARAM}=${encoded}`) : null,
+      instrucoes: dictionary.ai.mcp.quoteInstructions,
+    };
   },
 };

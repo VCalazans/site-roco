@@ -2323,3 +2323,17 @@ A página `/ia` foi reordenada a pedido do stakeholder: (1) conectar (Claude em 
 (2) perguntas de exemplo que pedem o conector ("Use o conector da ROCO: …"), só para Claude e ChatGPT, (3) orçamento e,
 por último, "Prefere não conectar? Pergunte direto" (ChatGPT, Claude, Perplexity com o contexto da ROCO).
 
+## 2026-10-13 — Orçamento montado pela IA (ferramenta MCP `montar_orcamento` + link de orçamento pronto)
+**Decisão**: a IA monta a lista pelo MCP e o cliente finaliza no site. A ferramenta `montar_orcamento` recebe produtos (slug
+ou SKU) e quantidades, confere cada um no índice público (`getPublicProductIndex`), descarta o que não existe e devolve
+`/{locale}/orcamento?itens=slug:2,slug:1` (formato em `src/shared/lib/quote-link.ts`, até 20 itens, 1–9999 unidades). A
+página "Meu orçamento" resolve os slugs NO SERVIDOR (nome, SKU e foto do banco, nunca da URL), e o componente
+`QuoteImport` coloca os itens na lista do navegador uma vez (`applyImportItems`: item existente fica com a quantidade do
+link — abrir o link duas vezes não dobra) e tira `?itens=` da barra. O envio continua o mesmo (formulário, Turnstile,
+consentimento). Lead de lista vinda de link da IA grava a origem `assistente-ia` (exceção única à origem fixa `orcamento`
+do assunto `cart` em `POST /api/contact`).
+**Alternativas**: guardar o orçamento no servidor com um código curto — exigiria tabela, expiração e abriria escrita
+anônima pelo MCP; enviar o pedido direto pela IA — dados pessoais passariam pela IA e pularia a verificação anti-robô.
+**Impacto**: nada é gravado no servidor antes do envio; a ferramenta continua `readOnlyHint`. Sem teste de rota para a
+origem `assistente-ia` no envio (só tipo); testes de `quote-link`, `applyImportItems` e da ferramenta.
+

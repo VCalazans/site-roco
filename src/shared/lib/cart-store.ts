@@ -180,6 +180,30 @@ export function applySetQuantity(items: CartItem[], slug: string, quantity: numb
   );
 }
 
+/**
+ * Itens vindos de um link de orçamento pronto (montado pela IA via MCP):
+ * item já na lista fica com a quantidade do link (abrir o mesmo link duas
+ * vezes não dobra nada); item novo entra, respeitando `MAX_CART_ITEMS`.
+ * Devolve a lista nova e quantos itens do link couberam.
+ */
+export function applyImportItems(items: CartItem[], imported: readonly CartItem[]): { items: CartItem[]; applied: number } {
+  let next = items;
+  let applied = 0;
+  for (const item of imported) {
+    const quantity = clampQuantity(item.quantity);
+    if (quantity <= 0) continue;
+    if (next.some((current) => current.slug === item.slug)) {
+      next = applySetQuantity(next, item.slug, quantity);
+      applied += 1;
+    } else {
+      const added = applyAddItem(next, item, quantity);
+      if (added !== next) applied += 1;
+      next = added;
+    }
+  }
+  return { items: next, applied };
+}
+
 export function applyRemoveItem(items: CartItem[], slug: string): CartItem[] {
   return items.filter((current) => current.slug !== slug);
 }
@@ -248,6 +272,14 @@ export function setQuantity(slug: string, quantity: number): void {
 export function removeItem(slug: string): void {
   ensureHydrated();
   commit(applyRemoveItem(cachedItems, slug));
+}
+
+/** Aplica um link de orçamento pronto (`applyImportItems`). Devolve quantos itens entraram. */
+export function importItems(imported: readonly CartItem[]): number {
+  ensureHydrated();
+  const { items, applied } = applyImportItems(cachedItems, imported);
+  if (items !== cachedItems) commit(items);
+  return applied;
 }
 
 export function clearCart(): void {

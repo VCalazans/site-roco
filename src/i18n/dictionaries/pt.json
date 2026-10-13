@@ -206,8 +206,8 @@
           "text": "A IA consulta o catálogo oficial: produtos, códigos, embalagens e fotos."
         },
         {
-          "title": "3. Peça o orçamento",
-          "text": "Monte sua lista em Meu orçamento e envie para o time comercial."
+          "title": "3. Envie o orçamento",
+          "text": "A IA monta a lista e te dá um link. Você confere em Meu orçamento e envia para o time comercial."
         }
       ],
       "connectCta": "Conectar ao Claude",
@@ -2186,6 +2186,10 @@
       "buttonLabel": "Enviar pelo WhatsApp",
       "messageIntro": "Olá! Gostaria de um orçamento para os seguintes produtos:",
       "moreItemsSuffix": "+ {count} itens — lista completa enviada pelo formulário do site"
+    },
+    "imported": {
+      "added": "Sua IA montou este orçamento: {count} produto(s) entraram na lista. Confira as quantidades, preencha seus dados e envie.",
+      "missing": "{count} produto(s) do link não estão mais no catálogo e ficaram de fora."
     }
   },
   "site": {
@@ -2299,8 +2303,9 @@
       "notFor": "A ROCO não vende direto ao consumidor pelo site: não há loja, preço público nem entrega a pessoa física pelo site. Para comprar, peça um orçamento ao time comercial."
     },
     "mcp": {
-      "instructions": "Servidor oficial e somente leitura da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (Blumenau e Gaspar, SC). Use buscar_produtos e obter_produto para dados do catálogo; a ROCO não divulga preços — para comprar, indique a página de orçamento/contato que as ferramentas devolvem.",
-      "description": "Catálogo oficial da ROCO (hidrossanitários, hidráulica, conexões, gás e flexíveis): empresa, categorias, produtos, embalagens e como comprar."
+      "instructions": "Servidor oficial e somente leitura da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (Blumenau e Gaspar, SC). Use buscar_produtos e obter_produto para dados do catálogo; a ROCO não divulga preços — para pedir orçamento, use montar_orcamento e mostre ao cliente o link que ela devolve.",
+      "description": "Catálogo oficial da ROCO (hidrossanitários, hidráulica, conexões, gás e flexíveis): empresa, categorias, produtos, embalagens e como comprar.",
+      "quoteInstructions": "Mostre o link ao cliente: ele abre Meu orçamento no site da ROCO já com estes itens. O cliente confere as quantidades, preenche nome, e-mail e telefone e envia; o time comercial da ROCO responde com o orçamento."
     }
   },
   "askAi": {
@@ -2329,10 +2334,10 @@
       "Use o conector da ROCO: quais flexíveis para gás vocês fabricam, e em quais medidas?",
       "Use o conector da ROCO e mostre a ficha do produto de código 3004, com as embalagens e o código EAN.",
       "Use o conector da ROCO: quais são os campeões de vendas da linha de gás?",
-      "Use o conector da ROCO e monte uma lista de produtos para a reforma de um banheiro, com o link para pedir orçamento de cada um."
+      "Use o conector da ROCO e monte meu orçamento para a reforma de um banheiro. No fim, me passe o link para eu enviar."
     ],
-    "quoteTitle": "3. Peça o orçamento",
-    "quoteBody": "A IA pode sugerir produtos e montar uma lista com os links. Quem envia o pedido é você: abra cada produto, toque em \"Adicionar ao orçamento\" e envie em Meu orçamento. Assim seus dados vão direto para a ROCO.",
+    "quoteTitle": "3. Envie o orçamento",
+    "quoteBody": "Com o conector ligado, peça à IA para montar seu orçamento. Ela confere os produtos no catálogo da ROCO e devolve um link que abre Meu orçamento já com a lista. Você revisa as quantidades, preenche seus dados e envia. Seus dados vão direto para a ROCO, sem passar pela IA.",
     "quoteCta": "Ir para Meu orçamento",
     "contactCta": "Falar com o time comercial",
     "connectTitle": "1. Conecte o catálogo da ROCO à sua IA",

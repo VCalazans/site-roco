@@ -51,6 +51,16 @@ export interface CatalogSource {
     limit: number;
   }): Promise<{ total: number; itens: ProductSummary[] }>;
   product(input: { locale: McpLocale; slug?: string; sku?: string }): Promise<ProductDetail | null>;
+  /** Confere os itens no catálogo público e devolve o link que abre "Meu orçamento" já com eles. */
+  buildQuote(input: {
+    locale: McpLocale;
+    items: { slug?: string; sku?: string; quantity: number }[];
+  }): Promise<{
+    itens: { sku: string; nome: string; quantidade: number; url: string }[];
+    nao_encontrados: string[];
+    link_orcamento: string | null;
+    instrucoes: string;
+  }>;
 }
 
 export const MCP_TOOL_NAMES = [
@@ -59,6 +69,7 @@ export const MCP_TOOL_NAMES = [
   "listar_categorias",
   "buscar_produtos",
   "obter_produto",
+  "montar_orcamento",
 ] as const;
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
@@ -126,6 +137,23 @@ export async function buildMcpTools(source: CatalogSource): Promise<McpTool[]> {
     })
     .refine((value) => Boolean(value.slug || value.sku), { message: "informe slug ou sku" });
 
+  const quoteSchema = z.strictObject({
+    itens: z
+      .array(
+        z
+          .strictObject({
+            slug: z.string().trim().max(200).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug inválido").optional(),
+            sku: z.string().trim().regex(/^[A-Za-z0-9._-]{1,40}$/, "SKU inválido").optional(),
+            quantidade: z.number().int().min(1).max(9999).default(1),
+          })
+          .refine((value) => Boolean(value.slug || value.sku), { message: "informe slug ou sku" })
+      )
+      .min(1)
+      .max(20)
+      .describe("Produtos do orçamento (slug ou SKU de buscar_produtos) e quantidades."),
+    idioma: localeField,
+  });
+
   return [
     {
       name: "sobre_roco",
@@ -185,6 +213,21 @@ export async function buildMcpTools(source: CatalogSource): Promise<McpTool[]> {
           throw new ToolInputError("Produto não encontrado no catálogo público. Use buscar_produtos para achar o slug ou o SKU.");
         }
         return product;
+      },
+    },
+    {
+      name: "montar_orcamento",
+      title: "Montar orçamento",
+      description:
+        "Monta o pedido de orçamento do cliente na ROCO: recebe os produtos (slug ou SKU) e as quantidades e devolve um link que abre a página Meu orçamento do site já com a lista. O cliente confere, preenche os dados e envia por lá; a ferramenta não envia nada nem pede dados pessoais. Use quando o cliente quiser cotar ou comprar e mostre o link a ele.",
+      inputSchema: jsonSchemaOf(quoteSchema),
+      annotations: { title: "Montar orçamento", ...READ_ONLY },
+      run: async (args) => {
+        const input = parseArgs(quoteSchema, args);
+        return source.buildQuote({
+          locale: input.idioma,
+          items: input.itens.map((item) => ({ slug: item.slug, sku: item.sku, quantity: item.quantidade })),
+        });
       },
     },
   ];

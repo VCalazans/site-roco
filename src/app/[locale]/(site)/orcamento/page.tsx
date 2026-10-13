@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import { QuoteImport } from "@/modules/cart/components/quote-import";
+import type { CartItem } from "@/shared/lib/cart-store";
+import { parseQuoteItems } from "@/shared/lib/quote-link";
+import { getPublicProductsBySlugs } from "@/server/lib/public-products";
 import { buildAlternates } from "@/core/config/metadata";
 import { notFound } from "next/navigation";
 import { CartPageView } from "@/modules/cart/components/cart-page-view";
@@ -13,6 +17,8 @@ type PageProps = {
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
+    /** Link de orçamento pronto, montado pela IA (`slug:quantidade,…`). */
+    itens?: string | string[];
   }>;
 };
 
@@ -68,6 +74,30 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
   // nunca cai direto na página do orçamento.
   const utm = await resolveLeadUtm(query);
 
+  // Link de orçamento pronto (montado pela IA via MCP, `?itens=slug:2,…`): os
+  // slugs são conferidos AQUI contra o catálogo público — nome, SKU e foto vêm
+  // do banco, nunca da URL.
+  const requested = parseQuoteItems(query.itens);
+  let imported: CartItem[] = [];
+  if (requested.length > 0) {
+    const found = await getPublicProductsBySlugs(requested.map((item) => item.slug)).catch(() => []);
+    const bySlug = new Map(found.map((product) => [product.slug, product]));
+    imported = requested.flatMap((item) => {
+      const product = bySlug.get(item.slug);
+      if (!product) return [];
+      const image = product.images[0]?.url;
+      return [
+        {
+          slug: product.slug,
+          sku: product.sku,
+          name: (locale === "en" && product.nameEn) || product.namePt,
+          quantity: item.quantity,
+          ...(image ? { image } : {}),
+        },
+      ];
+    });
+  }
+
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
       {/* Fundo dual-tone da marca: mesma linguagem visual de /contato,
@@ -78,7 +108,15 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-5 pb-16 pt-24 sm:px-6 md:pt-32">
-        <CartPageView content={cart} locale={locale} utm={utm} />
+        {requested.length > 0 ? (
+          <QuoteImport items={imported} missing={requested.length - imported.length} copy={cart.imported} />
+        ) : null}
+        <CartPageView
+          content={cart}
+          locale={locale}
+          utm={utm}
+          origin={imported.length > 0 ? "assistente-ia" : undefined}
+        />
       </div>
     </div>
   );
