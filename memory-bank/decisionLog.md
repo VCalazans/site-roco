@@ -2337,3 +2337,16 @@ anônima pelo MCP; enviar o pedido direto pela IA — dados pessoais passariam p
 **Impacto**: nada é gravado no servidor antes do envio; a ferramenta continua `readOnlyHint`. Sem teste de rota para a
 origem `assistente-ia` no envio (só tipo); testes de `quote-link`, `applyImportItems` e da ferramenta.
 
+## 2026-10-13 — Convite de usuário pelo portal
+**Decisão**: Perfis › Usuários ganhou **Convidar usuário** (nome, e-mail, perfil) e **Reenviar convite**. O servidor
+(`roles.inviteUser`/`roles.resendInvite`, permissão `roles:manage`) cria a conta SEM senha com o perfil escolhido e manda
+o e-mail "Seu acesso ao Portal ROCO" com o link da página de redefinição de senha (mesmo token `password_reset`, validade
+de 72 h em vez de 60 min — `INVITE_TTL_MS`). Ninguém define nem vê a senha de outra pessoa; usar o link confirma o
+e-mail. Mesmo anti-escalonamento (`canGrantRole`: só admin cria admin); e-mail que já tem conta é recusado; auditoria
+`users.invite` e `users.invite_resend`. A lista mostra "Convite pendente" para conta sem senha.
+**Alternativas**: o admin digitar a senha da pessoa — rejeitado (senha compartilhada, fora do padrão de segurança das
+contas); novo tipo de token no enum do banco — exigiria migration sem ganho, o fluxo de redefinição já faz tudo.
+**Impacto**: depende de SMTP no ambiente (sem ele a conta é criada e a tela avisa que o e-mail não saiu). Testado no
+ambiente local de ponta a ponta (convite → link → senha → login com o perfil certo); a conta de teste foi apagada.
+Ainda falta: desativar usuário pela tela e "alterar minha senha" logado.
+

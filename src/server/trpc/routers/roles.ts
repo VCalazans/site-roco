@@ -4,6 +4,8 @@ import { and, asc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { permissions, rolePermissions, roles, userRoles, users } from "@/db/schema";
 import { writeAuditLog } from "@/server/lib/audit";
+import { sendInviteEmail } from "@/server/lib/account-service";
+import { isValidPersonName } from "@/server/lib/representative-register";
 import {
   canDeleteRole,
   canEditRolePermissions,
@@ -283,7 +285,14 @@ export const rolesRouter = router({
 
       const [rows, [countRow]] = await Promise.all([
         ctx.db
-          .select({ id: users.id, name: users.name, email: users.email, active: users.active })
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            active: users.active,
+            // Convite ainda não aceito = conta sem senha (o hash nunca sai daqui).
+            pendingInvite: sql<boolean>`${users.passwordHash} is null`,
+          })
           .from(users)
           .where(whereClause)
           .orderBy(asc(users.name))
@@ -317,6 +326,102 @@ export const rolesRouter = router({
 
       const items = rows.map((row) => ({ ...row, roles: rolesByUser.get(row.id) ?? [] }));
       return { items, total, page, perPage };
+    }),
+
+  /**
+   * Convida alguém para o portal: cria a conta SEM senha, com o perfil
+   * escolhido, e manda o e-mail com o link para a pessoa definir a própria
+   * senha (72 h). Mesmo anti-escalonamento de `assignUserRole`; e-mail que já
+   * tem conta é recusado (o perfil dela se ajusta na lista).
+   */
+  inviteUser: rolesManageProcedure
+    .input(
+      z.object({
+        name: z.string().trim().min(2).max(120),
+        email: z.string().trim().toLowerCase().email().max(254),
+        roleId: z.string().uuid(),
+        locale: z.enum(["pt", "en"]).default("pt"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!isValidPersonName(input.name)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Nome inválido: use só letras." });
+      }
+      const [role] = await ctx.db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
+      if (!role) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Perfil não encontrado." });
+      }
+      const grantGuard = canGrantRole({ actorRoleSlugs: ctx.session.user.roles ?? [], targetRoleSlug: role.slug });
+      if (!grantGuard.ok) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Só um administrador pode conceder o perfil Administrador." });
+      }
+
+      const [existing] = await ctx.db
+        .select({ id: users.id })
+        .from(users)
+        .where(sql`lower(${users.email}) = ${input.email}`)
+        .limit(1);
+      if (existing) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Já existe uma conta com este e-mail. Ajuste o perfil dela na lista de usuários.",
+        });
+      }
+
+      const user = await ctx.db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(users)
+          .values({ name: input.name, email: input.email, active: true })
+          .returning({ id: users.id, email: users.email, name: users.name });
+        await tx.insert(userRoles).values({ userId: created.id, roleId: role.id });
+        return created;
+      });
+
+      const mail = await sendInviteEmail(ctx.db, {
+        user: { id: user.id, email: user.email ?? input.email, name: user.name },
+        locale: input.locale,
+        ip: null,
+      });
+
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "users.invite",
+        resource: "users",
+        resourceId: user.id,
+        metadata: { roleSlug: role.slug, mail: mail.status },
+      });
+      return { userId: user.id, mail: mail.status };
+    }),
+
+  /** Reenvia o convite (novo link de 72 h; o anterior deixa de valer) — só para conta que ainda não definiu senha. */
+  resendInvite: rolesManageProcedure
+    .input(z.object({ userId: z.string().trim().min(1), locale: z.enum(["pt", "en"]).default("pt") }))
+    .mutation(async ({ ctx, input }) => {
+      const [user] = await ctx.db
+        .select({ id: users.id, email: users.email, name: users.name, active: users.active, passwordHash: users.passwordHash })
+        .from(users)
+        .where(eq(users.id, input.userId))
+        .limit(1);
+      if (!user?.email || !user.active) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Usuário não encontrado." });
+      }
+      if (user.passwordHash) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Este usuário já definiu a senha. Se esqueceu, ele usa \"Esqueci minha senha\" no login.",
+        });
+      }
+      const mail = await sendInviteEmail(ctx.db, {
+        user: { id: user.id, email: user.email, name: user.name },
+        locale: input.locale,
+        ip: null,
+      });
+      await writeAuditLog(ctx.db, ctx.session, {
+        action: "users.invite_resend",
+        resource: "users",
+        resourceId: user.id,
+        metadata: { mail: mail.status },
+      });
+      return { mail: mail.status };
     }),
 
   /**

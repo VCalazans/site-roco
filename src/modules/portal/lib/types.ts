@@ -673,6 +673,24 @@ export type PortalRolesDictionary = {
     };
     assignRole: string;
     removeRole: string;
+    /** Convite de usuário (Perfis › Usuários). `sent` usa `{email}`. */
+    invite: {
+      open: string;
+      title: string;
+      description: string;
+      name: string;
+      email: string;
+      role: string;
+      submit: string;
+      sending: string;
+      cancel: string;
+      sent: string;
+      notConfigured: string;
+      failed: string;
+      pending: string;
+      resend: string;
+      resent: string;
+    };
   };
   errors: {
     selfLockout: string;

@@ -594,8 +594,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
       (Riscos) e decidir o `emailVerified` das contas criadas pelo Google.
 - [ ] **Spec 002 — Embalagens no padrão GS1** (2026-09-30, EM ESPERA): discussão documentada em
       `memory-bank/specs/002-embalagens-gs1.md`, com 4 decisões pendentes do stakeholder.
-- [ ] **Tela de criar usuário da equipe e de alterar senha** (2026-10-12, apontado no guia de operação): o portal não tem
-      nenhuma das duas.
+- [x] **Convite de usuário pelo portal** (2026-10-13): Perfis › Usuários › Convidar usuário (link para definir a senha, 72 h).
+- [ ] **Alterar minha senha (logado) e desativar usuário pela tela** (2026-10-13): ainda não existem.
 - [ ] **Gerente comercial (`sales_manager`) sem envio e remoção de fotos** (2026-10-12): hoje só baixa; confirmar com o
       stakeholder se é a intenção.
 

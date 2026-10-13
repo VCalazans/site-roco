@@ -4,7 +4,7 @@ import en from "@/i18n/dictionaries/en.json";
 import { buildAccountEmail, escapeHtml, greetingName, type AccountEmailKind } from "./account-emails";
 
 const LINK = "https://roco.com.br/pt/portal/redefinir-senha#token=abc_DEF-123";
-const KINDS: AccountEmailKind[] = ["verifyEmail", "resetPassword", "passwordChanged"];
+const KINDS: AccountEmailKind[] = ["verifyEmail", "resetPassword", "passwordChanged", "invite"];
 
 describe("buildAccountEmail", () => {
   it.each(KINDS)("%s: assunto, saudação, link no texto e no HTML", (kind) => {

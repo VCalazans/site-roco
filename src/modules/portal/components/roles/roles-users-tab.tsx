@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import AddIcon from "@mui/icons-material/Add";
+import ForwardToInboxIcon from "@mui/icons-material/ForwardToInbox";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -27,6 +31,7 @@ import { useTRPC } from "@/core/trpc-client";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { DEFAULT_PORTAL_PER_PAGE } from "@/modules/portal/lib/pagination";
 import { PortalPagination } from "../shared/portal-pagination";
+import { InviteUserDialog } from "./invite-user-dialog";
 
 type RolesUsersTabProps = {
   portal: PortalDictionary;
@@ -60,6 +65,11 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState<number>(DEFAULT_PORTAL_PER_PAGE);
   const [assignMenu, setAssignMenu] = useState<AssignMenuState | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [notice, setNotice] = useState<{ severity: "success" | "warning"; text: string } | null>(null);
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale === "en" ? "en" : "pt";
+  const inviteCopy = dictionary.users.invite;
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -94,17 +104,34 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
     trpc.roles.unassignUserRole.mutationOptions({ onSuccess: invalidate })
   );
 
-  const mutationError = assignMutation.error?.message ?? unassignMutation.error?.message ?? null;
+  const resendMutation = useMutation(
+    trpc.roles.resendInvite.mutationOptions({
+      onSuccess: (result) =>
+        setNotice(
+          result.mail === "sent"
+            ? { severity: "success", text: inviteCopy.resent }
+            : { severity: "warning", text: result.mail === "not_configured" ? inviteCopy.notConfigured : inviteCopy.failed }
+        ),
+    })
+  );
+
+  const mutationError =
+    assignMutation.error?.message ?? unassignMutation.error?.message ?? resendMutation.error?.message ?? null;
 
   return (
     <Box>
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{ mb: 2, alignItems: { sm: "center" }, justifyContent: "space-between" }}
+      >
       <TextField
         label={dictionary.users.searchPlaceholder}
         value={searchInput}
         onChange={(event) => setSearchInput(event.target.value)}
         size="small"
         fullWidth
-        sx={{ mb: 2, maxWidth: 360 }}
+        sx={{ maxWidth: 360 }}
         slotProps={{
           input: {
             startAdornment: (
@@ -115,6 +142,21 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
           },
         }}
       />
+        <Button
+          variant="contained"
+          startIcon={<PersonAddIcon />}
+          onClick={() => setInviteOpen(true)}
+          disabled={roles.length === 0}
+        >
+          {inviteCopy.open}
+        </Button>
+      </Stack>
+
+      {notice ? (
+        <Alert severity={notice.severity} sx={{ mb: 2 }} onClose={() => setNotice(null)}>
+          {notice.text}
+        </Alert>
+      ) : null}
 
       {listQuery.isError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -178,9 +220,27 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
                               ("Ativo"/"Inativo", genérico o bastante), mesmo
                               padrão de reuso documentado em
                               `product-form-dialog.tsx`; ver relatório final. */}
-                          {user.active ? portal.products.status.active : portal.products.status.inactive}
+                          {user.pendingInvite ? (
+                            <Chip size="small" color="warning" variant="outlined" label={inviteCopy.pending} />
+                          ) : user.active ? (
+                            portal.products.status.active
+                          ) : (
+                            portal.products.status.inactive
+                          )}
                         </TableCell>
                         <TableCell align="right">
+                          {user.pendingInvite && user.active ? (
+                            <Tooltip title={inviteCopy.resend}>
+                              <IconButton
+                                size="small"
+                                aria-label={inviteCopy.resend}
+                                disabled={resendMutation.isPending}
+                                onClick={() => resendMutation.mutate({ userId: user.id, locale })}
+                              >
+                                <ForwardToInboxIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : null}
                           <Tooltip title={dictionary.users.assignRole}>
                             <span>
                               <IconButton
@@ -230,6 +290,17 @@ export function RolesUsersTab({ portal }: RolesUsersTabProps) {
             ))
           : null}
       </Menu>
+      <InviteUserDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInvited={(message) => {
+          setNotice(message);
+          invalidate();
+        }}
+        roles={roles.map((role) => ({ id: role.id, name: role.name }))}
+        locale={locale}
+        copy={inviteCopy}
+      />
     </Box>
   );
 }

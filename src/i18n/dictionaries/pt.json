@@ -1651,7 +1651,24 @@
           "actions": "Ações"
         },
         "assignRole": "Atribuir perfil",
-        "removeRole": "Remover perfil"
+        "removeRole": "Remover perfil",
+        "invite": {
+          "open": "Convidar usuário",
+          "title": "Convidar usuário para o portal",
+          "description": "A pessoa recebe um e-mail para definir a própria senha (o link vale 72 horas). Você não define nem vê a senha de ninguém.",
+          "name": "Nome",
+          "email": "E-mail",
+          "role": "Perfil",
+          "submit": "Enviar convite",
+          "sending": "Enviando…",
+          "cancel": "Cancelar",
+          "sent": "Convite enviado para {email}.",
+          "notConfigured": "Usuário criado, mas o e-mail não saiu: o envio de e-mails (SMTP) não está configurado neste ambiente.",
+          "failed": "Usuário criado, mas o e-mail falhou. Use \"Reenviar convite\" na lista.",
+          "pending": "Convite pendente",
+          "resend": "Reenviar convite",
+          "resent": "Convite reenviado."
+        }
       },
       "errors": {
         "selfLockout": "Esta alteração removeria seu próprio acesso a esta tela.",
@@ -2228,6 +2245,13 @@
       "button": "Não fui eu — redefinir senha",
       "note": "Se não foi você, redefina a senha agora e avise o time ROCO.",
       "ignore": "Se foi você, não precisa fazer nada."
+    },
+    "invite": {
+      "subject": "Seu acesso ao Portal ROCO",
+      "intro": "Você foi convidado para o Portal ROCO. Para entrar, defina sua senha pelo botão abaixo.",
+      "button": "Definir minha senha",
+      "note": "O link vale por 72 horas e só pode ser usado uma vez. Depois, entre no portal com este e-mail e a senha que você criou.",
+      "ignore": "Se você não esperava este convite, ignore este e-mail."
     }
   },
   "about": {

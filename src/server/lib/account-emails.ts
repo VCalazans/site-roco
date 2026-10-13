@@ -9,7 +9,7 @@ import { interpolate } from "@/shared/lib/interpolate";
  * Cores fixas no HTML de propósito: cliente de e-mail não lê as variáveis de
  * CSS do site. Tudo que vem de fora (nome, link) é escapado.
  */
-export type AccountEmailKind = "verifyEmail" | "resetPassword" | "passwordChanged";
+export type AccountEmailKind = "verifyEmail" | "resetPassword" | "passwordChanged" | "invite";
 
 type EmailSection = { subject: string; intro: string; button: string; note: string; ignore: string };
 

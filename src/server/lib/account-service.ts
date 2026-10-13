@@ -52,7 +52,7 @@ export async function findActiveUserByEmail(db: Database, email: string) {
 /** Emite um token e invalida os anteriores do mesmo tipo — só o último link vale. */
 async function issueAccountToken(
   db: Database,
-  params: { userId: string; purpose: AccountTokenPurpose; ip?: string | null }
+  params: { userId: string; purpose: AccountTokenPurpose; ip?: string | null; ttlMs?: number }
 ): Promise<string> {
   const { token, tokenHash } = generateAccountToken();
   const now = new Date();
@@ -67,7 +67,7 @@ async function issueAccountToken(
       userId: params.userId,
       purpose: params.purpose,
       tokenHash,
-      expiresAt: accountTokenExpiry(params.purpose, now),
+      expiresAt: params.ttlMs ? new Date(now.getTime() + params.ttlMs) : accountTokenExpiry(params.purpose, now),
       requestedIp: trimIp(params.ip),
     });
   });
@@ -318,6 +318,27 @@ export async function sendPasswordResetEmail(
 ): Promise<MailResult> {
   const token = await issueAccountToken(db, { userId: params.user.id, purpose: "password_reset", ip: params.ip });
   return sendAccountEmail("resetPassword", { user: params.user, locale: params.locale, page: "redefinir-senha", token });
+}
+
+/**
+ * Convite de usuário criado pela equipe no portal (Perfis › Usuários): o link
+ * é o MESMO de redefinição de senha (a pessoa define a própria senha; ninguém
+ * digita senha por ela), com validade maior, porque o convite pode demorar a
+ * ser aberto. Usar o link também confirma o e-mail (`resetPassword`).
+ */
+export const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
+
+export async function sendInviteEmail(
+  db: Database,
+  params: { user: AccountUser; locale: Locale; ip?: string | null }
+): Promise<MailResult> {
+  const token = await issueAccountToken(db, {
+    userId: params.user.id,
+    purpose: "password_reset",
+    ip: params.ip,
+    ttlMs: INVITE_TTL_MS,
+  });
+  return sendAccountEmail("invite", { user: params.user, locale: params.locale, page: "redefinir-senha", token });
 }
 
 /** Aviso de senha alterada — com o caminho para redefinir de novo se não foi a própria pessoa. */

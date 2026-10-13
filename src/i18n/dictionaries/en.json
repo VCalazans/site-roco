@@ -1651,7 +1651,24 @@
           "actions": "Actions"
         },
         "assignRole": "Assign profile",
-        "removeRole": "Remove profile"
+        "removeRole": "Remove profile",
+        "invite": {
+          "open": "Invite user",
+          "title": "Invite a user to the portal",
+          "description": "The person receives an e-mail to set their own password (the link is valid for 72 hours). You never set or see anyone's password.",
+          "name": "Name",
+          "email": "E-mail",
+          "role": "Role",
+          "submit": "Send invitation",
+          "sending": "Sending…",
+          "cancel": "Cancel",
+          "sent": "Invitation sent to {email}.",
+          "notConfigured": "User created, but the e-mail was not sent: e-mail delivery (SMTP) is not configured in this environment.",
+          "failed": "User created, but the e-mail failed. Use \"Resend invitation\" in the list.",
+          "pending": "Invitation pending",
+          "resend": "Resend invitation",
+          "resent": "Invitation resent."
+        }
       },
       "errors": {
         "selfLockout": "This change would remove your own access to this screen.",
@@ -2228,6 +2245,13 @@
       "button": "Not me — reset password",
       "note": "If it wasn't you, reset your password now and let the ROCO team know.",
       "ignore": "If it was you, there's nothing else to do."
+    },
+    "invite": {
+      "subject": "Your access to the ROCO Portal",
+      "intro": "You have been invited to the ROCO Portal. To sign in, set your password with the button below.",
+      "button": "Set my password",
+      "note": "The link is valid for 72 hours and can be used only once. Then sign in to the portal with this e-mail and the password you created.",
+      "ignore": "If you were not expecting this invitation, ignore this e-mail."
     }
   },
   "about": {
