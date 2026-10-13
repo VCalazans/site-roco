@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { absoluteUrl, LOCALE_LANGUAGE_TAGS } from "@/core/config/metadata";
 import {
   ABOUT_SEGMENT,
+  ASK_AI_SEGMENT,
+  COOKIES_SEGMENT,
+  PRIVACY_SEGMENT,
+  TERMS_SEGMENT,
   CATALOG_SEGMENT,
   CONTACT_SEGMENT,
   PRODUCTS_SEGMENT,
@@ -53,6 +57,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...localized(`/${CATALOG_SEGMENT}`, { changeFrequency: "monthly", priority: 0.6 }),
     ...localized(`/${REPRESENTATIVES_SEGMENT}`, { changeFrequency: "monthly", priority: 0.6 }),
     ...localized(`/${CONTACT_SEGMENT}`, { changeFrequency: "monthly", priority: 0.6 }),
+    ...localized(`/${ASK_AI_SEGMENT}`, { changeFrequency: "monthly", priority: 0.5 }),
+    ...localized(`/${PRIVACY_SEGMENT}`, { changeFrequency: "yearly", priority: 0.3 }),
+    ...localized(`/${TERMS_SEGMENT}`, { changeFrequency: "yearly", priority: 0.3 }),
+    ...localized(`/${COOKIES_SEGMENT}`, { changeFrequency: "yearly", priority: 0.3 }),
   ];
 
   try {

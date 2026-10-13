@@ -57,6 +57,28 @@ export function aboutPath(locale: string): string {
   return `/${locale}/${ABOUT_SEGMENT}`;
 }
 
+/** Página "Tire dúvidas com IA" (spec 003) e páginas legais — mesmo segmento nos dois idiomas. */
+export const ASK_AI_SEGMENT = "ia";
+export const PRIVACY_SEGMENT = "privacidade";
+export const TERMS_SEGMENT = "termos";
+export const COOKIES_SEGMENT = "cookies";
+
+export function askAiPath(locale: string): string {
+  return `/${locale}/${ASK_AI_SEGMENT}`;
+}
+
+export function privacyPath(locale: string): string {
+  return `/${locale}/${PRIVACY_SEGMENT}`;
+}
+
+export function termsPath(locale: string): string {
+  return `/${locale}/${TERMS_SEGMENT}`;
+}
+
+export function cookiesPath(locale: string): string {
+  return `/${locale}/${COOKIES_SEGMENT}`;
+}
+
 /** Route segment of the public contact page. */
 export const CONTACT_SEGMENT = "contato";
 
@@ -242,6 +264,14 @@ function resolveHref(href: string, locale: string): string {
     // âncora da seção "Quem é a ROCO" na própria home.
     case "/sobre":
       return aboutPath(locale);
+    case "/ia":
+      return askAiPath(locale);
+    case "/privacidade":
+      return privacyPath(locale);
+    case "/termos":
+      return termsPath(locale);
+    case "/cookies":
+      return cookiesPath(locale);
     default:
       return href;
   }

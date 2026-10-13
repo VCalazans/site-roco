@@ -2,7 +2,7 @@ import "server-only";
 import Image from "next/image";
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { resolveDestination } from "@/core/config/site";
+import { cookiesPath, privacyPath, resolveDestination, termsPath } from "@/core/config/site";
 import { getContactInfo, getSocialLinks } from "@/server/lib/site-settings";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/get-dictionary";
@@ -347,12 +347,39 @@ export async function SiteFooter({ content, brand, locale }: SiteFooterProps) {
           </ul>
         </div>
 
-        <div className="border-t border-white/10 pt-6">
+        <div className="flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between">
           {/* Teto de medida também aqui: hoje a linha mede 412px a 12px (pt) e
               nunca chega perto de encher o container, mas é a única faixa do
               rodapé de largura total — se a copy legal crescer (CNPJ, endereço
               registral), sem teto ela viraria uma linha de 1280px. */}
           <p className="max-w-3xl text-micro text-white/60">{content.rights}</p>
+          {/* Links legais (LGPD) — em toda página pública. */}
+          <nav aria-label={content.legal.legalLabel}>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2">
+              {[
+                { href: privacyPath(locale), label: content.legal.privacy },
+                { href: termsPath(locale), label: content.legal.terms },
+                { href: cookiesPath(locale), label: content.legal.cookies },
+              ].map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className="text-micro text-white/60 transition hover:text-neon-cyan-bright">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <p className="text-micro text-white/60">
+            {content.legal.credit}{" "}
+            <a
+              href="https://archicode.com.br"
+              target="_blank"
+              rel="noopener"
+              className="font-semibold text-white/80 transition hover:text-neon-amber-bright"
+            >
+              {content.legal.creditName}
+            </a>
+          </p>
         </div>
       </div>
     </footer>

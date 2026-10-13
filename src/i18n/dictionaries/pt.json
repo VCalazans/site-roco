@@ -321,6 +321,10 @@
             "href": "/sobre"
           },
           {
+            "label": "Tire dúvidas com IA",
+            "href": "/ia"
+          },
+          {
             "label": "Portal ROCO",
             "href": "/representantes"
           }
@@ -362,6 +366,15 @@
           "alt": "Selo Great Place To Work Certificada, fevereiro de 2026 a fevereiro de 2027, Brasil"
         }
       ]
+    },
+    "legal": {
+      "askAi": "Tire dúvidas com IA",
+      "privacy": "Política de privacidade",
+      "terms": "Termos de uso",
+      "cookies": "Política de cookies",
+      "legalLabel": "Informações legais",
+      "credit": "Desenvolvido por",
+      "creditName": "Archicode"
     }
   },
   "languageSwitcher": {
@@ -2258,6 +2271,410 @@
     "mcp": {
       "instructions": "Servidor oficial e somente leitura da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (Blumenau e Gaspar, SC). Use buscar_produtos e obter_produto para dados do catálogo; a ROCO não divulga preços — para comprar, indique a página de orçamento/contato que as ferramentas devolvem.",
       "description": "Catálogo oficial da ROCO (hidrossanitários, hidráulica, conexões, gás e flexíveis): empresa, categorias, produtos, embalagens e como comprar."
+    }
+  },
+  "askAi": {
+    "seo": {
+      "title": "Tire dúvidas sobre os produtos ROCO com IA",
+      "description": "Pergunte ao ChatGPT, ao Claude ou ao Perplexity sobre os produtos da ROCO, com as informações oficiais do catálogo, e monte seu pedido de orçamento."
+    },
+    "breadcrumb": "Tire dúvidas com IA",
+    "eyebrow": "Assistente de IA",
+    "headline": "Tire dúvidas sobre os produtos ROCO na sua IA",
+    "intro": "Escolha o assistente que você já usa. Ele abre com a pergunta pronta e consulta as informações oficiais do catálogo da ROCO. Você pode editar a pergunta antes de enviar.",
+    "askTitle": "Pergunte agora",
+    "askHint": "Abre em uma nova aba, com a pergunta já escrita.",
+    "newTab": "(abre em nova aba)",
+    "assistants": {
+      "chatgpt": "Perguntar ao ChatGPT",
+      "claude": "Perguntar ao Claude",
+      "perplexity": "Perguntar ao Perplexity"
+    },
+    "prompts": {
+      "general": "Quero tirar dúvidas sobre os produtos da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (site oficial: {siteUrl}). Use as informações oficiais publicadas em {llmsUrl}. Minha dúvida é: ",
+      "product": "Quero tirar dúvidas sobre o produto \"{name}\" (código {sku}) da ROCO: {productUrl}. Use as informações oficiais do site da ROCO. Minha dúvida é: "
+    },
+    "examplesTitle": "Exemplos do que perguntar",
+    "examples": [
+      "Qual flexível para gás da ROCO serve para o meu fogão?",
+      "Quais reparos a ROCO tem para caixa acoplada?",
+      "Quais embalagens existem para este produto e qual o código EAN?",
+      "Monte uma lista de produtos para a reforma de um banheiro e me passe os links para pedir orçamento."
+    ],
+    "quoteTitle": "E o orçamento?",
+    "quoteBody": "A IA pode sugerir produtos e montar uma lista com os links. Quem envia o pedido é você: abra cada produto, toque em \"Adicionar ao orçamento\" e envie em Meu orçamento. Assim seus dados vão direto para a ROCO.",
+    "quoteCta": "Ir para Meu orçamento",
+    "contactCta": "Falar com o time comercial",
+    "connectTitle": "Usa ChatGPT ou Claude no dia a dia? Conecte o catálogo da ROCO",
+    "connectIntro": "Com o catálogo conectado, o assistente consulta os produtos oficiais da ROCO sempre que você perguntar, sem precisar colar links. É gratuito e não pede login.",
+    "urlLabel": "Endereço do conector da ROCO",
+    "copy": "Copiar endereço",
+    "copied": "Endereço copiado",
+    "claude": {
+      "title": "No Claude",
+      "steps": [
+        "Abra as configurações e vá em Conectores.",
+        "Escolha Adicionar conector personalizado.",
+        "Use o nome ROCO e cole o endereço acima.",
+        "Em autenticação, escolha a opção sem login e confirme."
+      ],
+      "help": "Ajuda do Claude sobre conectores"
+    },
+    "chatgpt": {
+      "title": "No ChatGPT",
+      "steps": [
+        "Nas configurações, em Apps e conectores, ative o modo desenvolvedor (disponível em alguns planos pagos).",
+        "Crie um conector com o nome ROCO e cole o endereço acima.",
+        "Em autenticação, escolha a opção sem autenticação e confirme.",
+        "Na conversa, ative o conector ROCO antes de perguntar."
+      ]
+    },
+    "privacyNote": "ChatGPT, Claude e Perplexity são serviços de outras empresas, com políticas próprias. Não compartilhe dados pessoais ou informações sigilosas nas conversas.",
+    "privacyLink": "Política de privacidade da ROCO",
+    "productCta": "Tirar dúvida com IA"
+  },
+  "legal": {
+    "common": {
+      "updatedLabel": "Última atualização:",
+      "updatedDate": "13 de outubro de 2026",
+      "tocLabel": "Nesta página",
+      "contactTitle": "Dúvidas sobre estes textos",
+      "contactBody": "Para dúvidas, pedidos e comentários sobre estas páginas, escreva para {email}.",
+      "addressFallback": "na matriz em Blumenau, Santa Catarina"
+    },
+    "privacy": {
+      "seo": {
+        "title": "Política de Privacidade | ROCO",
+        "description": "Como a ROCO trata seus dados pessoais no site e no Portal ROCO, conforme a LGPD. Direitos do titular e canal de contato."
+      },
+      "title": "Política de Privacidade",
+      "intro": [
+        "Esta política explica quais dados pessoais coletamos quando você usa o site da {company}, como usamos, com quem compartilhamos e quais são os seus direitos, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).",
+        "Para qualquer assunto sobre privacidade, escreva para {email}."
+      ],
+      "sections": [
+        {
+          "id": "controlador",
+          "heading": "Quem trata seus dados",
+          "paragraphs": [
+            "A controladora é a {company}, fabricante de soluções hidrossanitárias e hidráulicas, com matriz em {address} e unidade fabril em Gaspar/SC. Site: {siteUrl}."
+          ],
+          "items": []
+        },
+        {
+          "id": "dados-coletados",
+          "heading": "Quais dados coletamos",
+          "paragraphs": [
+            "Coletamos os dados que você informa nos formulários e alguns dados técnicos gerados pela navegação."
+          ],
+          "items": [
+            "Formulários de contato, orçamento e catálogo: nome, e-mail, telefone, empresa (opcional), CNPJ (opcional), assunto, mensagem (opcional) e produtos de interesse.",
+            "Registro do consentimento: a confirmação marcada no formulário, com data e hora.",
+            "Dados técnicos do envio: endereço IP, idioma do site, a seção do site de onde você veio e parâmetros de campanha (UTM).",
+            "Pré-cadastro de representantes: nome, e-mail, telefone, CNPJ, razão social e senha. A senha é guardada apenas como código protegido (hash).",
+            "Depois do pré-cadastro: área de atuação (estados, regiões ou cidades) e os documentos que você enviar."
+          ]
+        },
+        {
+          "id": "finalidades",
+          "heading": "Para que usamos seus dados",
+          "paragraphs": [],
+          "items": [
+            "Responder seu contato e seu pedido de orçamento.",
+            "Enviar o catálogo solicitado.",
+            "Fazer contato comercial relacionado ao seu pedido.",
+            "Analisar pré-cadastros de representantes comerciais, incluindo a confirmação do e-mail e a aprovação pela equipe da ROCO.",
+            "Proteger o site contra abuso, robôs e tentativas de acesso indevido.",
+            "Cumprir obrigações legais e regulatórias."
+          ]
+        },
+        {
+          "id": "base-legal",
+          "heading": "Bases legais",
+          "paragraphs": [
+            "Tratamos dados pessoais com base no seu consentimento, quando você marca a opção no formulário; em procedimentos preliminares a seu pedido, como o envio de orçamento e de catálogo; no cumprimento de obrigação legal ou regulatória; e no interesse legítimo de proteger o site contra abuso.",
+            "Você pode retirar o consentimento a qualquer momento. A retirada não afeta o tratamento feito antes dela."
+          ],
+          "items": []
+        },
+        {
+          "id": "compartilhamento",
+          "heading": "Com quem compartilhamos",
+          "paragraphs": [
+            "Não vendemos dados pessoais. Compartilhamos os dados apenas com quem é necessário para as finalidades desta política:"
+          ],
+          "items": [
+            "RD Station, plataforma de CRM e automação de marketing, que recebe os contatos e pedidos enviados pelo site.",
+            "E-mail do time comercial da ROCO, quando o envio de notificações estiver configurado.",
+            "Cloudflare, que presta serviços de rede, firewall, limite de requisições e verificação anti-robô (Turnstile).",
+            "Autoridades públicas, quando exigido por lei ou ordem legal."
+          ]
+        },
+        {
+          "id": "transferencia-internacional",
+          "heading": "Transferência internacional",
+          "paragraphs": [
+            "Alguns fornecedores, como a Cloudflare, podem tratar dados fora do Brasil. Nesses casos, a transferência segue as hipóteses e as salvaguardas previstas na LGPD."
+          ],
+          "items": []
+        },
+        {
+          "id": "retencao",
+          "heading": "Por quanto tempo guardamos",
+          "paragraphs": [
+            "Mantemos os dados pelo tempo necessário à finalidade para a qual foram coletados, e pelo tempo necessário para cumprir obrigações legais e regulatórias e para exercer direitos.",
+            "Pré-cadastros de representantes que não confirmam o e-mail em 7 dias são apagados automaticamente. Links de confirmação e de redefinição de senha guardam apenas um código protegido (hash) e são apagados 30 dias depois de usados ou vencidos."
+          ],
+          "items": []
+        },
+        {
+          "id": "portal-e-representantes",
+          "heading": "Portal ROCO e contas",
+          "paragraphs": [
+            "Quem tem conta no Portal ROCO entra com e-mail e senha. A senha é guardada como código protegido (hash), e o acesso fica em uma sessão controlada por cookie.",
+            "A redefinição de senha é feita por link enviado ao e-mail cadastrado. Ações no portal, como alterações de cadastro, aprovações e acessos a materiais, ficam em registro de auditoria com usuário, ação, data e, em alguns casos, endereço IP.",
+            "Arquivos enviados por representantes ficam em armazenamento privado, sem acesso público."
+          ],
+          "items": []
+        },
+        {
+          "id": "cookies",
+          "heading": "Cookies e tecnologias semelhantes",
+          "paragraphs": [
+            "Usamos cookies e o armazenamento do navegador para o funcionamento do site, para lembrar preferências, para medição e para segurança. Os detalhes estão na Política de Cookies."
+          ],
+          "items": []
+        },
+        {
+          "id": "seguranca",
+          "heading": "Segurança",
+          "paragraphs": [
+            "Adotamos medidas técnicas e administrativas razoáveis para proteger os dados contra acesso não autorizado, perda e uso indevido. O site usa HTTPS, a proteção de borda da Cloudflare, verificação anti-robô e limite de tentativas por endereço IP.",
+            "Nenhum sistema está imune a falhas. Se ocorrer incidente que possa acarretar risco relevante, comunicaremos os titulares e a Autoridade Nacional de Proteção de Dados (ANPD), nos termos da lei."
+          ],
+          "items": []
+        },
+        {
+          "id": "direitos",
+          "heading": "Seus direitos",
+          "paragraphs": [
+            "Para exercer qualquer direito previsto no art. 18 da LGPD, escreva para {email}. Você pode pedir:",
+            "Você também pode apresentar reclamação à Autoridade Nacional de Proteção de Dados (ANPD)."
+          ],
+          "items": [
+            "confirmação de que tratamos seus dados e acesso a eles;",
+            "correção de dados incompletos, inexatos ou desatualizados;",
+            "anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desacordo com a lei;",
+            "portabilidade a outro fornecedor, nos termos da regulamentação;",
+            "informação sobre as entidades com as quais compartilhamos seus dados;",
+            "revogação do consentimento;",
+            "oposição a tratamento realizado sem consentimento, quando a lei permitir."
+          ]
+        },
+        {
+          "id": "menores",
+          "heading": "Menores de idade",
+          "paragraphs": [
+            "O site não é direcionado a menores de 18 anos e não coletamos dados de menores de forma intencional. Se você percebeu que um menor enviou dados, escreva para {email}."
+          ],
+          "items": []
+        },
+        {
+          "id": "alteracoes",
+          "heading": "Alterações desta política",
+          "paragraphs": [
+            "Podemos atualizar esta política. A versão vigente é sempre a publicada nesta página, com a data de atualização no topo."
+          ],
+          "items": []
+        }
+      ]
+    },
+    "terms": {
+      "seo": {
+        "title": "Termos de Uso | ROCO",
+        "description": "Regras de uso do site da ROCO, do Portal ROCO e do catálogo, incluindo orçamentos, propriedade intelectual e uso por sistemas automatizados."
+      },
+      "title": "Termos de Uso",
+      "intro": [
+        "Ao acessar o site da {company}, em {siteUrl}, você concorda com estes termos. Se não concordar, não use o site."
+      ],
+      "sections": [
+        {
+          "id": "aceitacao",
+          "heading": "Aceitação",
+          "paragraphs": [
+            "Estes Termos de Uso regulam o acesso e o uso do site da {company} e do Portal ROCO. Ao usar o site, você declara que leu e concorda com eles. Podemos alterá-los, na forma da seção de alterações."
+          ],
+          "items": []
+        },
+        {
+          "id": "sobre-o-site",
+          "heading": "O que é o site",
+          "paragraphs": [
+            "O site apresenta a ROCO, seus produtos e seus canais de contato. Ele não vende produtos e não exibe preços. Oferece catálogo de produtos, pedido de orçamento, contato, download de catálogo e pré-cadastro de representantes comerciais."
+          ],
+          "items": []
+        },
+        {
+          "id": "informacoes-produtos",
+          "heading": "Informações e imagens de produtos",
+          "paragraphs": [
+            "As descrições, especificações e imagens dos produtos são ilustrativas e podem mudar sem aviso prévio. Para dados técnicos e instruções de uso, consulte a documentação técnica ou fale com a equipe da ROCO."
+          ],
+          "items": []
+        },
+        {
+          "id": "orcamento",
+          "heading": "Pedido de orçamento",
+          "paragraphs": [
+            "Um pedido de orçamento feito pelo site não é proposta, oferta nem contrato. Ele só gera compromisso após confirmação por escrito da ROCO, com as condições comerciais definidas nessa confirmação.",
+            "Enviar uma lista de produtos não reserva estoque."
+          ],
+          "items": []
+        },
+        {
+          "id": "propriedade-intelectual",
+          "heading": "Propriedade intelectual",
+          "paragraphs": [
+            "A marca ROCO, os logotipos, textos, fotos, imagens, vídeos e demais conteúdos do site são protegidos pela legislação de propriedade intelectual e pertencem à ROCO ou são usados com autorização.",
+            "Você pode navegar pelo site e imprimir conteúdos para uso pessoal ou para avaliar uma compra. Não é permitido copiar, reproduzir, modificar ou redistribuir o conteúdo para fins comerciais sem autorização por escrito."
+          ],
+          "items": []
+        },
+        {
+          "id": "portal-roco",
+          "heading": "Portal ROCO",
+          "paragraphs": [
+            "O acesso ao Portal ROCO depende de aprovação pela equipe da ROCO. Suas credenciais são pessoais e intransferíveis: você é responsável pelo uso da sua conta e deve avisar a ROCO se perceber acesso indevido.",
+            "Os materiais, produtos e imagens disponibilizados no portal são para uso comercial autorizado pela ROCO. A ROCO pode suspender ou encerrar contas que descumpram estes termos."
+          ],
+          "items": [
+            "Não é permitido redistribuir esses materiais a terceiros não autorizados."
+          ]
+        },
+        {
+          "id": "uso-por-ia-automacoes",
+          "heading": "Uso por IAs e automações",
+          "paragraphs": [
+            "O catálogo público pode ser consultado por sistemas automatizados, pelo servidor MCP e pelo arquivo llms.txt, apenas com dados públicos de produtos. Esse uso deve respeitar os limites de uso do site, e não é permitido:"
+          ],
+          "items": [
+            "sobrecarregar o site ou interferir no seu funcionamento;",
+            "burlar medidas de segurança, verificações anti-robô ou limites de uso;",
+            "usar o conteúdo para fins ilícitos ou para enganar consumidores."
+          ]
+        },
+        {
+          "id": "links-de-terceiros",
+          "heading": "Links de terceiros",
+          "paragraphs": [
+            "O site pode conter links para sites de terceiros, como o catálogo online e as redes sociais. Não controlamos esses sites e não respondemos pelo seu conteúdo nem pelas suas práticas."
+          ],
+          "items": []
+        },
+        {
+          "id": "responsabilidade",
+          "heading": "Responsabilidade",
+          "paragraphs": [
+            "Empregamos cuidado para manter as informações do site corretas e atualizadas, mas podem ocorrer erros, indisponibilidades ou atrasos.",
+            "Na medida permitida pela lei, a ROCO não responde por danos decorrentes do uso do site, de informações desatualizadas ou de falhas fora do seu controle. Nada nestes termos limita direitos que o Código de Defesa do Consumidor (Lei 8.078/1990) garante ao consumidor."
+          ],
+          "items": []
+        },
+        {
+          "id": "alteracoes",
+          "heading": "Alterações dos termos",
+          "paragraphs": [
+            "Podemos alterar estes termos. A versão vigente é a publicada nesta página, com a data de atualização. Ao continuar usando o site após uma alteração, você concorda com a versão nova."
+          ],
+          "items": []
+        },
+        {
+          "id": "lei-e-foro",
+          "heading": "Lei aplicável e foro",
+          "paragraphs": [
+            "Estes termos são regidos pelas leis brasileiras, incluindo o Marco Civil da Internet (Lei 12.965/2014). Fica eleito o foro da comarca da sede da ROCO para eventuais disputas, ressalvados os direitos do consumidor, que podem ser exercidos no foro de seu domicílio, conforme a lei."
+          ],
+          "items": []
+        }
+      ]
+    },
+    "cookies": {
+      "seo": {
+        "title": "Política de Cookies | ROCO",
+        "description": "Quais cookies e armazenamentos o site da ROCO usa, para que servem, quanto tempo ficam gravados e como gerenciá-los no seu navegador."
+      },
+      "title": "Política de Cookies",
+      "intro": [
+        "Esta política explica o que são cookies e tecnologias semelhantes, quais usamos no site {siteUrl} e como você pode gerenciá-los."
+      ],
+      "sections": [
+        {
+          "id": "o-que-sao",
+          "heading": "O que são cookies",
+          "paragraphs": [
+            "Cookies são pequenos arquivos que um site grava no navegador para lembrar informações, como o idioma escolhido ou uma sessão de login. Também usamos o armazenamento local do navegador (localStorage), que funciona de forma parecida."
+          ],
+          "items": []
+        },
+        {
+          "id": "categorias",
+          "heading": "Categorias",
+          "paragraphs": [
+            "Os cookies e o armazenamento do site se dividem em quatro categorias:"
+          ],
+          "items": [
+            "Necessários: indispensáveis para o site e o Portal ROCO funcionarem, como a sessão de login.",
+            "Preferências: lembram escolhas como o idioma e a lista de orçamento.",
+            "Marketing e medição: ajudam a entender a origem de contatos e campanhas e exibem comunicações do RD Station.",
+            "Segurança: protegem formulários e o login contra robôs e uso abusivo."
+          ]
+        },
+        {
+          "id": "cookies-usados",
+          "heading": "Cookies e armazenamento usados pelo site",
+          "paragraphs": [
+            "Esta é a lista atual:"
+          ],
+          "items": [
+            "NEXT_LOCALE (preferências): guarda o idioma escolhido. Duração: 30 dias.",
+            "roco_utm (marketing e medição): guarda os parâmetros de campanha (UTM) da visita que trouxe você ao site, para registrar a origem dos contatos. Não contém dado pessoal. Duração: 30 dias. Não é acessível a scripts da página (httpOnly).",
+            "Sessão do Portal ROCO (necessários): mantém você conectado. É gravado apenas para quem faz login, com validade de até 8 horas.",
+            "roco_cart_v1 (preferências, armazenamento local): guarda a lista de produtos do orçamento no seu navegador. Permanece até você remover os itens ou limpar os dados do site no navegador.",
+            "Cloudflare e Turnstile (segurança): ajudam a identificar tráfego automatizado e a proteger formulários e login. Duração definida pelo fornecedor.",
+            "RD Station (marketing e medição): script de rastreamento e pop-ups, com cookies próprios do RD. Duração definida pelo fornecedor."
+          ]
+        },
+        {
+          "id": "terceiros",
+          "heading": "Cookies de terceiros",
+          "paragraphs": [
+            "O RD Station grava cookies próprios ao carregar seu script de rastreamento e seus pop-ups, inclusive o botão de WhatsApp.",
+            "O vídeo da página inicial pode vir do YouTube em modo de privacidade aprimorada (youtube-nocookie.com). Ao reproduzi-lo, o YouTube pode definir cookies conforme a política dele.",
+            "A Cloudflare e o Turnstile também podem definir cookies de segurança. Esses cookies são controlados pelos respectivos fornecedores."
+          ],
+          "items": []
+        },
+        {
+          "id": "gerenciar",
+          "heading": "Como gerenciar",
+          "paragraphs": [
+            "Você pode aceitar, recusar ou apagar cookies pelas configurações do seu navegador. Os menus variam conforme o navegador.",
+            "Para remover a lista de orçamento, use a própria página de orçamento ou limpe os dados do site no navegador. Para os cookies do RD Station, consulte as opções de privacidade do próprio RD."
+          ],
+          "items": []
+        },
+        {
+          "id": "consequencias",
+          "heading": "O que acontece se você bloquear",
+          "paragraphs": [
+            "Bloquear os cookies necessários pode impedir o login no Portal ROCO e o envio de formulários protegidos pela verificação anti-robô.",
+            "Bloquear os cookies de preferências faz o site esquecer o idioma e a lista de orçamento.",
+            "Bloquear os cookies de marketing e medição não afeta o uso do site, mas deixa de registrar a origem das campanhas."
+          ],
+          "items": []
+        }
+      ]
     }
   }
 }

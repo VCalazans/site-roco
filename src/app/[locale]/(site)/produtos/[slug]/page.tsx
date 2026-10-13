@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ProductDetailView } from "@/modules/products/components/product-detail-view";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { buildAlternates, DEFAULT_OG_IMAGE } from "@/core/config/metadata";
+import { absoluteUrl, buildAlternates, DEFAULT_OG_IMAGE } from "@/core/config/metadata";
+import { interpolate } from "@/shared/lib/interpolate";
 import { PRODUCTS_SEGMENT, productsPath } from "@/core/config/site";
 import { buildBreadcrumbList, buildProduct } from "@/modules/ai/lib/json-ld";
 import { JsonLd } from "@/shared/components/seo/json-ld";
@@ -131,6 +132,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
       products={products}
       cart={cart}
       relatedCarouselLabels={home.featured.carousel}
+      askAi={{
+        prompt: interpolate(dictionary.askAi.prompts.product, {
+          name,
+          sku: product.sku,
+          productUrl: absoluteUrl(productPath),
+        }),
+        copy: dictionary.askAi,
+      }}
     />
     </>
   );

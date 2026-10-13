@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AskAiLinks } from "@/modules/ai/components/ask-ai-links";
 import Link from "next/link";
 import { ChevronRight, Layers, Package, Shapes, ShoppingBag, type LucideIcon } from "lucide-react";
 import { productsPath } from "@/core/config/site";
@@ -37,6 +38,8 @@ type ProductDetailViewProps = {
   products: Dictionary["products"];
   cart: Dictionary["cart"];
   relatedCarouselLabels: { prev: string; next: string };
+  /** "Tirar dúvida com IA" — pergunta pronta sobre este produto (spec 003). */
+  askAi?: { prompt: string; copy: Pick<Dictionary["askAi"], "assistants" | "newTab" | "productCta"> };
 };
 
 /**
@@ -56,6 +59,7 @@ export function ProductDetailView({
   products,
   cart,
   relatedCarouselLabels,
+  askAi,
 }: ProductDetailViewProps) {
   const { detail } = products;
   const name = locale === "en" && product.nameEn ? product.nameEn : product.namePt;
@@ -242,6 +246,12 @@ export function ProductDetailView({
                 />
                 <QuoteCtaButton label={detail.quoteCta} locale={locale} productSlug={product.slug} />
               </div>
+              {askAi ? (
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-meta font-semibold text-white/80">{askAi.copy.productCta}</p>
+                  <AskAiLinks prompt={askAi.prompt} copy={askAi.copy} size="sm" className="mt-3" />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

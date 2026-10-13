@@ -16,6 +16,9 @@ Decisões D1–D7 em `decisionLog.md` (2026-10-13).
 - **Google Analytics**: não há GA4/GTM no site nem no repositório (conferido em 2026-10-13). O stakeholder quer GA e
   configurações de rastreamento; falta o ID de medição (`G-…`) da conta da ROCO e a decisão de consentimento (LGPD).
 
+- **Páginas legais e IA para clientes (2026-10-13)**: `/privacidade`, `/termos`, `/cookies` (texto a revisar pelo jurídico
+  da ROCO — ver decisionLog), `/ia` ("Tire dúvidas com IA"), atalho no produto e crédito da Archicode no rodapé.
+
 ## Decisões Recentes
 - 2026-10-13: D1 bots de IA liberados (inclusive treinamento); D2 CNPJ fora até confirmação; D3 homônimo citado; D4 FAQ
   adiada; D5 llms só em pt; D6 WebMCP agora; D7 `?category=` indexável sem rota nova.

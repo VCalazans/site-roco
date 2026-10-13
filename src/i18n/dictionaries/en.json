@@ -321,6 +321,10 @@
             "href": "/sobre"
           },
           {
+            "label": "Ask AI",
+            "href": "/ia"
+          },
+          {
             "label": "ROCO Portal",
             "href": "/representantes"
           }
@@ -362,6 +366,15 @@
           "alt": "Great Place To Work Certified badge, February 2026 to February 2027, Brazil"
         }
       ]
+    },
+    "legal": {
+      "askAi": "Ask AI",
+      "privacy": "Privacy policy",
+      "terms": "Terms of use",
+      "cookies": "Cookie policy",
+      "legalLabel": "Legal information",
+      "credit": "Developed by",
+      "creditName": "Archicode"
     }
   },
   "languageSwitcher": {
@@ -2258,6 +2271,410 @@
     "mcp": {
       "instructions": "Official, read-only server of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (Blumenau and Gaspar, Brazil). Use buscar_produtos and obter_produto for catalog data; ROCO does not publish prices — to buy, point to the quote/contact page returned by the tools.",
       "description": "ROCO official catalog (plumbing, hydraulics, fittings, gas and flexible hoses): company, categories, products, packaging and how to buy."
+    }
+  },
+  "askAi": {
+    "seo": {
+      "title": "Ask AI about ROCO products",
+      "description": "Ask ChatGPT, Claude or Perplexity about ROCO products using the official catalog information, and build your quote request."
+    },
+    "breadcrumb": "Ask AI",
+    "eyebrow": "AI assistant",
+    "headline": "Ask your AI about ROCO products",
+    "intro": "Pick the assistant you already use. It opens with the question ready and checks ROCO's official catalog information. You can edit the question before sending it.",
+    "askTitle": "Ask now",
+    "askHint": "Opens in a new tab with the question already written.",
+    "newTab": "(opens in a new tab)",
+    "assistants": {
+      "chatgpt": "Ask ChatGPT",
+      "claude": "Ask Claude",
+      "perplexity": "Ask Perplexity"
+    },
+    "prompts": {
+      "general": "I have questions about the products of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (official website: {siteUrl}). Use the official information published at {llmsUrl}. My question is: ",
+      "product": "I have questions about the ROCO product \"{name}\" (code {sku}): {productUrl}. Use the official information on ROCO's website. My question is: "
+    },
+    "examplesTitle": "What you can ask",
+    "examples": [
+      "Which ROCO gas hose fits my stove?",
+      "Which repair kits does ROCO have for close-coupled cisterns?",
+      "Which packaging options does this product have, and what is the EAN code?",
+      "Build a product list for a bathroom renovation and give me the links to request a quote."
+    ],
+    "quoteTitle": "What about quotes?",
+    "quoteBody": "The AI can suggest products and build a list with the links. You send the request yourself: open each product, tap \"Add to quote\" and send it from My quote. That way your details go straight to ROCO.",
+    "quoteCta": "Go to My quote",
+    "contactCta": "Talk to the sales team",
+    "connectTitle": "Use ChatGPT or Claude every day? Connect ROCO's catalog",
+    "connectIntro": "With the catalog connected, the assistant checks ROCO's official products whenever you ask, without pasting links. It is free and needs no login.",
+    "urlLabel": "ROCO connector address",
+    "copy": "Copy address",
+    "copied": "Address copied",
+    "claude": {
+      "title": "In Claude",
+      "steps": [
+        "Open settings and go to Connectors.",
+        "Choose Add custom connector.",
+        "Name it ROCO and paste the address above.",
+        "For authentication, choose the no sign-in option and confirm."
+      ],
+      "help": "Claude help on connectors"
+    },
+    "chatgpt": {
+      "title": "In ChatGPT",
+      "steps": [
+        "In settings, under Apps and connectors, turn on developer mode (available on some paid plans).",
+        "Create a connector named ROCO and paste the address above.",
+        "For authentication, choose no authentication and confirm.",
+        "In the chat, turn on the ROCO connector before asking."
+      ]
+    },
+    "privacyNote": "ChatGPT, Claude and Perplexity are services from other companies, with their own policies. Do not share personal or confidential information in the conversations.",
+    "privacyLink": "ROCO privacy policy",
+    "productCta": "Ask AI about this product"
+  },
+  "legal": {
+    "common": {
+      "updatedLabel": "Last updated:",
+      "updatedDate": "October 13, 2026",
+      "tocLabel": "On this page",
+      "contactTitle": "Questions about these texts",
+      "contactBody": "For questions, requests or comments about these pages, write to {email}.",
+      "addressFallback": "at the headquarters in Blumenau, Santa Catarina, Brazil"
+    },
+    "privacy": {
+      "seo": {
+        "title": "Privacy Policy | ROCO",
+        "description": "How ROCO handles your personal data on the website and the ROCO Portal, under Brazil's LGPD. Your rights and privacy contact."
+      },
+      "title": "Privacy Policy",
+      "intro": [
+        "This policy explains which personal data we collect when you use the {company} website, how we use it, with whom we share it and what your rights are, under Brazil's General Data Protection Law (Lei 13.709/2018, LGPD).",
+        "For any privacy matter, write to {email}."
+      ],
+      "sections": [
+        {
+          "id": "controlador",
+          "heading": "Who processes your data",
+          "paragraphs": [
+            "The controller is {company}, a manufacturer of plumbing and hydraulic solutions, headquartered at {address}, with a factory in Gaspar, Santa Catarina, Brazil. Website: {siteUrl}."
+          ],
+          "items": []
+        },
+        {
+          "id": "dados-coletados",
+          "heading": "What data we collect",
+          "paragraphs": [
+            "We collect the data you enter in our forms and some technical data generated while you browse."
+          ],
+          "items": [
+            "Contact, quote and catalog forms: name, email, phone, company (optional), company tax ID / CNPJ (optional), subject, message (optional) and products of interest.",
+            "Consent record: the confirmation you ticked in the form, with date and time.",
+            "Technical data of the submission: IP address, website language, the website section you came from and campaign parameters (UTM).",
+            "Sales representative pre-registration: name, email, phone, CNPJ, legal company name and password. The password is stored only as a protected code (hash).",
+            "After pre-registration: service area (states, regions or cities) and the documents you upload."
+          ]
+        },
+        {
+          "id": "finalidades",
+          "heading": "What we use your data for",
+          "paragraphs": [],
+          "items": [
+            "Replying to your contact and quote request.",
+            "Sending the catalog you requested.",
+            "Following up commercially on your request.",
+            "Reviewing sales representative pre-registrations, including email confirmation and approval by the ROCO team.",
+            "Protecting the website against abuse, bots and improper access attempts.",
+            "Complying with legal and regulatory obligations."
+          ]
+        },
+        {
+          "id": "base-legal",
+          "heading": "Legal bases",
+          "paragraphs": [
+            "We process personal data based on your consent, when you tick the option in a form; on preliminary steps taken at your request, such as sending a quote and a catalog; on compliance with a legal or regulatory obligation; and on our legitimate interest in protecting the website against abuse.",
+            "You may withdraw your consent at any time. Withdrawal does not affect processing carried out before it."
+          ],
+          "items": []
+        },
+        {
+          "id": "compartilhamento",
+          "heading": "Who we share data with",
+          "paragraphs": [
+            "We do not sell personal data. We share data only with those needed for the purposes in this policy:"
+          ],
+          "items": [
+            "RD Station, a CRM and marketing automation platform, which receives the contacts and requests sent through the website.",
+            "The ROCO sales team's email inbox, when notification sending is configured.",
+            "Cloudflare, which provides network services, firewall, request rate limiting and anti-bot verification (Turnstile).",
+            "Public authorities, when required by law or a legal order."
+          ]
+        },
+        {
+          "id": "transferencia-internacional",
+          "heading": "International transfer",
+          "paragraphs": [
+            "Some providers, such as Cloudflare, may process data outside Brazil. In those cases, the transfer follows the cases and safeguards provided for in the LGPD."
+          ],
+          "items": []
+        },
+        {
+          "id": "retencao",
+          "heading": "How long we keep data",
+          "paragraphs": [
+            "We keep data for as long as needed for the purpose for which it was collected, and for as long as needed to comply with legal and regulatory obligations and to exercise rights.",
+            "Representative pre-registrations that do not confirm their email within 7 days are deleted automatically. Confirmation and password reset links store only a protected code (hash) and are deleted 30 days after being used or expiring."
+          ],
+          "items": []
+        },
+        {
+          "id": "portal-e-representantes",
+          "heading": "ROCO Portal and accounts",
+          "paragraphs": [
+            "People with an account on the ROCO Portal sign in with email and password. The password is stored as a protected code (hash), and access is kept in a session controlled by a cookie.",
+            "Password reset is done through a link sent to the registered email. Actions in the portal, such as changes to registrations, approvals and access to materials, are kept in an audit log with the user, the action, the date and, in some cases, the IP address.",
+            "Files uploaded by representatives are kept in private storage, not publicly accessible."
+          ],
+          "items": []
+        },
+        {
+          "id": "cookies",
+          "heading": "Cookies and similar technologies",
+          "paragraphs": [
+            "We use cookies and browser storage to run the website, to remember preferences, for measurement and for security. Details are in the Cookie Policy."
+          ],
+          "items": []
+        },
+        {
+          "id": "seguranca",
+          "heading": "Security",
+          "paragraphs": [
+            "We adopt reasonable technical and administrative measures to protect data against unauthorized access, loss and misuse. The website uses HTTPS, Cloudflare edge protection, anti-bot verification and limits on attempts per IP address.",
+            "No system is immune to failures. If an incident occurs that may cause relevant risk, we will notify the data subjects and Brazil's National Data Protection Authority (ANPD), as the law requires."
+          ],
+          "items": []
+        },
+        {
+          "id": "direitos",
+          "heading": "Your rights",
+          "paragraphs": [
+            "To exercise any right provided for in article 18 of the LGPD, write to {email}. You may ask for:",
+            "You may also file a complaint with Brazil's National Data Protection Authority (ANPD)."
+          ],
+          "items": [
+            "confirmation that we process your data, and access to it;",
+            "correction of incomplete, inaccurate or outdated data;",
+            "anonymization, blocking or deletion of unnecessary data or data processed in breach of the law;",
+            "portability to another provider, under the applicable regulation;",
+            "information about the entities with which we share your data;",
+            "revocation of consent;",
+            "objection to processing carried out without consent, where the law allows it."
+          ]
+        },
+        {
+          "id": "menores",
+          "heading": "Minors",
+          "paragraphs": [
+            "The website is not directed at people under 18 and we do not intentionally collect data from minors. If you believe a minor has sent data, write to {email}."
+          ],
+          "items": []
+        },
+        {
+          "id": "alteracoes",
+          "heading": "Changes to this policy",
+          "paragraphs": [
+            "We may update this policy. The version in force is always the one published on this page, with the update date shown at the top."
+          ],
+          "items": []
+        }
+      ]
+    },
+    "terms": {
+      "seo": {
+        "title": "Terms of Use | ROCO",
+        "description": "Terms of use for the ROCO website, the ROCO Portal and the catalog, including quotes, intellectual property and automated use."
+      },
+      "title": "Terms of Use",
+      "intro": [
+        "By accessing the {company} website at {siteUrl}, you agree to these terms. If you do not agree, do not use the website."
+      ],
+      "sections": [
+        {
+          "id": "aceitacao",
+          "heading": "Acceptance",
+          "paragraphs": [
+            "These Terms of Use govern access to and use of the {company} website and the ROCO Portal. By using the website, you state that you have read them and agree to them. We may change them, as described in the section on changes."
+          ],
+          "items": []
+        },
+        {
+          "id": "sobre-o-site",
+          "heading": "What the website is",
+          "paragraphs": [
+            "The website presents ROCO, its products and its contact channels. It does not sell products and does not display prices. It offers a product catalog, quote requests, contact, catalog download and sales representative pre-registration."
+          ],
+          "items": []
+        },
+        {
+          "id": "informacoes-produtos",
+          "heading": "Product information and images",
+          "paragraphs": [
+            "Product descriptions, specifications and images are for illustration and may change without prior notice. For technical data and instructions for use, consult the technical documentation or contact the ROCO team."
+          ],
+          "items": []
+        },
+        {
+          "id": "orcamento",
+          "heading": "Quote requests",
+          "paragraphs": [
+            "A quote request made through the website is not a proposal, offer or contract. It creates a commitment only after written confirmation by ROCO, with the commercial terms set out in that confirmation.",
+            "Sending a list of products does not reserve stock."
+          ],
+          "items": []
+        },
+        {
+          "id": "propriedade-intelectual",
+          "heading": "Intellectual property",
+          "paragraphs": [
+            "The ROCO brand, logos, texts, photos, images, videos and other website content are protected by intellectual property law and belong to ROCO or are used with authorization.",
+            "You may browse the website and print content for personal use or to evaluate a purchase. Copying, reproducing, modifying or redistributing the content for commercial purposes without written authorization is not allowed."
+          ],
+          "items": []
+        },
+        {
+          "id": "portal-roco",
+          "heading": "ROCO Portal",
+          "paragraphs": [
+            "Access to the ROCO Portal depends on approval by the ROCO team. Your credentials are personal and non-transferable: you are responsible for the use of your account and must tell ROCO if you notice improper access.",
+            "Materials, products and images made available in the portal are for commercial use authorized by ROCO. ROCO may suspend or close accounts that breach these terms."
+          ],
+          "items": [
+            "Redistributing these materials to unauthorized third parties is not allowed."
+          ]
+        },
+        {
+          "id": "uso-por-ia-automacoes",
+          "heading": "Use by AI and automated systems",
+          "paragraphs": [
+            "The public catalog may be accessed by automated systems, by the MCP server and by the llms.txt file, only with public product data. This use must respect the website's usage limits, and the following are not allowed:"
+          ],
+          "items": [
+            "overloading the website or interfering with its operation;",
+            "bypassing security measures, anti-bot checks or usage limits;",
+            "using the content for unlawful purposes or to mislead consumers."
+          ]
+        },
+        {
+          "id": "links-de-terceiros",
+          "heading": "Third-party links",
+          "paragraphs": [
+            "The website may contain links to third-party sites, such as the online catalog and social networks. We do not control those sites and are not responsible for their content or practices."
+          ],
+          "items": []
+        },
+        {
+          "id": "responsabilidade",
+          "heading": "Liability",
+          "paragraphs": [
+            "We take care to keep the website information accurate and up to date, but errors, unavailability or delays may occur.",
+            "To the extent permitted by law, ROCO is not liable for damages arising from use of the website, outdated information or failures outside its control. Nothing in these terms limits rights that the Consumer Protection Code (Lei 8.078/1990) grants to consumers."
+          ],
+          "items": []
+        },
+        {
+          "id": "alteracoes",
+          "heading": "Changes to the terms",
+          "paragraphs": [
+            "We may change these terms. The version in force is the one published on this page, with its update date. By continuing to use the website after a change, you agree to the new version."
+          ],
+          "items": []
+        },
+        {
+          "id": "lei-e-foro",
+          "heading": "Governing law and venue",
+          "paragraphs": [
+            "These terms are governed by Brazilian law, including the Brazilian Internet Civil Framework (Lei 12.965/2014). The courts of the district where ROCO's headquarters are located have jurisdiction over any dispute, without prejudice to consumer rights, which may be exercised in the court of the consumer's domicile, as the law provides."
+          ],
+          "items": []
+        }
+      ]
+    },
+    "cookies": {
+      "seo": {
+        "title": "Cookie Policy | ROCO",
+        "description": "Which cookies and browser storage the ROCO website uses, what they are for, how long they last and how to manage them in your browser."
+      },
+      "title": "Cookie Policy",
+      "intro": [
+        "This policy explains what cookies and similar technologies are, which ones we use on {siteUrl} and how you can manage them."
+      ],
+      "sections": [
+        {
+          "id": "o-que-sao",
+          "heading": "What cookies are",
+          "paragraphs": [
+            "Cookies are small files that a website stores in your browser to remember information, such as your chosen language or a login session. We also use the browser's local storage (localStorage), which works in a similar way."
+          ],
+          "items": []
+        },
+        {
+          "id": "categorias",
+          "heading": "Categories",
+          "paragraphs": [
+            "The website's cookies and storage fall into four categories:"
+          ],
+          "items": [
+            "Necessary: essential for the website and the ROCO Portal to work, such as the login session.",
+            "Preferences: remember choices such as language and the quote list.",
+            "Marketing and measurement: help us understand where contacts and campaigns come from, and display RD Station communications.",
+            "Security: protect forms and login against bots and abusive use."
+          ]
+        },
+        {
+          "id": "cookies-usados",
+          "heading": "Cookies and storage used by the website",
+          "paragraphs": [
+            "This is the current list:"
+          ],
+          "items": [
+            "NEXT_LOCALE (preferences): stores the chosen language. Duration: 30 days.",
+            "roco_utm (marketing and measurement): stores the campaign parameters (UTM) of the visit that brought you to the website, to record where contacts come from. It contains no personal data. Duration: 30 days. Not accessible to page scripts (httpOnly).",
+            "ROCO Portal session (necessary): keeps you signed in. Set only for people who sign in, with a validity of up to 8 hours.",
+            "roco_cart_v1 (preferences, local storage): stores the list of products in your quote in your browser. It remains until you remove the items or clear the website data in your browser.",
+            "Cloudflare and Turnstile (security): help identify automated traffic and protect forms and login. Duration set by the provider.",
+            "RD Station (marketing and measurement): tracking script and pop-ups, with RD's own cookies. Duration set by the provider."
+          ]
+        },
+        {
+          "id": "terceiros",
+          "heading": "Third-party cookies",
+          "paragraphs": [
+            "RD Station sets its own cookies when its tracking script and pop-ups load, including the WhatsApp button.",
+            "The home page video may come from YouTube in privacy-enhanced mode (youtube-nocookie.com). When you play it, YouTube may set cookies under its own policy.",
+            "Cloudflare and Turnstile may also set security cookies. These cookies are controlled by their respective providers."
+          ],
+          "items": []
+        },
+        {
+          "id": "gerenciar",
+          "heading": "How to manage them",
+          "paragraphs": [
+            "You can accept, refuse or delete cookies in your browser settings. Menus vary by browser.",
+            "To remove the quote list, use the quote page itself or clear the website data in your browser. For RD Station cookies, see RD's own privacy options."
+          ],
+          "items": []
+        },
+        {
+          "id": "consequencias",
+          "heading": "What happens if you block them",
+          "paragraphs": [
+            "Blocking necessary cookies may prevent signing in to the ROCO Portal and submitting forms protected by anti-bot verification.",
+            "Blocking preference cookies means the website will forget your language and quote list.",
+            "Blocking marketing and measurement cookies does not affect how you use the website, but campaign origins will no longer be recorded."
+          ],
+          "items": []
+        }
+      ]
     }
   }
 }

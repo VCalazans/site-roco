@@ -2284,3 +2284,21 @@ nas URLs de llms e MCP).
 - `public-products.ts` ganhou `getPublicProductBySku`, `getPublicProductIndex` e o campo `ean`.
 - Origens de lead novas: `sobre` e `assistente-ia` (links do MCP e do WebMCP).
 - Não commitado e fora de produção. Pendências em `progress.md` › Em Andamento.
+
+## 2026-10-13 — Páginas legais, "Tire dúvidas com IA" e crédito da Archicode no rodapé
+**Decisão**: (1) Três páginas legais no site público — `/{locale}/privacidade`, `/{locale}/termos`, `/{locale}/cookies` —
+com texto nos dicionários (`legal.*`) escrito a partir do que o site realmente coleta, e marcadores {company}, {address},
+{email} e {siteUrl} preenchidos com os dados do rodapé (`site_settings`). Links na faixa final do rodapé de todas as páginas.
+(2) Página `/{locale}/ia` ("Tire dúvidas com IA") voltada ao CLIENTE: botões que abrem ChatGPT, Claude e Perplexity com a
+pergunta pronta (`?q=`, `src/modules/ai/lib/ask-ai.ts`), explicação de como o orçamento continua sendo enviado pela pessoa
+no site e passo a passo para conectar o catálogo (`/mcp`) no Claude e no ChatGPT. Atalho "Tirar dúvida com IA" no detalhe
+de cada produto, com nome, código e link. (3) "Desenvolvido por Archicode" (link para archicode.com.br) no rodapé.
+**Alternativas**: botões de instalação para Cursor/VS Code/Claude Code — descartados a pedido do stakeholder ("o site não é
+para desenvolvedores"); link que já preenche o conector no Claude/ChatGPT — não existe (conferido na ajuda oficial do Claude
+em 2026-10-13), por isso o passo a passo com botão de copiar.
+**Pontos para revisão jurídica** (os textos não foram revisados por advogado): base legal de interesse legítimo para
+segurança; consentimento do RD Station (o banner próprio segue desligado; o RD tem controle próprio); sessão do portal de
+até 8 h; foro "da comarca da sede da ROCO" sem cidade; retenção só com os prazos que o código tem (7 e 30 dias). CNPJ e
+encarregado (DPO) não aparecem — dependem da ROCO.
+**Impacto**: rotas novas no sitemap; dicionários `askAi`, `legal`, `footer.legal`; teste `ask-ai.test.ts`.
+
