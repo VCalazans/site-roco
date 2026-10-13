@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { signIn } from "@/core/auth";
 import { isGoogleSignInEnabled } from "@/core/auth/google";
 import { isLoginErrorCode } from "@/core/auth/sign-in-errors";
+import { TURNSTILE_TOKEN_FIELD } from "@/shared/lib/turnstile";
 
 /**
  * Contrato acordado com o agente de auth (memory-bank/decisionLog.md,
@@ -48,7 +49,9 @@ export async function loginWithGoogle(callbackUrl?: string): Promise<void> {
  * `AuthError` — devolvemos o usuário à tela de login com `?error=credentials`
  * (mensagem genérica do dicionário; nunca dizemos se foi e-mail ou senha) ou,
  * se a senha conferiu mas o e-mail ainda não foi confirmado,
- * `?error=email_not_verified` (a tela oferece reenviar o link).
+ * `?error=email_not_verified` (a tela oferece reenviar o link). A verificação
+ * anti-robô (Turnstile) recusada volta como `?error=captcha` (ou
+ * `captcha_unavailable`); o token vem do campo oculto do formulário.
  * O `redirect()` do Next lança internamente — precisa ficar FORA do try/catch
  * para não ser engolido como se fosse erro de autenticação.
  */
@@ -58,16 +61,20 @@ export async function loginWithCredentials(
   formData: FormData
 ): Promise<void> {
   const safeLoginPath = isInternalPath(loginPath) ? loginPath : "/pt/portal/login";
+  const turnstileToken = formData.get(TURNSTILE_TOKEN_FIELD);
   try {
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
+      // String vazia quando não veio (o Auth.js serializa `null` como "null").
+      turnstileToken: typeof turnstileToken === "string" ? turnstileToken : "",
       redirectTo: toSafeCallback(callbackUrl),
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      // E-mail não confirmado, muitas tentativas ou limitador fora do ar têm
-      // mensagem própria; o resto (inclusive senha errada) é o erro genérico.
+      // E-mail não confirmado, muitas tentativas, limitador fora do ar e
+      // verificação anti-robô têm mensagem própria; o resto (inclusive senha
+      // errada) é o erro genérico.
       const code =
         error instanceof CredentialsSignin && isLoginErrorCode(error.code) ? error.code : "credentials";
       redirect(`${safeLoginPath}?error=${code}`);

@@ -6,6 +6,7 @@ import MuiLink from "@mui/material/Link";
 import type { Locale } from "@/i18n/config";
 import { ACCOUNT_API } from "@/modules/portal/lib/account-client";
 import type { PortalAccountDictionary } from "@/modules/portal/lib/types";
+import { TURNSTILE_ACTIONS } from "@/shared/lib/turnstile";
 import { AuthCard } from "./auth-card";
 import { EmailLinkRequestForm } from "./email-link-request-form";
 
@@ -28,6 +29,7 @@ export function ForgotPasswordCard({ logoAlt, locale, account, loginHref }: Forg
     >
       <EmailLinkRequestForm
         endpoint={ACCOUNT_API.forgotPassword}
+        captchaAction={TURNSTILE_ACTIONS.passwordReset}
         locale={locale}
         emailLabel={account.emailLabel}
         buttonLabel={copy.button}

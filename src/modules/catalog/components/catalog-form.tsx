@@ -19,8 +19,16 @@ import {
 } from "@/modules/catalog/lib/catalog-form";
 import type { CatalogDictionary } from "@/modules/catalog/lib/types";
 import { HONEYPOT_FIELD } from "@/server/lib/contact-submit";
+import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
 import { formatPhoneBR } from "@/shared/lib/phone";
 import type { LeadOrigin } from "@/shared/lib/lead-origin";
+import {
+  CAPTCHA_ERROR,
+  CAPTCHA_UNAVAILABLE_ERROR,
+  contactTurnstileAction,
+  TURNSTILE_TOKEN_FIELD,
+} from "@/shared/lib/turnstile";
 import type { Locale } from "@/i18n/config";
 
 /** Campanha externa (`utm_*`) lida da URL pelo Server Component. */
@@ -78,6 +86,8 @@ export function CatalogForm({
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
   const [serverError, setServerError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  // Verificação anti-robô: o token vai no corpo e é de uso único.
+  const turnstile = useTurnstile();
 
   const downloadLink = catalogDownloadLink(pdfUrl);
 
@@ -125,6 +135,7 @@ export function CatalogForm({
     const found = validateCatalogForm(form, consent);
     setErrors(found);
     if (hasCatalogFormErrors(found)) return;
+    if (turnstile.pending) return;
 
     setPhase("sending");
     setServerError(null);
@@ -148,6 +159,7 @@ export function CatalogForm({
           locale,
           consent: true,
           [HONEYPOT_FIELD]: honeypot,
+          ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
         }),
       });
 
@@ -180,12 +192,17 @@ export function CatalogForm({
         // pessoa, e chamá-la de repetitiva na primeira tentativa manda o
         // suporte investigar a coisa errada.
         unavailable: content.errors.unavailable,
+        [CAPTCHA_ERROR]: content.errors.captcha,
+        [CAPTCHA_UNAVAILABLE_ERROR]: content.errors.captchaUnavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
     } catch {
       setServerError(content.errors.generic);
       setPhase("idle");
+    } finally {
+      // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+      turnstile.reset();
     }
   }
 
@@ -320,6 +337,13 @@ export function CatalogForm({
       </label>
       {fieldError("consent")}
 
+      <TurnstileField
+        turnstile={turnstile}
+        action={contactTurnstileAction(CATALOG_SUBJECT)}
+        locale={locale}
+        messages={content.errors}
+      />
+
       {serverError ? (
         <div
           role="alert"
@@ -340,7 +364,7 @@ export function CatalogForm({
         </div>
       ) : null}
 
-      <button type="submit" disabled={phase === "sending"} className="btn-neon mt-4 w-full">
+      <button type="submit" disabled={phase === "sending" || turnstile.pending} className="btn-neon mt-4 w-full">
         {phase === "sending" ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />

@@ -19,8 +19,16 @@ import {
 } from "@/db/schema";
 import { emailRateLimitKey } from "@/server/lib/account-tokens";
 import { checkRateLimit, getClientIp, normalizeRateLimitKeyPart } from "@/server/lib/rate-limit";
+import { verifyTurnstile } from "@/server/lib/turnstile";
+import { TURNSTILE_ACTIONS } from "@/shared/lib/turnstile";
 import { isGoogleSignInEnabled } from "./google";
-import { EmailNotVerifiedError, LoginRateLimitedError, LoginUnavailableError } from "./sign-in-errors";
+import {
+  EmailNotVerifiedError,
+  LoginCaptchaError,
+  LoginCaptchaUnavailableError,
+  LoginRateLimitedError,
+  LoginUnavailableError,
+} from "./sign-in-errors";
 
 /** Role com acesso irrestrito — bypassa a checagem granular (ver `rbac.ts`). */
 export const ADMIN_ROLE_SLUG = "admin";
@@ -142,6 +150,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        // Token do Turnstile (verificação anti-robô), vindo do `FormData` do
+        // login — ver `loginWithCredentials`.
+        turnstileToken: {},
       },
       async authorize(credentials, request) {
         const email = typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
@@ -170,6 +181,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         if (!ipRateLimit.allowed || !emailRateLimit.allowed) {
           throw new LoginRateLimitedError();
+        }
+
+        // Anti-robô (Turnstile) depois dos limites e ANTES do banco e do
+        // bcrypt: um robô recusado aqui não custa consulta nem hash, e a
+        // recusa não diz nada sobre a conta existir.
+        const captcha = await verifyTurnstile({
+          token: credentials?.turnstileToken,
+          action: TURNSTILE_ACTIONS.login,
+          remoteIp: ip,
+        });
+        if (!captcha.ok) {
+          throw captcha.code === "unavailable" ? new LoginCaptchaUnavailableError() : new LoginCaptchaError();
         }
 
         const [user] = await db

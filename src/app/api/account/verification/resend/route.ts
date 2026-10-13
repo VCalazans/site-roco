@@ -5,17 +5,23 @@ import { emailRateLimitKey } from "@/server/lib/account-tokens";
 import { enforceAccountLimits, ipLimitKey, jsonError, jsonOk, readJsonBody, requestLocale } from "@/server/lib/account-route";
 import { findActiveUserByEmail, sendVerificationEmail } from "@/server/lib/account-service";
 import { getClientIp } from "@/server/lib/rate-limit";
+import { turnstileRejection, turnstileTokenFrom, verifyTurnstile } from "@/server/lib/turnstile";
+import { TURNSTILE_ACTIONS } from "@/shared/lib/turnstile";
 
 const emailSchema = z.string().trim().toLowerCase().email().max(320);
 
 /**
- * `POST /api/account/verification/resend` `{ email, locale }` — novo link de
- * confirmação de cadastro.
+ * `POST /api/account/verification/resend` `{ email, locale, turnstileToken }` —
+ * novo link de confirmação de cadastro.
  *
  * Resposta SEMPRE a mesma (`{ ok: true }`), exista ou não um cadastro
  * pendente com aquele e-mail: a rota não serve para descobrir quem tem conta.
  * O envio roda depois da resposta (`after`), então o tempo de resposta também
  * não entrega a diferença.
+ *
+ * Verificação anti-robô (Turnstile, ação `confirmacao`) logo depois de ler o
+ * corpo e ANTES do schema e de qualquer consulta: a recusa (`captcha`) também
+ * não depende de a conta existir.
  */
 export async function POST(request: NextRequest) {
   // Limite por IP ANTES de ler o corpo: requisição de lixo também gasta a cota de quem a manda.
@@ -25,8 +31,21 @@ export async function POST(request: NextRequest) {
   if (byIp) return byIp;
 
   const body = await readJsonBody(request);
-  const email = emailSchema.safeParse(body?.email);
-  if (!body || !email.success) return jsonError("validation", 400);
+  if (!body) return jsonError("validation", 400);
+
+  const ip = getClientIp(request);
+  const captcha = await verifyTurnstile({
+    token: turnstileTokenFrom(body),
+    action: TURNSTILE_ACTIONS.emailConfirmation,
+    remoteIp: ip,
+  });
+  if (!captcha.ok) {
+    const rejection = turnstileRejection(captcha.code);
+    return jsonError(rejection.error, rejection.status);
+  }
+
+  const email = emailSchema.safeParse(body.email);
+  if (!email.success) return jsonError("validation", 400);
 
   const byEmail = await enforceAccountLimits([
     { key: emailRateLimitKey("account:verify-resend", email.data), windowSeconds: 60 * 60, max: 3 },
@@ -34,7 +53,6 @@ export async function POST(request: NextRequest) {
   if (byEmail) return byEmail;
 
   const locale = requestLocale(body.locale);
-  const ip = getClientIp(request);
   after(async () => {
     const user = await findActiveUserByEmail(db, email.data);
     if (!user || user.emailVerified) return;

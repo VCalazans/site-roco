@@ -7,14 +7,19 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import type { Locale } from "@/i18n/config";
+import { PortalTurnstileField } from "@/modules/portal/components/shared/portal-turnstile-field";
 import { accountErrorMessage, postAccount } from "@/modules/portal/lib/account-client";
 import type { PortalAccountDictionary } from "@/modules/portal/lib/types";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
+import { TURNSTILE_TOKEN_FIELD, type TurnstileAction } from "@/shared/lib/turnstile";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type EmailLinkRequestFormProps = {
   /** Rota que envia o link (`ACCOUNT_API.forgotPassword` / `resendVerification`). */
   endpoint: string;
+  /** Ação do Turnstile que a rota confere (`senha` / `confirmacao`). */
+  captchaAction: TurnstileAction;
   locale: Locale;
   emailLabel: string;
   buttonLabel: string;
@@ -28,10 +33,12 @@ type EmailLinkRequestFormProps = {
 /**
  * "Informe seu e-mail e enviamos um link" — pedido de nova senha e reenvio da
  * confirmação de cadastro. A resposta do servidor é sempre genérica; a tela
- * também: nunca diz se o e-mail tem conta.
+ * também: nunca diz se o e-mail tem conta. O pedido passa pela verificação
+ * anti-robô (Turnstile): o botão espera o token, e cada tentativa gasta o seu.
  */
 export function EmailLinkRequestForm({
   endpoint,
+  captchaAction,
   locale,
   emailLabel,
   buttonLabel,
@@ -43,6 +50,7 @@ export function EmailLinkRequestForm({
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [phase, setPhase] = useState<"idle" | "sending" | "sent">("idle");
+  const turnstile = useTurnstile();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,10 +59,17 @@ export function EmailLinkRequestForm({
       setFieldError(errors.invalidEmail);
       return;
     }
+    if (turnstile.pending) return;
     setFieldError(null);
     setError(null);
     setPhase("sending");
-    const result = await postAccount(endpoint, { email: value, locale });
+    const result = await postAccount(endpoint, {
+      email: value,
+      locale,
+      ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
+    });
+    // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+    turnstile.reset();
     if (result.ok) {
       setPhase("sent");
       onSent?.();
@@ -93,12 +108,13 @@ export function EmailLinkRequestForm({
         error={Boolean(fieldError)}
         helperText={fieldError ?? undefined}
       />
+      <PortalTurnstileField turnstile={turnstile} action={captchaAction} locale={locale} messages={errors} />
       <Button
         type="submit"
         variant="contained"
         size="large"
         fullWidth
-        disabled={phase === "sending"}
+        disabled={phase === "sending" || turnstile.pending}
         startIcon={phase === "sending" ? <CircularProgress size={18} color="inherit" /> : undefined}
         sx={{ py: 1.6 }}
       >

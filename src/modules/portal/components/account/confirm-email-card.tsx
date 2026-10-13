@@ -16,6 +16,7 @@ import {
   useAccountLinkToken,
 } from "@/modules/portal/lib/account-client";
 import type { AccountLinkFailure, PortalAccountDictionary } from "@/modules/portal/lib/types";
+import { TURNSTILE_ACTIONS } from "@/shared/lib/turnstile";
 import { AuthCard } from "./auth-card";
 import { EmailLinkRequestForm } from "./email-link-request-form";
 
@@ -131,6 +132,7 @@ export function ConfirmEmailCard({ logoAlt, locale, account, loginHref }: Confir
       ) : null}
       <EmailLinkRequestForm
         endpoint={ACCOUNT_API.resendVerification}
+        captchaAction={TURNSTILE_ACTIONS.emailConfirmation}
         locale={locale}
         emailLabel={account.emailLabel}
         buttonLabel={copy.resendButton}

@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { getWorkerRuntimeState } from "@/core/queue/register-workers";
 import { dbPool, DB_POOL_MAX_CONNECTIONS } from "@/db";
 import { readEventLoopDelay } from "@/server/lib/event-loop-monitor";
+import { resolveClientIp } from "@/server/lib/rate-limit";
 import { timingSafeEqualString } from "@/server/lib/timing-safe";
 
 /**
@@ -292,6 +293,13 @@ export async function GET(request: NextRequest) {
        * respondendo 202 normalmente. Ver `register-workers.ts`.
        */
       workers: getWorkerRuntimeState(),
+      /**
+       * Como o app enxerga QUEM CHAMOU esta rota (o próprio operador): o IP
+       * que os limites por IP usariam e se o pedido chegou por uma borda da
+       * Cloudflare. Atrás da Cloudflare, `viaCloudflare: false` com IP interno
+       * é configuração errada — ver `resolveClientIp`.
+       */
+      client: resolveClientIp(request),
       ...(database ? { database } : {}),
     },
     { status: healthy ? 200 : 503, headers: NO_STORE }

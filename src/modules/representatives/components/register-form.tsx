@@ -5,9 +5,17 @@ import { Loader2, MailCheck } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Locale } from "@/i18n/config";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
+import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
 import { interpolate } from "@/shared/lib/interpolate";
 import { checkPassword, PASSWORD_MIN_LENGTH, type PasswordIssue } from "@/shared/lib/password-policy";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
+import {
+  CAPTCHA_ERROR,
+  CAPTCHA_UNAVAILABLE_ERROR,
+  TURNSTILE_ACTIONS,
+  TURNSTILE_TOKEN_FIELD,
+} from "@/shared/lib/turnstile";
 import { isValidPersonName, normalizePersonName } from "@/server/lib/representative-register";
 import type { RepresentativesDictionary } from "@/modules/representatives/lib/types";
 
@@ -72,6 +80,8 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
   const [serverError, setServerError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  // Verificação anti-robô: o token vai no corpo e é de uso único.
+  const turnstile = useTurnstile();
 
   function setField(name: FieldName) {
     return (event: ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +122,7 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
     const found = validate();
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (turnstile.pending) return;
 
     setPhase("sending");
     setServerError(null);
@@ -129,6 +140,7 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
           password: form.password,
           locale,
           website: honeypot,
+          ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
         }),
       });
 
@@ -143,12 +155,17 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
         cnpj_exists: content.errors.cnpjExists,
         rate_limited: content.errors.rateLimited,
         unavailable: content.errors.unavailable,
+        [CAPTCHA_ERROR]: content.errors.captcha,
+        [CAPTCHA_UNAVAILABLE_ERROR]: content.errors.captchaUnavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
     } catch {
       setServerError(content.errors.generic);
       setPhase("idle");
+    } finally {
+      // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+      turnstile.reset();
     }
   }
 
@@ -271,13 +288,20 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
 
       <p className="mt-2 text-micro text-white/55">{content.form.passwordHint}</p>
 
+      <TurnstileField
+        turnstile={turnstile}
+        action={TURNSTILE_ACTIONS.register}
+        locale={locale}
+        messages={content.errors}
+      />
+
       {serverError ? (
         <p role="alert" className="mt-3 rounded-xl border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 p-3 text-meta text-[#ffc2c2]">
           {serverError}
         </p>
       ) : null}
 
-      <button type="submit" disabled={phase === "sending"} className="btn-neon mt-4 w-full">
+      <button type="submit" disabled={phase === "sending" || turnstile.pending} className="btn-neon mt-4 w-full">
         {phase === "sending" ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -310,11 +334,14 @@ type RegisterSuccessProps = {
 /**
  * Depois do envio: pede para confirmar o e-mail e deixa reenviar o link (com
  * espera entre reenvios — o servidor também limita). A resposta do reenvio é
- * genérica, como a da rota.
+ * genérica, como a da rota. O reenvio passa pela verificação anti-robô
+ * (Turnstile, ação `confirmacao`), como o "reenviar" da tela do portal.
  */
 function RegisterSuccess({ content, email, locale, loginHref }: RegisterSuccessProps) {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const turnstile = useTurnstile();
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -323,21 +350,46 @@ function RegisterSuccess({ content, email, locale, loginHref }: RegisterSuccessP
   }, [cooldown]);
 
   async function resend() {
+    if (turnstile.pending) return;
     setStatus("sending");
+    setErrorMessage(null);
+    // A espera entre reenvios protege a caixa da pessoa; recusa da verificação
+    // anti-robô não mandou e-mail nenhum, então não precisa esperar.
+    let startCooldown = true;
     try {
       const response = await fetch("/api/account/verification/resend", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, locale }),
+        body: JSON.stringify({
+          email,
+          locale,
+          ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
+        }),
       });
-      setStatus(response.ok ? "sent" : "error");
+      if (response.ok) {
+        setStatus("sent");
+      } else {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        const captchaMessages: Record<string, string> = {
+          [CAPTCHA_ERROR]: content.errors.captcha,
+          [CAPTCHA_UNAVAILABLE_ERROR]: content.errors.captchaUnavailable,
+        };
+        const captchaMessage = captchaMessages[body?.error ?? ""];
+        if (captchaMessage) startCooldown = false;
+        setErrorMessage(captchaMessage ?? content.success.resendError);
+        setStatus("error");
+      }
     } catch {
+      setErrorMessage(content.success.resendError);
       setStatus("error");
+    } finally {
+      // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+      turnstile.reset();
     }
-    setCooldown(RESEND_COOLDOWN_SECONDS);
+    if (startCooldown) setCooldown(RESEND_COOLDOWN_SECONDS);
   }
 
-  const busy = status === "sending" || cooldown > 0;
+  const busy = status === "sending" || cooldown > 0 || turnstile.pending;
   return (
     <div role="status" className="rounded-2xl border border-neon-cyan/40 bg-neon-cyan/10 p-6 text-center sm:p-8">
       <MailCheck className="mx-auto mb-3 size-10 text-neon-cyan-bright" aria-hidden />
@@ -346,7 +398,14 @@ function RegisterSuccess({ content, email, locale, loginHref }: RegisterSuccessP
       <p className="mt-3 text-micro text-white/60">{content.success.spamHint}</p>
 
       {status === "sent" ? <p className="mt-3 text-meta text-neon-cyan-bright">{content.success.resent}</p> : null}
-      {status === "error" ? <p className="mt-3 text-meta text-[#ffc2c2]">{content.success.resendError}</p> : null}
+      {status === "error" && errorMessage ? <p className="mt-3 text-meta text-[#ffc2c2]">{errorMessage}</p> : null}
+
+      <TurnstileField
+        turnstile={turnstile}
+        action={TURNSTILE_ACTIONS.emailConfirmation}
+        locale={locale}
+        messages={content.errors}
+      />
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
         <button type="button" onClick={() => void resend()} disabled={busy} className="btn-neon">

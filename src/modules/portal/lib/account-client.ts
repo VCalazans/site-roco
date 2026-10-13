@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CAPTCHA_ERROR, CAPTCHA_UNAVAILABLE_ERROR } from "@/shared/lib/turnstile";
 import type { AccountLinkFailure, PortalAccountDictionary } from "./types";
 
 /** Rotas públicas de conta (`src/app/api/account/*`). */
@@ -41,6 +42,9 @@ export function accountErrorMessage(error: string, errors: PortalAccountDictiona
   if (error === "rate_limited") return errors.rateLimited;
   if (error === "unavailable") return errors.unavailable;
   if (error === "validation") return errors.invalidEmail;
+  // Verificação anti-robô (Turnstile) dos pedidos de link por e-mail.
+  if (error === CAPTCHA_ERROR) return errors.captcha;
+  if (error === CAPTCHA_UNAVAILABLE_ERROR) return errors.captchaUnavailable;
   return errors.generic;
 }
 

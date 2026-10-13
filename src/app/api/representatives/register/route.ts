@@ -12,8 +12,10 @@ import {
   registerSchema,
 } from "@/server/lib/representative-register";
 import { getClientIp } from "@/server/lib/rate-limit";
+import { turnstileRejection, turnstileTokenFrom, verifyTurnstile } from "@/server/lib/turnstile";
 import { formatCNPJ } from "@/shared/components/contact-form/cnpj";
 import { formatPhoneBR } from "@/shared/lib/phone";
+import { TURNSTILE_ACTIONS } from "@/shared/lib/turnstile";
 
 /** Mesmo custo do seed do admin (`src/db/seed.ts`) — consistência de política. */
 const BCRYPT_COST = 12;
@@ -61,9 +63,10 @@ function dbErrorCode(error: unknown): string | undefined {
  * que roda depois de cada pré-cadastro).
  *
  * Ordem das checagens: limite por IP ANTES de ler o corpo (lixo gasta a cota
- * de quem o manda); corpo só JSON e com teto de tamanho; honeypot e schema; e
- * só então o teto global e o por destinatário — um flood de requisições
- * inválidas não esgota a cota de quem se cadastra de verdade.
+ * de quem o manda); corpo só JSON e com teto de tamanho; honeypot; verificação
+ * anti-robô (Turnstile, ação `cadastro`); schema; e só então o teto global e o
+ * por destinatário — um flood de requisições inválidas não esgota a cota de
+ * quem se cadastra de verdade.
  *
  * Erros de duplicidade são respondidos com código específico (`email_exists`/
  * `cnpj_exists`): enumeração via formulário de cadastro é trade-off aceito
@@ -86,6 +89,17 @@ export async function POST(request: NextRequest) {
     const honeypot = body[HONEYPOT_FIELD];
     if (typeof honeypot === "string" && honeypot.length > 0) {
       return NextResponse.json({ ok: true }, { status: 201 });
+    }
+
+    // Anti-robô antes do schema e de qualquer consulta ao banco.
+    const captcha = await verifyTurnstile({
+      token: turnstileTokenFrom(body),
+      action: TURNSTILE_ACTIONS.register,
+      remoteIp: ip,
+    });
+    if (!captcha.ok) {
+      const rejection = turnstileRejection(captcha.code);
+      return NextResponse.json({ error: rejection.error }, { status: rejection.status });
     }
 
     const parsed = registerSchema.safeParse(body);

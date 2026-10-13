@@ -4,7 +4,15 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
+import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
+import {
+  CAPTCHA_ERROR,
+  CAPTCHA_UNAVAILABLE_ERROR,
+  contactTurnstileAction,
+  TURNSTILE_TOKEN_FIELD,
+} from "@/shared/lib/turnstile";
 import { contactSchema, SELECTABLE_CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import type { ContactDictionary } from "@/modules/contact/lib/types";
 import type { LeadOrigin } from "@/shared/lib/lead-origin";
@@ -93,6 +101,8 @@ export function ContactForm({
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
   const [serverError, setServerError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  // Verificação anti-robô: o token vai no corpo e é de uso único.
+  const turnstile = useTurnstile();
 
   const subjectLabels: Record<ContactSubject, string> = {
     call_back: content.form.subject.options.callBack,
@@ -174,6 +184,7 @@ export function ContactForm({
     const found = validate();
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (turnstile.pending) return;
 
     setPhase("sending");
     setServerError(null);
@@ -200,6 +211,7 @@ export function ContactForm({
           locale,
           consent: true,
           website: honeypot,
+          ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
         }),
       });
 
@@ -229,12 +241,17 @@ export function ContactForm({
         // 503 do rate limiter fail-closed (Redis fora) — não é repetição da
         // pessoa; dizer que foi manda o suporte investigar a coisa errada.
         unavailable: content.errors.unavailable,
+        [CAPTCHA_ERROR]: content.errors.captcha,
+        [CAPTCHA_UNAVAILABLE_ERROR]: content.errors.captchaUnavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
     } catch {
       setServerError(content.errors.generic);
       setPhase("idle");
+    } finally {
+      // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+      turnstile.reset();
     }
   }
 
@@ -385,13 +402,20 @@ export function ContactForm({
       </label>
       {fieldError("consent")}
 
+      <TurnstileField
+        turnstile={turnstile}
+        action={contactTurnstileAction(form.subject)}
+        locale={locale}
+        messages={content.errors}
+      />
+
       {serverError ? (
         <p role="alert" className="mt-3 rounded-xl border border-[#ff6b6b]/40 bg-[#ff6b6b]/10 p-3 text-meta text-[#ffc2c2]">
           {serverError}
         </p>
       ) : null}
 
-      <button type="submit" disabled={phase === "sending"} className="btn-neon mt-4 w-full">
+      <button type="submit" disabled={phase === "sending" || turnstile.pending} className="btn-neon mt-4 w-full">
         {phase === "sending" ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden />

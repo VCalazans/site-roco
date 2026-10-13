@@ -114,6 +114,23 @@ const RD_STATION_POPUP_HOSTS =
  */
 const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstation.com.br ${RD_STATION_POPUP_HOSTS}`;
 
+/**
+ * Cloudflare Turnstile — a verificação anti-robô dos formulários públicos e do
+ * login do portal (`src/shared/components/turnstile`). O `api.js` vem deste
+ * host (`script-src`) e o desafio roda num iframe dele (`frame-src`) — as duas
+ * diretivas que a documentação da Cloudflare pede; `connect-src` só seria
+ * preciso no modo pre-clearance, que não usamos.
+ *
+ * Por que mais um host em `script-src` não repete o trade-off do RD Station:
+ * é domínio da PRÓPRIA Cloudflare, que já fica na frente do site (termina o
+ * TLS e entrega cada byte dele) — liberar o script dela não acrescenta um
+ * terceiro de confiança novo. E a cópia self-hosted (`public/vendor/`) não se
+ * aplica: a Cloudflare exige a URL exata, e uma cópia quebra nas atualizações.
+ *
+ * Entra SEMPRE (a CSP é resolvida em build-time); sem site key o script nem é pedido.
+ */
+const TURNSTILE_HOST = "https://challenges.cloudflare.com";
+
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -174,7 +191,9 @@ function contentSecurityPolicy(): string {
     // Os hosts entram SEMPRE (não condicionados à flag de tracking) porque a
     // CSP é resolvida em BUILD-TIME e a flag é de runtime: condicionar deixaria
     // a política dependente de quando a imagem foi buildada.
-    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS}${isDev ? " 'unsafe-eval'" : ""}`,
+    //
+    // Turnstile: ver `TURNSTILE_HOST`.
+    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS} ${TURNSTILE_HOST}${isDev ? " 'unsafe-eval'" : ""}`,
     // Google Fonts: o HTML dos pop-ups do RD traz um `<link>` para
     // fonts.googleapis.com (CSS) que baixa as fontes de fonts.gstatic.com.
     // Sem isto os pop-ups aparecem, mas com a fonte de fallback.
@@ -201,7 +220,9 @@ function contentSecurityPolicy(): string {
     // executar script na nossa origem" continua válido. RD Station entra por
     // `script-src 'self'` (carregado de `/vendor/rdstation.js` self-hosted,
     // mesmo padrão do antigo Mautic — ver decisionLog 2026-08-23).
-    `frame-src 'self' https://www.youtube-nocookie.com`,
+    // Turnstile: o desafio anti-robô roda num iframe da Cloudflare
+    // (`TURNSTILE_HOST`) — enquadrar não executa script na nossa origem.
+    `frame-src 'self' https://www.youtube-nocookie.com ${TURNSTILE_HOST}`,
   ].join("; ");
 }
 

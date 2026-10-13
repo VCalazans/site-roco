@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { isGoogleSignInEnabled } from "@/core/auth/google";
 import {
   EMAIL_NOT_VERIFIED_CODE,
+  LOGIN_CAPTCHA_CODE,
+  LOGIN_CAPTCHA_UNAVAILABLE_CODE,
   LOGIN_RATE_LIMITED_CODE,
   LOGIN_UNAVAILABLE_CODE,
 } from "@/core/auth/sign-in-errors";
@@ -78,11 +80,14 @@ export default async function PortalLoginPage({
     [EMAIL_NOT_VERIFIED_CODE]: login.emailNotVerified,
     [LOGIN_RATE_LIMITED_CODE]: login.rateLimited,
     [LOGIN_UNAVAILABLE_CODE]: login.unavailable,
+    [LOGIN_CAPTCHA_CODE]: login.captcha,
+    [LOGIN_CAPTCHA_UNAVAILABLE_CODE]: login.captchaUnavailable,
   };
 
   return (
     <AuthPageLayout>
       <LoginCard
+        locale={locale}
         logoAlt={dictionary.navigation.brand}
         title={login.title}
         subtitle={login.subtitle}
@@ -105,6 +110,7 @@ export default async function PortalLoginPage({
         registerLinkLabel={login.registerLink}
         registerHref={`/${locale}/representantes`}
         credentialsAction={credentialsAction}
+        captchaMessages={login}
         google={
           isGoogleSignInEnabled()
             ? {

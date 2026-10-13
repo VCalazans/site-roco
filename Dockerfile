@@ -23,6 +23,12 @@ ARG NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=
 ENV NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED=$NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED
 ARG NEXT_PUBLIC_SITE_URL=
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# Cloudflare Turnstile (verificação anti-robô): site key PÚBLICA, embutida no
+# bundle. Vazia = widget desligado. O segredo (TURNSTILE_SECRET_KEY) é de
+# RUNTIME e nunca entra aqui — mas as duas andam juntas: segredo sem site key
+# no build recusa todo envio dos formulários e do login.
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 # R2_PUBLIC_URL e R2_ACCOUNT_ID são lidos em next.config.ts (build-time) para
 # computar images.remotePatterns e CSP. Não são NEXT_PUBLIC_* (não vazam pro client);
 # apenas IDs/URLs públicos (sem segredos).

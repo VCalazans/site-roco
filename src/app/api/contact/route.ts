@@ -14,6 +14,8 @@ import { isStatementTimeout } from "@/server/lib/pg-error";
 import { buildRdStationConversionPayload } from "@/server/lib/rd-station";
 import { sendRdStationConversion } from "@/server/lib/rd-station-send";
 import { getPublicProductBySlug, getPublicProductsBySlugs } from "@/server/lib/public-products";
+import { turnstileRejection, turnstileTokenFrom, verifyTurnstile } from "@/server/lib/turnstile";
+import { contactTurnstileAction } from "@/shared/lib/turnstile";
 
 /**
  * Rota pública de escrita, atrás de dois limites (IP + global). Mais
@@ -185,6 +187,23 @@ export async function POST(request: NextRequest) {
       ((body as Record<string, unknown>)[HONEYPOT_FIELD] as string).length > 0
     ) {
       return NextResponse.json({ ok: true }, { status: 201 });
+    }
+
+    // Verificação anti-robô (Turnstile) ANTES do schema: depois do honeypot (o
+    // bot pego lá leva o sucesso silencioso sem gastar uma chamada à
+    // Cloudflare) e antes de qualquer validação ou escrita. A ação esperada vem
+    // do assunto CRU — os três formulários desta rota usam ações diferentes
+    // (`contactTurnstileAction`); assunto inválido reprova no schema logo abaixo.
+    const rawSubject =
+      typeof body === "object" && body !== null ? (body as Record<string, unknown>).subject : undefined;
+    const captcha = await verifyTurnstile({
+      token: turnstileTokenFrom(body),
+      action: contactTurnstileAction(rawSubject),
+      remoteIp: ip,
+    });
+    if (!captcha.ok) {
+      const rejection = turnstileRejection(captcha.code);
+      return NextResponse.json({ error: rejection.error }, { status: rejection.status });
     }
 
     const parsed = contactSchema.safeParse(body);

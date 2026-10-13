@@ -225,6 +225,10 @@
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
       "validation": "Confira os dados informados e tente novamente.",
       "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
+      "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+      "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+      "captchaPending": "Aguarde a verificação de segurança.",
+      "captchaLoad": "A verificação de segurança não carregou. Recarregue a página.",
       "generic": "Não foi possível enviar seus dados agora. Tente novamente em instantes."
     },
     "success": {
@@ -277,6 +281,10 @@
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
       "validation": "Confira os dados informados e tente novamente.",
       "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
+      "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+      "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+      "captchaPending": "Aguarde a verificação de segurança.",
+      "captchaLoad": "A verificação de segurança não carregou. Recarregue a página.",
       "generic": "Não foi possível enviar sua mensagem agora. Tente novamente em instantes."
     },
     "success": {
@@ -393,7 +401,11 @@
       "cnpjExists": "Já existe um cadastro com este CNPJ. Fale com nosso time se precisar de ajuda.",
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
       "generic": "Não foi possível enviar seu cadastro agora. Tente novamente em instantes.",
-      "unavailable": "Serviço indisponível no momento. Tente novamente em instantes."
+      "unavailable": "Serviço indisponível no momento. Tente novamente em instantes.",
+      "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+      "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+      "captchaPending": "Aguarde a verificação de segurança.",
+      "captchaLoad": "A verificação de segurança não carregou. Recarregue a página."
     },
     "success": {
       "title": "Confirme seu e-mail",
@@ -529,6 +541,10 @@
       "invalidCredentials": "E-mail ou senha incorretos. Verifique e tente novamente.",
       "rateLimited": "Muitas tentativas de entrar em pouco tempo. Aguarde alguns minutos e tente de novo.",
       "unavailable": "Não foi possível entrar agora. Tente novamente em instantes.",
+      "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+      "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+      "captchaPending": "Aguarde a verificação de segurança.",
+      "captchaLoad": "A verificação de segurança não carregou. Recarregue a página.",
       "registerPrompt": "Ainda não tem acesso?",
       "registerLink": "Obtenha seu acesso ao Portal ROCO",
       "forgotPassword": "Esqueci minha senha",
@@ -1939,6 +1955,10 @@
         "invalidEmail": "Informe um e-mail válido.",
         "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
         "unavailable": "Serviço indisponível no momento. Tente novamente em instantes.",
+        "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+        "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+        "captchaPending": "Aguarde a verificação de segurança.",
+        "captchaLoad": "A verificação de segurança não carregou. Recarregue a página.",
         "generic": "Não foi possível concluir agora. Tente novamente em instantes."
       },
       "linkStates": {
@@ -2102,6 +2122,10 @@
       "validation": "Confira os dados informados e tente novamente.",
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
       "unavailable": "Serviço temporariamente indisponível. Tente novamente em instantes.",
+      "captcha": "Não conseguimos confirmar que você não é um robô. Tente de novo.",
+      "captchaUnavailable": "A verificação de segurança está indisponível no momento. Tente de novo em instantes.",
+      "captchaPending": "Aguarde a verificação de segurança.",
+      "captchaLoad": "A verificação de segurança não carregou. Recarregue a página.",
       "generic": "Não foi possível enviar sua solicitação agora. Tente novamente em instantes.",
       "cartEmpty": "Nenhum produto da sua lista está disponível no catálogo agora — eles podem ter sido removidos ou despublicados. Volte ao catálogo e selecione novos itens."
     },

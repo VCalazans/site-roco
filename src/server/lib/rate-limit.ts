@@ -1,4 +1,5 @@
 import "server-only";
+import { BlockList, isIP } from "node:net";
 import IORedis from "ioredis";
 
 export interface RateLimitOptions {
@@ -171,14 +172,143 @@ export async function checkRateLimit(
 }
 
 /**
- * IP do cliente a partir de `x-forwarded-for` (primeiro valor da lista —
- * mais próximo do cliente atrás de proxies/CDN confiáveis). `"unknown"`
- * quando o header não está presente (ex.: request direto, sem proxy).
+ * Faixas de IP da borda da Cloudflare — fonte: https://www.cloudflare.com/ips-v4
+ * e https://www.cloudflare.com/ips-v6, baixadas em 2026-10-12.
+ *
+ * ⚠️ ATUALIZE se a Cloudflare mudar as faixas. Uma borda nova fora desta lista
+ * não abre brecha (o pedido é tratado como vindo direto, e o IP devolvido é o
+ * da própria borda), mas todos os visitantes que passarem por ela dividem o
+ * mesmo limite por IP e chegam ao Turnstile com o IP da Cloudflare.
+ */
+const CLOUDFLARE_IP_RANGES = {
+  ipv4: [
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+  ],
+  ipv6: [
+    "2400:cb00::/32",
+    "2606:4700::/32",
+    "2803:f800::/32",
+    "2405:b500::/32",
+    "2405:8100::/32",
+    "2a06:98c0::/29",
+    "2c0f:f248::/32",
+  ],
+} as const;
+
+const cloudflareEdges = (() => {
+  const list = new BlockList();
+  for (const type of ["ipv4", "ipv6"] as const) {
+    for (const cidr of CLOUDFLARE_IP_RANGES[type]) {
+      const [network, prefix] = cidr.split("/");
+      list.addSubnet(network, Number(prefix), type);
+    }
+  }
+  return list;
+})();
+
+/** `true` quando o IP (já normalizado) é de uma borda da Cloudflare. */
+function isCloudflareEdge(ip: string): boolean {
+  const version = isIP(ip);
+  if (version === 0) return false;
+  try {
+    return cloudflareEdges.check(ip, version === 4 ? "ipv4" : "ipv6");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Endereço IPv4/IPv6 válido, normalizado (sem espaços, minúsculo), ou `null`.
+ * Descarta a porta que alguns proxies anexam (`1.2.3.4:5678`, `[::1]:443`) e
+ * desembrulha o IPv4 mapeado em IPv6 (`::ffff:1.2.3.4` → `1.2.3.4`, como o Node
+ * às vezes reporta o socket). Qualquer outra coisa — nome de host, lixo — é `null`.
+ */
+function normalizeIp(value: string | null | undefined): string | null {
+  let candidate = value?.trim().toLowerCase();
+  if (!candidate) return null;
+  const bracketed = /^\[([^\]]+)\](?::\d{1,5})?$/.exec(candidate);
+  if (bracketed) candidate = bracketed[1];
+  else {
+    const withPort = /^(\d{1,3}(?:\.\d{1,3}){3}):\d{1,5}$/.exec(candidate);
+    if (withPort) candidate = withPort[1];
+  }
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(candidate);
+  if (mapped) candidate = mapped[1];
+  return isIP(candidate) === 0 ? null : candidate;
+}
+
+/**
+ * IP do visitante para os limites por IP, o audit log e o Turnstile.
+ *
+ * Só o ÚLTIMO item do `x-forwarded-for` é confiável: é o par TCP que o proxy
+ * da frente (o Traefik do EasyPanel) acrescentou — o Next só preenche o
+ * cabeçalho quando ele não existe. Todo o resto pode ter vindo do cliente.
+ * Pela Cloudflare a lista chega como `<o que o cliente mandou>, <IP real>,
+ * <borda da Cloudflare>`; direto na origem, `<o que o cliente mandou>, <IP de
+ * quem conectou>`. Regra:
+ *
+ * 1. `peer` = último item válido do `x-forwarded-for` (sem ele, `x-real-ip`);
+ * 2. `peer` é borda da Cloudflare (`CLOUDFLARE_IP_RANGES`) → vale o
+ *    `cf-connecting-ip` (a Cloudflare o sobrescreve); se faltar, o item
+ *    anterior ao `peer` (o IP real que a Cloudflare acrescentou); senão o `peer`;
+ * 3. `peer` NÃO é da Cloudflare → o próprio `peer`. Nunca o primeiro item do
+ *    `x-forwarded-for` nem o `cf-connecting-ip`: a origem responde direto, sem
+ *    passar pela Cloudflare, e quem chega assim escreve esses dois cabeçalhos
+ *    como quiser — um robô trocaria de "IP" a cada requisição e furaria os
+ *    limites.
+ *
+ * `"unknown"` quando não há nenhum IP válido. Pressupõe um proxy na frente que
+ * ACRESCENTE ao `x-forwarded-for` (o Traefik faz isso): com o servidor exposto
+ * sem proxy, a lista inteira seria do cliente.
  */
 export function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const first = forwardedFor?.split(",")[0]?.trim();
-  return first && first.length > 0 ? first.toLowerCase() : "unknown";
+  return resolveClientIp(request).ip;
+}
+
+export type ClientIpResolution = {
+  /** IP usado nos limites, no audit log e no Turnstile (`"unknown"` sem nenhum válido). */
+  ip: string;
+  /** O par TCP do proxy da frente é uma borda da Cloudflare (o pedido passou por ela). */
+  viaCloudflare: boolean;
+  /** Quantos itens o `x-forwarded-for` trouxe. */
+  forwardedHops: number;
+};
+
+/**
+ * `getClientIp` com o diagnóstico de COMO o IP foi escolhido — exposto nas
+ * métricas autenticadas de `/api/health` para conferir no ambiente real a
+ * premissa da regra acima (o último item do `x-forwarded-for` é o par TCP do
+ * proxy). Se um ambiente atrás da Cloudflare mostrar `viaCloudflare: false`
+ * com um IP interno (10.x, 172.16–31.x, 192.168.x), algo entre a Cloudflare
+ * e o app troca o IP de origem (ex.: porta publicada pelo ingress do Docker
+ * Swarm) — e todos os visitantes estariam dividindo o mesmo limite por IP.
+ */
+export function resolveClientIp(request: Request): ClientIpResolution {
+  const hops = (request.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((hop) => hop.trim())
+    .filter((hop) => hop !== "");
+  const lastHop = normalizeIp(hops.at(-1));
+  const peer = lastHop ?? normalizeIp(request.headers.get("x-real-ip"));
+  if (!peer) return { ip: "unknown", viaCloudflare: false, forwardedHops: hops.length };
+  if (!isCloudflareEdge(peer)) return { ip: peer, viaCloudflare: false, forwardedHops: hops.length };
+  // O "item anterior ao peer" só existe quando o peer veio da lista.
+  const realIp = normalizeIp(request.headers.get("cf-connecting-ip")) ?? (lastHop ? normalizeIp(hops.at(-2)) : null);
+  return { ip: realIp ?? peer, viaCloudflare: true, forwardedHops: hops.length };
 }
 
 /** Normaliza chaves de rate limit derivadas de input do usuário (e-mail, IP). */

@@ -225,6 +225,10 @@
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
       "validation": "Please check the details you entered and try again.",
       "unavailable": "The service is temporarily unavailable. Please try again shortly.",
+      "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+      "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+      "captchaPending": "Please wait for the security check.",
+      "captchaLoad": "The security check didn't load. Please reload the page.",
       "generic": "We could not submit your details right now. Please try again shortly."
     },
     "success": {
@@ -277,6 +281,10 @@
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
       "validation": "Please check the details you entered and try again.",
       "unavailable": "The service is temporarily unavailable. Please try again shortly.",
+      "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+      "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+      "captchaPending": "Please wait for the security check.",
+      "captchaLoad": "The security check didn't load. Please reload the page.",
       "generic": "We could not send your message right now. Please try again shortly."
     },
     "success": {
@@ -393,7 +401,11 @@
       "cnpjExists": "There is already a registration with this CNPJ. Contact our team if you need help.",
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
       "generic": "We could not submit your registration right now. Please try again shortly.",
-      "unavailable": "Service unavailable right now. Please try again shortly."
+      "unavailable": "Service unavailable right now. Please try again shortly.",
+      "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+      "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+      "captchaPending": "Please wait for the security check.",
+      "captchaLoad": "The security check didn't load. Please reload the page."
     },
     "success": {
       "title": "Confirm your email",
@@ -529,6 +541,10 @@
       "invalidCredentials": "Incorrect email or password. Please check and try again.",
       "rateLimited": "Too many sign-in attempts in a short time. Wait a few minutes and try again.",
       "unavailable": "We couldn't sign you in right now. Please try again in a moment.",
+      "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+      "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+      "captchaPending": "Please wait for the security check.",
+      "captchaLoad": "The security check didn't load. Please reload the page.",
       "registerPrompt": "Don't have access yet?",
       "registerLink": "Get your ROCO Portal access",
       "forgotPassword": "Forgot my password",
@@ -1939,6 +1955,10 @@
         "invalidEmail": "Enter a valid email address.",
         "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
         "unavailable": "Service unavailable right now. Please try again shortly.",
+        "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+        "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+        "captchaPending": "Please wait for the security check.",
+        "captchaLoad": "The security check didn't load. Please reload the page.",
         "generic": "We couldn't complete this right now. Please try again shortly."
       },
       "linkStates": {
@@ -2102,6 +2122,10 @@
       "validation": "Please check the details you entered and try again.",
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
       "unavailable": "The service is temporarily unavailable. Please try again shortly.",
+      "captcha": "We couldn't confirm that you're not a robot. Please try again.",
+      "captchaUnavailable": "The security check is unavailable right now. Please try again shortly.",
+      "captchaPending": "Please wait for the security check.",
+      "captchaLoad": "The security check didn't load. Please reload the page.",
       "generic": "We could not submit your request right now. Please try again shortly.",
       "cartEmpty": "None of the products in your list are available in the catalog right now — they may have been removed or unpublished. Go back to the catalog and select new items."
     },

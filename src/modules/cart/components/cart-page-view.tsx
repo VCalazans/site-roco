@@ -6,8 +6,16 @@ import { ArrowLeft, CheckCircle2, Loader2, Minus, Package, Plus, Trash2 } from "
 import { cn } from "@/core/lib/utils";
 import { productsPath, siteLinks } from "@/core/config/site";
 import { contactSchema, HONEYPOT_FIELD, MAX_CART_ITEM_QUANTITY } from "@/server/lib/contact-submit";
+import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
 import { interpolate } from "@/shared/lib/interpolate";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
+import {
+  CAPTCHA_ERROR,
+  CAPTCHA_UNAVAILABLE_ERROR,
+  contactTurnstileAction,
+  TURNSTILE_TOKEN_FIELD,
+} from "@/shared/lib/turnstile";
 import {
   clearCart,
   removeItem,
@@ -21,6 +29,9 @@ import type { Locale } from "@/i18n/config";
 /** O PRÓPRIO campo do schema do servidor, não um regex paralelo — mesma
  *  razão de `ContactForm`/`CatalogForm` (`contactSchema.shape.email`). */
 const emailField = contactSchema.shape.email;
+
+/** Assunto com que a lista de orçamento é gravada (identificador técnico mantido). */
+const CART_SUBJECT = "cart" as const;
 
 /** Campanha externa (`utm_*`), já resolvida/sanitizada pelo Server Component. */
 export type CartUtm = { source?: string; medium?: string; campaign?: string };
@@ -77,6 +88,8 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [cartEmptyError, setCartEmptyError] = useState(false);
   const [honeypot, setHoneypot] = useState("");
+  // Verificação anti-robô: o token vai no corpo e é de uso único.
+  const turnstile = useTurnstile();
 
   function setField(name: TextFieldName) {
     return (event: ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +155,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
     const found = validate();
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    if (turnstile.pending) return;
 
     setPhase("sending");
     setServerError(null);
@@ -156,7 +170,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           email: form.email.trim(),
           phone: form.phone,
           companyName: form.companyName.trim() || undefined,
-          subject: "cart",
+          subject: CART_SUBJECT,
           items: items.map((item) => ({ slug: item.slug, quantity: item.quantity })),
           // Rastreio de campanha (UTM): o servidor grava `origin: "orcamento"`
           // sozinho para este assunto (ver `POST /api/contact`), então não
@@ -168,6 +182,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           locale,
           consent: true,
           [HONEYPOT_FIELD]: honeypot,
+          ...(turnstile.token ? { [TURNSTILE_TOKEN_FIELD]: turnstile.token } : {}),
         }),
       });
 
@@ -202,12 +217,17 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
       const messages: Record<string, string> = {
         rate_limited: content.errors.rateLimited,
         unavailable: content.errors.unavailable,
+        [CAPTCHA_ERROR]: content.errors.captcha,
+        [CAPTCHA_UNAVAILABLE_ERROR]: content.errors.captchaUnavailable,
       };
       setServerError(messages[body?.error ?? ""] ?? content.errors.generic);
       setPhase("idle");
     } catch {
       setServerError(content.errors.generic);
       setPhase("idle");
+    } finally {
+      // O token foi gasto nesta tentativa (deu certo ou não): pede outro.
+      turnstile.reset();
     }
   }
 
@@ -487,6 +507,13 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
           </label>
           {fieldError("consent")}
 
+          <TurnstileField
+            turnstile={turnstile}
+            action={contactTurnstileAction(CART_SUBJECT)}
+            locale={locale}
+            messages={content.errors}
+          />
+
           {serverError ? (
             <p
               role="alert"
@@ -496,7 +523,7 @@ export function CartPageView({ content, locale, utm }: CartPageViewProps) {
             </p>
           ) : null}
 
-          <button type="submit" disabled={phase === "sending"} className="btn-neon mt-4 w-full">
+          <button type="submit" disabled={phase === "sending" || turnstile.pending} className="btn-neon mt-4 w-full">
             {phase === "sending" ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />

@@ -102,6 +102,7 @@ function navItemsFor(user: PortalPermissionUser, locale: Locale) {
 // ---------------------------------------------------------------------------
 
 const LOGIN_CARD_PROPS: ComponentProps<typeof LoginCard> = {
+  locale: "pt",
   logoAlt: "ROCO",
   title: "t",
   subtitle: "s",
@@ -114,13 +115,53 @@ const LOGIN_CARD_PROPS: ComponentProps<typeof LoginCard> = {
   registerLinkLabel: "l",
   registerHref: "/pt/representantes",
   credentialsAction: () => {},
+  captchaMessages: PORTALS.pt.login,
 };
+
+/** Tag de abertura do botão "Entrar" — o único `submit` da fixture (sem Google). */
+function signInButton(html: string): string {
+  return html.match(/<button[^>]*type="submit"[^>]*>/)?.[0] ?? "";
+}
 
 describe("LoginCard", () => {
   it("sem Google configurado, não oferece o botão do Google", () => {
     const html = render(<LoginCard {...LOGIN_CARD_PROPS} />);
     expect(html).not.toContain("Entrar com Google");
     expect(html).toContain('href="/pt/portal/esqueci-senha"');
+  });
+
+  it("sem site key do Turnstile no build: sem widget, sem campo do token e botão liberado", () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "");
+    try {
+      const html = render(<LoginCard {...LOGIN_CARD_PROPS} />);
+      expect(html).not.toContain('name="turnstileToken"');
+      expect(html).not.toContain(PORTALS.pt.login.captchaPending);
+      expect(signInButton(html)).not.toBe("");
+      expect(signInButton(html)).not.toContain("disabled");
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("com site key: campo oculto do token, aviso de verificação e botão desabilitado até o token", () => {
+    vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "1x00000000000000000000AA");
+    try {
+      const html = render(<LoginCard {...LOGIN_CARD_PROPS} />);
+      expect(html).toMatch(/<input type="hidden" name="turnstileToken" value=""\/?>/);
+      expect(html).toContain(PORTALS.pt.login.captchaPending);
+      expect(signInButton(html)).toContain("disabled");
+      expectNoBrokenText(html);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it.each(["pt", "en"] as const)("mensagens da verificação anti-robô existem em %s", (locale) => {
+    const login = PORTALS[locale].login;
+    for (const message of [login.captcha, login.captchaUnavailable, login.captchaPending, login.captchaLoad]) {
+      expect(typeof message).toBe("string");
+      expect(message.length).toBeGreaterThan(0);
+    }
   });
 
   it("com Google habilitado, mostra o botão e o divisor", () => {

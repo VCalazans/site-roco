@@ -5,11 +5,31 @@ import type { RepresentativeEditErrorCode } from "./representative-types";
 /** Estado de um link de conta vindo do servidor (`POST /api/account/token`). */
 export type AccountLinkFailure = "invalid" | "expired" | "used";
 
+/**
+ * Mensagens da verificação anti-robô (Turnstile) nas telas do portal — as
+ * mesmas chaves em `login` e em `account.errors`.
+ */
+export type PortalCaptchaMessages = {
+  /** Recusada pelo servidor (`captcha`) ou desafio que falhou no widget. */
+  captcha: string;
+  /** `captcha_unavailable`: não deu para validar o token agora. */
+  captchaUnavailable: string;
+  /** Botão desabilitado enquanto o widget não emite o token. */
+  captchaPending: string;
+  /** O widget não carregou (script bloqueado, configuração). */
+  captchaLoad: string;
+};
+
 /** Chave `portal.account` — páginas públicas de conta. */
 export type PortalAccountDictionary = {
   backToLogin: string;
   emailLabel: string;
-  errors: { invalidEmail: string; rateLimited: string; unavailable: string; generic: string };
+  errors: {
+    invalidEmail: string;
+    rateLimited: string;
+    unavailable: string;
+    generic: string;
+  } & PortalCaptchaMessages;
   linkStates: { checking: string } & Record<`${AccountLinkFailure}Title`, string>;
   confirmEmail: {
     title: string;
@@ -88,7 +108,7 @@ export type PortalTerritoryDictionary = {
  * existentes hoje em `pt.json`/`en.json` (fonte da verdade).
  */
 export type PortalDictionary = {
-  login: {
+  login: PortalCaptchaMessages & {
     title: string;
     subtitle: string;
     googleButton: string;

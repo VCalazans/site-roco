@@ -43,6 +43,14 @@ export type RepresentativesDictionary = {
     rateLimited: string;
     generic: string;
     unavailable: string;
+    /** Verificação anti-robô (Turnstile) recusada — servidor (`captcha`) ou widget. */
+    captcha: string;
+    /** `captcha_unavailable`: não deu para validar o token agora. */
+    captchaUnavailable: string;
+    /** Botão desabilitado enquanto o widget não emite o token. */
+    captchaPending: string;
+    /** O widget não carregou (script bloqueado, configuração). */
+    captchaLoad: string;
   };
   /** Depois do envio: confirmar o e-mail (link por e-mail, 24 h). */
   success: {

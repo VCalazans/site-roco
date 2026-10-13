@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import NextLink from "next/link";
 import GoogleIcon from "@mui/icons-material/Google";
@@ -12,9 +13,16 @@ import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import type { Locale } from "@/i18n/config";
 import { AuthCard } from "@/modules/portal/components/account/auth-card";
+import { PortalTurnstileField } from "@/modules/portal/components/shared/portal-turnstile-field";
+import type { PortalCaptchaMessages } from "@/modules/portal/lib/types";
+import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
+import { TURNSTILE_ACTIONS, TURNSTILE_TOKEN_FIELD } from "@/shared/lib/turnstile";
 
 type LoginCardProps = {
+  /** Idioma da página — o widget anti-robô (Turnstile) fala o mesmo. */
+  locale: Locale;
   /** `alt` do logotipo — reaproveita `dictionary.navigation.brand` ("ROCO"),
    *  já existente nos dois locales; não é copy nova a acrescentar. */
   logoAlt: string;
@@ -36,6 +44,8 @@ type LoginCardProps = {
   registerLinkLabel: string;
   registerHref: string;
   credentialsAction: (formData: FormData) => void | Promise<void>;
+  /** Textos da verificação anti-robô (`portal.login.captcha*`). */
+  captchaMessages: Pick<PortalCaptchaMessages, "captcha" | "captchaPending" | "captchaLoad">;
   /** Login com Google — só aparece quando habilitado (`AUTH_GOOGLE_ENABLED`). */
   google?: {
     buttonLabel: string;
@@ -48,10 +58,13 @@ function PendingButton({
   label,
   icon,
   variant,
+  blocked = false,
 }: {
   label: string;
   icon?: React.ReactNode;
   variant: "contained" | "outlined";
+  /** Desabilitado também fora do envio (ex.: verificação anti-robô sem token). */
+  blocked?: boolean;
 }) {
   // useFormStatus só funciona dentro do <form> que usa `action` — é a razão
   // deste subcomponente existir separado de LoginCard.
@@ -63,7 +76,7 @@ function PendingButton({
       variant={variant}
       size="large"
       fullWidth
-      disabled={pending}
+      disabled={pending || blocked}
       startIcon={pending ? <CircularProgress size={18} color="inherit" /> : icon}
       // `py` explícito: `size="large"` sozinho fica mais baixo que os campos
       // `medium` acima (que ganharam padding extra no tema — ver
@@ -76,7 +89,34 @@ function PendingButton({
   );
 }
 
+/**
+ * Pede um token novo ao Turnstile quando o envio termina (`pending` volta a
+ * `false`): o token é de uso único e já foi gasto no servidor. Rede de
+ * segurança — hoje o redirect do login com erro (`?error=`) REMONTA o cartão
+ * e o widget nasce de novo (conferido no navegador em 2026-10-12, inclusive
+ * repetindo a mesma URL); se um dia o envio terminar sem remontar o
+ * formulário, o próximo envio não leva o token velho, que seria recusado.
+ */
+function ResetTurnstileAfterSubmit({ onSettled }: { onSettled: () => void }) {
+  const { pending } = useFormStatus();
+  const wasPending = useRef(false);
+
+  useEffect(() => {
+    if (pending) {
+      wasPending.current = true;
+      return;
+    }
+    if (wasPending.current) {
+      wasPending.current = false;
+      onSettled();
+    }
+  }, [pending, onSettled]);
+
+  return null;
+}
+
 export function LoginCard({
+  locale,
   logoAlt,
   title,
   subtitle,
@@ -92,8 +132,13 @@ export function LoginCard({
   registerLinkLabel,
   registerHref,
   credentialsAction,
+  captchaMessages,
   google,
 }: LoginCardProps) {
+  // Verificação anti-robô: o token vai num campo oculto do formulário e é
+  // conferido no `authorize` do Auth.js (ver `@/core/auth`).
+  const turnstile = useTurnstile();
+
   return (
     <AuthCard logoAlt={logoAlt} title={title} description={subtitle}>
       {noticeMessage ? (
@@ -134,7 +179,17 @@ export function LoginCard({
           <MuiLink component={NextLink} href={forgotPassword.href} variant="body2" sx={{ alignSelf: "flex-end" }}>
             {forgotPassword.label}
           </MuiLink>
-          <PendingButton label={signInButtonLabel} variant="contained" />
+          <PortalTurnstileField
+            turnstile={turnstile}
+            action={TURNSTILE_ACTIONS.login}
+            locale={locale}
+            messages={captchaMessages}
+          />
+          {turnstile.enabled ? (
+            <input type="hidden" name={TURNSTILE_TOKEN_FIELD} value={turnstile.token ?? ""} />
+          ) : null}
+          <ResetTurnstileAfterSubmit onSettled={turnstile.reset} />
+          <PendingButton label={signInButtonLabel} variant="contained" blocked={turnstile.pending} />
         </Stack>
       </Box>
 
