@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import type { Dictionary } from "@/i18n/get-dictionary";
 import { AskAiLinks } from "@/modules/ai/components/ask-ai-links";
 import { CopyButton } from "@/modules/ai/components/copy-button";
@@ -8,7 +8,9 @@ type AskAiPageProps = {
   copy: Dictionary["askAi"];
   prompt: string;
   mcpUrl: string;
-  links: { quote: string; contact: string; privacy: string; claudeHelp: string };
+  /** Perguntas de exemplo, cada uma com o contexto da ROCO já embutido. */
+  examples: { question: string; prompt: string }[];
+  links: { quote: string; contact: string; privacy: string; claudeHelp: string; claudeInstall: string };
 };
 
 /**
@@ -17,12 +19,7 @@ type AskAiPageProps = {
  * 2) como chegar ao orçamento (o envio é sempre dele, no site);
  * 3) conectar o catálogo oficial (MCP) no Claude/ChatGPT de uso diário.
  */
-export function AskAiPage({ copy, prompt, mcpUrl, links }: AskAiPageProps) {
-  const assistants = [
-    { key: "claude", title: copy.claude.title, steps: copy.claude.steps, help: copy.claude.help, helpUrl: links.claudeHelp },
-    { key: "chatgpt", title: copy.chatgpt.title, steps: copy.chatgpt.steps, help: null, helpUrl: null },
-  ];
-
+export function AskAiPage({ copy, prompt, examples, mcpUrl, links }: AskAiPageProps) {
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
       <div aria-hidden className="pointer-events-none absolute inset-0">
@@ -47,10 +44,12 @@ export function AskAiPage({ copy, prompt, mcpUrl, links }: AskAiPageProps) {
           <h3 className="mt-8 text-meta font-semibold uppercase tracking-[0.12em] text-neon-cyan-bright">
             {copy.examplesTitle}
           </h3>
-          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {copy.examples.map((example) => (
-              <li key={example} className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-meta text-white/75">
-                {example}
+          <p className="mt-1 text-meta text-white/60">{copy.examplesHint}</p>
+          <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {examples.map((example) => (
+              <li key={example.question} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                <p className="text-meta text-white/85">{example.question}</p>
+                <AskAiLinks prompt={example.prompt} copy={copy} size="sm" />
               </li>
             ))}
           </ul>
@@ -89,27 +88,41 @@ export function AskAiPage({ copy, prompt, mcpUrl, links }: AskAiPageProps) {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {assistants.map((assistant) => (
-              <div key={assistant.key}>
-                <h3 className="text-ui font-semibold text-white">{assistant.title}</h3>
-                <ol className="mt-2 flex list-decimal flex-col gap-1.5 pl-5 text-meta text-white/75">
-                  {assistant.steps.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-                {assistant.help && assistant.helpUrl ? (
-                  <a
-                    href={assistant.helpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-meta text-neon-cyan-bright underline-offset-4 hover:underline"
-                  >
-                    {assistant.help}
-                    <span className="sr-only"> {copy.newTab}</span>
-                  </a>
-                ) : null}
-              </div>
-            ))}
+            <div className="rounded-xl border border-neon-cyan/30 bg-white/[0.03] p-5">
+              <h3 className="text-ui font-semibold text-white">{copy.claude.title}</h3>
+              <a
+                href={links.claudeInstall}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-neon mt-3 w-fit"
+              >
+                {copy.claude.cta}
+                <ExternalLink className="size-4" aria-hidden />
+                <span className="sr-only">{copy.newTab}</span>
+              </a>
+              <ol className="mt-4 flex list-decimal flex-col gap-1.5 pl-5 text-meta text-white/75">
+                {copy.claude.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+              <a
+                href={links.claudeHelp}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-meta text-neon-cyan-bright underline-offset-4 hover:underline"
+              >
+                {copy.claude.help}
+                <span className="sr-only"> {copy.newTab}</span>
+              </a>
+            </div>
+            <div className="p-5">
+              <h3 className="text-ui font-semibold text-white">{copy.chatgpt.title}</h3>
+              <ol className="mt-3 flex list-decimal flex-col gap-1.5 pl-5 text-meta text-white/75">
+                {copy.chatgpt.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
           </div>
         </section>
 

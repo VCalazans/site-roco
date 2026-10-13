@@ -5,6 +5,7 @@ import { ASK_AI_SEGMENT, askAiPath, contactPath, privacyPath, quotePath } from "
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { AskAiPage } from "@/modules/ai/components/ask-ai-page";
+import { claudeConnectorInstallUrl } from "@/modules/ai/lib/ask-ai";
 import { buildBreadcrumbList } from "@/modules/ai/lib/json-ld";
 import { MCP_PATH } from "@/modules/ai/server/mcp-server";
 import { JsonLd } from "@/shared/components/seo/json-ld";
@@ -35,10 +36,12 @@ export default async function AskAiRoute({ params }: PageProps) {
 
   const dictionary = await getDictionary(locale);
   const { askAi } = dictionary;
-  const prompt = interpolate(askAi.prompts.general, {
-    siteUrl: absoluteUrl(`/${locale}`),
-    llmsUrl: absoluteUrl("/llms.txt"),
-  });
+  const context = { siteUrl: absoluteUrl(`/${locale}`), llmsUrl: absoluteUrl("/llms.txt") };
+  const prompt = interpolate(askAi.prompts.general, context);
+  const examples = askAi.examples.map((question) => ({
+    question,
+    prompt: interpolate(askAi.prompts.example, { ...context, question }),
+  }));
 
   return (
     <>
@@ -51,12 +54,14 @@ export default async function AskAiRoute({ params }: PageProps) {
       <AskAiPage
         copy={askAi}
         prompt={prompt}
+        examples={examples}
         mcpUrl={absoluteUrl(MCP_PATH)}
         links={{
           quote: quotePath(locale),
           contact: withLeadOrigin(contactPath(locale), "assistente-ia"),
           privacy: privacyPath(locale),
           claudeHelp: CLAUDE_CONNECTORS_HELP,
+          claudeInstall: claudeConnectorInstallUrl(dictionary.navigation.brand, absoluteUrl(MCP_PATH)),
         }}
       />
     </>

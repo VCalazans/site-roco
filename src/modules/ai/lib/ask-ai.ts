@@ -29,3 +29,17 @@ export function askAiUrl(assistant: AskAiAssistant, prompt: string): string {
 export function askAiLinks(prompt: string): { assistant: AskAiAssistant; url: string }[] {
   return ASK_AI_ASSISTANTS.map((assistant) => ({ assistant, url: askAiUrl(assistant, prompt) }));
 }
+
+/**
+ * Link OFICIAL do Claude que abre "Adicionar conector personalizado" com nome e
+ * URL já preenchidos (documentado em claude.com/docs/connectors/building/
+ * directory-vs-custom, conferido em 2026-10-13). A pessoa só confere e confirma;
+ * sem login, o Claude pede para entrar e depois mostra o formulário preenchido.
+ */
+export function claudeConnectorInstallUrl(name: string, mcpUrl: string): string {
+  const url = new URL("https://claude.ai/customize/connectors");
+  url.searchParams.set("modal", "add-custom-connector");
+  url.searchParams.set("connectorName", name);
+  url.searchParams.set("connectorUrl", mcpUrl);
+  return url.toString();
+}

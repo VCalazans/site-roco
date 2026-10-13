@@ -2302,3 +2302,14 @@ até 8 h; foro "da comarca da sede da ROCO" sem cidade; retenção só com os pr
 encarregado (DPO) não aparecem — dependem da ROCO.
 **Impacto**: rotas novas no sitemap; dicionários `askAi`, `legal`, `footer.legal`; teste `ask-ai.test.ts`.
 
+## 2026-10-13 — "Conectar ao Claude" com link oficial e exemplos com contexto
+**Decisão**: a página `/ia` ganhou o botão **Conectar ao Claude**, que usa o link oficial do Claude para abrir "Adicionar
+conector personalizado" já preenchido (`https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=…&
+connectorUrl=…`, documentado em claude.com/docs/connectors/building/directory-vs-custom). Testado no claude.ai em 2026-10-13: o
+formulário abre com "ROCO" e `https://roco.com.br/mcp`; a pessoa só clica em Continuar. As perguntas de exemplo viraram links
+para ChatGPT, Claude e Perplexity com o contexto da ROCO embutido (antes eram texto solto e, coladas sozinhas na IA, perdiam
+a referência à ROCO — apontado pelo stakeholder).
+**Alternativas**: o ChatGPT não tem link equivalente; o caminho de um clique lá é publicar no diretório de plugins da OpenAI
+(revisão manual). No Claude, o caminho com descoberta dentro do produto é o diretório de conectores da Anthropic
+(claude.ai/directory/manage, revisão manual). Os dois dependem de conta e aprovação — pendência para a Archicode/ROCO.
+

@@ -27,3 +27,12 @@ describe("askAiLinks", () => {
     expect(askAiLinks("x").map((link) => link.assistant)).toEqual([...ASK_AI_ASSISTANTS]);
   });
 });
+
+describe("claudeConnectorInstallUrl", () => {
+  it("monta o link oficial que abre o conector já preenchido", async () => {
+    const { claudeConnectorInstallUrl } = await import("@/modules/ai/lib/ask-ai");
+    expect(claudeConnectorInstallUrl("ROCO", "https://roco.com.br/mcp")).toBe(
+      "https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=ROCO&connectorUrl=https%3A%2F%2Froco.com.br%2Fmcp"
+    );
+  });
+});

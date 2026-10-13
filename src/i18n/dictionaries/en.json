@@ -2292,13 +2292,14 @@
     },
     "prompts": {
       "general": "I have questions about the products of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (official website: {siteUrl}). Use the official information published at {llmsUrl}. My question is: ",
-      "product": "I have questions about the ROCO product \"{name}\" (code {sku}): {productUrl}. Use the official information on ROCO's website. My question is: "
+      "product": "I have questions about the ROCO product \"{name}\" (code {sku}): {productUrl}. Use the official information on ROCO's website. My question is: ",
+      "example": "About ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (official website: {siteUrl}; official catalog information: {llmsUrl}): {question}"
     },
-    "examplesTitle": "What you can ask",
+    "examplesTitle": "Start with one of these questions",
     "examples": [
       "Which ROCO gas hose fits my stove?",
       "Which repair kits does ROCO have for close-coupled cisterns?",
-      "Which packaging options does this product have, and what is the EAN code?",
+      "What is the difference between ROCO's gas hose kits?",
       "Build a product list for a bathroom renovation and give me the links to request a quote."
     ],
     "quoteTitle": "What about quotes?",
@@ -2306,17 +2307,17 @@
     "quoteCta": "Go to My quote",
     "contactCta": "Talk to the sales team",
     "connectTitle": "Use ChatGPT or Claude every day? Connect ROCO's catalog",
-    "connectIntro": "With the catalog connected, the assistant checks ROCO's official products whenever you ask, without pasting links. It is free and needs no login.",
+    "connectIntro": "With the catalog connected, the assistant checks ROCO's official products whenever you ask, without pasting links or explaining who ROCO is. It is free and needs no ROCO account.",
     "urlLabel": "ROCO connector address",
     "copy": "Copy address",
     "copied": "Address copied",
     "claude": {
-      "title": "In Claude",
+      "title": "In Claude (easiest)",
+      "cta": "Connect to Claude",
       "steps": [
-        "Open settings and go to Connectors.",
-        "Choose Add custom connector.",
-        "Name it ROCO and paste the address above.",
-        "For authentication, choose the no sign-in option and confirm."
+        "Click Connect to Claude: Claude opens with the ROCO connector already filled in.",
+        "Check the name ROCO and the address, then click Add.",
+        "Done: in any chat, ask about ROCO products."
       ],
       "help": "Claude help on connectors"
     },
@@ -2331,7 +2332,8 @@
     },
     "privacyNote": "ChatGPT, Claude and Perplexity are services from other companies, with their own policies. Do not share personal or confidential information in the conversations.",
     "privacyLink": "ROCO privacy policy",
-    "productCta": "Ask AI about this product"
+    "productCta": "Ask AI about this product",
+    "examplesHint": "Each question already includes ROCO's context."
   },
   "legal": {
     "common": {

@@ -2292,13 +2292,14 @@
     },
     "prompts": {
       "general": "Quero tirar dúvidas sobre os produtos da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (site oficial: {siteUrl}). Use as informações oficiais publicadas em {llmsUrl}. Minha dúvida é: ",
-      "product": "Quero tirar dúvidas sobre o produto \"{name}\" (código {sku}) da ROCO: {productUrl}. Use as informações oficiais do site da ROCO. Minha dúvida é: "
+      "product": "Quero tirar dúvidas sobre o produto \"{name}\" (código {sku}) da ROCO: {productUrl}. Use as informações oficiais do site da ROCO. Minha dúvida é: ",
+      "example": "Sobre a ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (site oficial: {siteUrl}; informações oficiais do catálogo: {llmsUrl}): {question}"
     },
-    "examplesTitle": "Exemplos do que perguntar",
+    "examplesTitle": "Comece por uma destas perguntas",
     "examples": [
       "Qual flexível para gás da ROCO serve para o meu fogão?",
       "Quais reparos a ROCO tem para caixa acoplada?",
-      "Quais embalagens existem para este produto e qual o código EAN?",
+      "Qual a diferença entre os kits de flexíveis para gás da ROCO?",
       "Monte uma lista de produtos para a reforma de um banheiro e me passe os links para pedir orçamento."
     ],
     "quoteTitle": "E o orçamento?",
@@ -2306,17 +2307,17 @@
     "quoteCta": "Ir para Meu orçamento",
     "contactCta": "Falar com o time comercial",
     "connectTitle": "Usa ChatGPT ou Claude no dia a dia? Conecte o catálogo da ROCO",
-    "connectIntro": "Com o catálogo conectado, o assistente consulta os produtos oficiais da ROCO sempre que você perguntar, sem precisar colar links. É gratuito e não pede login.",
+    "connectIntro": "Com o catálogo conectado, o assistente consulta os produtos oficiais da ROCO sempre que você perguntar, sem precisar colar links nem explicar quem é a ROCO. É gratuito e não pede cadastro na ROCO.",
     "urlLabel": "Endereço do conector da ROCO",
     "copy": "Copiar endereço",
     "copied": "Endereço copiado",
     "claude": {
-      "title": "No Claude",
+      "title": "No Claude (mais fácil)",
+      "cta": "Conectar ao Claude",
       "steps": [
-        "Abra as configurações e vá em Conectores.",
-        "Escolha Adicionar conector personalizado.",
-        "Use o nome ROCO e cole o endereço acima.",
-        "Em autenticação, escolha a opção sem login e confirme."
+        "Clique em Conectar ao Claude: o Claude abre com o conector da ROCO já preenchido.",
+        "Confira o nome ROCO e o endereço e clique em Adicionar.",
+        "Pronto: em qualquer conversa, pergunte sobre os produtos da ROCO."
       ],
       "help": "Ajuda do Claude sobre conectores"
     },
@@ -2331,7 +2332,8 @@
     },
     "privacyNote": "ChatGPT, Claude e Perplexity são serviços de outras empresas, com políticas próprias. Não compartilhe dados pessoais ou informações sigilosas nas conversas.",
     "privacyLink": "Política de privacidade da ROCO",
-    "productCta": "Tirar dúvida com IA"
+    "productCta": "Tirar dúvida com IA",
+    "examplesHint": "Cada pergunta já vai com o contexto da ROCO."
   },
   "legal": {
     "common": {
