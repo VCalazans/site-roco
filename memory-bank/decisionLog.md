@@ -2194,3 +2194,53 @@ contraria o pedido); upload multipart no navegador para vídeos acima de 100 MB 
 **Impacto**: conferido por scripts e de dentro do servidor: PUT/HEAD/GET pelo SDK, presign com tipo/tamanho assinados,
 CORS de `https://roco.com.br`, material privado 403, equipe só em `roco-midia`, as 613 fotos e o vídeo intactos depois
 de reimplantar o MinIO. A `main` foi levada para `beea403`; o deploy do `site-roco` depende do aval do stakeholder.
+
+## 2026-10-12 — Camada de segurança: Turnstile, WAF e limite de taxa na Cloudflare, IP do visitante só pela borda
+**Decisão**: a entrada pública ganha três camadas. (1) **Cloudflare Turnstile** (modo Gerenciado) nos formulários públicos
+(contato, catálogo, orçamento — a ação depende do assunto de `POST /api/contact` —, pré-cadastro de representante e "reenviar
+e-mail" do painel de sucesso) e nas telas de conta do portal (login por senha, esqueci a senha e reenviar confirmação). O
+servidor valida o token no siteverify com `TURNSTILE_SECRET_KEY`, confere a ação e recusa quando não recebe resposta confiável.
+(2) **Borda da Cloudflare** na zona `roco.com.br` (plano Free): regra de WAF que bloqueia varreduras (`.php`, `/wp-admin`,
+`/.env`, `/.git` e afins) só em `roco.com.br` e `www`; a única regra de rate limiting do plano (mais de 10 POST em 10 s por IP
+nas rotas de formulário, login e `/api/account/*` → 429); TLS mínimo 1.2. (3) **IP do visitante só pela borda**:
+`resolveClientIp` (`src/server/lib/rate-limit.ts`) usa o último item do `x-forwarded-for`, o par TCP do proxy; se esse par for
+borda da Cloudflare (`CLOUDFLARE_IP_RANGES`), vale o `cf-connecting-ip`; senão, vale o próprio par. Nunca o primeiro item do
+cabeçalho nem o `cf-connecting-ip` sozinho.
+
+**Alternativas**: captcha de outro fornecedor (hCaptcha, citado no backlog desde 2026-08-24) — o Turnstile vem da Cloudflare,
+que já termina o TLS do site, e exige só `challenges.cloudflare.com` na CSP. Só honeypot e limite por IP (estado anterior) —
+insuficiente: `/api/contact` dependia do honeypot contra bot, e o pré-cadastro podia encher a fila de aprovação. Confirmação de
+e-mail antes do INSERT no contato e no catálogo — exigiria um passo a mais do visitante e não barra quem digita um e-mail
+válido; no pré-cadastro ela já existe desde 2026-09-30. WAF na zona inteira — rejeitado: `mautic.roco.com.br` ainda usa PHP.
+Bloquear varreduras só no app — rejeitado: cada varredura ainda ocuparia o processo Node, e a Cloudflare barra antes da origem.
+Usar `cf-connecting-ip` sempre — rejeitado: quem descobre o IP de origem chega direto e escreve o cabeçalho como quiser. Usar o
+primeiro item do `x-forwarded-for` — rejeitado (é o risco B7 de 2026-09-30). Bot Fight Mode — desligado de propósito: bloquearia
+as chamadas do próprio app ao S3 em `s3.roco.com.br`.
+
+**Justificativa**: o pré-cadastro e o login por senha são as entradas com efeito real (fila de aprovação e bcrypt), e as
+varreduras batiam no processo Next. Verificado na borda: 403 nas varreduras com o site em 200; 429 acima do limite; TLS 1.1
+recusado. No código: 84 arquivos de teste em `src/` e 1884 testes informados na sessão (antes 1761 em 77). A verificação de
+ponta a ponta do widget e do siteverify com as chaves reais depende do deploy.
+
+**Impacto**:
+- Envs: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` é build-arg (`Dockerfile`, `docker-compose.yml`, `scripts/docker-build.cmd`; mudar
+  exige rebuild) e `TURNSTILE_SECRET_KEY` é runtime. As duas andam juntas: segredo com build sem site key recusa todo envio,
+  inclusive o login; site key sem segredo desliga a verificação no servidor, com aviso no log de produção.
+- Fail-closed com dois códigos: `captcha` (400) para token ausente ou recusado; `captcha_unavailable` (503) quando a Cloudflare
+  não responde em 5 s. É o mesmo trade-off de disponibilidade do rate limit fail-closed: sem Cloudflare, sem lead.
+- Código: `src/shared/lib/turnstile.ts`, `src/server/lib/turnstile.ts`, `src/shared/components/turnstile/`,
+  `src/modules/portal/components/shared/portal-turnstile-field.tsx`; `authorize` do login em `src/core/auth/index.ts` (campo
+  `turnstileToken`, que cobre também `/api/auth/callback/credentials`); CSP em `next.config.ts`.
+- `/api/health` com token passa a devolver `client` (`ip`, `viaCloudflare`, `forwardedHops`). Atrás da Cloudflare,
+  `viaCloudflare: false` com IP interno significa que algo trocou o IP de origem entre a borda e o app, e todos os visitantes
+  dividiriam o mesmo limite. Ainda não conferido em produção nem em homologação.
+- Dois bugs achados ao fechar a camada: (a) `instrumentation.ts` estava na raiz do repo, então o worker do ERP nunca subiu na
+  imagem standalone (`workers.running: false`, `not-initialized`); movido para `src/` (`9fae93d`). (b)
+  `representatives.delete` apagava só o cadastro: a conta mantinha o perfil `representative`, e quem tinha sido desabilitado
+  voltava a entrar, porque a trava `disabledAt` mora na linha apagada; agora o perfil sai na mesma transação e o audit traz
+  `roleRemoved` (`febc6ab`).
+- Status: `9fae93d`, `febc6ab` e `b09a9a9` estão na `feat/porta-mais-site`; a `main` segue em `71744a7`, que é a versão no ar.
+  Produção só recebe a camada com o avanço da `main` e o deploy.
+- Pendências: incluir cada rota pública nova de formulário na regra de rate limiting da Cloudflare; conferir `client` em cada
+  ambiente; decidir o aviso de privacidade do Turnstile (ele envia sinais do navegador à Cloudflare) junto com a decisão LGPD
+  em aberto.

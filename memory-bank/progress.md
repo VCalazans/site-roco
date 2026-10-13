@@ -447,10 +447,26 @@
 - [x] **Tudo pela Cloudflare** (pedido do stakeholder): `s3.roco.com.br`, `painel-midia.roco.com.br` e `midia.roco.com.br`
       com proxy; `www` no proxy; domínios `*.easypanel.host` removidos do MinIO e do app; Cache Rule sem cache para a API
       e o console (HEAD → GET quebrava a assinatura S3); vídeos até 95 MB (limite de 100 MB do proxy, commit `beea403`).
+- [x] **Deploy** (2026-10-12): commit `71744a7` implantado no `site-roco`; site novo no ar em `roco.com.br`. Smoke ok: páginas
+      200, fotos pelo MinIO, login do portal e banco ok.
+
+### Camada de segurança (2026-10-12)
+- [x] **Turnstile** (`b09a9a9`): verificação anti-robô nos formulários públicos (contato, catálogo, orçamento, pré-cadastro e
+      "reenviar" do painel de sucesso) e nas telas de conta (login por senha, esqueci a senha, reenviar confirmação).
+      Fail-closed (`captcha` 400; `captcha_unavailable` 503), token de uso único, siteverify com timeout de 5 s, ação conferida
+      no servidor. Sem `TURNSTILE_SECRET_KEY` fica desligado (aviso no log de produção).
+- [x] **IP do visitante** (`resolveClientIp`, `src/server/lib/rate-limit.ts`): `cf-connecting-ip` só com o par TCP em borda da
+      Cloudflare (`CLOUDFLARE_IP_RANGES`); `/api/health` com token devolve `client` para conferência.
+- [x] **Cloudflare (zona `roco.com.br`, Free)**: WAF de varreduras em `roco.com.br`/`www` (testado: 403, site 200); rate
+      limiting de mais de 10 POST em 10 s por IP nas rotas de formulário, login e conta (testado: 429); TLS mínimo 1.2 (1.1
+      recusado); Bot Fight Mode desligado de propósito (bloquearia as chamadas do app ao S3).
+- [x] **Dois bugs achados ao fechar a camada** (ver "Resolvido em 2026-10-12"): worker do ERP fora da imagem standalone
+      (`9fae93d`) e exclusão de representante sem tirar o perfil (`febc6ab`).
+- [ ] **Ainda fora de produção**: `9fae93d`, `febc6ab` e `b09a9a9` (ver "Em Andamento").
 
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12
+- [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12; 1884 em 84 arquivos com a camada de segurança (2026-10-12)
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -470,9 +486,18 @@
 - [ ] Segunda rodada de fotos: mapear 132 arquivos sem produto (faixas 1906–1919, 2237–2280,
       3068–3179 ausentes do catálogo + 11 nomes livres) e 144 produtos sem foto.
 - [ ] Smoke test portal (login, RBAC, uploads, presigned URLs, webhook ERP)
-- [ ] **Provisionar infra prod** (Alto): Postgres, **Redis (obrigatório — sem ele `/api/contact`
-      responde 503 e nenhum lead entra)**, Google OAuth, bucket R2 separado sem acesso público,
-      RD Station API Key + campos customizados, Resend domínio verificado.
+- [ ] **Provisionar infra prod** (Alto): Postgres, Redis e armazenamento (MinIO, com prefixos privados) **feitos em
+      2026-10-12** (ver "Ambiente de produção preparado"). Pendentes: Google OAuth (oculto por `AUTH_GOOGLE_ENABLED`), RD
+      Station API Key de produção + campos customizados, Resend domínio verificado e SMTP do domínio da ROCO. O Redis segue
+      obrigatório: sem ele `/api/contact` responde 503 e nenhum lead entra.
+- [ ] **Deploy da camada de segurança** (Alto, aguarda o stakeholder): avançar a `main` até `b09a9a9` e implantar o
+      `site-roco`. Sem isso, produção segue sem o worker do ERP e sem Turnstile.
+- [ ] **Chaves do Turnstile** (Alto): `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (build-arg, exige rebuild) e `TURNSTILE_SECRET_KEY`
+      (runtime) no `site-roco` e no `roco-test`, do mesmo widget.
+- [ ] **Conferir o IP do visitante** em produção e homologação (`GET /api/health` com `x-health-token`:
+      `client.viaCloudflare: true` e IP público).
+- [ ] **Regra de rate limiting da Cloudflare**: incluir cada rota pública nova de formulário (hoje: contato, pré-cadastro,
+      login e `/api/account/*`).
 - [ ] **RD Station: criar `cf_origem` no painel** (Alto, stakeholder — atualizado 2026-08-31): dos
       cinco `cf_*` que o código envia, a conta já tem `cf_cnpj`, `cf_produto_interesse`,
       `cf_produtos_carrinho` e `cf_mensagem`; **falta só `cf_origem`**, em Configurações > Campos
@@ -509,8 +534,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 
 ## 📋 Backlog MVP / Pós-MVP
 ### Infra (pré-launch — decisão stakeholder)
-- [ ] **Virada do site novo** (2026-10-12, aguarda o aval do stakeholder): a `main` já está em `beea403` (fast-forward
-      feito); falta Implantar no `site-roco` e o smoke. Passo a passo e rollback em techContext ("Ambiente de Produção").
+- [x] **Virada do site novo** (2026-10-12): `main` em `71744a7` implantada no `site-roco`; smoke ok. Passo a passo e rollback
+      em techContext ("Ambiente de Produção").
 - [ ] **Backup automático do `roco-db`** (2026-10-12): EasyPanel › Cópias de segurança com destino S3 (bucket no MinIO).
 - [x] **Fixar a versão da imagem do MinIO** (2026-10-12): `pgsty/minio:RELEASE.2026-08-04T00-00-00Z` (era `:latest`).
 - [ ] **E-mail de produção** (2026-09-30): remetente do domínio da ROCO (caixa própria, ex.:
@@ -554,6 +579,10 @@ catálogo vivo via ERP → cotação como dado estruturado.
       (Riscos) e decidir o `emailVerified` das contas criadas pelo Google.
 - [ ] **Spec 002 — Embalagens no padrão GS1** (2026-09-30, EM ESPERA): discussão documentada em
       `memory-bank/specs/002-embalagens-gs1.md`, com 4 decisões pendentes do stakeholder.
+- [ ] **Tela de criar usuário da equipe e de alterar senha** (2026-10-12, apontado no guia de operação): o portal não tem
+      nenhuma das duas.
+- [ ] **Gerente comercial (`sales_manager`) sem envio e remoção de fotos** (2026-10-12): hoje só baixa; confirmar com o
+      stakeholder se é a intenção.
 
 ### Site (pós-MVP home/produtos)
 - [ ] **Pop-ups do RD** (vindos da `main`): smoke test no navegador em produção (botão de WhatsApp do RD
@@ -578,14 +607,11 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - [ ] **Vídeo do hero: trocar embed YouTube por MP4 self-hosted** (2026-08-12): pedir o arquivo ao
       stakeholder; remove youtube-nocookie da CSP `frame-src`, elimina tracking de terceiro (LGPD)
       e o player em conexões lentas. Avaliar `prefers-reduced-motion` (pôster já cobre fallback).
-- [ ] **Endurecer `/api/contact` contra enumeração/bot** (2026-08-24): honeypot + rate limit 8/10min
-      IP (rígido) é defesa inicial; hardening futuro: Turnstile/hCaptcha ou confirmação de e-mail
-      para throttle sem revelar se lead já existe (evita spam em lote).
-- [ ] **Endurecer register contra enumeração/spam** (revisão 2026-08-12): oráculo 409
-      email_exists/cnpj_exists + teto global 60/5min permitem ~17k probes/dia (enumeração) e
-      pré-cadastros falsos inundando a fila do admin (CNPJs válidos são geráveis; honeypot só
-      dispara se o campo vier preenchido). Mitigação recomendada: Turnstile/hCaptcha ou
-      confirmação de e-mail antes do INSERT, mantendo o 409 atrás do desafio.
+- [x] **Endurecer `/api/contact` contra bot** (2026-08-24): **Turnstile em 2026-10-12** (ação por assunto). Pendente, se o
+      spam em lote aparecer: confirmação de e-mail antes do INSERT.
+- [ ] **Endurecer register contra enumeração/spam** (revisão 2026-08-12): **Turnstile em 2026-10-12** barra o robô antes do
+      schema e do banco; pré-cadastros que não confirmam ficam fora da fila (desde 2026-09-30) e são apagados em 7 dias.
+      Segue aberto o oráculo `email_exists`/`cnpj_exists` (B2), agora atrás do desafio.
 - [ ] Busca por nome de categoria na listagem `/produtos` (revisão 2026-08-12): a busca cobre
       nome (pt/en) + SKU; categoria só via filtro select. Placeholder já ajustado para não
       prometer o que não faz — implementar se o stakeholder quiser busca unificada.
@@ -639,6 +665,21 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **xlsx via CDN tarball**: fora do npm audit — reauditar manualmente a cada atualização.
 - E2E e component tests da UI do portal faltam (vitest cobre lógica pura).
 - Audit logs export/retention policy indefinida.
+- **Rótulos crus e copy antiga no portal** (2026-10-12, Baixo; a regra 1 do CLAUDE.md exige dicionário): "YouTube ID" fixo em
+  `src/modules/portal/components/hero/hero-form-dialog.tsx`; "Upload (R2)" no dicionário (chave `upload`) é texto antigo, o
+  storage é MinIO; "download" aparece cru na matriz de perfis quando falta a chave em `matrix.actionsLabels`
+  (`roles-matrix-tab.tsx`).
+
+## ✅ Resolvido em 2026-10-12
+- **Worker do ERP nunca subia na imagem standalone** (`9fae93d`): `instrumentation.ts` estava na RAIZ do repo (o `app/` mora
+  em `src/app`). Movido para `src/instrumentation.ts`. Produção e homologação mostravam `workers: { running: false, reason:
+  "not-initialized" }`: o webhook do ERP respondia 202 com a fila sem consumidor. Verificado: o arquivo existe em
+  `.next/standalone/.next/server/` e o standalone local loga "[queue] Worker erp-sync registrado." (`workers.running: true`).
+  Produção só recebe a correção no deploy de `9fae93d`.
+- **Excluir representante deixava a conta com o perfil `representative`** (`febc6ab`): `representatives.delete` apagava só o
+  cadastro. A pessoa seguia com as permissões de representante, e quem tinha sido desabilitado voltava a entrar (a trava
+  `disabledAt` mora na linha apagada). Agora o perfil sai na mesma transação e o audit traz `roleRemoved`. Verificado contra o
+  banco local. Produção só recebe a correção no deploy de `febc6ab`.
 
 ## ✅ Resolvido em 2026-08-25
 - **Rastreio de origem do lead — CONCLUÍDO**: até aqui o lead que chegava ao RD Station só distinguia
@@ -678,11 +719,28 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
 
 ## 🔐 Riscos de Segurança
+- **Camada de segurança (2026-10-12) — itens ABERTOS**:
+  - (Médio, operacional) **Turnstile desligado por omissão de env**: sem `TURNSTILE_SECRET_KEY` em produção, a verificação é
+    pulada; formulários e login seguem sem captcha, além do aviso no log (uma vez por processo). O `/api/health` autenticado
+    mostra `turnstile: { secret, siteKey }` (só booleanos): conferir os dois `true` no smoke de cada deploy.
+  - (Médio, operacional) **Rota pública nova fora da regra da Cloudflare**: o plano Free tem uma única regra de rate limiting,
+    e ela lista seis caminhos (contato, pré-cadastro, login pt/en, callback do login e `/api/account/*`). Uma rota nova de
+    formulário fica só com o limite do Redis até entrar na expressão.
+  - (Baixo, LGPD) **Turnstile envia sinais do navegador à Cloudflare**: entra na política de privacidade e na decisão de
+    consentimento ainda pendente (`ConsentBanner` desligado).
+  - (Médio, pendência da ROCO, fora deste projeto) **Subdomínios de `roco.com.br` fora do proxy da Cloudflare**: alguns
+    respondem com o certificado padrão do Traefik, inválido. O HSTS com `includeSubDomains; preload` do site impede o
+    "prosseguir assim mesmo" nesses endereços. Os hosts ficam fora do repositório (é público). Ação: pôr no proxy da
+    Cloudflare ou desligar o que não é usado.
+  - (Informativo) **Limite por IP só vale atrás da Cloudflare**: `viaCloudflare: false` com IP interno, num ambiente atrás da
+    Cloudflare, significa que o IP de origem foi trocado entre a borda e o app; todos os visitantes dividiriam o mesmo limite.
+    Conferir após cada deploy.
 - **Revisão do fluxo de contas (2026-09-30) — itens ABERTOS** (os corrigidos estão no decisionLog):
   - (B2, aceito) `POST /api/representatives/register` responde `email_exists`/`cnpj_exists`: enumera
     cadastros (inclusive e-mails da equipe), mitigado pelos limites. Correção possível: 201 genérico + e-mail ao dono.
-  - (B7, infra) `getClientIp` usa o 1º valor do `X-Forwarded-For`: se a borda de produção ACRESCENTAR em vez
-    de sobrescrever, o IP vira escolha do atacante e os limites por IP perdem efeito. Confirmar na infra.
+  - (B7, infra) **RESOLVIDO NO CÓDIGO em 2026-10-12**: `resolveClientIp` nunca usa o primeiro item do `X-Forwarded-For` e só
+    aceita o `cf-connecting-ip` quando o par TCP é borda da Cloudflare. Falta conferir em produção e homologação
+    (`client.viaCloudflare` no `/api/health`).
   - (B9) Quem recebe um link de confirmação de cadastro que não fez e clica, confirma a conta com a senha de
     outra pessoa (a página não mostra empresa/CNPJ). O e-mail já diz "se não foi você, ignore"; o dono do
     e-mail retoma a conta por "Esqueci minha senha".
@@ -706,9 +764,9 @@ catálogo vivo via ERP → cotação como dado estruturado.
   `docs/selo-gptw-fev2026-fev2027.jpeg`); rodapé exibe o selo oficial + vigência no lugar do
   badge textual. Ao RENOVAR a certificação (fev/2027), substituir o asset e as notas nos
   dicionários (`footer.certifications.items[0]`) — selo vencido volta a ser risco CDC.
-- **`getClientIp` confia em `X-Forwarded-For` sem validar topologia de proxy** (2026-08-11): rate-limit
-  usa header sem normalização. Pré-existente, porém tráfego público novo (catálogo) aumenta superfície.
-  Recomendação: confirmar que proxy de produção (Cloudflare/reverse proxy) normaliza o header.
+- ~~**`getClientIp` confia em `X-Forwarded-For` sem validar topologia de proxy**~~ (2026-08-11) **RESOLVIDO NO CÓDIGO em
+  2026-10-12** (`resolveClientIp`: a confiança passa pela borda da Cloudflare; ver techContext › Dados & Segurança). Falta
+  conferir em produção.
 - **`proxy.ts` usa `pathname.includes("/api")` não segmento exato** (2026-08-11): substring não seguro.
   Não explorável hoje (nenhuma rota interna contém "api" no path), item de hardening futuro.
 - **LGPD Portal**: CNPJ/telefone/documentos de representantes (dados pessoais). Minimização ok,
@@ -740,11 +798,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
   (onboarding docs desde 2026-08-09), visível agora com conteúdo sensível novo (materiais comerciais)
   acessível a mais público (representantes vs admin). **Decisão pendente stakeholder**: bucket separado
   sem acesso público para conteúdo privado, antes de produção.
-- **Honeypot é única defesa anti-bot em `/api/contact`** (2026-08-24, Médio/backlog): mesmo padrão de risco
-  já aceito para `/api/representatives/register`. Taxa 8/10min IP + 200/5min global (teto global subiu em
-  2026-08-25 porque virou backstop de DOIS funis públicos), porém honeypot só funciona se bot preenche o
-  campo — bots sofisticados saltam. **Hardening futuro**: Turnstile/hCaptcha ou confirmação de e-mail antes
-  do INSERT (mantendo 409 atrás do desafio).
+- ~~**Honeypot é única defesa anti-bot em `/api/contact`**~~ **RESOLVIDO 2026-10-12**: Turnstile (ver "Camada de
+  segurança"). O honeypot segue como primeira barreira, antes do desafio.
 - **`REDIS_URL` virou requisito duro de PRODUÇÃO para captar lead** (2026-08-25, Alto/operacional): os dois
   limites de `/api/contact` são `productionSafe: true` (fail-closed) e a rota é o único caminho de captura
   de `/contato` E `/catalogo`. Sem Redis a rota responde 503 e NENHUM lead entra (o PDF do catálogo continua
@@ -795,7 +850,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`product_images(product_id)` sem índice** (2026-09-30, Baixo/operacional): irrelevante com ~620 linhas; criar se o acervo crescer muito.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1744 testes em 75 arquivos (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
+- **Testes**: Vitest 4, 1884 testes em 84 arquivos em 2026-10-12 (camada de segurança: +123 testes e +7 arquivos; antes 1761 em
+  77); 1744 em 75 na 5ª rodada (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
   (+84 testes em 2026-09-30, 5ª rodada — 12 arquivos novos: `password-policy`, `account-tokens`, `app-url`, `smtp-config`, `account-emails`, `google`, `mailer`, `trpc-errors`, `pending-access`, `pending-access-render`, `territory`, `territory-picker-render`; casos novos em `representative-register`, `permissions` e `portal-chrome-render`.)
   (+50 testes em 2026-09-30, 4ª rodada — 7 arquivos novos: `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7, `pull-stream` 5, `download-slots` 4.)
   (+39 testes em 2026-09-30, 3ª rodada: `listing-filters` 30 (novo), `site-settings-form` +8, `sql-like-match` +1.)

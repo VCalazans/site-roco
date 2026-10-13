@@ -264,5 +264,31 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
 - Grava-se só `{ kind, code }` + UF em `representative_territories`; o rótulo vem da base (validação no
   servidor) e o resumo legível fica em `representatives.region` (`replaceRepresentativeTerritory`).
 
+## Segurança de entrada (2026-10-12)
+### Verificação anti-robô (Turnstile)
+- Peças: `src/shared/lib/turnstile.ts` (ações `TURNSTILE_ACTIONS`, `contactTurnstileAction`, códigos `captcha` e
+  `captcha_unavailable`; puro, sem I/O, usado também pelo cliente) · `src/server/lib/turnstile.ts` (`verifyTurnstile`:
+  siteverify com o segredo, timeout de 5 s, nunca lança) · `src/shared/components/turnstile/` (`useTurnstile` e
+  `TurnstileField` no site; no portal, `PortalTurnstileField` com MUI).
+- Ação por formulário: o widget é renderizado com a ação e o servidor confere a do siteverify, então um token de catálogo não
+  serve para o login. Token de uso único: o formulário chama `turnstile.reset()` depois de TODA tentativa.
+- Fail-closed: sem resposta confiável → `captcha_unavailable` (503); recusa → `captcha` (400). Sem `TURNSTILE_SECRET_KEY` a
+  verificação é pulada (dev e homologação), e a produção avisa no log, uma vez por processo.
+- Ordem nas rotas: limite por IP → corpo → honeypot (onde há) → Turnstile → schema → demais limites e banco. Nas rotas de conta e no
+  login (`authorize`), o Turnstile vem antes de qualquer consulta ou bcrypt, e a recusa não diz se a conta existe.
+- Log: avisos de configuração uma vez por processo; recusas no máximo uma por minuto por tipo. Nunca registra token nem IP.
+
+### IP do visitante atrás da Cloudflare
+- `resolveClientIp` / `getClientIp` (`src/server/lib/rate-limit.ts`) usam o ÚLTIMO item do `x-forwarded-for` (o par TCP que o
+  proxy acrescenta). Se esse par for borda da Cloudflare (`CLOUDFLARE_IP_RANGES`), vale o `cf-connecting-ip` (ou o item anterior
+  ao par); senão, vale o próprio par. Nunca o primeiro item nem o `cf-connecting-ip` sozinho.
+- Motivo: a origem responde direto, sem passar pela Cloudflare; quem achar o IP de origem pularia WAF e limites e poderia
+  forjar os cabeçalhos. `/api/health` com token devolve `client` (`ip`, `viaCloudflare`, `forwardedHops`) para conferir cada
+  ambiente.
+
+### Arquivos de convenção do Next em `src/`
+- `src/proxy.ts` e `src/instrumentation.ts` ficam em `src/`, ao lado de `app/`. Na raiz, o build compila, mas a imagem standalone
+  não os leva (ver CLAUDE.md › Armadilhas).
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

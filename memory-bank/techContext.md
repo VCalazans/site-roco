@@ -102,6 +102,24 @@ rastreio de clique do provedor SMTP nos e-mails transacionais (ele reescreveria 
 - **Homologação**: EasyPanel, projeto `whats`, serviço `roco-test`, site `https://devroco.archicode.tech`
   (o `AUTH_URL` de lá); SMTP Hostinger na 587.
 
+### Verificação anti-robô — Cloudflare Turnstile (2026-10-12)
+| Variável                       | Obrig. | Descrição                                  |
+|--------------------------------|:------:|--------------------------------------------|
+| NEXT_PUBLIC_TURNSTILE_SITE_KEY | não (sem ela o widget não aparece) | Site key PÚBLICA. BUILD-TIME: `NEXT_PUBLIC_*` vai ao bundle — build-arg do `Dockerfile`, do `docker-compose.yml` e do `scripts/docker-build.cmd`; mudar exige rebuild. Vazia = widget desligado no navegador |
+| TURNSTILE_SECRET_KEY           | não (sem ela a verificação fica DESLIGADA no servidor) | Segredo do siteverify. RUNTIME (nunca build-arg nem `NEXT_PUBLIC_`). Sem ele a verificação é pulada e, em produção, um aviso vai ao log (uma vez por processo). Com ele o token é obrigatório (fail-closed) |
+
+- **As duas andam juntas**: segredo com build SEM site key = widget que não aparece e TODO envio recusado (formulários e
+  login); site key sem segredo = verificação desligada no servidor.
+- **Respostas**: token ausente ou recusado → `captcha` (400); Cloudflare sem resposta em 5 s, 5xx ou segredo recusado →
+  `captcha_unavailable` (503). Token de uso único, válido por 5 min; o formulário chama `reset()` depois de toda tentativa.
+- **Ações** (`TURNSTILE_ACTIONS`, `src/shared/lib/turnstile.ts`): `contato`, `catalogo`, `orcamento` (conforme o assunto de
+  `POST /api/contact`), `cadastro`, `login`, `senha` (esqueci a senha) e `confirmacao` (reenviar). O servidor confere a ação
+  devolvida pelo siteverify.
+- **Onde**: `POST /api/contact`, `POST /api/representatives/register`, `POST /api/account/verification/resend`,
+  `POST /api/account/password/forgot` e o login por senha (campo oculto `turnstileToken` no `authorize`, que cobre também
+  `/api/auth/callback/credentials`).
+- **Chaves de teste** da Cloudflare (só desenvolvimento): ver `.env.example`. Chave de teste que "sempre passa" não vai a produção.
+
 ### Redis / Fila ERP
 | Variável                     | Obrig. | Descrição                                  |
 |------------------------------|:------:|--------------------------------------------|
@@ -118,7 +136,8 @@ rastreio de clique do provedor SMTP nos e-mails transacionais (ele reescreveria 
 aceita HTTP) — é o que a probe da plataforma deve usar, e ele **não** detecta migration quebrada
 (o `CMD` do Dockerfile usa `||` de propósito). Com token = uptime, atraso do event loop em janela
 de 60 s **e** acumulado (o acumulado sozinho fica cego depois de horas de uptime), contadores do
-pool e estado do worker. `?db=1` adiciona um `select 1`: pool cheio devolve
+pool, estado do worker e, desde 2026-10-12, `client` (o IP que o app enxerga para quem chamou e se veio por borda da
+Cloudflare) e `turnstile: { secret, siteKey }` (só booleanos: as duas chaves anti-robô configuradas). `?db=1` adiciona um `select 1`: pool cheio devolve
 `database.status = "pool_saturated"` com **200** (saturação nunca reprova health check, senão o
 orquestrador mata justamente o container ocupado); só falha real de conexão vira `degraded` + 503.
 
@@ -201,7 +220,7 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 
 ### Sincronização ERP
 - **Trigger**: webhook `/api/webhooks/erp` (POST com JSON payload + secret timing-safe).
-- **Fila**: BullMQ sobre Redis (in-process via instrumentation.ts singleton).
+- **Fila**: BullMQ sobre Redis (in-process via `src/instrumentation.ts`, singleton).
 - **Retry**: 3x com backoff exponencial; jobs falhados → DLQ (erp-sync-dlq).
 - **Idempotência**: por externalId do ERP.
 - **Full-sync**: não implementado (aguarda contrato ERP).
@@ -211,10 +230,10 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **`GET /api/portal/materials/[id]/download`** (privada, autenticada): gera presignada R2 60s com `Content-Disposition` RFC 6266/5987. Sem sessão: 303 para login. **Nunca embutir presignada na página** (vence rápido).
 - **`GET /api/portal/products/images/[imageId]/download`** (privada, `product_images:download`): original de uma imagem de produto ativo — 303 para presignada R2 60 s com `attachment` e o nome do arquivo.
 - **`GET /api/portal/products/images/zip`** (privada, `product_images:download`): ZIP em streaming dos originais — `?product=<uuid>` ou os filtros da listagem do portal (sem filtro: catálogo inteiro de ativos). 3000 arquivos / 2 GiB (413), 20 por 10 min por usuário (429, fail-open), 2 simultâneos por usuário e 5 por processo (429 `busy`), 2 min sem progresso encerram; audit `product_images.download`.
-- **`POST /api/contact`** (pública): captura lead (contact_submissions), RD Station + Resend best-effort, rate limit fail-closed.
-- **`POST /api/account/*`** (públicas, só JSON até 16 KiB, limites fail-closed, IP antes de ler o corpo — 2026-09-30): `token` (estado do link sem consumir; IP 60/15 min), `verification/resend` e `password/forgot` (resposta sempre genérica; IP 10/15 min + e-mail 3/60 min), `verification/confirm` (IP 30/15 min), `password/reset` (IP 20/15 min).
-- **`POST /api/representatives/register`** (pública, só JSON): IP 20/10 min antes do corpo; global 60/5 min e por caixa de destino 3/60 min depois do parse; fail-closed.
-- **Login por senha** (Auth.js credentials): por IP 20/5 min + por e-mail (hash) 5/5 min, fail-closed; sem teto global desde 2026-09-30.
+- **`POST /api/contact`** (pública): captura lead (contact_submissions), RD Station + Resend best-effort, rate limit fail-closed; Turnstile antes do schema (ação conforme o assunto).
+- **`POST /api/account/*`** (públicas, só JSON até 16 KiB, limites fail-closed, IP antes de ler o corpo — 2026-09-30): `token` (estado do link sem consumir; IP 60/15 min), `verification/resend` e `password/forgot` (resposta sempre genérica; Turnstile antes do schema; IP 10/15 min + e-mail 3/60 min), `verification/confirm` (IP 30/15 min), `password/reset` (IP 20/15 min).
+- **`POST /api/representatives/register`** (pública, só JSON): IP 20/10 min antes do corpo; Turnstile (`cadastro`) depois do honeypot e antes do schema; global 60/5 min e por caixa de destino 3/60 min depois do parse; fail-closed.
+- **Login por senha** (Auth.js credentials): por IP 20/5 min + por e-mail (hash) 5/5 min, fail-closed; Turnstile (`login`) depois desses limites e antes do banco e do bcrypt; sem teto global desde 2026-09-30.
 - **`POST /api/webhooks/erp`** (pública, secretizada): enfileira sync de produtos.
 - **`GET /api/health`** (pública): liveness uncondicional; com `x-health-token`: uptime + métricas.
 
@@ -224,9 +243,13 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **R2**: imagens públicas (domínio custom) + documentos privados (presigned GET).
 - **Validação**: CNPJ/CEP/telefone com máscaras + bloqueio de submit inválido (via DOM).
 - **Audit log**: tabela audit_logs (user_id, action, resource, timestamp, metadata).
+- **IP do visitante**: `getClientIp`/`resolveClientIp` (`src/server/lib/rate-limit.ts`) usam o último item do
+  `x-forwarded-for` (o par TCP do proxy); só se esse par for borda da Cloudflare (`CLOUDFLARE_IP_RANGES`, lista de
+  2026-10-12) vale o `cf-connecting-ip`. Nunca o primeiro item do cabeçalho.
+- **Cloudflare (borda)**: WAF, rate limiting e Turnstile — ver "Ambiente de Produção".
 
 ### Testes
-- **Vitest 4**: 1744 testes em 75 arquivos (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
+- **Vitest 4**: 1884 testes em 84 arquivos (2026-10-12, camada de segurança). Contagem por rodada: 1744 em 75 na 5ª rodada (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
   combinados e redes sociais; +50 na 4ª; +84 na 5ª: contas, aviso de cadastro em análise e área de atuação).
   Lógica pura (rbac, cnpj, telefone, busca SQL, home-content, embalagens, materiais, links, orçamento…)
   + render SSR de telas do portal (shell, dashboard, produtos, configurações, home-content, solicitações).
@@ -276,6 +299,19 @@ Procedência, SHA-256, resultado da inspeção e passos de reextração: `public
 3. **`drizzle.config.ts` não carrega `.env.local`**: rodado do host, `npm run db:migrate` sai com
    código 1 sem mensagem. Use `node --env-file=.env.local scripts/migrate.mjs`. (Os scripts `tsx`
    de `src/db/` carregam `.env.local`/`.env` sozinhos via `src/db/script-env.ts`.)
+
+## Armadilhas da Stack (Descobertas 2026-10-12)
+1. **Hook do Next fora de `src/` não entra na imagem**: `src/instrumentation.ts` (o `register()` que sobe o worker BullMQ)
+   estava na raiz. O Turbopack compilava, a saída `standalone` não levava o arquivo, e o worker do ERP nunca subiu em produção
+   nem em homologação — sem erro. Sinal: `/api/health` com token mostra `workers: { running: false, reason: "not-initialized" }`.
+   Conferência depois do build: `.next/standalone/.next/server/instrumentation.js` tem de existir. Vale a mesma regra de
+   `src/proxy.ts`.
+2. **IP do visitante atrás da Cloudflare**: a origem responde direto (sem a Cloudflare), então o `cf-connecting-ip` e o primeiro
+   item do `x-forwarded-for` podem ser escritos pelo cliente. `resolveClientIp` só usa o `cf-connecting-ip` quando o último item
+   do `x-forwarded-for` é borda da Cloudflare. Se a Cloudflare mudar as faixas, atualizar `CLOUDFLARE_IP_RANGES`
+   (`src/server/lib/rate-limit.ts`; lista de 2026-10-12).
+3. **Cloudflare Free tem uma única regra de rate limiting**: a expressão lista os caminhos de formulário, login e conta. Rota
+   pública nova de POST entra nela; senão, fica só com o limite do Redis.
 
 ## Infraestrutura de Deploy
 - `output: "standalone"` + `Dockerfile` multi-stage (node:22-alpine) + `docker-compose.yml`.
@@ -331,7 +367,7 @@ site com fotos). Ordem para produção:
 6. **Riscos abertos no go-live** (progress.md): banner LGPD do tracking Mautic (decisão),
    CORS `www` no Mautic, endurecer register (captcha/e-mail), MP4 self-hosted do hero.
 
-## Ambiente de Produção (preparado em 2026-10-12)
+## Ambiente de Produção (preparado em 2026-10-12; no ar desde a mesma data)
 **Onde está cada coisa**
 - **App**: EasyPanel da Archicode (servidor do site), projeto `whats`, serviço `site-roco`; builda a
   `main` do GitHub `vcalazans/site-roco` com o `Dockerfile`; deploy automático do GitHub DESLIGADO (push na `main` não
@@ -365,16 +401,33 @@ transação, recusando destino com tabelas. As linhas `\restrict`/`\unrestrict` 
 o script as remove antes de mandar o SQL pelo driver `pg`. Os temporários foram apagados (todas as versões).
 
 **Virada**
-1. Feito em 2026-10-12: `main` levada para `beea403` (fast-forward da `feat/porta-mais-site`).
-2. EasyPanel › whats › site-roco › Implantar (o deploy automático está desligado). As migrations rodam no boot e encontram
-   as 16 já aplicadas.
-3. Smoke: `/pt` 200, `/pt/produtos` com fotos de `midia.roco.com.br`, login do portal, `/api/health`, formulário de
-   contato (RD + Redis), upload de imagem no portal (PUT presignado no MinIO).
-4. Voltar atrás: reimplantar o commit anterior da `main` (`4c12c87`, a landing).
+1. Feito em 2026-10-12: `main` levada para `beea403` (fast-forward da `feat/porta-mais-site`) e, depois, `71744a7` implantada
+   no `site-roco` (EasyPanel › whats › site-roco › Implantar; o deploy automático segue desligado).
+2. Smoke ok em 2026-10-12: páginas 200, fotos servidas pelo MinIO, login do portal e banco ok.
+3. Fora da `main` (ainda não implantados): `9fae93d` (worker do ERP), `febc6ab` (exclusão de representante) e `b09a9a9`
+   (Turnstile). Para entrar: avançar a `main`, gravar `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (build-arg, exige rebuild) e
+   `TURNSTILE_SECRET_KEY` (runtime) no `site-roco` e implantar.
+4. Voltar atrás: reimplantar `71744a7` desfaz a camada de segurança; `4c12c87` é a landing antiga (rollback do primeiro corte).
+
+**Cloudflare — zona `roco.com.br` (plano Free), camada de borda (2026-10-12)**
+- **WAF "Bloquear varreduras (PHP, WordPress, .env, .git)"**: Block só em `roco.com.br` e `www.roco.com.br` (não na zona toda:
+  `mautic.roco.com.br` usa PHP). Caminhos: `.php/.asp/.aspx/.jsp/.cgi/.sql/.bak`, `/wp-admin`, `/wp-login`, `/wp-content`,
+  `/wp-includes`, `/wp-json`, `/.env`, `/.git`, `/.aws`, `/.ssh`, `/.svn`, `/.ht*`, `/.ds_store`, `/cgi-bin` e `phpmyadmin`
+  (não bloqueia `/.well-known`). Testado: 403 nesses caminhos, site 200.
+- **Rate limiting** (única regra do plano Free: janela de 10 s, bloqueio de 10 s, por IP): mais de 10 POST em 10 s em
+  `/api/contact`, `/api/representatives/register`, `/pt/portal/login`, `/en/portal/login`, `/api/auth/callback/credentials` e
+  `/api/account/*` → 429. Testado. Rota pública nova de formulário entra nessa expressão.
+- **TLS mínimo 1.2** (1.1 recusado; site e S3 ok em 1.2 e 1.3). **Bot Fight Mode DESLIGADO de propósito**: bloquearia as
+  chamadas do próprio app ao S3 (`s3.roco.com.br`). Já estavam: conjunto de regras gerenciadas "Sempre ativo".
+- **Turnstile**: widget na conta Cloudflare da ROCO, modo Gerenciado, domínios `roco.com.br`, `www.roco.com.br` e
+  `devroco.archicode.tech`. A CSP libera `challenges.cloudflare.com` em `script-src` e `frame-src` (`next.config.ts`).
 
 **Pendências do ambiente**: backup automático do `roco-db` (EasyPanel › Cópias de segurança, destino S3 = um bucket no
 MinIO); caixa SMTP do domínio da ROCO (hoje a mesma da
 homologação); o r2.dev da homologação devolve 500 intermitente no otimizador de imagens (o r2.dev tem limite de taxa).
+Pendências da camada de segurança: conferir `client.viaCloudflare` em produção e homologação (`/api/health` com token); e
+subdomínios de `roco.com.br` fora do proxy da Cloudflare respondem com certificado padrão inválido (pendência da ROCO, ver
+progress.md › Riscos).
 
 ## Migrations em Produção — o container consegue migrar sozinho (2026-08-24)
 

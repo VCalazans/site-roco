@@ -16,11 +16,15 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
 
 ## Integrações de Negócio
 - **WhatsApp (MCP Archicode)**: disponível para automações/notificações internas.
+- **Cloudflare Turnstile** (verificação anti-robô, desde 2026-10-12): exigido em todo formulário público e nas telas de conta;
+  a site key vai no build e o segredo fica só no servidor.
 - Futuras: e-mail de contato, PDF do catálogo, site/loja de produtos.
 
 ## Restrições de Negócio
 - Conteúdo primário em **pt-BR** (mercado brasileiro); en como secundário.
 - LGPD: ao introduzir formulários, tratar dados pessoais com consentimento e mínimo necessário.
+- O Turnstile recebe sinais do navegador na Cloudflare: entra na política de privacidade e na decisão de consentimento, ainda
+  pendentes.
 
 ## Personas
 ### Site Público
@@ -67,7 +71,8 @@ sede da ROCO e um piso fabril — reforçando o posicionamento industrial e tecn
    - Preenche: nome, e-mail, telefone, empresa (opcional), CNPJ (opcional), assunto (dropdown: ligamos/orçamento/contato),
      mensagem (opcional), consentimento LGPD obrigatório.
    - Validação client-side (e-mail, telefone) → `POST /api/contact` → INSERT em `contact_submissions`,
-     melhor-esforço para RD Station + e-mail (Resend).
+     melhor-esforço para RD Station + e-mail (Resend). Antes de gravar, a verificação anti-robô (Turnstile) tem de passar; sem
+     ela o envio é recusado com mensagem própria.
 
 5. **Catálogo PDF**:
    - Clica **"Baixar Catálogo"** (nav/footer) → `/pt/catalogo` (formulário de captura) → `POST /api/contact`

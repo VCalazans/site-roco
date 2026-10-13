@@ -34,6 +34,7 @@ src/
   shared/         → componentes e libs compartilhados
   i18n/           → config, get-dictionary, dictionaries/{pt,en}.json
   proxy.ts        → middleware: resolve locale e protege /portal (fica em src/, ao lado de app/)
+  instrumentation.ts → hook de boot: sobe o worker BullMQ do ERP (também fica em src/)
 ```
 Detalhes: @memory-bank/systemPatterns.md
 
@@ -61,6 +62,9 @@ Detalhes: @memory-bank/systemPatterns.md
 - Headers de segurança em `next.config.ts` (HSTS, X-Frame-Options, nosniff, Referrer-Policy).
 - Nunca commitar `.env`. Use `.env.example` como referência.
 - Validar/escapar qualquer input antes de submeter formulários (fase futura).
+- Anti-robô: Cloudflare Turnstile nos formulários públicos e nas telas de conta (`TURNSTILE_SECRET_KEY` em runtime;
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` no build). Detalhes em @memory-bank/techContext.md.
+- IP do visitante só por `getClientIp`/`resolveClientIp` (`src/server/lib/rate-limit.ts`); nunca limitar pelo `x-forwarded-for` cru.
 
 ## 🤖 Subagentes & Delegação
 - `architect` → features end-to-end e decisões multi-camada
@@ -89,6 +93,7 @@ Detalhes: @memory-bank/systemPatterns.md
 - Next 16: `params` de rotas é **assíncrono** (`await params`).
 - `next/font` injeta variáveis CSS (`--font-inter`, `--font-poppins`) usadas pelo `@theme`.
 - `src/proxy.ts` precisa ficar em `src/` (ao lado de `app/`): na raiz do repo ele compila mas NUNCA roda.
+- `src/instrumentation.ts` também precisa ficar em `src/`: na raiz, o worker do ERP nunca sobe no standalone e nada avisa (`/api/health` com token mostra `workers.running: false`, `not-initialized`).
 - Permissão nova de módulo: seed E migration idempotente (ex.: `drizzle/0011_*`) — o seed não roda no boot.
 - O header do site vive no layout `(site)` (não remonta entre páginas); páginas não renderizam `SiteHeader`.
 - Route Handler que redireciona para o próprio site: `Location` relativa — no standalone (Docker) `request.nextUrl.origin` vira `http://0.0.0.0:3000`.
@@ -98,3 +103,9 @@ Detalhes: @memory-bank/systemPatterns.md
 - SMTP (Hostinger): `MAIL_FROM` tem de ser a própria caixa do `SMTP_USER` (senão `553 not owned by user`); a homologação bloqueia a porta 465 — use 587 com STARTTLS; senha com `#` entre aspas no `.env`; mudou o `.env` local → `docker compose up -d --no-build web`.
 - Arquivos: R2 ou MinIO pelo mesmo cliente (`src/core/storage/s3-config.ts`); `S3_ENDPOINT`/`S3_FORCE_PATH_STYLE` também são BUILD-TIME (CSP `connect-src`) — trocou o endpoint, rebuild. Os nomes `R2_*` (credenciais, bucket, URL pública) valem para qualquer provedor. Produção: MinIO em `https://s3.roco.com.br`, público em `https://midia.roco.com.br/roco-site`.
 - MinIO atrás da Cloudflare: sem a Cache Rule "Ignorar cache" em `s3.roco.com.br`, a Cloudflare troca HEAD por GET em `.png`/`.pdf` e a assinatura S3 dá 403 (todo confirm de upload falha). O proxy gratuito barra corpo acima de 100 MB: vídeos até 95 MB.
+- Turnstile: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` é BUILD-TIME (build-arg; mudar = rebuild) e `TURNSTILE_SECRET_KEY` é runtime. As duas
+  andam juntas: segredo com build sem site key recusa TODO envio, inclusive o login; site key sem segredo desliga a verificação
+  no servidor (só um aviso no log).
+- Rota pública nova de formulário ou conta: exigir Turnstile (ação em `TURNSTILE_ACTIONS`) antes do schema, limite por IP e
+  entrada na regra de rate limiting da Cloudflare (o plano Free tem uma única regra; hoje cobre `/api/contact`,
+  `/api/representatives/register`, `/pt|en/portal/login`, `/api/auth/callback/credentials` e `/api/account/*`).

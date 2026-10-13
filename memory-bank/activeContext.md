@@ -1,9 +1,26 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-10-12) — ambiente de produção
-Pedido do stakeholder: preparar a produção com os arquivos no MinIO, domínio pela Cloudflare e um espaço para a equipe da
-ROCO subir mídias com link público; o site novo NÃO entra no ar até ele liberar. Feito e verificado (detalhes em
-decisionLog e techContext › "Ambiente de Produção"):
+## Sessão atual (2026-10-12) — camada de segurança
+Pedido do stakeholder: endurecer a entrada pública (robôs, varreduras e limite por IP atrás da Cloudflare). Feito no código e
+na Cloudflare; falta o deploy e a conferência no ambiente (ver Pending). Detalhes na entrada de 2026-10-12 do decisionLog.
+- **Turnstile** (`b09a9a9`): verificação anti-robô nos formulários públicos (contato, catálogo, orçamento, pré-cadastro e
+  "reenviar" do painel de sucesso) e nas telas de conta (login, esqueci a senha, reenviar confirmação). Fail-closed; sem
+  `TURNSTILE_SECRET_KEY` a verificação fica desligada (aviso no log de produção).
+- **IP do visitante** (`resolveClientIp`, `src/server/lib/rate-limit.ts`): `cf-connecting-ip` só vale quando o par TCP é borda
+  da Cloudflare. `/api/health` autenticado devolve `client` para conferir isso em cada ambiente.
+- **Cloudflare (zona `roco.com.br`, Free)**: regra de WAF contra varreduras (PHP, WordPress, `.env`, `.git`) e regra de rate
+  limiting (mais de 10 POST em 10 s por IP nas rotas de formulário, login e conta → 429); TLS mínimo 1.2.
+- **Dois bugs corrigidos** (`9fae93d`, `febc6ab`): o worker do ERP nunca subia no standalone (`instrumentation.ts` estava na
+  raiz) e excluir representante não tirava o perfil `representative`.
+- Testes: 1884 em 84 arquivos (antes 1761 em 77).
+
+## Sessão anterior (2026-10-12) — ambiente de produção
+Preparação do ambiente: MinIO para os arquivos (`s3.roco.com.br`, `midia.roco.com.br`, console da equipe em
+`painel-midia.roco.com.br`), tudo pela Cloudflare; banco e Redis próprios no EasyPanel; carga inicial feita de dentro da rede
+privada. Detalhes em decisionLog e techContext › "Ambiente de Produção".
+**Deploy feito**: site novo no ar em `roco.com.br` (commit `71744a7`); smoke ok (páginas 200, fotos pelo MinIO, login do
+portal, banco ok). Antes disso o site seguia com a landing antiga.
+Detalhes da preparação:
 - Next 16.3.8 (2 avisos altos novos no 16.3.7) e armazenamento S3 compatível (`S3_ENDPOINT` etc.); 1761 testes, lint 0
   erros, build com a CSP conferida; commits `4bdc5ed`, `b4c9970`, `08914ed` enviados na `feat/porta-mais-site`.
 - MinIO (EasyPanel do servidor de mídias): buckets `roco-site` e `roco-midia`, um usuário só do app e um da equipe.
@@ -11,9 +28,8 @@ decisionLog e techContext › "Ambiente de Produção"):
   `painel-midia.roco.com.br` (console da equipe) e `midia.roco.com.br` (público); `www` também no proxy. Cache Rule sem
   cache para `s3`/`painel-midia` (a Cloudflare trocava HEAD por GET e quebrava a assinatura); vídeos até 95 MB.
 - `whats/roco-db` e `whats/roco-redis` criados e o banco carregado (737 produtos, 613 imagens, admin, hero).
-- Variáveis do `site-roco` gravadas (`S3_ENDPOINT=https://s3.roco.com.br`); `main` em `beea403` (fast-forward), mas o
-  deploy NÃO foi disparado: o classificador exige o aval explícito do stakeholder e o deploy automático está desligado.
-  O site no ar segue a landing antiga.
+- Variáveis do `site-roco` gravadas (`S3_ENDPOINT=https://s3.roco.com.br`); `main` em `beea403` (fast-forward). Depois,
+  o deploy de `71744a7` foi feito (ver acima).
 - O classificador de segurança do Claude Code barrou expor o Postgres e exigiu aval explícito para carregar o banco e
   gravar variáveis de produção — a carga foi feita de dentro da rede privada.
 
@@ -79,12 +95,12 @@ Detalhes no decisionLog (três entradas de 2026-09-30: contas, aviso, área de a
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch e `main`: as duas em `beea403` no remoto (2026-10-12) — a `main` recebeu a `feat/porta-mais-site` por
-  fast-forward. O deploy de produção ainda não foi disparado (o deploy automático do EasyPanel está desligado).
-- Testes: 1761 em 77 arquivos (2026-10-12).
-- Build de produção verde; lint 0 erros (6 avisos antigos em `site-settings.ts`).
+- Branch `feat/porta-mais-site` (enviada) com `9fae93d`, `febc6ab` e `b09a9a9` à frente da `main`, que está em `71744a7`
+  (a versão no ar). Os três commits novos só chegam a produção com o avanço da `main` e o deploy.
+- Testes: 1884 em 84 arquivos (2026-10-12); `tsc` e lint limpos e `next build` verde (com a site key de teste), rodados
+  antes do commit `b09a9a9`.
 - Banco local: migrations 0014 e 0015 aplicadas (journal com 16, 0000–0015).
-- Container local reconstruído com o código desta rodada e conferido (ver progress.md).
+- Worker do ERP conferido no standalone local depois de `9fae93d` (`workers.running: true`).
 
 ## RD Station — VALIDADO em 2026-08-31
 Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
@@ -96,9 +112,26 @@ silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles 
 nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 
 ## Pending
-- **Virada do site novo (aguarda o aval do stakeholder)**: a `main` já está em `beea403`; falta EasyPanel › whats ›
-  site-roco › Implantar e o smoke (passo a passo e rollback em techContext › "Ambiente de Produção"). Depois: backup
-  automático do `roco-db` e entregar à ROCO o guia de mídias (endereço `painel-midia.roco.com.br`) e o login da equipe.
+- **Deploy da camada de segurança (aguarda o aval do stakeholder)**: avançar a `main` até `b09a9a9` e implantar o `site-roco`
+  (EasyPanel › whats › site-roco › Implantar; o deploy automático segue desligado). Sem isso, produção segue sem o worker do
+  ERP (`workers.running: false`, `not-initialized`) e sem Turnstile. Rollback: reimplantar `71744a7`.
+- **Chaves do Turnstile**: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (build-arg: exige rebuild) e `TURNSTILE_SECRET_KEY` (runtime) no
+  `site-roco` e no `roco-test` (homologação), do MESMO widget (domínios `roco.com.br`, `www.roco.com.br` e
+  `devroco.archicode.tech`). Segredo sem site key = todo envio recusado, inclusive o login; site key sem segredo = verificação
+  desligada no servidor.
+- **Conferir o IP do visitante** após o deploy: `GET /api/health` com o header `x-health-token` → `client.viaCloudflare: true`
+  e IP público, em produção e na homologação. `false` com IP interno = algo trocando o IP de origem (todos dividiriam o limite).
+- **Smoke da camada**: `workers.running: true`; widget visível nos formulários; "Esqueci minha senha" com um e-mail que NÃO
+  existe passa pela verificação e recebe a resposta genérica (sem lead, sem e-mail — um envio real de contato iria ao RD
+  Station); login com verificação; 429 acima de 10 POST em 10 s. Cloudflare: incluir na regra de rate limiting cada rota
+  pública nova de formulário (CLAUDE.md › Armadilhas).
+- **Guia de operação (PDF para o cliente, fora do repo)**: gerado em 2026-10-12 (32 páginas). Antes de entregar: incluir a
+  "verificação de segurança" nas seções de acesso e tirar o aviso "Excluir cadastro não apaga o perfil" depois do deploy de
+  `febc6ab`. Backlog que o guia apontou: progress.md › Portal e Débitos.
+- **Pendência da ROCO (infra, fora deste projeto)**: subdomínios de `roco.com.br` fora do proxy da Cloudflare, com certificado
+  inválido (progress.md › Riscos; os hosts ficam fora do repositório, que é público).
+- **Backup automático do `roco-db`** (EasyPanel › Cópias de segurança, destino S3 num bucket do MinIO) e entrega à ROCO do
+  guia de mídias (`painel-midia.roco.com.br`) e do login da equipe.
 - **Decisão de produto**: destino da página `/catalogo`, agora sem link (redirecionar para o catálogo online ou tirar do sitemap).
 - **Merge da `main` feito** (pop-ups do RD na CSP, sem botão próprio de WhatsApp — ver decisionLog
   2026-09-30); decisões abertas dos pop-ups do RD em progress.md (Site).
@@ -107,8 +140,8 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
   techContext). Falta PRODUÇÃO: remetente do domínio da ROCO, SPF/DKIM e `AUTH_URL` https; desligar o
   rastreio de clique do provedor. Confirmar com o stakeholder a chegada dos e-mails de teste
   (redefinição na homologação; confirmação do cadastro de teste no local).
-- **Limpar dado de teste local**: cadastro "Teste Envio SMTP" (c…@archicode.com.br, CNPJ
-  45.723.174/0001-10), criado no banco local para testar o e-mail de confirmação.
+- **Limpar dado de teste local**: cadastro "Teste Envio SMTP", criado no banco local para testar o e-mail de confirmação
+  (e-mail e CNPJ fora do repositório, que é público).
 - **Spec 002 (embalagens GS1)**: em espera, com 4 decisões do stakeholder
   (`memory-bank/specs/002-embalagens-gs1.md`).
 - **Sugestões abertas**: e-mail avisando a aprovação/reprovação; ação do admin para reenviar/confirmar
@@ -124,5 +157,6 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 - **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
   (aviso de lead; o SMTP das contas é outro canal).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
-- Bucket R2 separado para conteúdo privado (ver progress.md, Riscos).
+- Bucket separado para conteúdo privado: em produção resolvido no MinIO (prefixos privados); falta a homologação (R2
+  `roco-test`). Ver progress.md, Riscos.
 - **Seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local).
