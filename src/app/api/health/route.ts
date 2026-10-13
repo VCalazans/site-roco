@@ -5,6 +5,7 @@ import { dbPool, DB_POOL_MAX_CONNECTIONS } from "@/db";
 import { readEventLoopDelay } from "@/server/lib/event-loop-monitor";
 import { resolveClientIp } from "@/server/lib/rate-limit";
 import { timingSafeEqualString } from "@/server/lib/timing-safe";
+import { getTurnstileSiteKey } from "@/shared/lib/turnstile";
 
 /**
  * Health check do processo.
@@ -300,6 +301,16 @@ export async function GET(request: NextRequest) {
        * é configuração errada — ver `resolveClientIp`.
        */
       client: resolveClientIp(request),
+      /**
+       * Verificação anti-robô (Turnstile) — só SE está configurada, nunca o
+       * valor. `secret: false` = formulários e login aceitam envio sem desafio;
+       * `secret: true` com `siteKey: false` = build sem a site key: o widget
+       * não aparece e TODO envio é recusado (refazer o build com a site key).
+       */
+      turnstile: {
+        secret: Boolean(process.env.TURNSTILE_SECRET_KEY?.trim()),
+        siteKey: getTurnstileSiteKey() !== "",
+      },
       ...(database ? { database } : {}),
     },
     { status: healthy ? 200 : 503, headers: NO_STORE }
