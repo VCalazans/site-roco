@@ -770,6 +770,13 @@ export const representativesRouter = router({
    * "representante fantasma" na UI; órfãos podem ser limpos por job futuro).
    * Soft-disable (`disable`) é a opção não-destrutiva recomendada; este
    * procedimento é o último recurso (GDPR / reativação impossível).
+   *
+   * Tira também o perfil `representative` da conta, na mesma transação: sem
+   * isso a pessoa seguia entrando com as permissões de representante — e quem
+   * tinha sido desabilitado voltava a entrar, porque a trava de desabilitado
+   * (`disabledAt`) mora na linha apagada. A conta de login fica (sem perfil
+   * ela só vê o aviso de acesso pendente); a sessão aberta cai na próxima
+   * revalidação do JWT (≤ 5 min). Os outros perfis da conta não mudam.
    */
   delete: permissionProcedure("representatives", "delete")
     .input(z.object({ id: z.string().uuid() }))
@@ -786,7 +793,20 @@ export const representativesRouter = router({
         .select()
         .from(representativeDocuments)
         .where(eq(representativeDocuments.representativeId, input.id));
-      await ctx.db.delete(representatives).where(eq(representatives.id, input.id));
+      const roleRemoved = await ctx.db.transaction(async (tx) => {
+        await tx.delete(representatives).where(eq(representatives.id, input.id));
+        const [representativeRole] = await tx
+          .select({ id: roles.id })
+          .from(roles)
+          .where(eq(roles.slug, REPRESENTATIVE_ROLE_SLUG))
+          .limit(1);
+        if (!representativeRole) return false;
+        const removed = await tx
+          .delete(userRoles)
+          .where(and(eq(userRoles.userId, existing.userId), eq(userRoles.roleId, representativeRole.id)))
+          .returning({ userId: userRoles.userId });
+        return removed.length > 0;
+      });
       if (documentRows.length > 0) {
         const { deleteObject } = await import("@/core/storage/r2");
         await Promise.all(
@@ -806,8 +826,8 @@ export const representativesRouter = router({
         action: "representatives.delete",
         resource: "representatives",
         resourceId: input.id,
-        metadata: { documents: documentRows.length },
+        metadata: { documents: documentRows.length, roleRemoved },
       });
-      return { ok: true as const, deletedDocuments: documentRows.length };
+      return { ok: true as const, deletedDocuments: documentRows.length, roleRemoved };
     }),
 });
