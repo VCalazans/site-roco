@@ -36,7 +36,7 @@ npm run dev                          # http://localhost:3000 (redireciona para /
 | Drizzle ORM + PostgreSQL | 0.45 · 17   | Dados e migrations                               |
 | Auth.js                  | 5 (beta)    | Login Google e e-mail/senha; RBAC por permissão  |
 | BullMQ + Redis           | 6 · 8       | Fila do sync com o ERP e rate limit              |
-| Cloudflare R2            | —           | Imagens e arquivos (upload presigned)            |
+| Cloudflare R2 / MinIO    | —           | Imagens e arquivos (S3, upload presigned)        |
 | Vitest                   | 4           | Testes                                           |
 
 ## 📁 Estrutura

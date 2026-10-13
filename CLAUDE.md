@@ -1,5 +1,5 @@
 # CLAUDE.md — ROCO (site institucional)
-> Versão: 0.1.0 | Criado: 2026-07-13 | Atualizado: 2026-09-30 | Fase: site completo + Portal ROCO
+> Versão: 0.1.0 | Criado: 2026-07-13 | Atualizado: 2026-10-12 | Fase: site completo + Portal ROCO
 
 ## 🎯 Contexto do Projeto
 Site institucional da **ROCO**, fabricante industrial brasileira, e **Portal ROCO** (painel da
@@ -96,3 +96,5 @@ Detalhes: @memory-bank/systemPatterns.md
 - No host, `npm run db:migrate` sai com código 1 sem mensagem: o `drizzle.config.ts` não lê o `.env.local`. Migre com `node --env-file=.env.local scripts/migrate.mjs`.
 - Contas de usuário dependem de e-mail: sem SMTP (`SMTP_*`, `MAIL_FROM`) em produção ninguém confirma pré-cadastro nem redefine senha; Google oculto por padrão (`AUTH_GOOGLE_ENABLED=false`).
 - SMTP (Hostinger): `MAIL_FROM` tem de ser a própria caixa do `SMTP_USER` (senão `553 not owned by user`); a homologação bloqueia a porta 465 — use 587 com STARTTLS; senha com `#` entre aspas no `.env`; mudou o `.env` local → `docker compose up -d --no-build web`.
+- Arquivos: R2 ou MinIO pelo mesmo cliente (`src/core/storage/s3-config.ts`); `S3_ENDPOINT`/`S3_FORCE_PATH_STYLE` também são BUILD-TIME (CSP `connect-src`) — trocou o endpoint, rebuild. Os nomes `R2_*` (credenciais, bucket, URL pública) valem para qualquer provedor. Produção: MinIO em `https://s3.roco.com.br`, público em `https://midia.roco.com.br/roco-site`.
+- MinIO atrás da Cloudflare: sem a Cache Rule "Ignorar cache" em `s3.roco.com.br`, a Cloudflare troca HEAD por GET em `.png`/`.pdf` e a assinatura S3 dá 403 (todo confirm de upload falha). O proxy gratuito barra corpo acima de 100 MB: vídeos até 95 MB.

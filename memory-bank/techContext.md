@@ -3,7 +3,7 @@
 
 ## Stack Completa
 ### Frontend
-- **next** 16.3.7 (App Router, Turbopack, output standalone; 16.3.0 → 16.3.7 por CVEs GHSA-2xp9-vwfh-vxw4 etc)
+- **next** 16.3.8 (App Router, Turbopack, output standalone; 16.3.0 → 16.3.7 por CVEs GHSA-2xp9-vwfh-vxw4 etc; 16.3.7 → 16.3.8 em 2026-10-12 por GHSA-cjq9-62q9-8jv4 — SSRF no otimizador de imagens —, GHSA-4jqv-mc3x-m676 e GHSA-mcj8-r9mp-w47p — cache poisoning SSG/ISR self-hosted — e outros três)
 - **react** / **react-dom** 19.2.0 (`<ViewTransition>` do React canary embutido no Next; tipos em `src/types/react-canary.d.ts`)
 - **typescript** 5 (strict) — alias `@/* -> ./src/*`
 - **tailwindcss** 4 + **@tailwindcss/postcss** (config via `@theme` em `globals.css`)
@@ -23,13 +23,13 @@
 - **@mui/material** 9.3.1 + **@mui/material-nextjs** (tema centralizado dark/light)
 - **@emotion/react** + **@emotion/styled** (CSS-in-JS para MUI)
 - **bullmq** 6 (job queue) + **redis** (client)
-- **@aws-sdk/client-s3** (Cloudflare R2, compatível S3)
+- **@aws-sdk/client-s3** (Cloudflare R2 ou MinIO — qualquer S3 compatível; ver `src/core/storage/s3-config.ts`)
 - **bcryptjs** 3 (hash seguro senhas; custo 12; puro JS para alpine)
 - **xlsx** 0.20.3 (via CDN tarball para importação de catálogo)
 - **sharp** 0.35.5 (otimizador de imagens; 0.35.3 → 0.35.5 por CVE GHSA-rgj7-g3m4-5g8c)
 - **client-zip** 2.5.1 (streaming ZIP de imagens, modo "store" sem recompressão)
 - **nodemailer** 10.0.10 (SMTP das contas; fixado com `overrides` no package.json: o next-auth declara nodemailer ^7 como peer opcional e a 8.x tinha advisories altos — 2026-09-30)
-- **vitest** 4 (test runner, 1744 testes em 75 arquivos em 2026-09-30, 5ª rodada)
+- **vitest** 4 (test runner, 1761 testes em 77 arquivos em 2026-10-12)
 - **happy-dom** (DOM simulation para testes)
 - **tsx** (devDependency; scripts db:seed + db:seed:qa + db:import-catalog + db:import-images — Node 20 local sem `--experimental-strip-types`)
 
@@ -122,14 +122,20 @@ pool e estado do worker. `?db=1` adiciona um `select 1`: pool cheio devolve
 `database.status = "pool_saturated"` com **200** (saturação nunca reprova health check, senão o
 orquestrador mata justamente o container ocupado); só falha real de conexão vira `degraded` + 503.
 
-### Cloudflare R2 (Imagens/Documentos)
+### Armazenamento de arquivos (Cloudflare R2 ou MinIO)
 | Variável                     | Obrig. | Descrição                                  |
 |------------------------------|:------:|--------------------------------------------|
-| R2_ACCOUNT_ID                | sim    | Account ID Cloudflare (endpoint `https://<id>.r2.cloudflarestorage.com`; também entra na CSP `connect-src`) |
+| R2_ACCOUNT_ID                | só no R2 | Account ID Cloudflare (endpoint `https://<id>.r2.cloudflarestorage.com`). Ignorado quando `S3_ENDPOINT` existe |
 | R2_ACCESS_KEY_ID             | sim    | R2 access key ID                           |
 | R2_SECRET_ACCESS_KEY         | sim    | R2 secret access key                       |
 | R2_BUCKET                    | sim    | Nome do bucket R2 (`roco-portal` no exemplo) |
 | R2_PUBLIC_URL                | não    | URL pública das imagens de produto (entra na CSP `img-src`) |
+| S3_ENDPOINT                  | MinIO  | URL da API S3 (produção: `https://s3.roco.com.br`, pela Cloudflare). Também BUILD-TIME: entra no `connect-src` da CSP |
+| S3_REGION                    | não    | Padrão `auto` (R2); no MinIO, `us-east-1` |
+| S3_FORCE_PATH_STYLE          | MinIO  | `true` = bucket no caminho da URL (o MinIO exige). Também BUILD-TIME (CSP) |
+
+Os nomes `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` e `R2_PUBLIC_URL` são históricos e valem para qualquer
+provedor S3. Em produção (MinIO): `R2_BUCKET=roco-site` e `R2_PUBLIC_URL=https://midia.roco.com.br/roco-site`.
 
 ### QA / Dados de Teste (2026-09-30)
 | Variável                     | Obrig. | Descrição                                  |
@@ -324,6 +330,51 @@ site com fotos). Ordem para produção:
    rate limit ativo (Redis conectado — ver logs).
 6. **Riscos abertos no go-live** (progress.md): banner LGPD do tracking Mautic (decisão),
    CORS `www` no Mautic, endurecer register (captcha/e-mail), MP4 self-hosted do hero.
+
+## Ambiente de Produção (preparado em 2026-10-12)
+**Onde está cada coisa**
+- **App**: EasyPanel da Archicode (servidor do site), projeto `whats`, serviço `site-roco`; builda a
+  `main` do GitHub `vcalazans/site-roco` com o `Dockerfile`; deploy automático do GitHub DESLIGADO (push na `main` não
+  publica — é preciso "Implantar"). Domínios só `roco.com.br` e `www.roco.com.br` (porta 80, igual à homologação), os dois
+  com proxy da Cloudflare; o domínio `*.easypanel.host` do app foi removido.
+- **Banco**: `whats/roco-db` (Postgres 17), sem porta pública; `DATABASE_URL` interna `whats_roco-db:5432/roco`.
+- **Redis**: `whats/roco-redis` (Redis 7, com senha), sem porta pública; `whats_roco-redis:6379`.
+- **Arquivos**: MinIO no EasyPanel do servidor de mídias (outro servidor), projeto `marketing`, serviço `minio`
+  (imagem fixada em `pgsty/minio:RELEASE.2026-08-04T00-00-00Z`; "zero downtime" DESLIGADO — com volume, subir o novo antes
+  de parar o antigo deixaria dois MinIO no mesmo disco). Tudo pela Cloudflare da ROCO (conta "1 - Fix IT", zona Free,
+  SSL "Completo", Always Use HTTPS ligado), sem nenhum domínio `*.easypanel.host`:
+  - API S3 `https://s3.roco.com.br` (registro A para o servidor de mídias, proxy) — `MINIO_SERVER_URL` e `S3_ENDPOINT`;
+  - console `https://painel-midia.roco.com.br` (registro A para o servidor de mídias, proxy) — `MINIO_BROWSER_REDIRECT_URL`;
+  - público `https://midia.roco.com.br` (CNAME → `s3.roco.com.br`, proxy).
+  Cache Rule "MinIO - API S3 e console sem cache": Ignorar cache em `s3` e `painel-midia` — sem ela a Cloudflare converte
+  HEAD em GET para `.png`/`.pdf`, a assinatura S3 quebra (403) e o confirm de todo upload do portal falha.
+  Limite do proxy gratuito: 100 MB por requisição → vídeos (hero e materiais) até 95 MB no portal; console idem.
+  Certificado novo na origem: criar o DNS só-DNS ANTES do domínio no EasyPanel, esperar o Let's Encrypt e só então ligar o proxy.
+- **Buckets** (versionamento ligado): `roco-site` — leitura anônima só em `products/`, `site/`, `hero/`; `roco-midia` —
+  leitura anônima por link, sem listagem. Usuários: um do app (só `roco-site`) e um da equipe da ROCO
+  (console, só `roco-midia`). CORS do MinIO já aceita o PUT presignado vindo de `https://roco.com.br`.
+- **Credenciais, IPs e endereços dos painéis**: fora do repositório (que é PÚBLICO), só em arquivos locais ignorados pelo git — `.env.producao.site-roco.local` (bloco de variáveis do app),
+  `.env.credenciais-producao.local` (admin do portal e login da equipe no console) e `.env.producao.local` (carga).
+  As variáveis já estão gravadas no `site-roco` (27).
+
+**Carga inicial (feita em 2026-10-12)** — sem expor o banco: `npm run db:bootstrap-producao -- --sim` contra um Postgres
+17 descartável local (com `.env.producao.local` apontando o armazenamento para o MinIO, as fotos sobem já com as chaves
+finais) → `pg_dump --no-owner --no-privileges --column-inserts` → dump num prefixo privado do MinIO com URL presignada →
+aplicado no `roco-db` pelo console do container `roco-test` (`NODE_PATH=/app/node_modules node restore.cjs`), numa
+transação, recusando destino com tabelas. As linhas `\restrict`/`\unrestrict` do `pg_dump` 17 são metacomandos do psql:
+o script as remove antes de mandar o SQL pelo driver `pg`. Os temporários foram apagados (todas as versões).
+
+**Virada**
+1. Feito em 2026-10-12: `main` levada para `beea403` (fast-forward da `feat/porta-mais-site`).
+2. EasyPanel › whats › site-roco › Implantar (o deploy automático está desligado). As migrations rodam no boot e encontram
+   as 16 já aplicadas.
+3. Smoke: `/pt` 200, `/pt/produtos` com fotos de `midia.roco.com.br`, login do portal, `/api/health`, formulário de
+   contato (RD + Redis), upload de imagem no portal (PUT presignado no MinIO).
+4. Voltar atrás: reimplantar o commit anterior da `main` (`4c12c87`, a landing).
+
+**Pendências do ambiente**: backup automático do `roco-db` (EasyPanel › Cópias de segurança, destino S3 = um bucket no
+MinIO); caixa SMTP do domínio da ROCO (hoje a mesma da
+homologação); o r2.dev da homologação devolve 500 intermitente no otimizador de imagens (o r2.dev tem limite de taxa).
 
 ## Migrations em Produção — o container consegue migrar sozinho (2026-08-24)
 

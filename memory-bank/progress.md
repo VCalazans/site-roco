@@ -432,9 +432,25 @@
       entre aspas e o container local precisa ser recriado para ler o `.env`. Envios reais de redefinição e
       de confirmação aceitos pelo servidor — ver decisionLog e techContext.
 
+### Ambiente de produção preparado (2026-10-12)
+- [x] **Patch de segurança**: Next 16.3.7 → 16.3.8 e source-map-js 1.2.2 — o `npm audit --omit=dev` tinha voltado a
+      acusar 2 altas (SSRF no otimizador de imagens, cache poisoning SSG/ISR self-hosted etc.); agora 0.
+- [x] **Armazenamento S3 compatível** (`src/core/storage/s3-config.ts`, 12 testes): `S3_ENDPOINT`, `S3_REGION`,
+      `S3_FORCE_PATH_STYLE`; cliente único para app, scripts e CSP (antes o endpoint do R2 estava fixo em 3 lugares).
+- [x] **MinIO**: buckets `roco-site` (leitura pública só em `products/`, `site/`, `hero/`) e `roco-midia` (equipe da ROCO),
+      versionamento, um usuário do app e um da equipe, com políticas restritas; permissões, presign e CORS testados.
+- [x] **`midia.roco.com.br`**: CNAME na Cloudflare da ROCO (proxy) + domínio no EasyPanel do MinIO (Let's Encrypt).
+      Público 200 com cache, privado 403, listagem 403, HTTP → HTTPS.
+- [x] **Banco e Redis de produção** (`whats/roco-db`, `whats/roco-redis`), sem porta pública; banco carregado (737
+      produtos, 613 imagens, admin, perfis, hero) sem expor o Postgres; 613 fotos + vídeo do hero no MinIO.
+- [x] **Variáveis de produção** gravadas no `site-roco` (27); a landing atual seguiu no ar.
+- [x] **Tudo pela Cloudflare** (pedido do stakeholder): `s3.roco.com.br`, `painel-midia.roco.com.br` e `midia.roco.com.br`
+      com proxy; `www` no proxy; domínios `*.easypanel.host` removidos do MinIO e do app; Cache Rule sem cache para a API
+      e o console (HEAD → GET quebrava a assinatura S3); vídeos até 95 MB (limite de 100 MB do proxy, commit `beea403`).
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
-- [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada)
+- [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12
 
 ## 🔄 Em Andamento
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
@@ -493,12 +509,17 @@ catálogo vivo via ERP → cotação como dado estruturado.
 
 ## 📋 Backlog MVP / Pós-MVP
 ### Infra (pré-launch — decisão stakeholder)
+- [ ] **Virada do site novo** (2026-10-12, aguarda o aval do stakeholder): a `main` já está em `beea403` (fast-forward
+      feito); falta Implantar no `site-roco` e o smoke. Passo a passo e rollback em techContext ("Ambiente de Produção").
+- [ ] **Backup automático do `roco-db`** (2026-10-12): EasyPanel › Cópias de segurança com destino S3 (bucket no MinIO).
+- [x] **Fixar a versão da imagem do MinIO** (2026-10-12): `pgsty/minio:RELEASE.2026-08-04T00-00-00Z` (era `:latest`).
 - [ ] **E-mail de produção** (2026-09-30): remetente do domínio da ROCO (caixa própria, ex.:
       nao-responda@roco.com.br), SPF/DKIM e `AUTH_URL` https. Hoje local e homologação enviam pela caixa
       da Archicode.
 - [ ] **Bucket R2 separado para conteúdo privado** (Alto, infra): criar bucket sem acesso público para
       materiais/documentos de representante (hoje compartilhado com bucket público hero/produtos).
       Mitiga risco de exposição via r2.dev — ver Riscos de Segurança (TOCTOU e bucket compartilhado).
+      → Em produção resolvido em 2026-10-12: no MinIO, `materials/` e `representatives/` são privados por política do bucket. Vale ainda para a homologação (R2 `roco-test`).
 - [ ] **CDN na frente de `/_next/image`** (Alto, MAIOR alavanca de capacidade, 2026-08-25): é o
       endpoint mais caro do sistema — 440% de CPU com 96 otimizações simultâneas (sharp em threads
       nativas), no MESMO container que renderiza página. Cache de borda resolve; é CONFIGURAÇÃO do
@@ -788,7 +809,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
   contact-email, contact-submit; +87 testes 2026-08-25 capacidade: request-size, timing-safe,
   workers-enabled, event-loop-metrics/summarizeHistogram, pg-error).
 - **Build**: verde. **Lint**: 0 erros (6 warnings pré-existentes em `src/server/trpc/routers/site-settings.ts`).
-- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.7 + sharp 0.35.5); revisão 2026-09-30 aplicada
+- **Segurança**: npm audit --omit=dev = 0 vulns (após Next 16.3.8 + source-map-js 1.2.2 em 2026-10-12; antes, Next 16.3.7 + sharp 0.35.5); revisão 2026-09-30 aplicada
   (nenhum crítico novo; 1 alto pré-existente corrigido; 3 médios — 2 corrigidos no diff, 1 mitigado).
 - **Revisão adversarial multi-agente** (2026-08-12): 13 agentes (4 dimensões: corretude, i18n,
   segurança, regressão + verificação adversarial por achado) sobre o diff da feature WEG.

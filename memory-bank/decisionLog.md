@@ -2139,3 +2139,58 @@ pelos fluxos do portal; no console do container de homologação a 587 respondeu
 **Impacto**: `.env.example` e techContext com as armadilhas. Hoje os e-mails saem do domínio archicode.com.br.
 **Para produção**: remetente do domínio da ROCO (caixa própria, ex.: `nao-responda@roco.com.br`, com o login
 dela), SPF/DKIM no provedor e `AUTH_URL` https do domínio público.
+
+## 2026-10-12 — Produção: arquivos no MinIO com o domínio `midia.roco.com.br`; banco e Redis próprios
+**Decisão**: O ambiente de produção guarda os arquivos no MinIO (imagem `pgsty/minio`, serviço `marketing/minio` do
+EasyPanel do servidor de mídias, um servidor separado do site) em vez de um bucket R2 de produção. O app fala com ele pela API
+S3 num domínio padrão `*.easypanel.host` (path-style, região `us-east-1`; trocado no mesmo dia — ver a entrada
+seguinte); o público acessa por
+`https://midia.roco.com.br/<bucket>/<chave>` — CNAME na Cloudflare da ROCO (conta "1 - Fix IT", proxy ligado) e o
+domínio ligado ao MinIO no EasyPanel (certificado Let's Encrypt). Dois buckets, ambos com versionamento:
+- `roco-site` (site): leitura anônima SÓ em `products/*`, `site/*` e `hero/*`; `materials/*` e `representatives/*`
+  ficam privados de verdade (antes era convenção da aplicação num bucket R2 todo público). Um usuário só do app, com
+  política restrita a esse bucket (nome e senha só nos arquivos locais).
+- `roco-midia` (equipe da ROCO): leitura anônima por link, sem listagem. O usuário da equipe entra no console
+  (então num domínio padrão `*.easypanel.host`, depois `painel-midia.roco.com.br`) e só enxerga esse bucket.
+Banco e Redis de produção: serviços novos `roco-db` (Postgres 17) e `roco-redis` (Redis 7, com senha) no projeto `whats`
+do EasyPanel da Archicode (o mesmo servidor do app `site-roco`), sem porta pública — o app
+usa `whats_roco-db:5432` e `whats_roco-redis:6379`.
+**Alternativas**: (a) bucket R2 de produção — o stakeholder escolheu o MinIO; (b) só a Cloudflare reescrevendo o Host para
+o MinIO (Origin Rule) — troca de Host/SNI é exclusiva do plano Enterprise e a zona é Free; (c) Worker da Cloudflare
+repassando para o MinIO — código extra na conta da Fix IT e teto de 100 mil requisições/dia; (d) carregar o banco expondo
+a porta do Postgres por alguns minutos — barrado pelo classificador de segurança; (e) reaproveitar o Postgres
+compartilhado `tools/evo-ai-postgres` (onde fica a homologação) — exposto na internet e de outro produto.
+**Justificativa**: pedido do stakeholder ("colocar as imagens e etc todo no MinIO", "use a cloudflare para domínio",
+"ambiente para o time da roco subir mídias e ter acesso público"). O MinIO responde ao mesmo SDK S3 (presign, HEAD, GET em
+stream, versionamento) e o banco guarda só chaves, então o código mudou só na configuração do cliente.
+**Impacto**: módulo `src/core/storage/s3-config.ts` (envs `S3_ENDPOINT`, `S3_REGION`, `S3_FORCE_PATH_STYLE`; credenciais,
+bucket e URL pública seguem em `R2_*`), usado por `r2.ts`, `import-product-images.ts`, `seed-qa.ts` e pela CSP
+(`connect-src`); `S3_ENDPOINT`/`S3_FORCE_PATH_STYLE` viraram build-args. Carga inicial feita sem expor o banco: bootstrap
+completo contra um Postgres descartável local (as fotos indo direto ao MinIO, com as chaves finais) → `pg_dump` →
+aplicado no `roco-db` de dentro da rede privada (console do container `roco-test`), numa transação e recusando destino
+não vazio. Resultado conferido: 737 produtos publicados, 16 categorias, 613 imagens, 1.749 embalagens, admin
+`admin@roco.com.br`, 4 perfis, 34 permissões, 1 slide do hero (vídeo de 79 MB copiado do R2) e 16 migrations. Variáveis
+do `site-roco` gravadas (27). Credenciais em arquivos locais ignorados pelo git (`.env.producao.site-roco.local`,
+`.env.credenciais-producao.local`, `.env.producao.local`). **O site novo ainda NÃO está no ar** em `roco.com.br`: falta a
+virada (merge da `feat/porta-mais-site` na `main` + deploy do `site-roco`), que depende do stakeholder.
+
+## 2026-10-12 — Tudo pela Cloudflare: nenhum domínio `*.easypanel.host` em uso
+**Decisão**: pedido do stakeholder ("não quero nada usando os domínios easypanel, tudo tem que passar pela cloudflare"). O
+MinIO passa a responder só por domínios `roco.com.br` com proxy da Cloudflare: `s3.roco.com.br` (API S3, porta 9000 —
+`S3_ENDPOINT` do app, scripts e upload presignado do navegador), `painel-midia.roco.com.br` (console, porta 9001, para a
+equipe da ROCO) e `midia.roco.com.br` (leitura pública, agora CNAME para `s3.roco.com.br`). `www.roco.com.br` também
+passou para o proxy. Os domínios `*.easypanel.host` foram removidos do MinIO e do app `site-roco`. No MinIO:
+`MINIO_SERVER_URL=https://s3.roco.com.br`, `MINIO_BROWSER_REDIRECT_URL=https://painel-midia.roco.com.br`, imagem fixada
+em `pgsty/minio:RELEASE.2026-08-04T00-00-00Z` e "zero downtime" desligado.
+**Armadilhas encontradas**: (1) a Cloudflare converte HEAD em GET para arquivos cacheáveis (`.png`, `.pdf`…) e a
+assinatura S3 quebra (403) — o confirm de todo upload do portal falharia; corrigido com a Cache Rule "MinIO - API S3 e
+console sem cache" (Ignorar cache em `s3` e `painel-midia`), que também impede cachear download presignado de material
+privado. (2) O proxy gratuito recusa corpo acima de 100 MB: o teto de vídeo (hero e materiais) caiu de 200 para 95 MB
+(`src/shared/lib/upload-limits.ts`, commit `beea403`). (3) O Let's Encrypt do EasyPanel valida por HTTP-01: o registro
+DNS tem de existir ANTES do domínio no EasyPanel, e o proxy só é ligado depois que o certificado sai. (4) A zona está com
+nível de segurança "alto": testado de dentro do servidor do app — sem desafio.
+**Alternativas**: manter a API num host `easypanel.host` só para o servidor (menos dependência da Cloudflare, mas
+contraria o pedido); upload multipart no navegador para vídeos acima de 100 MB (código novo; 95 MB basta hoje).
+**Impacto**: conferido por scripts e de dentro do servidor: PUT/HEAD/GET pelo SDK, presign com tipo/tamanho assinados,
+CORS de `https://roco.com.br`, material privado 403, equipe só em `roco-midia`, as 613 fotos e o vídeo intactos depois
+de reimplantar o MinIO. A `main` foi levada para `beea403`; o deploy do `site-roco` depende do aval do stakeholder.

@@ -1,6 +1,23 @@
 # Active Context — ROCO
 
-## Sessão atual (2026-09-30, quinta rodada)
+## Sessão atual (2026-10-12) — ambiente de produção
+Pedido do stakeholder: preparar a produção com os arquivos no MinIO, domínio pela Cloudflare e um espaço para a equipe da
+ROCO subir mídias com link público; o site novo NÃO entra no ar até ele liberar. Feito e verificado (detalhes em
+decisionLog e techContext › "Ambiente de Produção"):
+- Next 16.3.8 (2 avisos altos novos no 16.3.7) e armazenamento S3 compatível (`S3_ENDPOINT` etc.); 1761 testes, lint 0
+  erros, build com a CSP conferida; commits `4bdc5ed`, `b4c9970`, `08914ed` enviados na `feat/porta-mais-site`.
+- MinIO (EasyPanel do servidor de mídias): buckets `roco-site` e `roco-midia`, um usuário só do app e um da equipe.
+- Tudo pela Cloudflare da ROCO (conta "1 - Fix IT"), sem domínio `*.easypanel.host`: `s3.roco.com.br` (API S3),
+  `painel-midia.roco.com.br` (console da equipe) e `midia.roco.com.br` (público); `www` também no proxy. Cache Rule sem
+  cache para `s3`/`painel-midia` (a Cloudflare trocava HEAD por GET e quebrava a assinatura); vídeos até 95 MB.
+- `whats/roco-db` e `whats/roco-redis` criados e o banco carregado (737 produtos, 613 imagens, admin, hero).
+- Variáveis do `site-roco` gravadas (`S3_ENDPOINT=https://s3.roco.com.br`); `main` em `beea403` (fast-forward), mas o
+  deploy NÃO foi disparado: o classificador exige o aval explícito do stakeholder e o deploy automático está desligado.
+  O site no ar segue a landing antiga.
+- O classificador de segurança do Claude Code barrou expor o Postgres e exigiu aval explícito para carregar o banco e
+  gravar variáveis de produção — a carga foi feita de dentro da rede privada.
+
+## Sessão anterior (2026-09-30, quinta rodada)
 Pedidos do stakeholder: (1) documentar a discussão das embalagens no padrão GS1 SEM implementar
 (spec 002, em espera); (2) ocultar o login com Google por enquanto; (3) criação de conta e
 recuperação de senha confiáveis, com links por e-mail e os devidos cuidados de segurança — SMTP com
@@ -62,10 +79,9 @@ Detalhes no decisionLog (três entradas de 2026-09-30: contas, aviso, área de a
 - **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
 
 ## Estado do Repositório
-- Branch: `feat/porta-mais-site` — a 5ª rodada já está no remoto. Depois dela, SEM push: `1f94551` (catálogo
-  online + logo em todos os slides), `af8403e` (docs) e o merge da `main` (`4ae5a02`, com os 6 commits de
-  produção). A branch contém a `main` inteira: levá-la para a `main` agora é fast-forward.
-- Testes: 1749 em 76 arquivos (+5 depois da 5ª rodada: logo do hero e destino do catálogo).
+- Branch e `main`: as duas em `beea403` no remoto (2026-10-12) — a `main` recebeu a `feat/porta-mais-site` por
+  fast-forward. O deploy de produção ainda não foi disparado (o deploy automático do EasyPanel está desligado).
+- Testes: 1761 em 77 arquivos (2026-10-12).
 - Build de produção verde; lint 0 erros (6 avisos antigos em `site-settings.ts`).
 - Banco local: migrations 0014 e 0015 aplicadas (journal com 16, 0000–0015).
 - Container local reconstruído com o código desta rodada e conferido (ver progress.md).
@@ -80,6 +96,9 @@ silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles 
 nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
 
 ## Pending
+- **Virada do site novo (aguarda o aval do stakeholder)**: a `main` já está em `beea403`; falta EasyPanel › whats ›
+  site-roco › Implantar e o smoke (passo a passo e rollback em techContext › "Ambiente de Produção"). Depois: backup
+  automático do `roco-db` e entregar à ROCO o guia de mídias (endereço `painel-midia.roco.com.br`) e o login da equipe.
 - **Decisão de produto**: destino da página `/catalogo`, agora sem link (redirecionar para o catálogo online ou tirar do sitemap).
 - **Merge da `main` feito** (pop-ups do RD na CSP, sem botão próprio de WhatsApp — ver decisionLog
   2026-09-30); decisões abertas dos pop-ups do RD em progress.md (Site).
@@ -106,6 +125,4 @@ nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
   (aviso de lead; o SMTP das contas é outro canal).
 - `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
 - Bucket R2 separado para conteúdo privado (ver progress.md, Riscos).
-- **Push + levar `feat/porta-mais-site` para a `main`** (a branch já contém a `main`: fast-forward).
 - **Seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local).
-- Publicar o site em produção (main está ~70+ commits atrás).
