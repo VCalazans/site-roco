@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { locales } from "@/i18n/config";
 import { activeNavIndex, externalProps, type NavLink } from "@/shared/lib/nav";
@@ -39,6 +40,11 @@ type NavItemsProps = {
  * diferentes a cada rótulo e desalinhavam a barra. O campo `icon` continua nos
  * dicionários e no tipo `NavLink` (é ignorado aqui) para não quebrar copy nem
  * exigir migração; a barra da WEG é só texto, uniforme.
+ *
+ * ÚNICA exceção (pedido do stakeholder, 2026-10-13): o item da IA (`icon: "ai"`)
+ * leva o brilho `Sparkles` — o mesmo da chamada "ROCO na sua IA" da home —,
+ * pequeno (0,875 em, a altura do texto), na cor do rótulo e alinhado à linha de
+ * base, para sinalizar a novidade sem mudar a altura nem o peso do item.
  */
 export function NavItems({
   links,
@@ -72,6 +78,15 @@ export function NavItems({
         // principal motivo de a navegação não parecer fluida. Externo segue
         // `<a>` com nova aba (`externalProps`).
         const isExternal = link.href.startsWith("http");
+        const content =
+          link.icon === "ai" ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles className="size-[0.875em] shrink-0" aria-hidden />
+              {link.label}
+            </span>
+          ) : (
+            link.label
+          );
         const node = isExternal ? (
           <a
             key={link.label}
@@ -81,7 +96,7 @@ export function NavItems({
             style={style}
             {...externalProps(link.href)}
           >
-            {link.label}
+            {content}
           </a>
         ) : (
           <Link
@@ -92,7 +107,7 @@ export function NavItems({
             style={style}
             aria-current={isActive ? "page" : undefined}
           >
-            {link.label}
+            {content}
           </Link>
         );
 

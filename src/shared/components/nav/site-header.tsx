@@ -126,9 +126,14 @@ export function SiteHeader({
               de caber abaixo de ~900px; subir o corte para `xl` esconderia
               uma barra que ainda cabe com folga de duas dígitos.
               Larguras medidas com as métricas reais do arquivo Inter servido
-              pelo `next/font` (hmtx + HVAR em wght 500), a 14px e 0.04em. */}
+              pelo `next/font` (hmtx + HVAR em wght 500), a 14px e 0.04em.
+              Remedição 2026-10-13 ao entrar o item "IA" (com ícone), medida no
+              navegador: rótulos somam 484px; a 1024px sobram 868px para nav +
+              divisor + controles (272px com busca, idioma, orçamento e login).
+              Com `gap-6` dava 876px (8px a mais); com `gap-5` na faixa lg dá
+              856px — 12px de folga. Item novo no menu = remedir aqui. */}
           <nav aria-label={brand} className="hidden lg:block">
-            <ul className="flex items-center gap-6 xl:gap-9">
+            <ul className="flex items-center gap-5 xl:gap-9">
               <NavItems
                 links={links}
                 itemClassName={(_index, isActive) => navLabelClass(isActive, "bar")}

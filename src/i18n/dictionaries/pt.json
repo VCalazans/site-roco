@@ -19,6 +19,11 @@
         "icon": ""
       },
       {
+        "label": "IA",
+        "href": "/ia",
+        "icon": "ai"
+      },
+      {
         "label": "Portal ROCO",
         "href": "#representantes",
         "icon": ""
