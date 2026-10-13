@@ -32,6 +32,8 @@ describe("lead-origin", () => {
         "menu",
         "rodape",
         "orcamento",
+        "sobre",
+        "assistente-ia",
       ]);
     });
 

@@ -2244,3 +2244,43 @@ ponta a ponta do widget e do siteverify com as chaves reais depende do deploy.
 - Pendências: incluir cada rota pública nova de formulário na regra de rate limiting da Cloudflare; conferir `client` em cada
   ambiente; decidir o aviso de privacidade do Turnstile (ele envia sinais do navegador à Cloudflare) junto com a decisão LGPD
   em aberto.
+
+## 2026-10-13 — Site pronto para IA (spec 003): SEO técnico, JSON-LD, llms.txt, MCP público e WebMCP
+**Decisão**: o site fica legível para buscadores e assistentes de IA sem mudar o conteúdo visível:
+(1) idioma pela URL (`<html lang>` pelo header `x-roco-locale` do `src/proxy.ts`), canonical e hreflang (`pt-BR`, `en`,
+`x-default`) em todas as páginas públicas; (2) sitemap dinâmico com produtos publicados e categorias, `lastmod` real e
+`alternates` por URL; (3) JSON-LD (Organization em todo o site; WebSite + SearchAction e ItemList na home; Product sem
+`offers` + BreadcrumbList; ItemList na listagem; ContactPage; AboutPage); (4) `/llms.txt` e `/llms-full.txt` em pt; (5) servidor
+MCP público em `/mcp` (somente leitura, cinco ferramentas); (6) WebMCP como aprimoramento progressivo no navegador do visitante
+(seis ferramentas, nunca envia formulário); (7) IndexNow em `after()` ao editar ou publicar produto.
+Decisões do stakeholder (2026-10-13, "pode liberar e implementar tudo"):
+- **D1** robôs de IA liberados, inclusive os de treinamento (grupos explícitos em `robots.ts`).
+- **D2** CNPJ fora: não confirmado pela ROCO; não publicado em llms, JSON-LD nem MCP.
+- **D3** homônimo citado: a Roco austríaca de ferromodelismo (`ai.organization.homonyms`).
+- **D4** FAQ adiada: `/sobre` usa só fatos já publicados; nenhum `FAQPage` sem respostas aprovadas.
+- **D5** llms só em pt; as páginas `/en` aparecem no sitemap e nos hreflang.
+- **D6** WebMCP agora; sem a API no navegador, nada acontece.
+- **D7** `?category=<slug>` sozinho é página indexável (canonical próprio, no sitemap); sem rota nova de categoria.
+**Alternativas**: llms.txt estático (rejeitado: endereços, contato e redes vêm de `site_settings`); MCP com SSE ou sessão
+(rejeitado: leitura não precisa de estado; Streamable HTTP stateless basta); cache de busca livre no MCP (rejeitado: a chave
+viria do usuário; `obter_produto` só aceita slug ou SKU presentes no índice publicado); rota própria de categoria (D7, adiada
+até a ROCO aprovar textos da fase 6).
+**Justificativa**: a auditoria de partida (playbook "Site pronto para IA" da Archicode, seção 9) deu ≈70/100 em produção:
+JSON-LD ausente, llms.txt 404, sitemap sem produtos e `lang` vindo do cookie. Regras herdadas: nada inventado; fonte única
+(`getSiteFacts`, `public-products.ts`, dicionários, `site_settings`); tudo exposto é somente leitura, só `published && active`,
+sem e-mail ou telefone de pessoa física. Revisão do agente `security`: 0 crítico, 0 alto; 3 médios corrigidos no mesmo dia
+(limite do `/mcp` por mensagem e teto global, lote ≤ 10; cache só com slug/SKU do índice e regex; slug com `encodeURIComponent`
+nas URLs de llms e MCP).
+**Impacto**:
+- **Revisa a decisão de 2026-08-11** (sitemap sem produtos): agora ~740 produtos × 2 idiomas + categorias (1.518 URLs no banco
+  local), `force-dynamic`, tag `products`. Produto não publicado não entra em sitemap, llms, JSON-LD nem MCP (teste).
+- Listagem: uma categoria indexável; busca livre e combinações `noindex, follow`; `/orcamento` noindex; `robots.ts` bloqueia
+  `/api/`, portal, admin e orçamento.
+- OG padrão 1200×630 (`public/images/og/roco-og.jpg`) e OG por produto com a capa.
+- Código: `src/modules/ai/` (lib, server, components), `src/modules/about/`, `src/shared/components/seo/json-ld.tsx`,
+  `src/app/mcp/route.ts`, `src/app/llms.txt/`, `src/app/llms-full.txt/`, `src/app/.well-known/`, `src/app/indexnow.txt/`,
+  `src/server/lib/indexnow.ts`.
+- `checkRateLimit` ganhou a opção `cost` (INCRBY), para cobrar por mensagem do lote. `/mcp` é fail-open (leitura pública).
+- `public-products.ts` ganhou `getPublicProductBySku`, `getPublicProductIndex` e o campo `ean`.
+- Origens de lead novas: `sobre` e `assistente-ia` (links do MCP e do WebMCP).
+- Não commitado e fora de produção. Pendências em `progress.md` › Em Andamento.

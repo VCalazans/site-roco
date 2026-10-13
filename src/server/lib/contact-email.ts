@@ -44,6 +44,8 @@ const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   menu: "Menu de navegação",
   rodape: "Rodapé",
   orcamento: "Lista de orçamento (/orcamento)",
+  sobre: "Página Sobre a ROCO",
+  "assistente-ia": "Assistente de IA (MCP/WebMCP)",
 };
 
 /**

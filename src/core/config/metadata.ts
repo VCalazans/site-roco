@@ -13,7 +13,37 @@ import type { Metadata } from "next";
  * esquecido, o site sobe com o placeholder e o `metadataBase` aponta para
  * ele — não bloqueia o deploy, mas o sitemap/OG/canonical ficam errados.
  */
-const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL?.trim() || "") || "https://roco.com.br";
+export const siteUrl = ((process.env.NEXT_PUBLIC_SITE_URL?.trim() || "") || "https://roco.com.br").replace(/\/+$/, "");
+
+/** Imagem de compartilhamento padrão, no tamanho que as redes esperam (1200×630). */
+export const DEFAULT_OG_IMAGE = { url: "/images/og/roco-og.jpg", width: 1200, height: 630 } as const;
+
+/** URL absoluta no domínio canônico (`/pt/produtos` → `https://roco.com.br/pt/produtos`). */
+export function absoluteUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${siteUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/** Código BCP 47 de cada locale (hreflang e `<html lang>`). */
+export const LOCALE_LANGUAGE_TAGS = { pt: "pt-BR", en: "en" } as const;
+
+/**
+ * `canonical` + `hreflang` de uma página pública. `path` é o caminho DEPOIS
+ * do locale (`""` para a home, `"/produtos"`, `"/produtos?category=gas"`): as
+ * rotas não são traduzidas, então a versão em outro idioma só troca o prefixo.
+ * `x-default` aponta para o português (idioma principal e destino do `/`).
+ */
+export function buildAlternates(locale: "pt" | "en", path = "") {
+  const suffix = path && !path.startsWith("/") && !path.startsWith("?") ? `/${path}` : path;
+  return {
+    canonical: absoluteUrl(`/${locale}${suffix}`),
+    languages: {
+      [LOCALE_LANGUAGE_TAGS.pt]: absoluteUrl(`/pt${suffix}`),
+      [LOCALE_LANGUAGE_TAGS.en]: absoluteUrl(`/en${suffix}`),
+      "x-default": absoluteUrl(`/pt${suffix}`),
+    },
+  };
+}
 
 /**
  * Título/descrição default (fallback de `openGraph`/`twitter`, que as páginas
@@ -50,9 +80,9 @@ export const defaultMetadata: Metadata = {
       {
         // Dimensões declaradas como as reais do arquivo: o antigo 1200x630 não
         // batia com a imagem e algumas redes recortam pelo valor anunciado.
-        url: "/images/hero/hero-stage.jpg",
-        width: 3224,
-        height: 1484,
+        url: DEFAULT_OG_IMAGE.url,
+        width: DEFAULT_OG_IMAGE.width,
+        height: DEFAULT_OG_IMAGE.height,
         alt: "ROCO",
       },
     ],

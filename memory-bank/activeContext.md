@@ -1,162 +1,65 @@
 # Active Context — ROCO
+> Atualizado: 2026-10-13
 
-## Sessão atual (2026-10-12) — camada de segurança
-Pedido do stakeholder: endurecer a entrada pública (robôs, varreduras e limite por IP atrás da Cloudflare). Feito no código e
-na Cloudflare; falta o deploy e a conferência no ambiente (ver Pending). Detalhes na entrada de 2026-10-12 do decisionLog.
-- **Turnstile** (`b09a9a9`): verificação anti-robô nos formulários públicos (contato, catálogo, orçamento, pré-cadastro e
-  "reenviar" do painel de sucesso) e nas telas de conta (login, esqueci a senha, reenviar confirmação). Fail-closed; sem
-  `TURNSTILE_SECRET_KEY` a verificação fica desligada (aviso no log de produção).
-- **IP do visitante** (`resolveClientIp`, `src/server/lib/rate-limit.ts`): `cf-connecting-ip` só vale quando o par TCP é borda
-  da Cloudflare. `/api/health` autenticado devolve `client` para conferir isso em cada ambiente.
-- **Cloudflare (zona `roco.com.br`, Free)**: regra de WAF contra varreduras (PHP, WordPress, `.env`, `.git`) e regra de rate
-  limiting (mais de 10 POST em 10 s por IP nas rotas de formulário, login e conta → 429); TLS mínimo 1.2.
-- **Dois bugs corrigidos** (`9fae93d`, `febc6ab`): o worker do ERP nunca subia no standalone (`instrumentation.ts` estava na
-  raiz) e excluir representante não tirava o perfil `representative`.
-- Testes: 1884 em 84 arquivos (antes 1761 em 77).
+## Foco Atual
+Spec 003 — "Site pronto para IA" (SEO técnico, JSON-LD, llms.txt, MCP público e WebMCP): **implementada no código em
+2026-10-13**, commitada e enviada à `main` (junto com a camada de segurança), ainda NÃO implantada (deploy automático desligado). Spec: `memory-bank/specs/003-site-pronto-para-ia.md`.
+Decisões D1–D7 em `decisionLog.md` (2026-10-13).
 
-## Sessão anterior (2026-10-12) — ambiente de produção
-Preparação do ambiente: MinIO para os arquivos (`s3.roco.com.br`, `midia.roco.com.br`, console da equipe em
-`painel-midia.roco.com.br`), tudo pela Cloudflare; banco e Redis próprios no EasyPanel; carga inicial feita de dentro da rede
-privada. Detalhes em decisionLog e techContext › "Ambiente de Produção".
-**Deploy feito**: site novo no ar em `roco.com.br` (commit `71744a7`); smoke ok (páginas 200, fotos pelo MinIO, login do
-portal, banco ok). Antes disso o site seguia com a landing antiga.
-Detalhes da preparação:
-- Next 16.3.8 (2 avisos altos novos no 16.3.7) e armazenamento S3 compatível (`S3_ENDPOINT` etc.); 1761 testes, lint 0
-  erros, build com a CSP conferida; commits `4bdc5ed`, `b4c9970`, `08914ed` enviados na `feat/porta-mais-site`.
-- MinIO (EasyPanel do servidor de mídias): buckets `roco-site` e `roco-midia`, um usuário só do app e um da equipe.
-- Tudo pela Cloudflare da ROCO (conta "1 - Fix IT"), sem domínio `*.easypanel.host`: `s3.roco.com.br` (API S3),
-  `painel-midia.roco.com.br` (console da equipe) e `midia.roco.com.br` (público); `www` também no proxy. Cache Rule sem
-  cache para `s3`/`painel-midia` (a Cloudflare trocava HEAD por GET e quebrava a assinatura); vídeos até 95 MB.
-- `whats/roco-db` e `whats/roco-redis` criados e o banco carregado (737 produtos, 613 imagens, admin, hero).
-- Variáveis do `site-roco` gravadas (`S3_ENDPOINT=https://s3.roco.com.br`); `main` em `beea403` (fast-forward). Depois,
-  o deploy de `71744a7` foi feito (ver acima).
-- O classificador de segurança do Claude Code barrou expor o Postgres e exigiu aval explícito para carregar o banco e
-  gravar variáveis de produção — a carga foi feita de dentro da rede privada.
+## Tarefas em Andamento
+- Implementado (lista "Implementado" da spec): lang pela URL, canonical/hreflang, listagem com regra de indexação, robots e
+  sitemap com produtos, OG, JSON-LD, `/sobre`, `/llms*.txt`, `/mcp`, `/.well-known`, WebMCP, IndexNow.
+- Verificado: tsc ok, lint 0 erros (6 warnings pré-existentes), 2067 testes em 92 arquivos, `next build` verde, smoke no build
+  de produção local (rotas 200, JSON-LD e hreflang no HTML, `lang="en"` em `/en` sem cookie, MCP com curl e MCP Inspector CLI).
+- **WebMCP não testado no navegador**: a API não está ativa no Chrome local (sem token nem flag). Só teste de unidade.
 
-## Sessão anterior (2026-09-30, quinta rodada)
-Pedidos do stakeholder: (1) documentar a discussão das embalagens no padrão GS1 SEM implementar
-(spec 002, em espera); (2) ocultar o login com Google por enquanto; (3) criação de conta e
-recuperação de senha confiáveis, com links por e-mail e os devidos cuidados de segurança — SMTP com
-as variáveis prontas no `.env` para ele preencher; depois, no meio da rodada: (4) um aviso para quem
-ainda não foi aprovado não ficar perdido ao entrar; (5) regiões pré-cadastradas (base do IBGE) para
-a área de atuação do representante — escolhido: estados + regiões + cidades numa busca única, sem
-endereço da empresa. **Tudo implementado, validado e commitado** na branch `feat/porta-mais-site`
-(`c632d6a` spec 002, `4a5ab10` feature e o commit de documentação; sem push, sem merge em `main`).
-`tsc` limpo, lint 0 erros, 1744 testes em 75 arquivos, `next build` verde, `npm audit --omit=dev` = 0.
-Detalhes no decisionLog (três entradas de 2026-09-30: contas, aviso, área de atuação).
+- **Google Analytics**: não há GA4/GTM no site nem no repositório (conferido em 2026-10-13). O stakeholder quer GA e
+  configurações de rastreamento; falta o ID de medição (`G-…`) da conta da ROCO e a decisão de consentimento (LGPD).
 
-**Mudanças desta rodada**:
-- Google oculto por flag (`AUTH_GOOGLE_ENABLED`); desligado, o provider nem é registrado.
-- Pré-cadastro com confirmação de e-mail; login avisa "e-mail não confirmado" (só depois da senha conferir).
-- Esqueci/redefinir senha por link (60 min), aviso "Sua senha foi alterada", sessões antigas caem em ≤ 5 min.
-- Tokens no fragmento do link, só o hash no banco, uso único; respostas genéricas e envio em `after()`.
-- Política de senha única (NIST); CNPJ compartilhado entre pré-cadastros não confirmados (o primeiro a
-  confirmar entra na fila); limpeza dos nunca confirmados em 7 dias.
-- Revisão de segurança (0 crítico, 0 alto): corrigidos os 3 médios (nome/saudação/limite por destinatário;
-  login sem teto global; login fail-closed) e os baixos B1, B3, B4, B5, B6, B8, I5.
-- `/portal` para quem entra sem perfil: aviso "Seu cadastro está em análise" (e os demais estados).
-- Área de atuação com a base do IBGE (tabela `representative_territories`, migration 0015), no wizard, na
-  conclusão do cadastro e no admin (edição e filtro "Estado de atuação").
-- Achados e corrigidos na validação: erro inesperado do tRPC vazava a consulta SQL com parâmetros para o
-  cliente; a busca por nome/e-mail da lista de representantes dava 500.
+## Decisões Recentes
+- 2026-10-13: D1 bots de IA liberados (inclusive treinamento); D2 CNPJ fora até confirmação; D3 homônimo citado; D4 FAQ
+  adiada; D5 llms só em pt; D6 WebMCP agora; D7 `?category=` indexável sem rota nova.
+- 2026-10-13: sitemap passa a listar produtos (revisa a decisão de 2026-08-11).
+- 2026-10-13: `/mcp` na raiz exige entrada em `ROOT_ROUTES` e no matcher do `src/proxy.ts`.
 
-**Validação**:
-- Contas ponta a ponta no navegador + capturador SMTP local (cadastro, confirmação, reenvio, esqueci a
-  senha, troca de senha derrubando a sessão, limites, anti-enumeração) — ver progress.md.
-- Correções da revisão pela API do dev server: nome com frase de golpe → 400; saudação "Olá, Ana!"; dois
-  cadastros com o mesmo CNPJ → o segundo a confirmar recebe `cnpjConflict`; 6ª tentativa de login →
-  "Muitas tentativas"; conta inexistente leva o mesmo tempo que senha errada (bcrypt sempre).
-- Aviso no navegador: em análise (data, empresa, etapas), aprovado com a sessão antiga e conflito de CNPJ.
-- Área de atuação no navegador (busca "vale" → regiões primeiro; "pr" → Paraná; chips; conclusão salva
-  com 3 áreas e o resumo) e no admin pela API (filtro por UF, troca de áreas, código inválido 400, editar
-  notas mantém as áreas). A aba do navegador ficou em segundo plano (o Chrome atrasa timers e capturas de
-  tela) — parte da validação foi feita pelo DOM e pela API.
-- Contas e auditoria de teste apagadas; o representante do `db:seed:qa` agora tem áreas ("Vale do
-  Itajaí — SC · Curitiba — PR"). O navegador ficou logado numa conta de teste já apagada — basta entrar de
-  novo como admin.
+## Próximos Passos Prioritários
+1. **Deploy** da spec 003 junto com a camada de segurança (depende do avanço da `main` e do aval do stakeholder; ver abaixo).
+2. Em produção: conferir "AI Crawl Control"/"Block AI bots" na Cloudflare (podem bloquear sem aparecer no robots.txt); gerar
+   `INDEXNOW_KEY`; registrar o origin trial do WebMCP para `roco.com.br` (`WEBMCP_ORIGIN_TRIAL_TOKEN`).
+3. Search Console e Bing Webmaster (sitemap, pedido de indexação); Rich Results Test na home, listagem e 3 produtos.
+4. Conector MCP no Claude (3 perguntas reais sobre a ROCO); avaliar `/mcp` na regra de rate limiting da Cloudflare.
+5. Confirmar com a ROCO: CNPJ e data de fundação (D2), FAQ real (D4), descrições de produto faltando (pt/en) e nomes de
+   categoria do ERP em caixa alta (ex.: HIDRO_LATÃO), que aparecem em llms e `/sobre`.
 
-**Rodadas anteriores (commitadas e já em `origin/feat/porta-mais-site`)**:
-- 4ª (`852a916` + `283bc3b`): paginação numerada no portal, imagens do produto no site
-  (exibir/capa), download dos originais (avulso e ZIP), dados de teste (`db:seed:qa`), revisão OWASP.
-- 3ª (`cc8423e` + `c46569e`): "Portal ROCO", filtros combinados em `/produtos`, redes sociais por @perfil.
-- 2ª (`add519a` + `5dd95b5`): embalagens sem padrão, cache imediato, painel centralizado, materiais
-  por setor, material via rota autenticada, permissões no boot, upload da home assinado.
+## Contexto anterior (resumo)
+**2026-10-12 — camada de segurança (commits `b09a9a9`, `9fae93d`, `febc6ab`, `64589f9`, `9a17f92`)**: Turnstile nos formulários
+e na conta (fail-closed; sem `TURNSTILE_SECRET_KEY` fica desligado com aviso no log); IP do visitante só pela borda da
+Cloudflare (`resolveClientIp`); WAF de varreduras e limite de 10 POST/10 s na zona `roco.com.br`; TLS mínimo 1.2. Dois bugs
+corrigidos: worker do ERP fora da imagem standalone (`instrumentation.ts` movido para `src/`) e exclusão de representante
+sem tirar o perfil. Produção segue em `71744a7`.
+**2026-10-12 — ambiente de produção**: site novo no ar em `roco.com.br` (`71744a7`). Arquivos no MinIO (`s3.roco.com.br`,
+`midia.roco.com.br`, console `painel-midia.roco.com.br`), tudo pela Cloudflare; `whats/roco-db` e `whats/roco-redis`; carga
+inicial feita de dentro da rede privada. Next 16.3.8. Detalhes em techContext › "Ambiente de Produção".
+**2026-09-30 — rodadas 3 a 5**: filtros combinados e redes sociais; paginação numerada, imagens por capa e download de
+originais; contas com confirmação de e-mail, reset de senha por link, área de atuação com base do IBGE e aviso "cadastro em
+análise". Detalhes no decisionLog e em `progress.md`.
 
-## Validação no Navegador (2026-09-30)
-- **Home**: hero com setas WEG + indicadores + pausa; logo 3D quando sem vídeo; fachada com upload 2-step presigned;
-  seções editáveis (layout, about, categorias, destaques, portal-cta); fallback para dicionário quando vazio.
-- **Site Público**: breadcrumb/galeria/anterior-próximo no detalhe; barra lateral filtros desktop + gaveta mobile;
-  busca multi-termo + contagem por categoria; "só campeões" checkbox; paginação numerada; "voltar ao topo".
-- **Portal**: shell com logo sensível ao tema + nav agrupada (5 grupos) + busca Ctrl/⌘+K + drawer colapsável (localStorage).
-  Dashboard com indicadores clicáveis. Produtos com miniatura + flags `featured`/`best_seller` toggleáveis + ações WhatsApp.
-  Formulário por seções (Info, Categorias, Badges, Embalagens, Imagens); nulo em campo opcional LIMPA coluna.
-  Solicitações somente-leitura (sem e-mail/telefone na lista, só no detalhe auditado).
-  Editor da Página Inicial com upload 2-step presigned (tipo/tamanho ASSINADOS).
-- **Orçamento**: renomeado de "Carrinho" (rota `/{locale}/orcamento`, miniatura do produto); redirect 308 de `/carrinho`.
-
-## Estado do Repositório
-- Branch `feat/porta-mais-site` (enviada) com `9fae93d`, `febc6ab` e `b09a9a9` à frente da `main`, que está em `71744a7`
-  (a versão no ar). Os três commits novos só chegam a produção com o avanço da `main` e o deploy.
-- Testes: 1884 em 84 arquivos (2026-10-12); `tsc` e lint limpos e `next build` verde (com a site key de teste), rodados
-  antes do commit `b09a9a9`.
-- Banco local: migrations 0014 e 0015 aplicadas (journal com 16, 0000–0015).
-- Worker do ERP conferido no standalone local depois de `9fae93d` (`workers.running: true`).
-
-## RD Station — VALIDADO em 2026-08-31
-Chave de API nova (Integrações → API Keys) funciona: chamada direta devolve 200 + `event_uuid`, e
-`POST /api/contact` grava `rd_station_status = "sent"` com o uuid preenchido. O 401 anterior era
-credencial da API LEGADA 1.3 ("token público/privado"), sistema de autenticação diferente da
-Conversions API. Nenhuma mudança de código foi necessária.
-⚠️ Sonda revelou que o RD aceita campo personalizado INEXISTENTE com HTTP 200 — descarta em
-silêncio. Os quatro `cf_*` precisam ser criados no painel, e a ausência deles NÃO aparece em erro
-nenhum (nem na API, nem no nosso banco). Ver decisionLog 2026-08-31.
-
-## Pending
-- **Deploy da camada de segurança (aguarda o aval do stakeholder)**: avançar a `main` até `b09a9a9` e implantar o `site-roco`
-  (EasyPanel › whats › site-roco › Implantar; o deploy automático segue desligado). Sem isso, produção segue sem o worker do
-  ERP (`workers.running: false`, `not-initialized`) e sem Turnstile. Rollback: reimplantar `71744a7`.
-- **Chaves do Turnstile**: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (build-arg: exige rebuild) e `TURNSTILE_SECRET_KEY` (runtime) no
-  `site-roco` e no `roco-test` (homologação), do MESMO widget (domínios `roco.com.br`, `www.roco.com.br` e
-  `devroco.archicode.tech`). Segredo sem site key = todo envio recusado, inclusive o login; site key sem segredo = verificação
-  desligada no servidor.
-- **Conferir o IP do visitante** após o deploy: `GET /api/health` com o header `x-health-token` → `client.viaCloudflare: true`
-  e IP público, em produção e na homologação. `false` com IP interno = algo trocando o IP de origem (todos dividiriam o limite).
-- **Smoke da camada**: `workers.running: true`; widget visível nos formulários; "Esqueci minha senha" com um e-mail que NÃO
-  existe passa pela verificação e recebe a resposta genérica (sem lead, sem e-mail — um envio real de contato iria ao RD
-  Station); login com verificação; 429 acima de 10 POST em 10 s. Cloudflare: incluir na regra de rate limiting cada rota
-  pública nova de formulário (CLAUDE.md › Armadilhas).
-- **Guia de operação (PDF para o cliente, fora do repo)**: gerado em 2026-10-12 (32 páginas). Antes de entregar: incluir a
-  "verificação de segurança" nas seções de acesso e tirar o aviso "Excluir cadastro não apaga o perfil" depois do deploy de
-  `febc6ab`. Backlog que o guia apontou: progress.md › Portal e Débitos.
-- **Pendência da ROCO (infra, fora deste projeto)**: subdomínios de `roco.com.br` fora do proxy da Cloudflare, com certificado
-  inválido (progress.md › Riscos; os hosts ficam fora do repositório, que é público).
-- **Backup automático do `roco-db`** (EasyPanel › Cópias de segurança, destino S3 num bucket do MinIO) e entrega à ROCO do
-  guia de mídias (`painel-midia.roco.com.br`) e do login da equipe.
-- **Decisão de produto**: destino da página `/catalogo`, agora sem link (redirecionar para o catálogo online ou tirar do sitemap).
-- **Merge da `main` feito** (pop-ups do RD na CSP, sem botão próprio de WhatsApp — ver decisionLog
-  2026-09-30); decisões abertas dos pop-ups do RD em progress.md (Site).
-- **Compartilhar com o cliente**: manual de uso e resumo de entregas são artifacts privados — o cliente só abre depois que forem compartilhados.
-- **SMTP**: funcionando no local e na homologação (Hostinger, porta 587, remetente = caixa do login — ver
-  techContext). Falta PRODUÇÃO: remetente do domínio da ROCO, SPF/DKIM e `AUTH_URL` https; desligar o
-  rastreio de clique do provedor. Confirmar com o stakeholder a chegada dos e-mails de teste
-  (redefinição na homologação; confirmação do cadastro de teste no local).
-- **Limpar dado de teste local**: cadastro "Teste Envio SMTP", criado no banco local para testar o e-mail de confirmação
-  (e-mail e CNPJ fora do repositório, que é público).
-- **Spec 002 (embalagens GS1)**: em espera, com 4 decisões do stakeholder
-  (`memory-bank/specs/002-embalagens-gs1.md`).
-- **Sugestões abertas**: e-mail avisando a aprovação/reprovação; ação do admin para reenviar/confirmar
-  cadastro sem confirmação; itens abertos da revisão de segurança (progress.md, Riscos).
-- **Antes de ligar o Google SSO**: corrigir a concessão automática da role `representative` no 1º
-  login Google (achado ALTO latente — ver progress.md, Riscos) e decidir o `emailVerified` das
-  contas criadas por ele.
-- **Decisão de produto**: representante baixa imagens de produtos NÃO publicados? Hoje sim
-  (coerente com a listagem do portal, onde ele já os vê).
-- **Atualizar Node local para 22** (AWS SDK exigirá em jan/2027; Docker já usa node:22-alpine).
-- **RD Station (stakeholder)**: criar `cf_origem` no painel — é o ÚNICO campo que o código envia e
-  a conta não tem. Sem ele, a seção do site que gerou o lead some em silêncio.
-- **Resend**: provisionar `RESEND_API_KEY` + `CONTACT_FROM_EMAIL` + `CONTACT_NOTIFICATION_EMAIL`
-  (aviso de lead; o SMTP das contas é outro canal).
-- `RD_STATION_API_KEY` de PRODUÇÃO (a validada é a do ambiente local).
-- Bucket separado para conteúdo privado: em produção resolvido no MinIO (prefixos privados); falta a homologação (R2
-  `roco-test`). Ver progress.md, Riscos.
-- **Seed de produção**: `npm run db:seed` (o `db:seed:qa` recusa rodar fora de banco local).
+## Pendências herdadas (fora da spec 003)
+- **Chaves do Turnstile** no `site-roco` e no `roco-test`: `NEXT_PUBLIC_TURNSTILE_SITE_KEY` (build-arg, exige rebuild) e
+  `TURNSTILE_SECRET_KEY` (runtime), do mesmo widget. Conferir `client.viaCloudflare` no `/api/health` (`x-health-token`).
+- **Smoke da camada**: `workers.running: true`; widget visível; "esqueci a senha" com e-mail inexistente recebe resposta
+  genérica; 429 acima de 10 POST em 10 s. Incluir cada rota pública nova de formulário na regra da Cloudflare.
+- **RD Station**: `cf_origem` é o único campo que o código envia e a conta não tem. Sonda de 2026-08-31: a API responde 200
+  para campo inexistente e descarta em silêncio. Chave de produção (`RD_STATION_API_KEY`) ainda não existe.
+- **Resend**: `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` e `CONTACT_NOTIFICATION_EMAIL` (aviso de lead).
+- **SMTP de produção**: remetente do domínio da ROCO, SPF/DKIM, `AUTH_URL` https; desligar rastreio de clique do provedor.
+- **Backup automático do `roco-db`** (EasyPanel › Cópias de segurança, destino S3 num bucket do MinIO).
+- **Guia de operação** (PDF para o cliente, fora do repo): tirar o aviso "Excluir cadastro não apaga o perfil" depois do deploy
+  de `febc6ab`; incluir a verificação de segurança nas seções de acesso.
+- **Antes de ligar o Google SSO**: corrigir a role `representative` concedida no 1º login (Riscos em `progress.md`).
+- **Decisões de produto**: destino de `/catalogo` (sem link desde 2026-09-30); representante baixar imagens de produtos não
+  publicados (hoje sim).
+- **Ambiente**: atualizar o Node local para 22; `db:seed` em produção (`db:seed:qa` recusa fora de banco local); apagar o
+  cadastro de teste "Teste Envio SMTP" do banco local.
+- **Em espera**: spec 002 (embalagens GS1) com 4 decisões do stakeholder (`memory-bank/specs/002-embalagens-gs1.md`).
+- Compartilhar com o cliente o manual de uso e o resumo de entregas (artifacts privados).

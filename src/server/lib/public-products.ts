@@ -149,6 +149,8 @@ async function assembleProducts(productRows: (typeof products.$inferSelect)[]) {
   return productRows.map((product) => ({
     sku: product.sku,
     slug: product.slug,
+    /** EAN-13 do próprio produto (as embalagens podem ter o seu). Público: vai impresso na peça. */
+    ean: product.barcodeEan13,
     namePt: product.namePt,
     nameEn: product.nameEn,
     descriptionPt: product.descriptionPt,
@@ -348,6 +350,72 @@ export async function getPublicProductsBySlugs(slugs: string[]) {
 
   return assembleProducts(rows);
 }
+
+/** Detalhe público por SKU (servidor MCP: o comprador costuma ter o código, não o slug). */
+export const getPublicProductBySku = unstable_cache(
+  async (sku: string) => {
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.sku, sku), eq(products.published, true), eq(products.active, true)))
+      .limit(1);
+
+    if (!product) return null;
+
+    const [assembled] = await assembleProducts([product]);
+    return assembled ?? null;
+  },
+  ["public-product-detail-by-sku"],
+  { tags: ["products"], revalidate: 300 }
+);
+
+/**
+ * Todos os produtos publicados para o sitemap e o `llms-full.txt` — só os
+ * campos de índice (sem embalagens/imagens), uma consulta. ~740 linhas.
+ */
+export const getPublicProductIndex = unstable_cache(
+  async () => {
+    const rows = await db
+      .select({
+        id: products.id,
+        sku: products.sku,
+        slug: products.slug,
+        namePt: products.namePt,
+        nameEn: products.nameEn,
+        bestSeller: products.bestSeller,
+        updatedAt: products.updatedAt,
+      })
+      .from(products)
+      .where(and(eq(products.published, true), eq(products.active, true)))
+      .orderBy(asc(products.sku));
+
+    const ids = rows.map((row) => row.id);
+    const categoryRows =
+      ids.length === 0
+        ? []
+        : await db
+            .select({ productId: productCategories.productId, slug: categories.slug })
+            .from(productCategories)
+            .innerJoin(categories, eq(categories.id, productCategories.categoryId))
+            .where(and(inArray(productCategories.productId, ids), eq(categories.active, true)));
+    const categoriesByProduct = new Map<string, string[]>();
+    for (const row of categoryRows) {
+      const list = categoriesByProduct.get(row.productId) ?? [];
+      list.push(row.slug);
+      categoriesByProduct.set(row.productId, list);
+    }
+
+    return rows.map(({ id, updatedAt, ...row }) => ({
+      ...row,
+      // ISO aqui: o retorno do `unstable_cache` é serializado em JSON e um
+      // `Date` voltaria como string de qualquer jeito.
+      updatedAt: updatedAt.toISOString(),
+      categories: categoriesByProduct.get(id) ?? [],
+    }));
+  },
+  ["public-product-index"],
+  { tags: ["products"], revalidate: 300 }
+);
 
 /**
  * Categorias ativas para os filtros da listagem pública. Chamada direto pelo

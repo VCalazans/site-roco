@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/core/config/metadata";
+import { REPRESENTATIVES_SEGMENT } from "@/core/config/site";
 import { notFound } from "next/navigation";
 import { RegisterForm } from "@/modules/representatives/components/register-form";
 import { getRepresentativesDictionary } from "@/modules/representatives/lib/types";
@@ -27,6 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: representatives.seo.title,
     description: representatives.seo.description,
+    alternates: buildAlternates(locale, `/${REPRESENTATIVES_SEGMENT}`),
   };
 }
 

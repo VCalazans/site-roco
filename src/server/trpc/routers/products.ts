@@ -1,5 +1,6 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
+import { productUrls, submitToIndexNow } from "@/server/lib/indexnow";
 import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -617,7 +618,10 @@ export const productsRouter = router({
       });
       revalidateTag("products", IMMEDIATE_EXPIRY);
 
-      return loadProductDetail(ctx.db, id);
+      const detail = await loadProductDetail(ctx.db, id);
+      // Buscadores recebem o aviso da página nova/alterada (ou da que saiu do ar).
+      if (detail?.slug) submitToIndexNow(productUrls(detail.slug));
+      return detail;
     }),
 
   delete: permissionProcedure("products", "delete")
@@ -664,7 +668,9 @@ export const productsRouter = router({
       });
       revalidateTag("products", IMMEDIATE_EXPIRY);
 
-      return loadProductDetail(ctx.db, input.id);
+      const detail = await loadProductDetail(ctx.db, input.id);
+      if (detail?.slug) submitToIndexNow(productUrls(detail.slug));
+      return detail;
     }),
 
   presignImageUpload: permissionProcedure("product_images", "create")

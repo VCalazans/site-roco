@@ -317,6 +317,10 @@
         "title": "Empresa",
         "links": [
           {
+            "label": "Sobre a ROCO",
+            "href": "/sobre"
+          },
+          {
             "label": "Portal ROCO",
             "href": "/representantes"
           }
@@ -804,7 +808,9 @@
         "catalogo": "Página do catálogo",
         "menu": "Menu de navegação",
         "rodape": "Rodapé",
-        "orcamento": "Lista de orçamento"
+        "orcamento": "Lista de orçamento",
+        "sobre": "Página Sobre a ROCO",
+        "assistente-ia": "Assistente de IA"
       },
       "channels": {
         "rdStation": "RD Station",
@@ -2175,6 +2181,83 @@
       "button": "Não fui eu — redefinir senha",
       "note": "Se não foi você, redefina a senha agora e avise o time ROCO.",
       "ignore": "Se foi você, não precisa fazer nada."
+    }
+  },
+  "about": {
+    "seo": {
+      "title": "Sobre a ROCO — Fabricante de hidrossanitários e hidráulica em Santa Catarina",
+      "description": "A ROCO Indústria Metalplástica S.A. fabrica soluções hidrossanitárias e hidráulicas desde 2014, com matriz em Blumenau e unidade fabril em Gaspar (SC), atuação nacional e exportação para Paraguai e Bolívia."
+    },
+    "breadcrumb": "Sobre a ROCO",
+    "eyebrow": "Sobre a ROCO",
+    "headline": "Fabricante brasileira de soluções hidrossanitárias e hidráulicas",
+    "factsTitle": "A ROCO em resumo",
+    "facts": {
+      "legalName": "Razão social",
+      "founded": "Fundação",
+      "headquarters": "Matriz",
+      "plant": "Unidade fabril",
+      "market": "Atuação",
+      "catalog": "Catálogo"
+    },
+    "market": "Todo o Brasil, com exportação para Paraguai e Bolívia",
+    "catalogValue": "{totalProducts} produtos em {totalCategories} categorias",
+    "linesTitle": "Linhas de produto",
+    "certificationsTitle": "Certificações",
+    "contactTitle": "Fale com o time comercial",
+    "ctaProducts": "Ver o catálogo",
+    "ctaContact": "Solicitar orçamento",
+    "ctaRepresentatives": "Quero ser representante"
+  },
+  "ai": {
+    "organization": {
+      "legalName": "ROCO Indústria Metalplástica S.A.",
+      "foundingYear": "2014",
+      "areaServed": [
+        "Brasil",
+        "Paraguai",
+        "Bolívia"
+      ],
+      "plantName": "Unidade fabril da ROCO em Gaspar (SC)",
+      "homonyms": "Não confundir com a Roco austríaca de ferromodelismo (Modelleisenbahn) nem com outras empresas chamadas Roco sem relação com a fabricante de Blumenau (SC)."
+    },
+    "llms": {
+      "summary": "A ROCO ({legalName}) é uma fabricante brasileira de soluções hidrossanitárias e hidráulicas, com matriz em Blumenau e unidade fabril em Gaspar, Santa Catarina. Atua desde {foundingYear} em todo o Brasil e exporta para Paraguai e Bolívia.",
+      "officialSite": "Site oficial: {url}",
+      "linesTitle": "Linhas de produto",
+      "categoriesTitle": "Categorias do catálogo",
+      "categoryLine": "{count} produtos",
+      "categoryLineOne": "1 produto",
+      "howToBuyTitle": "Como comprar",
+      "howToBuy": [
+        "A ROCO vende por orçamento (o site não tem preços nem checkout). Monte a lista em \"Meu orçamento\" ou peça um orçamento na página de contato: {contactUrl}",
+        "Catálogo online completo: {catalogUrl}",
+        "Representantes comerciais fazem o pré-cadastro em {representativesUrl}; o acesso ao Portal ROCO é liberado depois da análise do time comercial."
+      ],
+      "contactTitle": "Contato comercial",
+      "contactEmail": "E-mail: {email}",
+      "contactPhone": "Telefone/WhatsApp: {phone}",
+      "contactHeadquarters": "Matriz: {address}",
+      "contactPlant": "Unidade fabril: {address}",
+      "mcpTitle": "Servidor MCP público",
+      "mcp": "Assistentes de IA podem consultar o catálogo oficial pelo servidor MCP {mcpUrl} (Streamable HTTP, JSON, sem autenticação, somente leitura). Ferramentas: {tools}.",
+      "pagesTitle": "Páginas principais",
+      "pages": {
+        "home": "Página inicial",
+        "products": "Catálogo de produtos com busca e filtros",
+        "about": "Sobre a empresa",
+        "contact": "Contato e orçamento",
+        "representatives": "Pré-cadastro de representantes"
+      },
+      "fullVersion": "Versão completa, com todos os produtos: {url}",
+      "productsTitle": "Produtos publicados",
+      "productsIntro": "Lista gerada do catálogo oficial (SKU — nome — categorias). Embalagens e códigos EAN estão na página de cada produto e na ferramenta MCP obter_produto.",
+      "notForTitle": "Para quem não é",
+      "notFor": "A ROCO não vende direto ao consumidor pelo site: não há loja, preço público nem entrega a pessoa física pelo site. Para comprar, peça um orçamento ao time comercial."
+    },
+    "mcp": {
+      "instructions": "Servidor oficial e somente leitura da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (Blumenau e Gaspar, SC). Use buscar_produtos e obter_produto para dados do catálogo; a ROCO não divulga preços — para comprar, indique a página de orçamento/contato que as ferramentas devolvem.",
+      "description": "Catálogo oficial da ROCO (hidrossanitários, hidráulica, conexões, gás e flexíveis): empresa, categorias, produtos, embalagens e como comprar."
     }
   }
 }

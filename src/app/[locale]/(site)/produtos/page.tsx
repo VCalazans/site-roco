@@ -5,6 +5,11 @@ import { ProductsExplorer } from "@/modules/products/components/products-explore
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { paramValues, readListingState } from "@/modules/products/lib/listing-filters";
+import { buildAlternates } from "@/core/config/metadata";
+import { PRODUCTS_SEGMENT, productsPath } from "@/core/config/site";
+import { buildItemList } from "@/modules/ai/lib/json-ld";
+import { listingIndexing } from "@/modules/ai/lib/listing-seo";
+import { JsonLd } from "@/shared/components/seo/json-ld";
 import {
   getPublicBestSellerCount,
   getPublicCategoryCounts,
@@ -26,21 +31,39 @@ type PageProps = {
  * dinamicamente por request (o comportamento default do App Router para uma
  * rota que não declara parâmetros estáticos).
  */
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
   if (!locales.includes(locale)) {
     notFound();
   }
 
-  const dictionary = await getDictionary(locale);
+  const [dictionary, categoryList, sp] = await Promise.all([
+    getDictionary(locale),
+    getPublicCategoryList().catch(() => []),
+    searchParams,
+  ]);
+  const urlParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    for (const item of paramValues(value)) urlParams.append(key, item);
+  }
+  const state = readListingState(
+    urlParams,
+    categoryList.map((item) => item.slug)
+  );
+
+  // Uma categoria sozinha é página indexável própria ("Gás — Produtos ROCO",
+  // canonical `?category=gas`); busca livre e combinações não (ver `listingIndexing`).
+  const indexing = listingIndexing(state);
+  const category = indexing.category ? categoryList.find((item) => item.slug === indexing.category) : undefined;
+  const categoryName = category ? (locale === "en" && category.nameEn) || category.namePt : null;
+  const title = categoryName ? `${categoryName} — ${dictionary.products.seo.title}` : dictionary.products.seo.title;
+
   return {
-    title: dictionary.products.seo.title,
+    title,
     description: dictionary.products.seo.description,
+    alternates: buildAlternates(locale, `/${PRODUCTS_SEGMENT}${indexing.query}`),
+    robots: indexing.index ? undefined : { index: false, follow: true },
   };
 }
 
@@ -81,8 +104,18 @@ export default async function ProductsPage({ params, searchParams }: PageProps) 
     getPublicProductList({ page: 1, perPage: 1 }),
   ]);
 
+  const listingJsonLd = buildItemList({
+    name: products.listing.headline,
+    items: initialResult.items.map((product) => ({
+      name: (locale === "en" && product.nameEn) || product.namePt,
+      path: `${productsPath(locale)}/${product.slug}`,
+      image: product.images[0]?.url,
+    })),
+  });
+
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">
+      <JsonLd data={listingJsonLd} />
       {/* Faixa decorativa com a cena extraída de
           `docs/Layout pag Produtos_OK_01.psd` (nav + título "Produtos" +
           molduras neon vazias — ver preview em

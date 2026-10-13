@@ -21,6 +21,12 @@ export interface RateLimitOptions {
    * decisionLog 2026-08-23).
    */
   productionSafe?: boolean;
+  /**
+   * Quanto esta chamada consome do teto (padrão 1). Rotas que recebem LOTES
+   * (ex.: `/mcp`, até 10 mensagens JSON-RPC por POST) cobram por mensagem, não
+   * por requisição — senão o lote multiplicaria o limite.
+   */
+  cost?: number;
 }
 
 export interface RateLimitResult {
@@ -122,11 +128,14 @@ export async function checkRateLimit(
   const redisKey = `ratelimit:${key}`;
 
   try {
-    const results = await redis
-      .multi()
-      .incr(redisKey)
-      .expire(redisKey, opts.windowSeconds, "NX")
-      .exec();
+    const cost = Math.max(1, Math.floor(opts.cost ?? 1));
+    const transaction = redis.multi();
+    (cost === 1 ? transaction.incr(redisKey) : transaction.incrby(redisKey, cost)).expire(
+      redisKey,
+      opts.windowSeconds,
+      "NX"
+    );
+    const results = await transaction.exec();
 
     // `exec()` retorna `null` só quando a transação foi abortada (ex.: WATCH
     // em conflito — não usamos WATCH aqui, então isto é defensivo).

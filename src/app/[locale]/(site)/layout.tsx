@@ -7,6 +7,9 @@ import { SiteHeader } from "@/shared/components/nav";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { siteNavLinks } from "@/shared/lib/nav";
+import { JsonLd } from "@/shared/components/seo/json-ld";
+import { WebMcpTools } from "@/modules/ai/components/webmcp-tools";
+import { getSiteFacts, organizationJsonLd } from "@/modules/ai/server/site-facts";
 
 type SiteLayoutProps = {
   children: ReactNode;
@@ -29,7 +32,7 @@ type SiteLayoutProps = {
 export default async function SiteLayout({ children, params }: SiteLayoutProps) {
   const { locale: rawLocale } = await params;
   const locale: Locale = locales.includes(rawLocale as Locale) ? (rawLocale as Locale) : defaultLocale;
-  const dictionary = await getDictionary(locale);
+  const [dictionary, facts] = await Promise.all([getDictionary(locale), getSiteFacts(locale)]);
   const { navigation, cart } = dictionary;
 
   return (
@@ -58,6 +61,17 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
       <main id="conteudo" tabIndex={-1} className="outline-none">
         <ViewTransition>{children}</ViewTransition>
       </main>
+
+      {/* Organização em toda página pública (schema.org) — mesmos dados do rodapé. */}
+      <JsonLd data={organizationJsonLd(facts)} />
+      {/* Ferramentas para agentes de IA no navegador (WebMCP, spec 003). Sem a
+       * API no navegador, não faz nada. */}
+      <WebMcpTools locale={locale} />
+      {/* Token do origin trial do WebMCP no Chrome (runtime, sem rebuild). O
+       * React 19 leva o <meta> para o <head>. */}
+      {process.env.WEBMCP_ORIGIN_TRIAL_TOKEN ? (
+        <meta httpEquiv="origin-trial" content={process.env.WEBMCP_ORIGIN_TRIAL_TOKEN} />
+      ) : null}
 
       <SiteFooter content={dictionary.footer} brand={navigation.brand} locale={locale} />
       <BackToTop label={navigation.backToTop} />

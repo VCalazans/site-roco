@@ -30,6 +30,17 @@ import {
 
 const PUBLIC_FILE = /\.(.*)$/;
 
+/**
+ * Header de REQUISIÇÃO com o locale da URL, lido pelo root layout para o
+ * `<html lang>`. O layout raiz fica acima de `[locale]` e não recebe `params`;
+ * antes ele lia o cookie `NEXT_LOCALE`, então um robô sem cookie — ou alguém
+ * com cookie `en` abrindo `/pt/...` — recebia o idioma errado.
+ */
+const LOCALE_REQUEST_HEADER = "x-roco-locale";
+
+/** Rotas na raiz que não levam prefixo de locale (servidor MCP público). */
+const ROOT_ROUTES = new Set(["api", "mcp"]);
+
 /** Segmentos protegidos (exigem sessão); `/admin` também exige role elevada. */
 const PROTECTED_SECTIONS = new Set(["portal", "admin"]);
 const ADMIN_ONLY_ROLES = new Set(["admin", "sales_manager"]);
@@ -96,7 +107,7 @@ export default auth((request) => {
 
   if (
     pathname.startsWith("/_next") ||
-    pathname.split("/")[1] === "api" ||
+    ROOT_ROUTES.has(pathname.split("/")[1] ?? "") ||
     PUBLIC_FILE.test(pathname)
   ) {
     return NextResponse.next();
@@ -143,7 +154,9 @@ export default auth((request) => {
     }
   }
 
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(LOCALE_REQUEST_HEADER, currentLocale);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.cookies.set("NEXT_LOCALE", currentLocale, {
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
@@ -152,5 +165,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|mcp|_next|.*\\..*).*)"],
 };

@@ -162,6 +162,28 @@ provedor S3. Em produção (MinIO): `R2_BUCKET=roco-site` e `R2_PUBLIC_URL=https
 | QA_REPRESENTATIVE_EMAIL      | não    | E-mail do representante de teste do `db:seed:qa` (padrão: `representante.teste@roco.local`) |
 | QA_REPRESENTATIVE_PASSWORD   | sim, para `db:seed:qa` | Senha do representante de teste (mín. 12 caracteres). Fica só no `.env.local`; o script não tem senha embutida e falha sem ela |
 
+## Site pronto para IA (Spec 003 — 2026-10-13)
+### Variáveis de ambiente
+| Variável                     | Obrig. | Descrição                                  |
+|------------------------------|:------:|--------------------------------------------|
+| NEXT_PUBLIC_WEBMCP_ENABLED   | não    | Liga o WebMCP no navegador. BUILD-TIME (`NEXT_PUBLIC_*`): mudar exige rebuild. Vazia = LIGADO (só age se o navegador tiver a API); só `"false"` desliga |
+| WEBMCP_ORIGIN_TRIAL_TOKEN    | não    | Token do origin trial do Chrome para `roco.com.br`, entregue por `<meta http-equiv="origin-trial">`. RUNTIME |
+| INDEXNOW_KEY                 | não    | Chave do IndexNow (`/indexnow.txt`). Sem ela o aviso de edição de produto fica desligado |
+
+### Rotas
+- `/{locale}/sobre`: institucional com os fatos de `getSiteFacts` (link no rodapé).
+- `/llms.txt` e `/llms-full.txt`: só pt, `Cache-Control` de 1 h. O `llms-full` tem uma linha por produto publicado.
+- `/mcp`: POST JSON-RPC 2.0 (mensagem única ou lote de até 10; corpo ≤ 64 KiB). Versões: 2025-11-25, 2025-06-18, 2025-03-26,
+  2024-11-05. Limite de 120 mensagens/min por IP e 1500/min global, contadas por mensagem (fail-open, sem Redis não limita).
+  CORS `*` sem credenciais; resposta com `X-Robots-Tag: noindex`.
+- Ferramentas MCP (somente leitura): `sobre_roco`, `como_comprar`, `listar_categorias`, `buscar_produtos`, `obter_produto`.
+- Cartão do servidor: `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json` (formato ainda rascunho no MCP).
+- Ferramentas WebMCP (no navegador): `buscar_produtos`, `abrir_produto`, `filtrar_catalogo`, `adicionar_ao_orcamento`,
+  `ver_orcamento`, `preparar_contato` (nunca envia).
+- `/indexnow.txt`: chave do IndexNow.
+- `robots.ts`: grupos explícitos para robôs de IA (liberados) e `Disallow` de `/api/`, portal, admin e orçamento.
+- `sitemap.ts` (`force-dynamic`): produtos publicados × 2 idiomas, categorias, `lastmod` real e alternates (1.518 URLs no banco local).
+
 ## Comandos do Projeto
 ### Desenvolvimento
 | Comando         | Quando usar                                  |
@@ -249,7 +271,7 @@ Monolito Next.js 16: mesmo app que o site público, rotas isoladas por **route g
 - **Cloudflare (borda)**: WAF, rate limiting e Turnstile — ver "Ambiente de Produção".
 
 ### Testes
-- **Vitest 4**: 1884 testes em 84 arquivos (2026-10-12, camada de segurança). Contagem por rodada: 1744 em 75 na 5ª rodada (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
+- **Vitest 4**: 2067 testes em 92 arquivos (2026-10-13, spec 003). Antes: 1884 em 84 (2026-10-12, camada de segurança). Contagem por rodada: 1744 em 75 na 5ª rodada (+473 na spec 001 + revisão pós-entrega; +39 na 3ª rodada: filtros
   combinados e redes sociais; +50 na 4ª; +84 na 5ª: contas, aviso de cadastro em análise e área de atuação).
   Lógica pura (rbac, cnpj, telefone, busca SQL, home-content, embalagens, materiais, links, orçamento…)
   + render SSR de telas do portal (shell, dashboard, produtos, configurações, home-content, solicitações).

@@ -317,6 +317,10 @@
         "title": "Company",
         "links": [
           {
+            "label": "About ROCO",
+            "href": "/sobre"
+          },
+          {
             "label": "ROCO Portal",
             "href": "/representantes"
           }
@@ -804,7 +808,9 @@
         "catalogo": "Catalog page",
         "menu": "Navigation menu",
         "rodape": "Footer",
-        "orcamento": "Quote list"
+        "orcamento": "Quote list",
+        "sobre": "About ROCO page",
+        "assistente-ia": "AI assistant"
       },
       "channels": {
         "rdStation": "RD Station",
@@ -2175,6 +2181,83 @@
       "button": "Not me — reset password",
       "note": "If it wasn't you, reset your password now and let the ROCO team know.",
       "ignore": "If it was you, there's nothing else to do."
+    }
+  },
+  "about": {
+    "seo": {
+      "title": "About ROCO — Brazilian manufacturer of plumbing and hydraulic products",
+      "description": "ROCO Indústria Metalplástica S.A. has manufactured plumbing and hydraulic solutions since 2014, with headquarters in Blumenau and a plant in Gaspar (Santa Catarina, Brazil), nationwide reach and exports to Paraguay and Bolivia."
+    },
+    "breadcrumb": "About ROCO",
+    "eyebrow": "About ROCO",
+    "headline": "Brazilian manufacturer of plumbing and hydraulic solutions",
+    "factsTitle": "ROCO at a glance",
+    "facts": {
+      "legalName": "Legal name",
+      "founded": "Founded",
+      "headquarters": "Headquarters",
+      "plant": "Manufacturing plant",
+      "market": "Markets",
+      "catalog": "Catalog"
+    },
+    "market": "All of Brazil, with exports to Paraguay and Bolivia",
+    "catalogValue": "{totalProducts} products in {totalCategories} categories",
+    "linesTitle": "Product lines",
+    "certificationsTitle": "Certifications",
+    "contactTitle": "Talk to our sales team",
+    "ctaProducts": "Browse the catalog",
+    "ctaContact": "Request a quote",
+    "ctaRepresentatives": "Become a sales representative"
+  },
+  "ai": {
+    "organization": {
+      "legalName": "ROCO Indústria Metalplástica S.A.",
+      "foundingYear": "2014",
+      "areaServed": [
+        "Brazil",
+        "Paraguay",
+        "Bolivia"
+      ],
+      "plantName": "ROCO manufacturing plant in Gaspar (Santa Catarina, Brazil)",
+      "homonyms": "Not to be confused with the Austrian model railway brand Roco (Modelleisenbahn) or other companies named Roco unrelated to the manufacturer based in Blumenau, Brazil."
+    },
+    "llms": {
+      "summary": "ROCO ({legalName}) is a Brazilian manufacturer of plumbing and hydraulic solutions, headquartered in Blumenau with a manufacturing plant in Gaspar, Santa Catarina. Active since {foundingYear}, it serves all of Brazil and exports to Paraguay and Bolivia.",
+      "officialSite": "Official website: {url}",
+      "linesTitle": "Product lines",
+      "categoriesTitle": "Catalog categories",
+      "categoryLine": "{count} products",
+      "categoryLineOne": "1 product",
+      "howToBuyTitle": "How to buy",
+      "howToBuy": [
+        "ROCO sells by quote (the website has no prices or checkout). Build a list in \"My quote\" or request a quote on the contact page: {contactUrl}",
+        "Full online catalog: {catalogUrl}",
+        "Sales representatives pre-register at {representativesUrl}; access to the ROCO Portal is granted after review by the sales team."
+      ],
+      "contactTitle": "Sales contact",
+      "contactEmail": "E-mail: {email}",
+      "contactPhone": "Phone/WhatsApp: {phone}",
+      "contactHeadquarters": "Headquarters: {address}",
+      "contactPlant": "Manufacturing plant: {address}",
+      "mcpTitle": "Public MCP server",
+      "mcp": "AI assistants can query the official catalog through the MCP server {mcpUrl} (Streamable HTTP, JSON, no authentication, read-only). Tools: {tools}.",
+      "pagesTitle": "Main pages",
+      "pages": {
+        "home": "Home page",
+        "products": "Product catalog with search and filters",
+        "about": "About the company",
+        "contact": "Contact and quotes",
+        "representatives": "Sales representative pre-registration"
+      },
+      "fullVersion": "Full version, with every product: {url}",
+      "productsTitle": "Published products",
+      "productsIntro": "Generated from the official catalog (SKU — name — categories). Packaging and EAN codes are on each product page and in the obter_produto MCP tool.",
+      "notForTitle": "Who it is not for",
+      "notFor": "ROCO does not sell directly to consumers through the website: there is no store, public price or delivery to individuals. To buy, request a quote from the sales team."
+    },
+    "mcp": {
+      "instructions": "Official, read-only server of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (Blumenau and Gaspar, Brazil). Use buscar_produtos and obter_produto for catalog data; ROCO does not publish prices — to buy, point to the quote/contact page returned by the tools.",
+      "description": "ROCO official catalog (plumbing, hydraulics, fittings, gas and flexible hoses): company, categories, products, packaging and how to buy."
     }
   }
 }

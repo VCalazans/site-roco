@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Inter, Poppins } from "next/font/google";
-import { defaultMetadata } from "@/core/config/metadata";
-import { defaultLocale } from "@/i18n/config";
+import { defaultMetadata, LOCALE_LANGUAGE_TAGS } from "@/core/config/metadata";
+import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,8 +32,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("NEXT_LOCALE")?.value ?? defaultLocale;
+  // Idioma da URL (header gravado pelo `src/proxy.ts`); o cookie só vale onde o
+  // proxy não passa (páginas de erro fora de `[locale]`).
+  const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
+  const candidate = headerStore.get("x-roco-locale") ?? cookieStore.get("NEXT_LOCALE")?.value;
+  const locale: Locale = locales.includes(candidate as Locale) ? (candidate as Locale) : defaultLocale;
 
   return (
     // As variáveis do next/font ficam no <html>, não no <body>: `globals.css`
@@ -42,7 +45,7 @@ export default async function RootLayout({
     // que são consumidas, a declaração viraria inválida e a tipografia cairia
     // silenciosamente no fallback ui-sans-serif do Tailwind.
     <html
-      lang={locale}
+      lang={LOCALE_LANGUAGE_TAGS[locale]}
       className={`${inter.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >

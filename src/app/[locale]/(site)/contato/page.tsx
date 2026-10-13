@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/core/config/metadata";
+import { buildContactPage } from "@/modules/ai/lib/json-ld";
+import { JsonLd } from "@/shared/components/seo/json-ld";
 import { notFound } from "next/navigation";
 import { ContactForm } from "@/modules/contact/components/contact-form";
 import { getContactDictionary } from "@/modules/contact/lib/types";
-import { contactPath } from "@/core/config/site";
+import { CONTACT_SEGMENT, contactPath } from "@/core/config/site";
 import { SELECTABLE_CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import { getPublicProductBySlug } from "@/server/lib/public-products";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
@@ -44,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Cada CTA chega com um `?origem=` diferente, e cada querystring é uma
     // URL distinta para o crawler. O canônico aponta sempre para a página
     // limpa (a mesma que está no sitemap).
-    alternates: { canonical: contactPath(locale) },
+    alternates: buildAlternates(locale, `/${CONTACT_SEGMENT}`),
   };
 }
 
@@ -114,6 +117,7 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
 
   return (
     <div className="relative min-h-[100svh] w-full overflow-hidden bg-[#05070b]">
+      <JsonLd data={buildContactPage({ name: contact.seo.title, path: contactPath(locale), description: contact.seo.description })} />
       {/* Fundo dual-tone da marca: glow ciano à esquerda, âmbar à direita —
           mesma linguagem visual usada em /representantes. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">

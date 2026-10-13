@@ -49,6 +49,14 @@ export const REPRESENTATIVES_SEGMENT = "representantes";
 /** Route segment of the product catalog listing/detail pages. */
 export const PRODUCTS_SEGMENT = "produtos";
 
+/** Route segment of the institutional "about" page (spec 003). */
+export const ABOUT_SEGMENT = "sobre";
+
+/** Locale-prefixed path of the institutional page (`/pt/sobre`). */
+export function aboutPath(locale: string): string {
+  return `/${locale}/${ABOUT_SEGMENT}`;
+}
+
 /** Route segment of the public contact page. */
 export const CONTACT_SEGMENT = "contato";
 
@@ -230,6 +238,10 @@ function resolveHref(href: string, locale: string): string {
     case "#orcamento":
     case "/orcamento":
       return quotePath(locale);
+    // Página institucional (spec 003). Só o caminho literal: `#sobre` é a
+    // âncora da seção "Quem é a ROCO" na própria home.
+    case "/sobre":
+      return aboutPath(locale);
     default:
       return href;
   }

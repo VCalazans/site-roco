@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const incrMock = vi.fn();
+const incrbyMock = vi.fn();
 const expireMock = vi.fn();
 const execMock = vi.fn();
 const ttlMock = vi.fn();
@@ -12,6 +13,10 @@ function buildMultiChain() {
   const chain = {
     incr: (...args: unknown[]) => {
       incrMock(...args);
+      return chain;
+    },
+    incrby: (...args: unknown[]) => {
+      incrbyMock(...args);
       return chain;
     },
     expire: (...args: unknown[]) => {
@@ -140,6 +145,16 @@ describe("checkRateLimit", () => {
       await checkRateLimit("login:email:foo@roco.com.br", { windowSeconds: 300, max: 5 });
 
       expect(incrMock).toHaveBeenCalledWith("ratelimit:login:email:foo@roco.com.br");
+    });
+
+    it("cobra `cost` de uma vez com INCRBY (lote de mensagens)", async () => {
+      execMock.mockResolvedValueOnce([[null, 6]]);
+
+      const result = await checkRateLimit("mcp:ip:1.2.3.4", { windowSeconds: 60, max: 5, cost: 6 });
+
+      expect(incrbyMock).toHaveBeenCalledWith("ratelimit:mcp:ip:1.2.3.4", 6);
+      expect(incrMock).not.toHaveBeenCalled();
+      expect(result.allowed).toBe(false);
     });
 
     it("usa EXPIRE com flag NX (só define TTL na primeira chamada da janela)", async () => {

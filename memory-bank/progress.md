@@ -469,6 +469,21 @@
 - [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12; 1884 em 84 arquivos com a camada de segurança (2026-10-12)
 
 ## 🔄 Em Andamento
+- [ ] **Spec 003 — deploy** (Alto, junto com a camada de segurança; depende da `main` e do aval): em produção conferir
+      "AI Crawl Control"/"Block AI bots" na Cloudflare (podem bloquear sem aparecer no robots.txt), gerar `INDEXNOW_KEY` e
+      registrar o origin trial do WebMCP para `roco.com.br` (`WEBMCP_ORIGIN_TRIAL_TOKEN`).
+- [ ] **Spec 003 — indexação** (Médio): Search Console e Bing Webmaster (sitemap, pedido de indexação de home, produtos e
+      categorias); Rich Results Test e validator.schema.org na home, listagem e 3 produtos.
+- [ ] **Spec 003 — conector MCP** (Médio): conectar `/mcp` no Claude como conector personalizado e testar 3 perguntas reais.
+      `initialize`, `tools/list` e `tools/call` (`buscar_produtos`) já testados por curl e MCP Inspector em build local.
+- [ ] **Spec 003 — WebMCP** (Baixo): não testado no navegador (API inativa no Chrome local). Conferir as seis ferramentas com o
+      trial e zero erro no console quando a API não existe.
+- [ ] **Spec 003 — Cloudflare** (Baixo): avaliar `/mcp` na regra de rate limiting (hoje só o limite do Redis).
+- [ ] **Spec 003 — conteúdo** (Médio, depende da ROCO): CNPJ e data de fundação (D2, fora do site até confirmar); FAQ real
+      (D4; `FAQPage` só com respostas aprovadas); descrições de produto faltando em pt/en; nomes de categoria do ERP em caixa
+      alta (ex.: HIDRO_LATÃO) que aparecem em llms e `/sobre`; textos de categoria (fase 6, se D7 mudar).
+- [ ] **Spec 003 — medição** (Baixo, fase 7): origem "assistente de IA" nos leads (referrer ou `utm_source=chatgpt.com` no
+      `roco_utm`, como valor de `traffic_source`, sem dado pessoal).
 - [x] **Página `/contato` e fluxo de recebimento — CONCLUÍDA 2026-08-24 parte 3**: site não tinha forma
       real de receber pedidos. Entregue rota + form + integrações RD Station + Resend + rate limit +
       segurança. 139 testes, 0 regressão. Pendências do stakeholder: provisionar RD Station API Key
@@ -670,6 +685,28 @@ catálogo vivo via ERP → cotação como dado estruturado.
   storage é MinIO; "download" aparece cru na matriz de perfis quando falta a chave em `matrix.actionsLabels`
   (`roles-matrix-tab.tsx`).
 
+## ✅ Spec 003 — Site pronto para IA (2026-10-13, na `main`, não implantada)
+- [x] `<html lang>` pela URL: header `x-roco-locale` no `src/proxy.ts` (`ROOT_ROUTES` = api, mcp; matcher exclui `mcp`).
+- [x] canonical + hreflang (`pt-BR`, `en`, `x-default`) em todas as páginas públicas (`buildAlternates`).
+- [x] Listagem: uma categoria indexável; busca e combinações `noindex, follow` (`listing-seo.ts`); `/orcamento` noindex.
+- [x] `robots.ts`: robôs de IA liberados (D1); `Disallow` de `/api/`, portal, admin e orçamento.
+- [x] Sitemap dinâmico com produtos publicados e categorias, `lastmod` real e alternates (1.518 URLs no banco local).
+- [x] OG padrão 1200×630 (`public/images/og/roco-og.jpg`) e OG por produto com a capa.
+- [x] JSON-LD: Organization (todo o site); WebSite + SearchAction e ItemList (home); Product sem `offers` + BreadcrumbList;
+      ItemList (listagem); ContactPage; AboutPage. `serializeJsonLd` escapa `<`.
+- [x] `/{locale}/sobre` (link no rodapé) com os fatos de `getSiteFacts`.
+- [x] `/llms.txt` e `/llms-full.txt` em pt (cache 1 h).
+- [x] MCP público `/mcp` (cinco ferramentas) + `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json`.
+- [x] WebMCP (`WebMcpTools` no layout `(site)`; seis ferramentas; origin trial por env).
+- [x] Origens de lead `sobre` e `assistente-ia`.
+- [x] IndexNow (`/indexnow.txt`; envio em `after()` em `products.update` e `setPublished`; desligado sem `INDEXNOW_KEY`).
+- [x] `checkRateLimit` com opção `cost`; `public-products.ts` com `getPublicProductBySku`, `getPublicProductIndex` e `ean`.
+- [x] Bugs achados pelos testes e corrigidos: `toInternationalPhone` tratava DDD 55 (RS) como DDI; regex de CEP sem limite de
+      palavra.
+- [x] Verificação: tsc ok; lint 0 erros; 2067 testes em 92 arquivos; `next build` verde; smoke no build de produção local.
+- [x] Revisão do `security`: 0 crítico, 0 alto; 3 médios corrigidos no mesmo dia (limite do `/mcp` por mensagem e global,
+      lote ≤ 10; cache só por slug/SKU do índice; slug com `encodeURIComponent` nas URLs de llms e MCP).
+
 ## ✅ Resolvido em 2026-10-12
 - **Worker do ERP nunca subia na imagem standalone** (`9fae93d`): `instrumentation.ts` estava na RAIZ do repo (o `app/` mora
   em `src/app`). Movido para `src/instrumentation.ts`. Produção e homologação mostravam `workers: { running: false, reason:
@@ -719,6 +756,12 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
 
 ## 🔐 Riscos de Segurança
+- (Baixo/informativo, spec 003) Nome e descrição de produto vindos do ERP chegam ao MCP e ao `llms.txt` como texto não
+  confiável. Risco de instrução injetada num agente só com dado de operador. As ferramentas não escrevem nada.
+- (Baixo, spec 003) `llms-full.txt` sem paginação (~800 linhas hoje); cresce com o catálogo.
+- (Baixo, spec 003) `/mcp` é fail-open sem Redis (leitura pública) e ainda fora da regra de rate limiting da Cloudflare.
+- (Informativo, spec 003) MCP e WebMCP expõem só dado publicado (`published && active`); nenhum e-mail, telefone, lead,
+  representante ou usuário. CNPJ não é publicado até a ROCO confirmar (D2).
 - **Camada de segurança (2026-10-12) — itens ABERTOS**:
   - (Médio, operacional) **Turnstile desligado por omissão de env**: sem `TURNSTILE_SECRET_KEY` em produção, a verificação é
     pulada; formulários e login seguem sem captcha, além do aviso no log (uma vez por processo). O `/api/health` autenticado
@@ -850,7 +893,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`product_images(product_id)` sem índice** (2026-09-30, Baixo/operacional): irrelevante com ~620 linhas; criar se o acervo crescer muito.
 
 ## 📊 Métricas de Qualidade
-- **Testes**: Vitest 4, 1884 testes em 84 arquivos em 2026-10-12 (camada de segurança: +123 testes e +7 arquivos; antes 1761 em
+- **Testes**: Vitest 4, 2067 testes em 92 arquivos em 2026-10-13 (spec 003: +183 testes e +8 arquivos sobre 1884/84 de 2026-10-12); 1884 em 84 em 2026-10-12 (camada de segurança: +123 testes e +7 arquivos; antes 1761 em
   77); 1744 em 75 na 5ª rodada (100% cobertura lógica pura); scripts test/test:watch/test:coverage.
   (+84 testes em 2026-09-30, 5ª rodada — 12 arquivos novos: `password-policy`, `account-tokens`, `app-url`, `smtp-config`, `account-emails`, `google`, `mailer`, `trpc-errors`, `pending-access`, `pending-access-render`, `territory`, `territory-picker-render`; casos novos em `representative-register`, `permissions` e `portal-chrome-render`.)
   (+50 testes em 2026-09-30, 4ª rodada — 7 arquivos novos: `pagination` 7, `product-images` 8, `zip-entry-names` 17, `file-size` 3, `product-images-zip` 7, `pull-stream` 5, `download-slots` 4.)

@@ -1,5 +1,5 @@
 # CLAUDE.md — ROCO (site institucional)
-> Versão: 0.1.0 | Criado: 2026-07-13 | Atualizado: 2026-10-12 | Fase: site completo + Portal ROCO
+> Versão: 0.1.0 | Criado: 2026-07-13 | Atualizado: 2026-10-13 | Fase: site completo + Portal ROCO
 
 ## 🎯 Contexto do Projeto
 Site institucional da **ROCO**, fabricante industrial brasileira, e **Portal ROCO** (painel da
@@ -93,6 +93,7 @@ Detalhes: @memory-bank/systemPatterns.md
 - Next 16: `params` de rotas é **assíncrono** (`await params`).
 - `next/font` injeta variáveis CSS (`--font-inter`, `--font-poppins`) usadas pelo `@theme`.
 - `src/proxy.ts` precisa ficar em `src/` (ao lado de `app/`): na raiz do repo ele compila mas NUNCA roda.
+- Rota nova na RAIZ (fora de `[locale]`, ex.: `/mcp`): entrar em `ROOT_ROUTES` e no matcher do `src/proxy.ts`; senão ela é redirecionada para `/{locale}/...`.
 - `src/instrumentation.ts` também precisa ficar em `src/`: na raiz, o worker do ERP nunca sobe no standalone e nada avisa (`/api/health` com token mostra `workers.running: false`, `not-initialized`).
 - Permissão nova de módulo: seed E migration idempotente (ex.: `drizzle/0011_*`) — o seed não roda no boot.
 - O header do site vive no layout `(site)` (não remonta entre páginas); páginas não renderizam `SiteHeader`.

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/core/config/metadata";
 import { notFound } from "next/navigation";
 import { CartPageView } from "@/modules/cart/components/cart-page-view";
-import { quotePath } from "@/core/config/site";
+import { QUOTE_SEGMENT } from "@/core/config/site";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -33,7 +34,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: cart.seo.title,
     description: cart.seo.description,
-    alternates: { canonical: quotePath(locale) },
+    alternates: buildAlternates(locale, `/${QUOTE_SEGMENT}`),
+    // Lista do próprio visitante (localStorage): nada a indexar.
+    robots: { index: false, follow: true },
   };
 }
 

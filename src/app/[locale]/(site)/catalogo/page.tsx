@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { buildAlternates } from "@/core/config/metadata";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { CatalogForm } from "@/modules/catalog/components/catalog-form";
 import { resolveCatalogOrigin } from "@/modules/catalog/lib/catalog-form";
 import { getCatalogDictionary } from "@/modules/catalog/lib/types";
-import { catalogPath, siteLinks } from "@/core/config/site";
+import { CATALOG_SEGMENT, catalogPath, siteLinks } from "@/core/config/site";
 import { getCatalogPdfUrl } from "@/server/lib/site-settings";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
@@ -73,7 +74,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Cada CTA chega com um `?origem=` diferente, e cada querystring é uma
     // URL distinta para o crawler. O canônico aponta sempre para a página
     // limpa (a mesma que está no sitemap) — mesma regra de `/contato`.
-    alternates: { canonical: catalogPath(locale) },
+    alternates: buildAlternates(locale, `/${CATALOG_SEGMENT}`),
   };
 }
 

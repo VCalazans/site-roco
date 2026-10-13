@@ -51,6 +51,14 @@ export const LEAD_ORIGINS = [
    * troca de vocabulário pedida pelo stakeholder.
    */
   "orcamento",
+  /** Página institucional `/{locale}/sobre` (spec 003). */
+  "sobre",
+  /**
+   * Visita trazida por um assistente de IA: links devolvidos pelo servidor MCP
+   * (`/mcp`) e pelas ferramentas WebMCP do navegador levam `?origem=assistente-ia`
+   * — é assim que o RD Station separa o lead que veio de uma IA (spec 003).
+   */
+  "assistente-ia",
 ] as const;
 
 export type LeadOrigin = (typeof LEAD_ORIGINS)[number];

@@ -290,5 +290,26 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
 - `src/proxy.ts` e `src/instrumentation.ts` ficam em `src/`, ao lado de `app/`. Na raiz, o build compila, mas a imagem standalone
   não os leva (ver CLAUDE.md › Armadilhas).
 
+## Site pronto para IA (Spec 003 — 2026-10-13)
+- **Fonte única**: `getSiteFacts(locale)` (`src/modules/ai/server/site-facts.ts`) alimenta `/sobre`, o JSON-LD `Organization`,
+  `/llms.txt` e a ferramenta `sobre_roco`. Produtos vêm sempre de `src/server/lib/public-products.ts` (publicados e ativos).
+- **JSON-LD**: funções puras em `src/modules/ai/lib/json-ld.ts`; `serializeJsonLd` escapa `<` (valor com `</script>` não fecha a
+  tag); renderizado por `<JsonLd>` (`src/shared/components/seo/json-ld.tsx`).
+- **Locale pela URL**: `src/proxy.ts` repassa o locale num header de requisição (`x-roco-locale`); o root layout lê esse header,
+  e o cookie `NEXT_LOCALE` fica só como fallback. `buildAlternates(locale, path)` (`src/core/config/metadata.ts`) gera
+  canonical e hreflang.
+- **Rota pública na raiz** (fora de `[locale]`, ex.: `/mcp`): entra em `ROOT_ROUTES` e no matcher do proxy, senão é
+  redirecionada para `/{locale}/...`. Caminhos com ponto (`llms.txt`) já são excluídos pelo matcher.
+- **Regra de indexação da listagem**: `src/modules/ai/lib/listing-seo.ts` decide canonical e `robots`. Uma categoria é
+  indexável; busca livre e combinações são `noindex, follow`.
+- **MCP stateless em camadas**: `mcp-protocol.ts` e `mcp-tools.ts` são puros (sem I/O, testáveis); `mcp-server.ts` recebe a fonte
+  por injeção (`catalog-source.ts`); `src/app/mcp/route.ts` só faz HTTP (corpo ≤ 64 KiB, limites, CORS sem credenciais).
+  Ferramentas somente leitura com `additionalProperties: false`; o JSON Schema sai do zod. `obter_produto` aceita só slug ou
+  SKU presentes no índice publicado.
+- **WebMCP progressivo**: `WebMcpTools` (client, montado no layout `(site)`) usa `document.modelContext ?? navigator.modelContext`
+  e não faz nada sem a API. Ferramentas reaproveitam `cart-store` e as rotas existentes; nenhuma envia formulário.
+- **Cache**: produtos pelo `unstable_cache` com tag `products`, como nas páginas; `llms*.txt` com `Cache-Control` de 1 h;
+  IndexNow em `after()`, fora do caminho da mutação.
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

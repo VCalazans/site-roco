@@ -3,6 +3,11 @@ import { notFound } from "next/navigation";
 import { ProductDetailView } from "@/modules/products/components/product-detail-view";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { buildAlternates, DEFAULT_OG_IMAGE } from "@/core/config/metadata";
+import { PRODUCTS_SEGMENT, productsPath } from "@/core/config/site";
+import { buildBreadcrumbList, buildProduct } from "@/modules/ai/lib/json-ld";
+import { JsonLd } from "@/shared/components/seo/json-ld";
+import { describePackaging } from "@/shared/lib/packaging";
 import {
   RELATED_PRODUCTS_LIMIT,
   getAdjacentProducts,
@@ -40,9 +45,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const name = locale === "en" && product.nameEn ? product.nameEn : product.namePt;
   const description = (locale === "en" ? product.descriptionEn : product.descriptionPt) ?? dictionary.products.seo.description;
 
+  const title = `${name} — ${dictionary.navigation.brand}`;
+  const cover = product.images[0];
+  const ogImage = cover
+    ? { url: cover.url, alt: (locale === "en" ? cover.altEn : cover.altPt) ?? name }
+    : { ...DEFAULT_OG_IMAGE, alt: name };
+
   return {
-    title: `${name} — ${dictionary.navigation.brand}`,
+    title,
     description,
+    alternates: buildAlternates(locale, `/${PRODUCTS_SEGMENT}/${product.slug}`),
+    openGraph: { type: "website", title, description, images: [ogImage] },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage.url] },
   };
 }
 
@@ -75,7 +89,40 @@ export default async function ProductDetailPage({ params }: PageProps) {
   ]);
   const related = relatedResult.items.filter((item) => item.slug !== product.slug).slice(0, RELATED_PRODUCTS_LIMIT);
 
+  const name = (locale === "en" && product.nameEn) || product.namePt;
+  const productPath = `${productsPath(locale)}/${product.slug}`;
+  const categoryNames = product.categories.map((category) => (locale === "en" && category.nameEn) || category.namePt);
+  const primaryCategory = product.categories[0];
+
+  const structuredData = [
+    buildProduct({
+      name,
+      description: (locale === "en" ? product.descriptionEn : product.descriptionPt) ?? product.descriptionPt,
+      sku: product.sku,
+      ean: product.ean,
+      path: productPath,
+      images: product.images.map((image) => image.url),
+      categories: categoryNames,
+      packagings: product.packagings.map((packaging) => {
+        const described = describePackaging(packaging, products.packagingInfo);
+        return { label: `${described.title} — ${described.detail}`, ean: packaging.barcodeEan13 };
+      }),
+      bestSellerLabel: product.bestSeller ? products.detail.bestSeller : undefined,
+      locale,
+    }),
+    buildBreadcrumbList([
+      { name: products.detail.breadcrumbHome, path: `/${locale}` },
+      { name: products.detail.breadcrumbProducts, path: productsPath(locale) },
+      ...(primaryCategory
+        ? [{ name: categoryNames[0], path: `${productsPath(locale)}?category=${encodeURIComponent(primaryCategory.slug)}` }]
+        : []),
+      { name, path: productPath },
+    ]),
+  ];
+
   return (
+    <>
+    <JsonLd data={structuredData} />
     <ProductDetailView
       product={product}
       related={related}
@@ -85,5 +132,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
       cart={cart}
       relatedCarouselLabels={home.featured.carousel}
     />
+    </>
   );
 }

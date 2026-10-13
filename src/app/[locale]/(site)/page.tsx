@@ -9,7 +9,10 @@ import { HomeCategories } from "@/modules/home/components/home-categories";
 import { HomeFeatured } from "@/modules/home/components/home-featured";
 import { HomePortalCta } from "@/modules/home/components/home-portal-cta";
 import type { HomeSectionId } from "@/modules/home/lib/home-content";
-import { resolveCtaHref } from "@/core/config/site";
+import { resolveCtaHref, productsPath } from "@/core/config/site";
+import { buildAlternates, LOCALE_LANGUAGE_TAGS } from "@/core/config/metadata";
+import { buildItemList, buildWebSite } from "@/modules/ai/lib/json-ld";
+import { JsonLd } from "@/shared/components/seo/json-ld";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getHomeContent } from "@/server/lib/home-content";
@@ -38,6 +41,7 @@ export async function generateMetadata({
   return {
     title: dictionary.seo.title,
     description: dictionary.seo.description,
+    alternates: buildAlternates(locale),
   };
 }
 
@@ -128,6 +132,24 @@ export default async function HomePage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={[
+          buildWebSite({
+            name: dictionary.navigation.brand,
+            locale,
+            searchPath: productsPath(locale),
+            languages: Object.values(LOCALE_LANGUAGE_TAGS),
+          }),
+          buildItemList({
+            name: home.featured.headline,
+            items: featuredProducts.map((product) => ({
+              name: (locale === "en" && product.nameEn) || product.namePt,
+              path: `${productsPath(locale)}/${product.slug}`,
+              image: product.images[0]?.url,
+            })),
+          }),
+        ]}
+      />
       <HomeHero
         brand={home.brand}
         fallback={{
