@@ -36,6 +36,8 @@ export const LEAD_ORIGINS = [
   "home-categorias",
   "home-destaques",
   "home-portal",
+  /** Chamada "ROCO na sua IA" da home (spec 003). */
+  "home-ia",
   "produtos-listagem",
   "produto-detalhe",
   "catalogo",

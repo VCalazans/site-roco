@@ -191,6 +191,31 @@
         "label": "Pre-register now",
         "href": "/representantes"
       }
+    },
+    "aiAssistant": {
+      "eyebrow": "New",
+      "headline": "Ask about ROCO products right in Claude or ChatGPT",
+      "description": "Connect ROCO's official catalog to your AI assistant and ask as if you were chatting: which part fits, which packaging options exist, which items sell best. Then send your quote request here on the website.",
+      "steps": [
+        {
+          "title": "1. Connect",
+          "text": "In Claude it takes one click. In ChatGPT, follow the steps."
+        },
+        {
+          "title": "2. Ask",
+          "text": "The AI checks the official catalog: products, codes, packaging and photos."
+        },
+        {
+          "title": "3. Request a quote",
+          "text": "Build your list in My quote and send it to the sales team."
+        }
+      ],
+      "connectCta": "Connect to Claude",
+      "newTab": "(opens in a new tab)",
+      "cta": {
+        "label": "See how it works",
+        "href": "/ia"
+      }
     }
   },
   "catalog": {
@@ -620,6 +645,10 @@
         "portalCta": {
           "name": "ROCO Portal call to action",
           "description": "Invitation for sales reps to join the ROCO Portal."
+        },
+        "aiAssistant": {
+          "name": "\"ROCO in your AI\" call-out",
+          "description": "Invites customers to connect ROCO's catalog to Claude or ChatGPT and ask their questions there."
         }
       },
       "editor": {
@@ -816,6 +845,7 @@
         "home-categorias": "Home — categories",
         "home-destaques": "Home — featured products",
         "home-portal": "Home — ROCO Portal call to action",
+        "home-ia": "Home — ROCO in your AI call-out",
         "produtos-listagem": "Product listing",
         "produto-detalhe": "Product detail",
         "catalogo": "Catalog page",
@@ -2281,9 +2311,9 @@
     "breadcrumb": "Ask AI",
     "eyebrow": "AI assistant",
     "headline": "Ask your AI about ROCO products",
-    "intro": "Pick the assistant you already use. It opens with the question ready and checks ROCO's official catalog information. You can edit the question before sending it.",
-    "askTitle": "Ask now",
-    "askHint": "Opens in a new tab with the question already written.",
+    "intro": "Connect ROCO's official catalog to Claude or ChatGPT and ask about the products as if you were chatting. In Claude, it takes one click.",
+    "askTitle": "Prefer not to connect? Ask directly",
+    "askHint": "The AI opens with the question ready and checks ROCO's official website. Opens in a new tab.",
     "newTab": "(opens in a new tab)",
     "assistants": {
       "chatgpt": "Ask ChatGPT",
@@ -2292,22 +2322,21 @@
     },
     "prompts": {
       "general": "I have questions about the products of ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (official website: {siteUrl}). Use the official information published at {llmsUrl}. My question is: ",
-      "product": "I have questions about the ROCO product \"{name}\" (code {sku}): {productUrl}. Use the official information on ROCO's website. My question is: ",
-      "example": "About ROCO, a Brazilian manufacturer of plumbing and hydraulic solutions (official website: {siteUrl}; official catalog information: {llmsUrl}): {question}"
+      "product": "I have questions about the ROCO product \"{name}\" (code {sku}): {productUrl}. Use the official information on ROCO's website. My question is: "
     },
-    "examplesTitle": "Start with one of these questions",
+    "examplesTitle": "2. Once connected, ask",
     "examples": [
-      "Which ROCO gas hose fits my stove?",
-      "Which repair kits does ROCO have for close-coupled cisterns?",
-      "What is the difference between ROCO's gas hose kits?",
-      "Build a product list for a bathroom renovation and give me the links to request a quote."
+      "Use the ROCO connector: which gas hoses do you make, and in which sizes?",
+      "Use the ROCO connector and show the product sheet for code 3004, with its packaging and EAN code.",
+      "Use the ROCO connector: which items are best sellers in the gas line?",
+      "Use the ROCO connector and build a product list for a bathroom renovation, with the quote link for each one."
     ],
-    "quoteTitle": "What about quotes?",
+    "quoteTitle": "3. Request a quote",
     "quoteBody": "The AI can suggest products and build a list with the links. You send the request yourself: open each product, tap \"Add to quote\" and send it from My quote. That way your details go straight to ROCO.",
     "quoteCta": "Go to My quote",
     "contactCta": "Talk to the sales team",
-    "connectTitle": "Use ChatGPT or Claude every day? Connect ROCO's catalog",
-    "connectIntro": "With the catalog connected, the assistant checks ROCO's official products whenever you ask, without pasting links or explaining who ROCO is. It is free and needs no ROCO account.",
+    "connectTitle": "1. Connect ROCO's catalog to your AI",
+    "connectIntro": "With the catalog connected, Claude or ChatGPT checks ROCO's official products whenever you ask, without pasting links or explaining who ROCO is. It is free and needs no ROCO account.",
     "urlLabel": "ROCO connector address",
     "copy": "Copy address",
     "copied": "Address copied",
@@ -2333,7 +2362,7 @@
     "privacyNote": "ChatGPT, Claude and Perplexity are services from other companies, with their own policies. Do not share personal or confidential information in the conversations.",
     "privacyLink": "ROCO privacy policy",
     "productCta": "Ask AI about this product",
-    "examplesHint": "Each question already includes ROCO's context."
+    "examplesHint": "Each question opens the AI already asking it to use the ROCO connector."
   },
   "legal": {
     "common": {

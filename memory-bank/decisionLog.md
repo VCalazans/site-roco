@@ -2313,3 +2313,13 @@ a referência à ROCO — apontado pelo stakeholder).
 (revisão manual). No Claude, o caminho com descoberta dentro do produto é o diretório de conectores da Anthropic
 (claude.ai/directory/manage, revisão manual). Os dois dependem de conta e aprovação — pendência para a Archicode/ROCO.
 
+## 2026-10-13 — Chamada "ROCO na sua IA" na home e `/ia` com a conexão primeiro
+**Decisão**: seção nova da home `aiAssistant` (chave `home.ai-assistant` em `site_settings`), editável no painel como as
+demais (selo, título, texto e botão "Ver como funciona" → `/ia`); os três passos e o botão **Conectar ao Claude** (link oficial
+de instalação) são fixos, do dicionário. Fica logo após a fachada. `resolveHomeLayout` passou a inserir uma seção que o layout
+salvo não conhece LOGO APÓS a sua antecessora na ordem padrão (antes ia para o fim) — assim a chamada aparece no lugar certo
+mesmo onde o layout já foi salvo no painel. Origem de lead `home-ia`.
+A página `/ia` foi reordenada a pedido do stakeholder: (1) conectar (Claude em um clique; ChatGPT por passo a passo),
+(2) perguntas de exemplo que pedem o conector ("Use o conector da ROCO: …"), só para Claude e ChatGPT, (3) orçamento e,
+por último, "Prefere não conectar? Pergunte direto" (ChatGPT, Claude, Perplexity com o contexto da ROCO).
+

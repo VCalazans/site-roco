@@ -27,6 +27,7 @@ import {
   type HomeFacadeDocument,
   type HomeFeaturedDocument,
   type HomePortalCtaDocument,
+  type HomeAiAssistantDocument,
   type HomeSectionId,
   type LocalizedText,
 } from "@/modules/home/lib/home-content";
@@ -44,6 +45,7 @@ export type SectionFormMap = {
   categories: HomeCategoriesDocument;
   featured: HomeFeaturedDocument;
   portalCta: HomePortalCtaDocument;
+  aiAssistant: HomeAiAssistantDocument;
 };
 
 export type HighlightForm = NonNullable<HomeAboutDocument["highlights"]>[number];
@@ -96,6 +98,13 @@ const EMPTY_FORMS: { [K in EditableSection]: () => SectionFormMap[K] } = {
     limit: HOME_FEATURED_LIMIT.default,
   }),
   portalCta: () => ({
+    headline: emptyText(),
+    description: emptyText(),
+    ctaLabel: emptyText(),
+    ctaHref: "",
+  }),
+  aiAssistant: () => ({
+    eyebrow: emptyText(),
     headline: emptyText(),
     description: emptyText(),
     ctaLabel: emptyText(),
@@ -168,6 +177,13 @@ export type HomeEditorLocaleDefaults = {
     ctaLabel: string;
     ctaHref: string;
   };
+  aiAssistant: {
+    eyebrow: string;
+    headline: string;
+    description: string;
+    ctaLabel: string;
+    ctaHref: string;
+  };
 };
 
 export type HomeEditorDefaults = Record<Locale, HomeEditorLocaleDefaults>;
@@ -220,6 +236,13 @@ export function pickLocaleDefaults(home: HomeDictionary): HomeEditorLocaleDefaul
       description: home.portalCta.description,
       ctaLabel: home.portalCta.cta.label,
       ctaHref: home.portalCta.cta.href,
+    },
+    aiAssistant: {
+      eyebrow: home.aiAssistant.eyebrow,
+      headline: home.aiAssistant.headline,
+      description: home.aiAssistant.description,
+      ctaLabel: home.aiAssistant.cta.label,
+      ctaHref: home.aiAssistant.cta.href,
     },
   };
 }

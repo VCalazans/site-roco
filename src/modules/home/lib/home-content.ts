@@ -22,7 +22,12 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import { isSafeHref, MAX_HREF_LENGTH } from "@/shared/lib/safe-href";
 
 /** Seções reordenáveis/ocultáveis da home (o hero é fixo no topo). */
-export const HOME_SECTION_IDS = ["facade", "about", "categories", "featured", "portalCta"] as const;
+/**
+ * `aiAssistant` (spec 003, 2026-10-13): chamada "ROCO na sua IA" — logo após a
+ * fachada no padrão. Em layout já salvo, uma seção nova entra depois da sua
+ * antecessora na ordem padrão (ver `resolveHomeLayout`).
+ */
+export const HOME_SECTION_IDS = ["facade", "aiAssistant", "about", "categories", "featured", "portalCta"] as const;
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 
 /** Ordem padrão — a fachada logo após o hero, como pedido no briefing. */
@@ -56,6 +61,7 @@ export const HOME_CONTENT_KEYS = {
   categories: "home.categories",
   featured: "home.featured",
   portalCta: "home.portal-cta",
+  aiAssistant: "home.ai-assistant",
 } as const;
 
 export type HomeContentDocument = keyof typeof HOME_CONTENT_KEYS;
@@ -183,6 +189,13 @@ export const homePortalCtaSchema = z.object({
   ...ctaFields,
 });
 
+export const homeAiAssistantSchema = z.object({
+  eyebrow: localizedText(80),
+  headline: localizedText(160),
+  description: localizedText(400),
+  ...ctaFields,
+});
+
 export const HOME_CONTENT_SCHEMAS = {
   layout: homeLayoutSchema,
   facade: homeFacadeSchema,
@@ -190,6 +203,7 @@ export const HOME_CONTENT_SCHEMAS = {
   categories: homeCategoriesSchema,
   featured: homeFeaturedSchema,
   portalCta: homePortalCtaSchema,
+  aiAssistant: homeAiAssistantSchema,
 } as const;
 
 export type HomeLayoutDocument = z.infer<typeof homeLayoutSchema>;
@@ -199,6 +213,7 @@ export type HomeCategoriesDocument = z.infer<typeof homeCategoriesSchema>;
 export type HomeCategoryItemDocument = z.infer<typeof homeCategoryItemSchema>;
 export type HomeFeaturedDocument = z.infer<typeof homeFeaturedSchema>;
 export type HomePortalCtaDocument = z.infer<typeof homePortalCtaSchema>;
+export type HomeAiAssistantDocument = z.infer<typeof homeAiAssistantSchema>;
 
 export type HomeContentDocuments = {
   layout: HomeLayoutDocument | null;
@@ -207,6 +222,7 @@ export type HomeContentDocuments = {
   categories: HomeCategoriesDocument | null;
   featured: HomeFeaturedDocument | null;
   portalCta: HomePortalCtaDocument | null;
+  aiAssistant: HomeAiAssistantDocument | null;
 };
 
 export const EMPTY_HOME_DOCUMENTS: HomeContentDocuments = {
@@ -216,6 +232,7 @@ export const EMPTY_HOME_DOCUMENTS: HomeContentDocuments = {
   categories: null,
   featured: null,
   portalCta: null,
+  aiAssistant: null,
 };
 
 /** Documento → chave; e o inverso, para mapear linhas do banco. */
@@ -316,6 +333,12 @@ export type ResolvedHomeContent = {
     description: string;
     cta: ResolvedCta;
   };
+  aiAssistant: {
+    eyebrow: string;
+    headline: string;
+    description: string;
+    cta: ResolvedCta;
+  };
 };
 
 /** Layout salvo → lista completa (toda seção exatamente uma vez, desconhecidas descartadas). */
@@ -329,9 +352,15 @@ export function resolveHomeLayout(
     seen.add(section.id);
     result.push({ id: section.id, enabled: section.enabled });
   }
-  for (const id of DEFAULT_HOME_SECTION_ORDER) {
-    if (!seen.has(id)) result.push({ id, enabled: true });
-  }
+  // Seção que o layout salvo não conhece (criada depois do último salvamento)
+  // entra logo após a sua antecessora na ordem padrão — não no fim da página.
+  DEFAULT_HOME_SECTION_ORDER.forEach((id, index) => {
+    if (seen.has(id)) return;
+    const previous = DEFAULT_HOME_SECTION_ORDER[index - 1];
+    const at = previous ? result.findIndex((section) => section.id === previous) : -1;
+    result.splice(at + 1, 0, { id, enabled: true });
+    seen.add(id);
+  });
   return result;
 }
 
@@ -387,7 +416,7 @@ export function resolveHomeContent({
   defaults,
   imageUrl,
 }: ResolveHomeContentInput): ResolvedHomeContent {
-  const { facade, about, categories, featured, portalCta } = documents;
+  const { facade, about, categories, featured, portalCta, aiAssistant } = documents;
 
   const sections = resolveHomeLayout(documents.layout)
     .filter((section) => section.enabled)
@@ -457,6 +486,12 @@ export function resolveHomeContent({
       headline: pickLocalized(portalCta?.headline, locale, defaults.portalCta.headline),
       description: pickLocalized(portalCta?.description, locale, defaults.portalCta.description),
       cta: pickCta(portalCta, locale, defaults.portalCta.cta),
+    },
+    aiAssistant: {
+      eyebrow: pickLocalized(aiAssistant?.eyebrow, locale, defaults.aiAssistant.eyebrow),
+      headline: pickLocalized(aiAssistant?.headline, locale, defaults.aiAssistant.headline),
+      description: pickLocalized(aiAssistant?.description, locale, defaults.aiAssistant.description),
+      cta: pickCta(aiAssistant, locale, defaults.aiAssistant.cta),
     },
   };
 }

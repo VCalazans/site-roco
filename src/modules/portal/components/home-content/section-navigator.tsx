@@ -6,6 +6,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArticleIcon from "@mui/icons-material/Article";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CategoryIcon from "@mui/icons-material/Category";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import FactoryIcon from "@mui/icons-material/Factory";
@@ -33,6 +34,7 @@ import type { LayoutItem } from "./home-editor-model";
 
 const SECTION_ICONS: Record<HomeSectionId, ComponentType<{ fontSize?: "small" }>> = {
   facade: FactoryIcon,
+  aiAssistant: AutoAwesomeIcon,
   about: ArticleIcon,
   categories: CategoryIcon,
   featured: StarIcon,

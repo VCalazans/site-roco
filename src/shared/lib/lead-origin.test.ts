@@ -26,6 +26,7 @@ describe("lead-origin", () => {
         "home-categorias",
         "home-destaques",
         "home-portal",
+        "home-ia",
         "produtos-listagem",
         "produto-detalhe",
         "catalogo",

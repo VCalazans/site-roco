@@ -46,6 +46,7 @@ const updateInputSchema = z.discriminatedUnion("document", [
   z.object({ document: z.literal("categories"), data: HOME_CONTENT_SCHEMAS.categories }),
   z.object({ document: z.literal("featured"), data: HOME_CONTENT_SCHEMAS.featured }),
   z.object({ document: z.literal("portalCta"), data: HOME_CONTENT_SCHEMAS.portalCta }),
+  z.object({ document: z.literal("aiAssistant"), data: HOME_CONTENT_SCHEMAS.aiAssistant }),
 ]);
 
 function imageUrlsFor(keys: string[]): Record<string, string> {
@@ -141,6 +142,7 @@ export const homeContentRouter = router({
       categories: null,
       featured: null,
       portalCta: null,
+      aiAssistant: null,
     };
     const updatedAt: Partial<Record<HomeContentDocument, Date>> = {};
     for (const row of rows) {

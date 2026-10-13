@@ -53,6 +53,7 @@ export type PortalHomeContentDictionary = {
     categories: SectionCopy;
     featured: SectionCopy;
     portalCta: SectionCopy;
+    aiAssistant: SectionCopy;
   };
   editor: {
     save: string;

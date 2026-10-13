@@ -161,9 +161,40 @@ describe("resolveHomeLayout", () => {
         { id: "facade", enabled: false },
       ],
     });
-    expect(layout.map((section) => section.id)).toEqual(["featured", "facade", "about", "categories", "portalCta"]);
+    // Cada seção que falta entra logo após a sua antecessora na ordem padrão.
+    expect(layout.map((section) => section.id)).toEqual([
+      "featured",
+      "portalCta",
+      "facade",
+      "aiAssistant",
+      "about",
+      "categories",
+    ]);
     expect(layout.find((section) => section.id === "facade")?.enabled).toBe(false);
     expect(layout.find((section) => section.id === "about")?.enabled).toBe(true);
+  });
+});
+
+describe("resolveHomeLayout — seção nova em layout já salvo", () => {
+  it("a chamada de IA entra logo após a fachada, não no fim", () => {
+    const layout = resolveHomeLayout({
+      sections: [
+        { id: "facade", enabled: true },
+        { id: "about", enabled: true },
+        { id: "categories", enabled: false },
+        { id: "featured", enabled: true },
+        { id: "portalCta", enabled: true },
+      ],
+    });
+    expect(layout.map((section) => section.id)).toEqual([
+      "facade",
+      "aiAssistant",
+      "about",
+      "categories",
+      "featured",
+      "portalCta",
+    ]);
+    expect(layout.find((section) => section.id === "categories")?.enabled).toBe(false);
   });
 });
 
@@ -218,7 +249,7 @@ describe("resolveHomeContent", () => {
         { id: "portalCta", enabled: false },
       ],
     });
-    expect(resolve({ layout }).sections).toEqual(["facade", "categories", "featured"]);
+    expect(resolve({ layout }).sections).toEqual(["facade", "aiAssistant", "categories", "featured"]);
   });
 
   it("showCta=false remove o CTA da fachada; href vazio usa o do dicionário", () => {

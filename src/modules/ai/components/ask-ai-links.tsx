@@ -1,13 +1,15 @@
 import { ExternalLink } from "lucide-react";
 import { cn } from "@/core/lib/utils";
 import type { Dictionary } from "@/i18n/get-dictionary";
-import { askAiLinks } from "@/modules/ai/lib/ask-ai";
+import { askAiLinks, type AskAiAssistant } from "@/modules/ai/lib/ask-ai";
 
 type AskAiLinksProps = {
   prompt: string;
   copy: Pick<Dictionary["askAi"], "assistants" | "newTab">;
   size?: "md" | "sm";
   className?: string;
+  /** Só estes assistentes (ex.: perguntas que usam o conector: Claude e ChatGPT). */
+  only?: readonly AskAiAssistant[];
 };
 
 /**
@@ -15,10 +17,12 @@ type AskAiLinksProps = {
  * escrita. São links comuns para o serviço de cada um, em nova aba: nada é
  * enviado pelo site.
  */
-export function AskAiLinks({ prompt, copy, size = "md", className }: AskAiLinksProps) {
+export function AskAiLinks({ prompt, copy, size = "md", className, only }: AskAiLinksProps) {
   return (
     <ul className={cn("flex flex-wrap gap-3", className)}>
-      {askAiLinks(prompt).map(({ assistant, url }, index) => (
+      {askAiLinks(prompt)
+        .filter(({ assistant }) => !only || only.includes(assistant))
+        .map(({ assistant, url }, index) => (
         <li key={assistant}>
           <a
             href={url}

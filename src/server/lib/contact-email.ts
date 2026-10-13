@@ -38,6 +38,7 @@ const LEAD_ORIGIN_LABELS: Record<LeadOrigin, string> = {
   "home-categorias": "Home — vitrine de categorias",
   "home-destaques": "Home — produtos em destaque",
   "home-portal": "Home — chamada do Portal ROCO",
+  "home-ia": "Home — chamada ROCO na sua IA",
   "produtos-listagem": "Listagem de produtos",
   "produto-detalhe": "Detalhe de produto",
   catalogo: "Página do catálogo",

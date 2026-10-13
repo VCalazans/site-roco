@@ -42,6 +42,7 @@ import {
   type SectionFormMap,
 } from "./home-editor-model";
 import { PortalCtaEditor } from "./portal-cta-editor";
+import { AiAssistantEditor } from "./ai-assistant-editor";
 import { SectionEditorFrame } from "./section-editor-frame";
 import { SectionNavigator } from "./section-navigator";
 
@@ -390,6 +391,15 @@ function HomeContentEditor({
             form={formFor("portalCta")}
             onChange={(next) => changeForm("portalCta", next)}
             errors={errorsFor("portalCta")}
+          />
+        );
+      case "aiAssistant":
+        return (
+          <AiAssistantEditor
+            {...common}
+            form={formFor("aiAssistant")}
+            onChange={(next) => changeForm("aiAssistant", next)}
+            errors={errorsFor("aiAssistant")}
           />
         );
     }

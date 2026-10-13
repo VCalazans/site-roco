@@ -191,6 +191,31 @@
         "label": "Faça seu pré-cadastro",
         "href": "/representantes"
       }
+    },
+    "aiAssistant": {
+      "eyebrow": "Novidade",
+      "headline": "Tire dúvidas sobre os produtos ROCO direto no Claude ou no ChatGPT",
+      "description": "Conecte o catálogo oficial da ROCO à sua inteligência artificial e pergunte como numa conversa: qual peça serve, quais embalagens existem, quais são os campeões de vendas. Depois, é só enviar o orçamento aqui no site.",
+      "steps": [
+        {
+          "title": "1. Conecte",
+          "text": "No Claude, é um clique. No ChatGPT, siga o passo a passo."
+        },
+        {
+          "title": "2. Pergunte",
+          "text": "A IA consulta o catálogo oficial: produtos, códigos, embalagens e fotos."
+        },
+        {
+          "title": "3. Peça o orçamento",
+          "text": "Monte sua lista em Meu orçamento e envie para o time comercial."
+        }
+      ],
+      "connectCta": "Conectar ao Claude",
+      "newTab": "(abre em nova aba)",
+      "cta": {
+        "label": "Ver como funciona",
+        "href": "/ia"
+      }
     }
   },
   "catalog": {
@@ -620,6 +645,10 @@
         "portalCta": {
           "name": "Chamada do Portal ROCO",
           "description": "Convite para representantes se cadastrarem no Portal ROCO."
+        },
+        "aiAssistant": {
+          "name": "Chamada \"ROCO na sua IA\"",
+          "description": "Convite para o cliente conectar o catálogo da ROCO ao Claude ou ao ChatGPT e tirar dúvidas por lá."
         }
       },
       "editor": {
@@ -816,6 +845,7 @@
         "home-categorias": "Home — categorias",
         "home-destaques": "Home — produtos em destaque",
         "home-portal": "Home — chamada do Portal ROCO",
+        "home-ia": "Home — chamada ROCO na sua IA",
         "produtos-listagem": "Listagem de produtos",
         "produto-detalhe": "Detalhe do produto",
         "catalogo": "Página do catálogo",
@@ -2281,9 +2311,9 @@
     "breadcrumb": "Tire dúvidas com IA",
     "eyebrow": "Assistente de IA",
     "headline": "Tire dúvidas sobre os produtos ROCO na sua IA",
-    "intro": "Escolha o assistente que você já usa. Ele abre com a pergunta pronta e consulta as informações oficiais do catálogo da ROCO. Você pode editar a pergunta antes de enviar.",
-    "askTitle": "Pergunte agora",
-    "askHint": "Abre em uma nova aba, com a pergunta já escrita.",
+    "intro": "Conecte o catálogo oficial da ROCO ao Claude ou ao ChatGPT e tire suas dúvidas sobre os produtos como numa conversa. No Claude, leva um clique.",
+    "askTitle": "Prefere não conectar? Pergunte direto",
+    "askHint": "A IA abre com a pergunta pronta e consulta o site oficial da ROCO. Abre em uma nova aba.",
     "newTab": "(abre em nova aba)",
     "assistants": {
       "chatgpt": "Perguntar ao ChatGPT",
@@ -2292,22 +2322,21 @@
     },
     "prompts": {
       "general": "Quero tirar dúvidas sobre os produtos da ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (site oficial: {siteUrl}). Use as informações oficiais publicadas em {llmsUrl}. Minha dúvida é: ",
-      "product": "Quero tirar dúvidas sobre o produto \"{name}\" (código {sku}) da ROCO: {productUrl}. Use as informações oficiais do site da ROCO. Minha dúvida é: ",
-      "example": "Sobre a ROCO, fabricante brasileira de soluções hidrossanitárias e hidráulicas (site oficial: {siteUrl}; informações oficiais do catálogo: {llmsUrl}): {question}"
+      "product": "Quero tirar dúvidas sobre o produto \"{name}\" (código {sku}) da ROCO: {productUrl}. Use as informações oficiais do site da ROCO. Minha dúvida é: "
     },
-    "examplesTitle": "Comece por uma destas perguntas",
+    "examplesTitle": "2. Depois de conectar, pergunte",
     "examples": [
-      "Qual flexível para gás da ROCO serve para o meu fogão?",
-      "Quais reparos a ROCO tem para caixa acoplada?",
-      "Qual a diferença entre os kits de flexíveis para gás da ROCO?",
-      "Monte uma lista de produtos para a reforma de um banheiro e me passe os links para pedir orçamento."
+      "Use o conector da ROCO: quais flexíveis para gás vocês fabricam, e em quais medidas?",
+      "Use o conector da ROCO e mostre a ficha do produto de código 3004, com as embalagens e o código EAN.",
+      "Use o conector da ROCO: quais são os campeões de vendas da linha de gás?",
+      "Use o conector da ROCO e monte uma lista de produtos para a reforma de um banheiro, com o link para pedir orçamento de cada um."
     ],
-    "quoteTitle": "E o orçamento?",
+    "quoteTitle": "3. Peça o orçamento",
     "quoteBody": "A IA pode sugerir produtos e montar uma lista com os links. Quem envia o pedido é você: abra cada produto, toque em \"Adicionar ao orçamento\" e envie em Meu orçamento. Assim seus dados vão direto para a ROCO.",
     "quoteCta": "Ir para Meu orçamento",
     "contactCta": "Falar com o time comercial",
-    "connectTitle": "Usa ChatGPT ou Claude no dia a dia? Conecte o catálogo da ROCO",
-    "connectIntro": "Com o catálogo conectado, o assistente consulta os produtos oficiais da ROCO sempre que você perguntar, sem precisar colar links nem explicar quem é a ROCO. É gratuito e não pede cadastro na ROCO.",
+    "connectTitle": "1. Conecte o catálogo da ROCO à sua IA",
+    "connectIntro": "Com o catálogo conectado, o Claude ou o ChatGPT consulta os produtos oficiais da ROCO sempre que você perguntar, sem precisar colar links nem explicar quem é a ROCO. É gratuito e não pede cadastro na ROCO.",
     "urlLabel": "Endereço do conector da ROCO",
     "copy": "Copiar endereço",
     "copied": "Endereço copiado",
@@ -2333,7 +2362,7 @@
     "privacyNote": "ChatGPT, Claude e Perplexity são serviços de outras empresas, com políticas próprias. Não compartilhe dados pessoais ou informações sigilosas nas conversas.",
     "privacyLink": "Política de privacidade da ROCO",
     "productCta": "Tirar dúvida com IA",
-    "examplesHint": "Cada pergunta já vai com o contexto da ROCO."
+    "examplesHint": "Cada pergunta abre a IA já pedindo para usar o conector da ROCO."
   },
   "legal": {
     "common": {

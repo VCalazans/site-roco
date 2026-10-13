@@ -38,10 +38,8 @@ export default async function AskAiRoute({ params }: PageProps) {
   const { askAi } = dictionary;
   const context = { siteUrl: absoluteUrl(`/${locale}`), llmsUrl: absoluteUrl("/llms.txt") };
   const prompt = interpolate(askAi.prompts.general, context);
-  const examples = askAi.examples.map((question) => ({
-    question,
-    prompt: interpolate(askAi.prompts.example, { ...context, question }),
-  }));
+  // As perguntas de exemplo já pedem o conector da ROCO: vão como estão.
+  const examples = askAi.examples.map((question) => ({ question, prompt: question }));
 
   return (
     <>

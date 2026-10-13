@@ -8,9 +8,12 @@ import { HomeAbout } from "@/modules/home/components/home-about";
 import { HomeCategories } from "@/modules/home/components/home-categories";
 import { HomeFeatured } from "@/modules/home/components/home-featured";
 import { HomePortalCta } from "@/modules/home/components/home-portal-cta";
+import { HomeAiAssistant } from "@/modules/home/components/home-ai-assistant";
+import { claudeConnectorInstallUrl } from "@/modules/ai/lib/ask-ai";
+import { MCP_PATH } from "@/modules/ai/server/mcp-server";
 import type { HomeSectionId } from "@/modules/home/lib/home-content";
 import { resolveCtaHref, productsPath } from "@/core/config/site";
-import { buildAlternates, LOCALE_LANGUAGE_TAGS } from "@/core/config/metadata";
+import { absoluteUrl, buildAlternates, LOCALE_LANGUAGE_TAGS } from "@/core/config/metadata";
 import { buildItemList, buildWebSite } from "@/modules/ai/lib/json-ld";
 import { JsonLd } from "@/shared/components/seo/json-ld";
 import { locales, type Locale } from "@/i18n/config";
@@ -119,6 +122,14 @@ export default async function HomePage({ params }: PageProps) {
         badgeLabels={products.badges}
         cartLabels={cart.addButton}
         carouselLabels={home.featured.carousel}
+      />
+    ),
+    aiAssistant: () => (
+      <HomeAiAssistant
+        content={content.aiAssistant}
+        copy={home.aiAssistant}
+        ctaHref={resolveCtaHref(content.aiAssistant.cta.href, locale, "home-ia")}
+        claudeInstallUrl={claudeConnectorInstallUrl(dictionary.navigation.brand, absoluteUrl(MCP_PATH))}
       />
     ),
     portalCta: () => (

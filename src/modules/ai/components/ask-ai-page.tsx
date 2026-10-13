@@ -4,20 +4,24 @@ import type { Dictionary } from "@/i18n/get-dictionary";
 import { AskAiLinks } from "@/modules/ai/components/ask-ai-links";
 import { CopyButton } from "@/modules/ai/components/copy-button";
 
+/** Perguntas de exemplo usam o conector (MCP): só quem tem conector. */
+const MCP_ASSISTANTS = ["claude", "chatgpt"] as const;
+
 type AskAiPageProps = {
   copy: Dictionary["askAi"];
   prompt: string;
   mcpUrl: string;
-  /** Perguntas de exemplo, cada uma com o contexto da ROCO já embutido. */
+  /** Perguntas de exemplo para usar COM o conector (o texto já pede o conector da ROCO). */
   examples: { question: string; prompt: string }[];
   links: { quote: string; contact: string; privacy: string; claudeHelp: string; claudeInstall: string };
 };
 
 /**
  * "Tire dúvidas com IA" (spec 003) — para o CLIENTE, não para desenvolvedor:
- * 1) perguntar já, no assistente que ele usa (pergunta pronta);
- * 2) como chegar ao orçamento (o envio é sempre dele, no site);
- * 3) conectar o catálogo oficial (MCP) no Claude/ChatGPT de uso diário.
+ * 1) conectar o catálogo oficial (MCP) no Claude (um clique) ou no ChatGPT;
+ * 2) perguntas de exemplo que usam o conector;
+ * 3) como chegar ao orçamento (o envio é sempre dele, no site);
+ * e, para quem não quer conectar, perguntar direto com a pergunta pronta.
  */
 export function AskAiPage({ copy, prompt, examples, mcpUrl, links }: AskAiPageProps) {
   return (
@@ -34,44 +38,7 @@ export function AskAiPage({ copy, prompt, examples, mcpUrl, links }: AskAiPagePr
         <h1 className="text-glow-soft mt-3 max-w-3xl font-display text-h1 text-white">{copy.headline}</h1>
         <p className="mt-4 max-w-2xl text-body text-white/80">{copy.intro}</p>
 
-        <section aria-labelledby="ia-perguntar" className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <h2 id="ia-perguntar" className="font-display text-h2 text-white">
-            {copy.askTitle}
-          </h2>
-          <p className="mt-1 text-meta text-white/60">{copy.askHint}</p>
-          <AskAiLinks prompt={prompt} copy={copy} className="mt-5" />
-
-          <h3 className="mt-8 text-meta font-semibold uppercase tracking-[0.12em] text-neon-cyan-bright">
-            {copy.examplesTitle}
-          </h3>
-          <p className="mt-1 text-meta text-white/60">{copy.examplesHint}</p>
-          <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {examples.map((example) => (
-              <li key={example.question} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
-                <p className="text-meta text-white/85">{example.question}</p>
-                <AskAiLinks prompt={example.prompt} copy={copy} size="sm" />
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section aria-labelledby="ia-orcamento" className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-          <h2 id="ia-orcamento" className="font-display text-h2 text-white">
-            {copy.quoteTitle}
-          </h2>
-          <p className="mt-2 max-w-3xl text-body text-white/80">{copy.quoteBody}</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href={links.quote} className="btn-neon w-fit">
-              {copy.quoteCta}
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
-            <Link href={links.contact} className="btn-neon btn-neon--amber w-fit">
-              {copy.contactCta}
-            </Link>
-          </div>
-        </section>
-
-        <section aria-labelledby="ia-conectar" className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+        <section aria-labelledby="ia-conectar" className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
           <h2 id="ia-conectar" className="font-display text-h2 text-white">
             {copy.connectTitle}
           </h2>
@@ -125,7 +92,43 @@ export function AskAiPage({ copy, prompt, examples, mcpUrl, links }: AskAiPagePr
             </div>
           </div>
         </section>
+        <section aria-labelledby="ia-exemplos" className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <h2 id="ia-exemplos" className="font-display text-h2 text-white">
+            {copy.examplesTitle}
+          </h2>
+          <p className="mt-1 text-meta text-white/60">{copy.examplesHint}</p>
+          <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {examples.map((example) => (
+              <li key={example.question} className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                <p className="text-meta text-white/85">{example.question}</p>
+                <AskAiLinks prompt={example.prompt} copy={copy} size="sm" only={MCP_ASSISTANTS} />
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section aria-labelledby="ia-orcamento" className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <h2 id="ia-orcamento" className="font-display text-h2 text-white">
+            {copy.quoteTitle}
+          </h2>
+          <p className="mt-2 max-w-3xl text-body text-white/80">{copy.quoteBody}</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link href={links.quote} className="btn-neon w-fit">
+              {copy.quoteCta}
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+            <Link href={links.contact} className="btn-neon btn-neon--amber w-fit">
+              {copy.contactCta}
+            </Link>
+          </div>
+        </section>
+        <section aria-labelledby="ia-perguntar" className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <h2 id="ia-perguntar" className="font-display text-h2 text-white">
+            {copy.askTitle}
+          </h2>
+          <p className="mt-1 text-meta text-white/60">{copy.askHint}</p>
+          <AskAiLinks prompt={prompt} copy={copy} className="mt-5" />
 
+        </section>
         <p className="mt-8 max-w-3xl text-meta text-white/60">
           {copy.privacyNote}{" "}
           <Link href={links.privacy} className="text-neon-cyan-bright underline-offset-4 hover:underline">
