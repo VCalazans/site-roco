@@ -2365,3 +2365,16 @@ fuso de Brasília (fora do cache); o portal mostra "vence em breve" (60 dias) e 
 **Impacto**: migration aplicada no boot do container. Testado local ponta a ponta (cadastro com upload, rodapé e Sobre,
 vencimento tirando do site, exclusão apagando a imagem).
 
+## 2026-10-13 — Métricas de uso da IA (card "Uso da IA" no painel)
+**Decisão**: tabela `ai_usage_daily` (migration `drizzle/0017_ai_usage_daily.sql`; chave dia + métrica + chave, só contadores) com
+quatro métricas: `connection` (cada `initialize` do `/mcp`, por IA pelo `clientInfo.name`: claude, chatgpt, perplexity, cursor,
+vscode, other), `tool` (cada `tools/call` que deu certo, por ferramenta), `connect_click` (cliques em "Conectar ao Claude", por
+página — o botão passou a apontar para `GET /api/ai/conectar-claude?de=home|ia`, que conta e redireciona 302 ao link oficial do
+Claude; no máximo 3 cliques contados por IP a cada 10 min) e `quote_link` (link de orçamento da IA aberto com itens válidos em
+`/orcamento`). Gravação em `after()`, melhor esforço (falha só vai ao log). O card no dashboard (permissão `leads:read`, procedure
+`leads.aiUsage`) mostra os últimos 30 dias e as solicitações com origem `assistente-ia`.
+**O que não dá para medir**: quantas pessoas têm o conector instalado. O conector fica na conta do Claude/ChatGPT do cliente, o
+`/mcp` é sem login e as chamadas vêm dos servidores da Anthropic/OpenAI (IP não identifica pessoa). O card diz isso ao lado do
+número de conversas.
+**Alternativas**: contadores no Redis (somem com a expiração e não têm histórico); login no conector (OAuth) para contar pessoas
+— rejeitado: atrito para quem só quer tirar uma dúvida. Nenhum IP, id de conversa ou texto de busca é gravado.

@@ -120,6 +120,13 @@
       "when": 1791896216029,
       "tag": "0016_certifications",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791926066412,
+      "tag": "0017_ai_usage_daily",
+      "breakpoints": true
     }
   ]
 }

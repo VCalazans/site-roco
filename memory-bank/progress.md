@@ -685,6 +685,11 @@ catálogo vivo via ERP → cotação como dado estruturado.
   storage é MinIO; "download" aparece cru na matriz de perfis quando falta a chave em `matrix.actionsLabels`
   (`roles-matrix-tab.tsx`).
 
+## ✅ Métricas de uso da IA (2026-10-13)
+- [x] Card "Uso da IA" no dashboard (conversas por IA, consultas por ferramenta, cliques em "Conectar ao Claude", links de
+      orçamento abertos, orçamentos enviados com origem `assistente-ia`). Testado local: `/mcp` por curl, cliques, link de
+      orçamento e o card no portal. Não mede instalações (ver decisionLog).
+
 ## ✅ Spec 003 — Site pronto para IA (2026-10-13, na `main`, não implantada)
 - [x] `<html lang>` pela URL: header `x-roco-locale` no `src/proxy.ts` (`ROOT_ROUTES` = api, mcp; matcher exclui `mcp`).
 - [x] canonical + hreflang (`pt-BR`, `en`, `x-default`) em todas as páginas públicas (`buildAlternates`).

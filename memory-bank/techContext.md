@@ -181,6 +181,8 @@ provedor S3. Em produção (MinIO): `R2_BUCKET=roco-site` e `R2_PUBLIC_URL=https
 - Ferramentas WebMCP (no navegador): `buscar_produtos`, `abrir_produto`, `filtrar_catalogo`, `adicionar_ao_orcamento`,
   `ver_orcamento`, `preparar_contato` (nunca envia).
 - `/indexnow.txt`: chave do IndexNow.
+- `GET /api/ai/conectar-claude?de=home|ia`: conta o clique (≤ 3 por IP a cada 10 min) e redireciona 302 ao link oficial de
+  instalação do conector no Claude. Contadores de uso da IA em `ai_usage_daily` (migration 0017; journal com 18 migrations).
 - `robots.ts`: grupos explícitos para robôs de IA (liberados) e `Disallow` de `/api/`, portal, admin e orçamento.
 - `sitemap.ts` (`force-dynamic`): produtos publicados × 2 idiomas, categorias, `lastmod` real e alternates (1.518 URLs no banco local).
 

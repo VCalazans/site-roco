@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { QuoteImport } from "@/modules/cart/components/quote-import";
 import type { CartItem } from "@/shared/lib/cart-store";
 import { parseQuoteItems } from "@/shared/lib/quote-link";
@@ -7,6 +8,7 @@ import { buildAlternates } from "@/core/config/metadata";
 import { notFound } from "next/navigation";
 import { CartPageView } from "@/modules/cart/components/cart-page-view";
 import { QUOTE_SEGMENT } from "@/core/config/site";
+import { recordAiUsage } from "@/server/lib/ai-usage";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -96,6 +98,8 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
         },
       ];
     });
+    // Painel "Uso da IA": link de orçamento da IA aberto (só contador).
+    if (imported.length > 0) after(() => recordAiUsage([{ metric: "quote_link", key: "opened" }]));
   }
 
   return (

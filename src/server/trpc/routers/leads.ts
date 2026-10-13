@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, or, sql, type SQL } fro
 import { z } from "zod";
 import type { db as dbClient } from "@/db";
 import { contactSubmissionItems, contactSubmissions } from "@/db/schema";
+import { getAiUsageSummary } from "@/server/lib/ai-usage";
 import { writeAuditLog } from "@/server/lib/audit";
 import { CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import { containsPattern } from "@/server/lib/sql-like";
@@ -224,4 +225,11 @@ export const leadsRouter = router({
 
     return { windowDays: RECENT_WINDOW_DAYS, lastDays, bySubject, total, recent };
   }),
+
+  /**
+   * Uso dos recursos de IA nos últimos 30 dias (conector MCP, botão "Conectar ao
+   * Claude", links de orçamento da IA e solicitações vindas deles). Contadores
+   * agregados, sem dado pessoal — mesma permissão das solicitações.
+   */
+  aiUsage: permissionProcedure("leads", "read").query(() => getAiUsageSummary()),
 });

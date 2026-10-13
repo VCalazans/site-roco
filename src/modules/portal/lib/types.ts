@@ -814,6 +814,27 @@ export type PortalSettingsDictionary = {
 export type PortalLeadSubject = "call_back" | "quote" | "general" | "catalog" | "cart";
 
 export type PortalDashboardDictionary = {
+  /** Card "Uso da IA". `{days}`, `{home}`, `{ia}` interpolados. */
+  aiUsage: {
+    title: string;
+    subtitle: string;
+    connections: string;
+    connectionsHint: string;
+    byClient: string;
+    clients: Record<"claude" | "chatgpt" | "perplexity" | "cursor" | "vscode" | "other", string>;
+    toolCalls: string;
+    tools: Record<
+      "sobre_roco" | "como_comprar" | "listar_categorias" | "buscar_produtos" | "obter_produto" | "montar_orcamento",
+      string
+    >;
+    connectClicks: string;
+    connectClicksHint: string;
+    quoteLinks: string;
+    aiLeads: string;
+    aiLeadsHint: string;
+    empty: string;
+    viewPage: string;
+  };
   title: string;
   /** Placeholder literal `{name}` — usar `interpolate()`. */
   welcome: string;

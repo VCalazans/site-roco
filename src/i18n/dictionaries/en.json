@@ -1078,6 +1078,37 @@
         "noProducts": "No products registered yet.",
         "reviewNoPhoto": "View products without photo",
         "reviewUnpublished": "View unpublished ({count})"
+      },
+      "aiUsage": {
+        "title": "AI usage",
+        "subtitle": "ROCO connector in Claude and ChatGPT · last {days} days",
+        "connections": "Conversations that used the connector",
+        "connectionsHint": "Each new conversation counts once. It is not the number of people: the connector lives in each customer's account, and Claude and ChatGPT do not say who installed it.",
+        "byClient": "By AI",
+        "clients": {
+          "claude": "Claude",
+          "chatgpt": "ChatGPT",
+          "perplexity": "Perplexity",
+          "cursor": "Cursor",
+          "vscode": "VS Code",
+          "other": "Others"
+        },
+        "toolCalls": "Lookups made by the AI",
+        "tools": {
+          "sobre_roco": "About ROCO",
+          "como_comprar": "How to buy",
+          "listar_categorias": "Categories",
+          "buscar_produtos": "Product search",
+          "obter_produto": "Product details",
+          "montar_orcamento": "Build quote"
+        },
+        "connectClicks": "Clicks on \"Connect to Claude\"",
+        "connectClicksHint": "Home: {home} · AI page: {ia}. Shows who tried to connect, not who finished.",
+        "quoteLinks": "AI quotes opened on the website",
+        "aiLeads": "AI quotes sent",
+        "aiLeadsHint": "Requests with the list built by the AI. They are in Requests.",
+        "empty": "No usage recorded yet. Numbers show up once someone uses the connector or the AI buttons.",
+        "viewPage": "See the AI page on the website"
       }
     },
     "admin": {

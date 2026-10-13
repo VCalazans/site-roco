@@ -5,7 +5,7 @@ import { ASK_AI_SEGMENT, askAiPath, contactPath, privacyPath, quotePath } from "
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { AskAiPage } from "@/modules/ai/components/ask-ai-page";
-import { claudeConnectorInstallUrl } from "@/modules/ai/lib/ask-ai";
+import { claudeConnectHref } from "@/modules/ai/lib/ai-usage";
 import { buildBreadcrumbList } from "@/modules/ai/lib/json-ld";
 import { MCP_PATH } from "@/modules/ai/server/mcp-server";
 import { JsonLd } from "@/shared/components/seo/json-ld";
@@ -59,7 +59,7 @@ export default async function AskAiRoute({ params }: PageProps) {
           contact: withLeadOrigin(contactPath(locale), "assistente-ia"),
           privacy: privacyPath(locale),
           claudeHelp: CLAUDE_CONNECTORS_HELP,
-          claudeInstall: claudeConnectorInstallUrl(dictionary.navigation.brand, absoluteUrl(MCP_PATH)),
+          claudeInstall: claudeConnectHref("ia"),
         }}
       />
     </>

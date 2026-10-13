@@ -17,11 +17,13 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
+import { askAiPath } from "@/core/config/site";
 import type { Locale } from "@/i18n/config";
 import { can, type PortalPermissionUser } from "@/modules/portal/lib/permissions";
 import { buildProductsHref } from "@/modules/portal/lib/product-filters";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
+import { AiUsageCard } from "./dashboard/ai-usage-card";
 import { CatalogHealthCard } from "./dashboard/catalog-health-card";
 import { KpiCard } from "./dashboard/kpi-card";
 import { QuickActions, type QuickAction } from "./dashboard/quick-actions";
@@ -64,6 +66,7 @@ export function DashboardSummary({ portal, user, locale }: DashboardSummaryProps
     trpc.representatives.stats.queryOptions(undefined, { enabled: canReadRepresentatives })
   );
   const leadsStats = useQuery(trpc.leads.stats.queryOptions(undefined, { enabled: canReadLeads }));
+  const aiUsage = useQuery(trpc.leads.aiUsage.queryOptions(undefined, { enabled: canReadLeads }));
 
   const formatNumber = useMemo(() => {
     const formatter = new Intl.NumberFormat(locale);
@@ -256,6 +259,19 @@ export function DashboardSummary({ portal, user, locale }: DashboardSummaryProps
             />
           ) : null}
         </Box>
+      ) : null}
+
+      {canReadLeads ? (
+        <AiUsageCard
+          dictionary={dictionary.aiUsage}
+          stats={aiUsage.data}
+          loading={aiUsage.isLoading}
+          error={aiUsage.isError}
+          errorLabel={portal.errors.generic}
+          formatNumber={(value) => formatNumber(value) ?? String(value)}
+          aiPageHref={askAiPath(locale)}
+          leadsHref={`${basePath}/solicitacoes`}
+        />
       ) : null}
     </Box>
   );

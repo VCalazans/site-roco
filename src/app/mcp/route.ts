@@ -1,6 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { extractMcpUsageEvents } from "@/modules/ai/lib/ai-usage";
 import { countMcpMessages, handleMcpBody, SUPPORTED_PROTOCOL_VERSIONS } from "@/modules/ai/lib/mcp-protocol";
 import { describeRocoMcpServer, getRocoMcpServer } from "@/modules/ai/server/mcp-server";
+import { recordAiUsage } from "@/server/lib/ai-usage";
 import { checkRateLimit, getClientIp } from "@/server/lib/rate-limit";
 import { checkContentLength, readBodyTextWithLimit } from "@/server/lib/request-size";
 
@@ -19,6 +21,9 @@ import { checkContentLength, readBodyTextWithLimit } from "@/server/lib/request-
  * é leitura pública, e o catálogo continua no site de qualquer jeito), CORS
  * aberto SEM credenciais (nenhum cookie é lido aqui), sem Turnstile (agente não
  * resolve desafio). Fica fora do `src/proxy.ts` (matcher exclui `mcp`).
+ *
+ * Uso: cada `initialize` (por IA) e cada `tools/call` (por ferramenta) soma um
+ * contador diário em `ai_usage_daily` — sem IP nem identificador de pessoa.
  */
 export const dynamic = "force-dynamic";
 
@@ -75,6 +80,8 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await handleMcpBody(body.text, await getRocoMcpServer());
+  // Métrica de uso (painel "Uso da IA"): só contadores, fora do caminho da resposta.
+  after(() => recordAiUsage(extractMcpUsageEvents(body.text, result.body)));
   if (!result.body) {
     return new NextResponse(null, { status: result.status, headers: BASE_HEADERS });
   }

@@ -1078,6 +1078,37 @@
         "noProducts": "Nenhum produto cadastrado ainda.",
         "reviewNoPhoto": "Ver produtos sem foto",
         "reviewUnpublished": "Ver não publicados ({count})"
+      },
+      "aiUsage": {
+        "title": "Uso da IA",
+        "subtitle": "Conector da ROCO no Claude e no ChatGPT · últimos {days} dias",
+        "connections": "Conversas que usaram o conector",
+        "connectionsHint": "Cada conversa nova conta uma vez. Não é o número de pessoas: o conector fica na conta de cada cliente, e o Claude e o ChatGPT não informam quem o instalou.",
+        "byClient": "Por IA",
+        "clients": {
+          "claude": "Claude",
+          "chatgpt": "ChatGPT",
+          "perplexity": "Perplexity",
+          "cursor": "Cursor",
+          "vscode": "VS Code",
+          "other": "Outras"
+        },
+        "toolCalls": "Consultas feitas pela IA",
+        "tools": {
+          "sobre_roco": "Sobre a ROCO",
+          "como_comprar": "Como comprar",
+          "listar_categorias": "Categorias",
+          "buscar_produtos": "Busca de produtos",
+          "obter_produto": "Detalhe de produto",
+          "montar_orcamento": "Montar orçamento"
+        },
+        "connectClicks": "Cliques em \"Conectar ao Claude\"",
+        "connectClicksHint": "Home: {home} · Página IA: {ia}. Mostra quem tentou conectar, não quem concluiu.",
+        "quoteLinks": "Orçamentos da IA abertos no site",
+        "aiLeads": "Orçamentos da IA enviados",
+        "aiLeadsHint": "Solicitações com a lista montada pela IA. Estão em Solicitações.",
+        "empty": "Nenhum uso registrado ainda. Os números aparecem quando alguém usar o conector ou os botões da IA.",
+        "viewPage": "Ver a página da IA no site"
       }
     },
     "admin": {
