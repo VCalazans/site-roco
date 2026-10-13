@@ -337,7 +337,7 @@ export function HeroFormDialog({
                       // Sem rótulo dedicado no dicionário para o par
                       // "tamanho máximo"/"formatos aceitos" do PÔSTER — os
                       // únicos existentes (`dictionary.media.maxSize`/
-                      // `accepted`) descrevem o VÍDEO ("200 MB"/"MP4, WebM"),
+                      // `accepted`) descrevem o VÍDEO ("95 MB"/"MP4, WebM"),
                       // reaproveitá-los aqui informaria números errados.
                       // Deixados em branco (o componente omite a linha); ver
                       // relatório final.

@@ -39,12 +39,12 @@ const MATERIAL_TYPES = getAllowedContentTypes("material");
 /**
  * O dicionário só prevê um único placeholder `{size}` em
  * `materials.form.upload.maxSize`, mas o campo aceita tipos com limites
- * diferentes entre si (documento/imagem 20 MB, vídeo 200 MB) — notação
+ * diferentes entre si (documento/imagem 20 MB, vídeo 95 MB) — notação
  * compacta sem depender de palavras localizadas (evita cravar "vídeo"/
  * "video" a partir de um componente sem acesso ao locale). Ver relatório
  * final para o racional completo.
  */
-const MATERIAL_MAX_SIZE_LABEL = "50/200 MB";
+const MATERIAL_MAX_SIZE_LABEL = "50/95 MB";
 
 /**
  * Lista de formatos exibida ao usuário, DERIVADA das extensões da tabela

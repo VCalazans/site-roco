@@ -68,13 +68,13 @@ describe("upload-limits", () => {
         const limit = getUploadLimit("heroVideo", "video/mp4");
         expect(limit).not.toBeNull();
         expect(limit?.extension).toBe("mp4");
-        expect(limit?.maxBytes).toBe(200 * 1024 * 1024);
+        expect(limit?.maxBytes).toBe(95 * 1024 * 1024);
       });
 
       it("returns limit for webm", () => {
         const limit = getUploadLimit("heroVideo", "video/webm");
         expect(limit?.extension).toBe("webm");
-        expect(limit?.maxBytes).toBe(200 * 1024 * 1024);
+        expect(limit?.maxBytes).toBe(95 * 1024 * 1024);
       });
 
       it("returns null for unsupported type (image/jpeg)", () => {
@@ -124,16 +124,16 @@ describe("upload-limits", () => {
         expect(limit?.maxBytes).toBe(50 * 1024 * 1024);
       });
 
-      it("returns limit for mp4 video (200MB)", () => {
+      it("returns limit for mp4 video (95MB)", () => {
         const limit = getUploadLimit("material", "video/mp4");
         expect(limit?.extension).toBe("mp4");
-        expect(limit?.maxBytes).toBe(200 * 1024 * 1024);
+        expect(limit?.maxBytes).toBe(95 * 1024 * 1024);
       });
 
-      it("returns limit for webm video (200MB)", () => {
+      it("returns limit for webm video (95MB)", () => {
         const limit = getUploadLimit("material", "video/webm");
         expect(limit?.extension).toBe("webm");
-        expect(limit?.maxBytes).toBe(200 * 1024 * 1024);
+        expect(limit?.maxBytes).toBe(95 * 1024 * 1024);
       });
 
       it("returns limit for jpeg image (20MB)", () => {
@@ -238,8 +238,8 @@ describe("upload-limits", () => {
 
   describe("getMaxBytes", () => {
     describe("valid types", () => {
-      it("returns 200MB for heroVideo mp4", () => {
-        expect(getMaxBytes("heroVideo", "video/mp4")).toBe(200 * 1024 * 1024);
+      it("returns 95MB for heroVideo mp4", () => {
+        expect(getMaxBytes("heroVideo", "video/mp4")).toBe(95 * 1024 * 1024);
       });
 
       it("returns 10MB for heroPoster jpeg", () => {
@@ -259,8 +259,8 @@ describe("upload-limits", () => {
         ).toBe(50 * 1024 * 1024);
       });
 
-      it("returns 200MB for material video (mp4)", () => {
-        expect(getMaxBytes("material", "video/mp4")).toBe(200 * 1024 * 1024);
+      it("returns 95MB for material video (mp4)", () => {
+        expect(getMaxBytes("material", "video/mp4")).toBe(95 * 1024 * 1024);
       });
 
       it("returns 20MB for material image (jpeg)", () => {
@@ -338,19 +338,19 @@ describe("upload-limits", () => {
   });
 
   describe("isSizeWithinLimit", () => {
-    describe("heroVideo field (200MB max)", () => {
-      it("accepts size exactly at limit (200MB)", () => {
-        const max = 200 * 1024 * 1024;
+    describe("heroVideo field (95MB max)", () => {
+      it("accepts size exactly at limit (95MB)", () => {
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("heroVideo", "video/mp4", max)).toBe(true);
       });
 
       it("accepts size 1 byte under limit", () => {
-        const max = 200 * 1024 * 1024;
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("heroVideo", "video/mp4", max - 1)).toBe(true);
       });
 
       it("rejects size 1 byte over limit", () => {
-        const max = 200 * 1024 * 1024;
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("heroVideo", "video/mp4", max + 1)).toBe(false);
       });
 
@@ -367,7 +367,7 @@ describe("upload-limits", () => {
       });
 
       it("accepts large size under limit", () => {
-        expect(isSizeWithinLimit("heroVideo", "video/mp4", 100 * 1024 * 1024)).toBe(true);
+        expect(isSizeWithinLimit("heroVideo", "video/mp4", 90 * 1024 * 1024)).toBe(true);
       });
     });
 
@@ -404,18 +404,18 @@ describe("upload-limits", () => {
         expect(isSizeWithinLimit("material", "application/pdf", 25 * 1024 * 1024)).toBe(true);
       });
 
-      it("mp4 video: accepts size at limit (200MB)", () => {
-        const max = 200 * 1024 * 1024;
+      it("mp4 video: accepts size at limit (95MB)", () => {
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("material", "video/mp4", max)).toBe(true);
       });
 
-      it("mp4 video: rejects size over limit (200MB)", () => {
-        const max = 200 * 1024 * 1024;
+      it("mp4 video: rejects size over limit (95MB)", () => {
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("material", "video/mp4", max + 1)).toBe(false);
       });
 
-      it("webm video: accepts at limit (200MB)", () => {
-        const max = 200 * 1024 * 1024;
+      it("webm video: accepts at limit (95MB)", () => {
+        const max = 95 * 1024 * 1024;
         expect(isSizeWithinLimit("material", "video/webm", max)).toBe(true);
       });
 
@@ -456,7 +456,7 @@ describe("upload-limits", () => {
 
     describe("edge cases", () => {
       it("handles very large valid size", () => {
-        const size = 50 * 1024 * 1024; // 50MB, under heroVideo 200MB
+        const size = 50 * 1024 * 1024; // 50MB, under heroVideo 95MB
         expect(isSizeWithinLimit("heroVideo", "video/mp4", size)).toBe(true);
       });
 
@@ -538,11 +538,11 @@ describe("upload-limits", () => {
     it("material video upload: all checks pass", () => {
       const field: UploadField = "material";
       const contentType = "video/webm";
-      const sizeBytes = 150 * 1024 * 1024; // 150MB, under 200MB limit
+      const sizeBytes = 90 * 1024 * 1024; // 90MB, under 95MB limit
 
       expect(isContentTypeAllowed(field, contentType)).toBe(true);
       expect(getExtension(field, contentType)).toBe("webm");
-      expect(getMaxBytes(field, contentType)).toBe(200 * 1024 * 1024);
+      expect(getMaxBytes(field, contentType)).toBe(95 * 1024 * 1024);
       expect(isSizeWithinLimit(field, contentType, sizeBytes)).toBe(true);
     });
   });

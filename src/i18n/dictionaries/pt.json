@@ -1639,10 +1639,10 @@
         "posterLabel": "Imagem de capa (pôster)",
         "posterAlt": "Imagem do slide (pôster)",
         "youtubeHelper": "Cole apenas o ID do vídeo do YouTube (ex.: rqn-okkh0ww).",
-        "uploadHelper": "Faça upload do MP4 (até 200 MB). Opcionalmente envie um pôster JPG/PNG.",
+        "uploadHelper": "Faça upload do MP4 (até 95 MB). Opcionalmente envie um pôster JPG/PNG.",
         "dropzone": "Arraste o vídeo aqui ou clique para selecionar",
         "dropzonePoster": "Arraste o pôster aqui ou clique para selecionar (opcional)",
-        "maxSize": "Tamanho máximo: 200 MB",
+        "maxSize": "Tamanho máximo: 95 MB",
         "accepted": "Formatos aceitos: MP4, WebM",
         "remove": "Remover",
         "uploadError": "Erro no upload — verifique o formato e o tamanho."

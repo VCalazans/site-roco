@@ -15,7 +15,7 @@ import { uploadFileDirect, type PresignedUpload } from "@/modules/portal/lib/upl
 
 export type PortalFileUploaderLabels = {
   dropzone: string;
-  /** Já formatado pelo chamador (ex.: via `interpolate`) — "Tamanho máximo: 200 MB". */
+  /** Já formatado pelo chamador (ex.: via `interpolate`) — "Tamanho máximo: 95 MB". */
   maxSize: string;
   /** Já formatado pelo chamador — "Formatos aceitos: MP4, WebM". */
   accepted: string;

@@ -24,7 +24,14 @@ export interface UploadLimit {
 /** Campos de upload conhecidos hoje. Adicionar aqui ao introduzir um novo. */
 export type UploadField = "heroVideo" | "heroPoster" | "material" | "siteImage";
 
-const HERO_VIDEO_MAX_BYTES = 200 * 1024 * 1024; // hero vídeos podem ser maiores que imagens
+/**
+ * Vídeos: 95 MB (era 200). Em produção o upload presignado passa pelo proxy
+ * da Cloudflare (`s3.roco.com.br`), que no plano gratuito recusa corpo acima
+ * de 100 MB com 413 — um vídeo maior falharia no meio do envio, sem
+ * explicação na tela. Com o teto aqui, o portal recusa antes de enviar.
+ */
+const VIDEO_MAX_BYTES = 95 * 1024 * 1024;
+const HERO_VIDEO_MAX_BYTES = VIDEO_MAX_BYTES;
 const HERO_POSTER_MAX_BYTES = 10 * 1024 * 1024; // mesmo teto usado para imagens de produto
 /** Imagens editáveis da home (fachada, cards de categoria) — mesmo teto do pôster. */
 const SITE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
@@ -34,7 +41,7 @@ const SITE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
  * material legítimo e a tela não explicava o motivo.
  */
 const MATERIAL_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024;
-const MATERIAL_VIDEO_MAX_BYTES = 200 * 1024 * 1024;
+const MATERIAL_VIDEO_MAX_BYTES = VIDEO_MAX_BYTES;
 const MATERIAL_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 
 /** Tabela `contentType -> limite`, uma por campo de upload. */

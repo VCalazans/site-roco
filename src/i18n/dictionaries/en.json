@@ -1639,10 +1639,10 @@
         "posterLabel": "Cover image (poster)",
         "posterAlt": "Slide image (poster)",
         "youtubeHelper": "Paste just the YouTube video ID (e.g. rqn-okkh0ww).",
-        "uploadHelper": "Upload MP4 (up to 200 MB). Optionally upload a poster JPG/PNG.",
+        "uploadHelper": "Upload MP4 (up to 95 MB). Optionally upload a poster JPG/PNG.",
         "dropzone": "Drag video here or click to select",
         "dropzonePoster": "Drag poster here or click to select (optional)",
-        "maxSize": "Max size: 200 MB",
+        "maxSize": "Max size: 95 MB",
         "accepted": "Accepted formats: MP4, WebM",
         "remove": "Remove",
         "uploadError": "Upload failed — check format and size."

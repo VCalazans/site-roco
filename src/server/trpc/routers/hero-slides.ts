@@ -298,7 +298,7 @@ export const heroSlidesRouter = router({
    *
    * O `contentType`/teto de tamanho aceito depende do campo (`poster`):
    * pôster aceita imagem (JPEG/PNG/WebP, 10 MB), vídeo aceita MP4/WebM
-   * (200 MB) — bug corrigido 2026-08-24 (antes os dois caminhos validavam
+   * (95 MB, teto do proxy da Cloudflare) — bug corrigido 2026-08-24 (antes os dois caminhos validavam
    * contra os tipos de VÍDEO mesmo para o campo de pôster, tornando
    * impossível fazer upload de um pôster). Ver `@/shared/lib/upload-limits`.
    */
