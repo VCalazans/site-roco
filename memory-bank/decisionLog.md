@@ -2351,7 +2351,7 @@ ambiente local de ponta a ponta (convite → link → senha → login com o perf
 Ainda falta: desativar usuário pela tela e "alterar minha senha" logado.
 
 ## 2026-10-13 — Selos de certificação cadastrados pelo portal
-**Decisão**: tabela `certifications` (migration `0017_certifications`, ver `drizzle/0016_certifications.sql`) com nome,
+**Decisão**: tabela `certifications` (migration `drizzle/0016_certifications.sql`, a 17ª do journal) com nome,
 linha de apoio e texto alternativo em pt/en, imagem (upload `site/certificacoes/<uuid>` no bucket público, ou arquivo de
 `public/` para o selo que já existia), link opcional (só https), "válido até", ativo e ordem. A migration já cadastra o
 GPTW que era fixo no dicionário (vigência até 2027-02-28, data inferida de "fev 2026 – fev 2027" — a equipe ajusta no
