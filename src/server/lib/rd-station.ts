@@ -33,19 +33,23 @@ export type RdStationConversionMeta = {
 export const RD_CUSTOM_FIELD_PREFIX = "cf_";
 
 /**
- * Um `conversion_identifier` por INTENÇÃO DE NEGÓCIO. É string livre na API
- * (diferente dos `cf_*`, não exige cadastro prévio no painel), então separar
- * as cinco custa nada e o funil do RD passa a distinguir pedido de
- * orçamento, download de catálogo, pedido de ligação, contato geral e
- * lista de orçamento — que antes colapsavam em dois identificadores. A lista
- * era `carrinho_cotacao` até a spec 001 (2026-09-29, vocabulário "orçamento").
+ * Origem PERSONALIZADA de cada formulário do site, no formato
+ * `site-<página>-<assunto>` (pedido do stakeholder em 2026-10-15). Vai no
+ * `conversion_identifier` — é o nome que o RD mostra como origem da
+ * conversão — e, sempre, em `cf_origem`. A seção do site que levou ao
+ * formulário (`?origem=`: menu, rodapé, hero…) continua gravada em
+ * `contact_submissions.origin` e no e-mail de notificação.
+ *
+ * Antes eram `orcamento_produto`, `download_catalogo`, `ligamos_pra_voce`,
+ * `contato_geral` e `orcamento_lista_produtos`: o histórico do RD guarda as
+ * conversões antigas com esses nomes.
  */
-const CONVERSION_IDENTIFIERS: Record<ContactInput["subject"], string> = {
-  quote: "orcamento_produto",
-  catalog: "download_catalogo",
-  call_back: "ligamos_pra_voce",
-  general: "contato_geral",
-  cart: "orcamento_lista_produtos",
+export const RD_LEAD_SOURCES: Record<ContactInput["subject"], string> = {
+  call_back: "site-contato-ligamos-pra-voce",
+  quote: "site-contato-solicite-um-orcamento",
+  general: "site-contato-fale-conosco",
+  catalog: "site-catalogo-baixar-catalogo",
+  cart: "site-orcamento-lista-de-produtos",
 };
 
 /**
@@ -157,7 +161,8 @@ export type RdStationConversionPayload = {
  * Monta o payload da Conversions API.
  *
  * Duas dimensões de rastreio, COMPLEMENTARES (nunca se sobrescrevem):
- *  - ORIGEM (seção interna do site) → campo CUSTOMIZADO `cf_origem`.
+ *  - ORIGEM personalizada do formulário (`RD_LEAD_SOURCES`) → o
+ *    `conversion_identifier` e o campo CUSTOMIZADO `cf_origem`, sempre.
  *    Deliberadamente NÃO usa `traffic_source`: aquele é território de UTM e
  *    colidiria com uma campanha paga de verdade.
  *  - CAMPANHA externa (UTM) → campos PADRÃO `traffic_source`/
@@ -167,7 +172,7 @@ export function buildRdStationConversionPayload(
   input: ContactInput,
   meta: RdStationConversionMeta
 ): RdStationConversionPayload {
-  const conversionIdentifier = CONVERSION_IDENTIFIERS[input.subject];
+  const leadSource = RD_LEAD_SOURCES[input.subject];
   const cfProdutoInteresse = meta.productName
     ? meta.productSku
       ? `${meta.productName} — SKU ${meta.productSku}`
@@ -183,7 +188,7 @@ export function buildRdStationConversionPayload(
     event_type: "CONVERSION",
     event_family: "CDP",
     payload: {
-      conversion_identifier: conversionIdentifier,
+      conversion_identifier: leadSource,
       name: input.name,
       email: input.email,
       personal_phone: input.phone,
@@ -192,7 +197,7 @@ export function buildRdStationConversionPayload(
       ...(cfProdutoInteresse ? { cf_produto_interesse: cfProdutoInteresse } : {}),
       ...(cfProdutosCarrinho ? { cf_produtos_carrinho: cfProdutosCarrinho } : {}),
       ...(cfMensagem ? { cf_mensagem: cfMensagem } : {}),
-      ...(input.origin ? { cf_origem: input.origin } : {}),
+      cf_origem: leadSource,
       ...(input.utmSource ? { traffic_source: input.utmSource } : {}),
       ...(input.utmMedium ? { traffic_medium: input.utmMedium } : {}),
       ...(input.utmCampaign ? { traffic_campaign: input.utmCampaign } : {}),

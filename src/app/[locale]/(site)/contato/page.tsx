@@ -134,6 +134,7 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
         </div>
 
         <ContactForm
+          whatsappContent={dictionary.leadWhatsapp}
           content={contact}
           locale={locale}
           productContext={productContext}

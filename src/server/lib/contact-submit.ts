@@ -4,10 +4,10 @@
  * Vitest e reutilizável pela validação client-side da página `/contato`.
  * Espelha o padrão de `src/server/lib/representative-register.ts`.
  *
- * Regra de negócio: diferente do pré-cadastro de representante (CNPJ
- * obrigatório), aqui CNPJ é OPCIONAL — o formulário atende tanto pessoa
- * física quanto empresa. Quando preenchido, ainda assim precisa ser
- * estruturalmente válido (mesmo dígito verificador usado no resto do site).
+ * Regra de negócio (2026-10-15): CNPJ é OBRIGATÓRIO em todos os formulários
+ * do site (contato, catálogo e orçamento), como no pré-cadastro de
+ * representante — e precisa ser estruturalmente válido (mesmo dígito
+ * verificador usado no resto do site).
  */
 import { z } from "zod";
 import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
@@ -136,17 +136,12 @@ const contactObjectSchema = z.object({
     .max(30)
     .refine(isValidPhoneBR, { message: "invalid_phone" }),
   companyName: optionalTrimmedField(200),
-  // Opcional: string vazia vira `undefined` (bypassa o refine); quando
-  // preenchido, precisa ser um CNPJ estruturalmente válido.
-  cnpj: z.preprocess(
-    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
-    z
-      .string()
-      .trim()
-      .max(18)
-      .refine(isValidCNPJ, { message: "invalid_cnpj" })
-      .optional()
-  ),
+  cnpj: z
+    .string()
+    .trim()
+    .min(1)
+    .max(18)
+    .refine(isValidCNPJ, { message: "invalid_cnpj" }),
   subject: z.enum(CONTACT_SUBJECTS),
   // Multilinha: `<textarea>` no formulário, e o valor só aparece no corpo do
   // e-mail (escapado, dentro de `<pre>`) — nunca num cabeçalho.

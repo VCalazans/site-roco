@@ -464,11 +464,25 @@
       (`9fae93d`) e exclusão de representante sem tirar o perfil (`febc6ab`).
 - [ ] **Ainda fora de produção**: `9fae93d`, `febc6ab` e `b09a9a9` (ver "Em Andamento").
 
+### Ajustes do fluxo de lead (2026-10-15, não commitado)
+- [x] Menu: "Contato" removido; fica "Ligamos pra você" (`/contato?assunto=call_back`). Rodapé mantém "Fale conosco".
+- [x] CNPJ obrigatório em `contactSchema` (contato, catálogo e orçamento), com máscara e dígito verificador; política de
+      privacidade ajustada.
+- [x] RD Station: `RD_LEAD_SOURCES` (`site-contato-ligamos-pra-voce`, `site-contato-solicite-um-orcamento`,
+      `site-contato-fale-conosco`, `site-catalogo-baixar-catalogo`, `site-orcamento-lista-de-produtos`) no
+      `conversion_identifier` e sempre em `cf_origem`.
+- [x] WhatsApp após o envio (`src/shared/lib/lead-whatsapp.ts`): contato e orçamento abrem `wa.me` numa aba e mostram o botão
+      de fallback; catálogo só o botão. Teto de 1900 caracteres na URL.
+- [x] 2116 testes em 97 arquivos (novo `lead-whatsapp.test.ts`). tsc ok, lint 0 erros, `next build` verde. Não testado no navegador.
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
 - [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12; 1884 em 84 arquivos com a camada de segurança (2026-10-12)
 
 ## 🔄 Em Andamento
+- [ ] **Ajustes do fluxo de lead** (2026-10-15, Alto, não commitado/não implantado): implementado; falta smoke no navegador
+      (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de fallback, origem no RD). Criar `cf_origem`
+      no painel do RD (sem ele o valor `site-*` por assunto é descartado em silêncio). Ver decisionLog 2026-10-15.
 - [ ] **Spec 003 — deploy** (Alto, junto com a camada de segurança; depende da `main` e do aval): em produção conferir
       "AI Crawl Control"/"Block AI bots" na Cloudflare (podem bloquear sem aparecer no robots.txt), gerar `INDEXNOW_KEY` e
       registrar o origin trial do WebMCP para `roco.com.br` (`WEBMCP_ORIGIN_TRIAL_TOKEN`).
@@ -761,6 +775,8 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
 
 ## 🔐 Riscos de Segurança
+- (Baixo/LGPD, 2026-10-15) O link `wa.me` do lead leva nome, CNPJ, telefone e e-mail na query string. Fica no histórico do
+  navegador do próprio visitante. Não há consentimento específico para esse envio além do checkbox do formulário.
 - (Baixo/informativo, spec 003) Nome e descrição de produto vindos do ERP chegam ao MCP e ao `llms.txt` como texto não
   confiável. Risco de instrução injetada num agente só com dado de operador. As ferramentas não escrevem nada.
 - (Baixo, spec 003) `llms-full.txt` sem paginação (~800 linhas hoje); cresce com o catálogo.

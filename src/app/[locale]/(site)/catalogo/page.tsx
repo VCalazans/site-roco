@@ -134,6 +134,7 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
         </div>
 
         <CatalogForm
+          whatsappContent={dictionary.leadWhatsapp}
           content={catalog}
           locale={locale}
           pdfUrl={pdfUrl}

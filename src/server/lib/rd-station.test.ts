@@ -38,28 +38,28 @@ const createMeta = (overrides?: Partial<RdStationConversionMeta>): RdStationConv
 
 describe("buildRdStationConversionPayload", () => {
   describe("conversion_identifier", () => {
-    it("maps 'quote' subject to 'orcamento_produto'", () => {
+    it("maps 'quote' subject to 'site-contato-solicite-um-orcamento'", () => {
       const input = createContactInput({ subject: "quote" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("orcamento_produto");
+      expect(payload.payload.conversion_identifier).toBe("site-contato-solicite-um-orcamento");
     });
 
-    it("maps 'call_back' subject to 'ligamos_pra_voce'", () => {
+    it("maps 'call_back' subject to 'site-contato-ligamos-pra-voce'", () => {
       const input = createContactInput({ subject: "call_back" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("ligamos_pra_voce");
+      expect(payload.payload.conversion_identifier).toBe("site-contato-ligamos-pra-voce");
     });
 
-    it("maps 'catalog' subject to 'download_catalogo'", () => {
+    it("maps 'catalog' subject to 'site-catalogo-baixar-catalogo'", () => {
       const input = createContactInput({ subject: "catalog" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("download_catalogo");
+      expect(payload.payload.conversion_identifier).toBe("site-catalogo-baixar-catalogo");
     });
 
     it("gives every subject its own identifier", () => {
@@ -72,12 +72,12 @@ describe("buildRdStationConversionPayload", () => {
       expect(new Set(identifiers).size).toBe(identifiers.length);
     });
 
-    it("maps 'general' subject to 'contato_geral'", () => {
+    it("maps 'general' subject to 'site-contato-fale-conosco'", () => {
       const input = createContactInput({ subject: "general" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("contato_geral");
+      expect(payload.payload.conversion_identifier).toBe("site-contato-fale-conosco");
     });
   });
 
@@ -332,18 +332,19 @@ describe("buildRdStationConversionPayload", () => {
 });
 
 describe("rastreio de aquisição no payload do RD Station", () => {
-  describe("cf_origem (seção interna do site)", () => {
-    it("sends the origin as a CUSTOM field", () => {
+  describe("cf_origem (origem personalizada do formulário)", () => {
+    it("always sends the personalized source, matching the conversion_identifier", () => {
       const payload = buildRdStationConversionPayload(
-        createContactInput({ origin: "produto-detalhe" }),
+        createContactInput({ subject: "call_back", origin: "menu" }),
         createMeta()
       );
-      expect(payload.payload.cf_origem).toBe("produto-detalhe");
+      expect(payload.payload.cf_origem).toBe("site-contato-ligamos-pra-voce");
+      expect(payload.payload.conversion_identifier).toBe("site-contato-ligamos-pra-voce");
     });
 
-    it("omits cf_origem when there is no origin", () => {
+    it("sends cf_origem even without a section origin", () => {
       const payload = buildRdStationConversionPayload(createContactInput(), createMeta());
-      expect(payload.payload).not.toHaveProperty("cf_origem");
+      expect(payload.payload.cf_origem).toBe("site-contato-solicite-um-orcamento");
     });
 
     it("never puts the origin in traffic_source (that slot belongs to UTM)", () => {
@@ -385,7 +386,7 @@ describe("rastreio de aquisição no payload do RD Station", () => {
         createContactInput({ origin: "rodape", utmSource: "google" }),
         createMeta()
       );
-      expect(payload.payload.cf_origem).toBe("rodape");
+      expect(payload.payload.cf_origem).toBe("site-contato-solicite-um-orcamento");
       expect(payload.payload.traffic_source).toBe("google");
     });
   });
@@ -411,7 +412,7 @@ describe("rastreio de aquisição no payload do RD Station", () => {
       expect(stripped.payload.name).toBe("João Silva");
       expect(stripped.payload.email).toBe("joao@example.com");
       expect(stripped.payload.personal_phone).toBe(VALID_PHONE);
-      expect(stripped.payload.conversion_identifier).toBe("orcamento_produto");
+      expect(stripped.payload.conversion_identifier).toBe("site-contato-solicite-um-orcamento");
       expect(stripped.payload.client_tracking_id).toBe("uuid-123-456-789");
       expect(stripped.payload.legal_bases).toHaveLength(1);
     });
@@ -442,11 +443,10 @@ describe("rastreio de aquisição no payload do RD Station", () => {
     });
 
     it("is a no-op on a payload that has no custom field", () => {
-      const payload = buildRdStationConversionPayload(
-        // `message` entra aqui desde que `cf_mensagem` passou a ser enviado
-        // (2026-08-31): sem zerá-lo o payload ainda teria campo customizado.
-        createContactInput({ cnpj: undefined, message: undefined }),
-        createMeta({ productName: undefined, productSku: undefined })
+      // `cf_origem` vai sempre (2026-10-15): o payload sem campo customizado
+      // só existe depois de um primeiro strip.
+      const payload = stripCustomFields(
+        buildRdStationConversionPayload(createContactInput(), createMeta())
       );
       expect(hasCustomFields(payload)).toBe(false);
       expect(stripCustomFields(payload)).toEqual(payload);
@@ -743,11 +743,11 @@ describe("buildCartProductsSummary", () => {
       expect(payload.payload).not.toHaveProperty("cf_produtos_carrinho");
     });
 
-    it("cart conversion_identifier is 'orcamento_lista_produtos'", () => {
+    it("cart conversion_identifier is 'site-orcamento-lista-de-produtos'", () => {
       const input = createContactInput({ subject: "cart" });
       const meta = createMeta({ cartItems: [{ name: "Item", sku: "SKU", quantity: 1 }] });
       const payload = buildRdStationConversionPayload(input, meta);
-      expect(payload.payload.conversion_identifier).toBe("orcamento_lista_produtos");
+      expect(payload.payload.conversion_identifier).toBe("site-orcamento-lista-de-produtos");
     });
   });
 });

@@ -2378,3 +2378,37 @@ Claude; no máximo 3 cliques contados por IP a cada 10 min) e `quote_link` (link
 número de conversas.
 **Alternativas**: contadores no Redis (somem com a expiração e não têm histórico); login no conector (OAuth) para contar pessoas
 — rejeitado: atrito para quem só quer tirar uma dúvida. Nenhum IP, id de conversa ou texto de busca é gravado.
+
+## 2026-10-15 — Lead: CNPJ obrigatório, origem fixa por assunto no RD e encaminhamento ao WhatsApp após o envio
+**Decisão**: pedido do stakeholder ("deixar apenas no menu o Ligamos pra você", "CNPJ obrigatório em todos os
+formulários", "origem sempre personalizada no RD", "encaminhar também pro WhatsApp com mensagem personalizada").
+(1) **Menu**: sai o item "Contato" (`#contato`); fica só "Ligamos pra você" (`#ligamos` → `/contato?assunto=call_back`),
+nos dois idiomas. O rodapé mantém "Fale conosco".
+(2) **CNPJ obrigatório** em `contactSchema` (`src/server/lib/contact-submit.ts`), logo em `POST /api/contact` (contato,
+catálogo e orçamento). Os três formulários ganham o campo com máscara e dígito verificador; no contato o rótulo deixa
+de dizer "(opcional)". Texto da política de privacidade (`legal`) ajustado para CNPJ não opcional. O pré-cadastro de
+representante já exigia.
+(3) **RD Station, origem fixa**: `RD_LEAD_SOURCES` em `src/server/lib/rd-station.ts` substitui `CONVERSION_IDENTIFIERS`.
+Cada assunto leva um valor fixo que vai no `conversion_identifier` E sempre em `cf_origem`: `call_back` →
+`site-contato-ligamos-pra-voce`; `quote` → `site-contato-solicite-um-orcamento`; `general` → `site-contato-fale-conosco`;
+`catalog` → `site-catalogo-baixar-catalogo`; `cart` → `site-orcamento-lista-de-produtos`. Antes `cf_origem` levava a
+seção do site (menu, rodapé, hero) e só quando havia. A seção continua em `contact_submissions.origin` e no e-mail.
+(4) **WhatsApp após o envio**: helper puro `src/shared/lib/lead-whatsapp.ts` (`buildLeadWhatsappUrl`, `openLeadWhatsapp`)
+monta um `wa.me` com nome, empresa, CNPJ, telefone, e-mail, produto/itens e mensagem. Teto de 1900 caracteres na URL
+final: corta itens do fim e, depois, a mensagem; os dados de contato são sempre mantidos. Contato e orçamento, ao receber
+201, abrem o link numa aba nova, e a tela de sucesso mostra o botão com o mesmo link (o navegador pode bloquear a aba
+automática, porque a ativação do clique expira durante o fetch). Catálogo: só o botão no painel de sucesso (o download já
+ocupa a ação automática). Número: `siteLinks.whatsapp` (`NEXT_PUBLIC_WHATSAPP_NUMBER`). Textos no namespace `leadWhatsapp`.
+Quem envia a mensagem é a própria pessoa, pelo WhatsApp dela.
+**Alternativas**: não registradas nesta rodada.
+**Justificativa**: pedido explícito do stakeholder (2026-10-15).
+**Impacto**:
+- Revisa, sem apagar, as entradas de 2026-08-25 e 2026-09-30 sobre os identificadores de conversão (`orcamento_produto`,
+  `download_catalogo`, `ligamos_pra_voce`, `contato_geral`, `orcamento_lista_produtos`). O histórico do RD guarda as
+  conversões antigas com esses nomes; as novas usam os valores `site-*` acima.
+- `cf_origem` continua pendente de criação no painel do RD; a API descarta campo inexistente em silêncio, então sem ele o
+  valor novo não aparece em lugar nenhum.
+- `.env.example` atualizado. Sem migration nem mudança de schema.
+- Verificação: tsc ok, lint 0 erros (6 warnings pré-existentes), 2116 testes em 97 arquivos (novo `lead-whatsapp.test.ts`;
+  testes de `contact-submit`, `catalog-form`, `rd-station` e `turnstile-render` ajustados), `next build` verde.
+  **Não testado no navegador.** Não commitado e não implantado.

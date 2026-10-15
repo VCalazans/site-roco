@@ -19,6 +19,7 @@ export type CatalogDictionary = {
     name: string;
     email: string;
     phone: string;
+    cnpj: string;
     companyName: string;
   };
   consent: string;
@@ -31,6 +32,7 @@ export type CatalogDictionary = {
     nameTooShort: string;
     invalidEmail: string;
     invalidPhone: string;
+    invalidCnpj: string;
     consentRequired: string;
     /** Reprovação de FORMATO vinda do servidor (`{ fields: [...] }`). */
     invalid: string;

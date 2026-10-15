@@ -47,7 +47,7 @@ npm run dev        # http://localhost:3000
 |------------------------------|:------:|--------------------------------------------|
 | NEXT_PUBLIC_SITE_URL         | não    | URL pública (metadata/sitemap/robots)      |
 | NEXT_PUBLIC_CONTACT_EMAIL    | não    | E-mail de contato (CTA — fase futura)      |
-| NEXT_PUBLIC_WHATSAPP_NUMBER  | não    | WhatsApp de contato (fase futura)          |
+| NEXT_PUBLIC_WHATSAPP_NUMBER  | não    | WhatsApp da ROCO: destino do "Continuar no WhatsApp" após contato, orçamento e catálogo (2026-10-15; `siteLinks.whatsapp`) |
 | NEXT_PUBLIC_PRODUCTS_URL     | não    | Destino do CTA "Conheça nossos Produtos"   |
 | NEXT_PUBLIC_CATALOG_URL      | não    | Destino do botão "Baixar Catálogo". Vazio = catálogo online `https://catalogo.roco.com.br/catalogo-roco` (`ONLINE_CATALOG_URL` em `src/core/config/site.ts`); preencha só para apontar para outro endereço |
 | NEXT_PUBLIC_MAUTIC_TRACKING_ENABLED | não | **(Removido 2026-08-23)** Mautic saiu; substituído por RD Station — ver `NEXT_PUBLIC_RDSTATION_*` abaixo. |

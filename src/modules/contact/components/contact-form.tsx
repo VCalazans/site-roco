@@ -2,10 +2,16 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { siteLinks } from "@/core/config/site";
 import { cn } from "@/core/lib/utils";
 import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
 import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
+import {
+  buildLeadWhatsappUrl,
+  openLeadWhatsapp,
+  type LeadWhatsappDictionary,
+} from "@/shared/lib/lead-whatsapp";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
 import {
   CAPTCHA_ERROR,
@@ -53,6 +59,8 @@ type ContactFormProps = {
   origin?: LeadOrigin;
   /** Campanha externa (`?utm_*=`), já sanitizada pelo Server Component. */
   utm?: ContactUtm;
+  /** Textos da mensagem de WhatsApp aberta depois do envio (`leadWhatsapp`). */
+  whatsappContent: LeadWhatsappDictionary;
 };
 
 function emptyForm(defaultSubject: ContactSubject): FormState {
@@ -76,8 +84,7 @@ function emptyForm(defaultSubject: ContactSubject): FormState {
  * (`contactSchema` em `@/server/lib/contact-submit`), bloqueio de submit
  * inválido antes de qualquer fetch.
  *
- * Diferenças daquele form: CNPJ é OPCIONAL aqui (o form atende pessoa
- * física também — só valida o dígito verificador se preenchido); o assunto
+ * Diferenças daquele form: o assunto
  * é um select com as 3 opções fixas do servidor
  * (`SELECTABLE_CONTACT_SUBJECTS`, mesma fonte usada pela validação — nunca
  * duplicado à mão; `catalog` fica de fora porque quem o define é o
@@ -93,6 +100,7 @@ export function ContactForm({
   defaultSubject,
   origin,
   utm,
+  whatsappContent,
 }: ContactFormProps) {
   const [form, setForm] = useState<FormState>(() => emptyForm(defaultSubject ?? "general"));
   const [errors, setErrors] = useState<FormErrors>({});
@@ -101,6 +109,7 @@ export function ContactForm({
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
   const [serverError, setServerError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [whatsappHref, setWhatsappHref] = useState<string | null>(null);
   // Verificação anti-robô: o token vai no corpo e é de uso único.
   const turnstile = useTurnstile();
 
@@ -173,7 +182,8 @@ export function ContactForm({
     else if (!emailField.safeParse(form.email.trim()).success) found.email = v.invalidEmail;
     if (!form.phone.trim()) found.phone = v.required;
     else if (!isValidPhoneBR(form.phone)) found.phone = v.invalidPhone;
-    if (form.cnpj.trim() && !isValidCNPJ(form.cnpj)) found.cnpj = v.invalidCnpj;
+    if (!form.cnpj.trim()) found.cnpj = v.required;
+    else if (!isValidCNPJ(form.cnpj)) found.cnpj = v.invalidCnpj;
     if (!consent) found.consent = v.consentRequired;
 
     return found;
@@ -198,7 +208,7 @@ export function ContactForm({
           email: form.email.trim(),
           phone: form.phone,
           companyName: form.companyName.trim() || undefined,
-          cnpj: form.cnpj.trim() || undefined,
+          cnpj: form.cnpj.trim(),
           subject: form.subject,
           message: form.message.trim() || undefined,
           ...(context ? { productSlug: context.slug } : {}),
@@ -216,7 +226,25 @@ export function ContactForm({
       });
 
       if (response.ok) {
+        // Depois do lead gravado, a pessoa segue para o WhatsApp com os dados
+        // que acabou de preencher.
+        const href = buildLeadWhatsappUrl(
+          siteLinks.whatsapp,
+          {
+            subject: form.subject,
+            name: form.name,
+            companyName: form.companyName,
+            cnpj: form.cnpj,
+            phone: form.phone,
+            email: form.email,
+            product: context ? `${context.name} (SKU ${context.sku})` : undefined,
+            message: form.message,
+          },
+          whatsappContent
+        );
+        setWhatsappHref(href);
         setPhase("success");
+        openLeadWhatsapp(href);
         return;
       }
 
@@ -264,6 +292,19 @@ export function ContactForm({
         <CheckCircle2 className="mx-auto mb-3 size-10 text-neon-cyan-bright" aria-hidden />
         <h2 className="font-display text-h2 text-white">{content.success.title}</h2>
         <p className="mt-2 text-meta text-white/80">{content.success.message}</p>
+        {whatsappHref ? (
+          <>
+            <p className="mt-4 text-micro text-white/70">{whatsappContent.opened}</p>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-neon btn-neon--amber mt-3 inline-flex"
+            >
+              {whatsappContent.button}
+            </a>
+          </>
+        ) : null}
       </div>
     );
   }
@@ -344,7 +385,13 @@ export function ContactForm({
 
         <label className={fieldClass}>
           {content.form.cnpj}
-          <input type="text" inputMode="text" placeholder="00.000.000/0000-00" {...fieldProps("cnpj")} />
+          <input
+            type="text"
+            inputMode="text"
+            placeholder="00.000.000/0000-00"
+            required
+            {...fieldProps("cnpj")}
+          />
           {fieldError("cnpj")}
         </label>
 

@@ -32,6 +32,7 @@ const MINIMAL_VALID_INPUT: ContactInput = {
   name: "Maria",
   email: "maria@test.com",
   phone: "(47) 3333-2012",
+  cnpj: VALID_CNPJ,
   subject: "general",
   locale: "pt",
   consent: true,
@@ -71,7 +72,7 @@ describe("contactSchema", () => {
       expect(parsed.consent).toBe(true);
       // Optional fields should be undefined
       expect(parsed.companyName).toBeUndefined();
-      expect(parsed.cnpj).toBeUndefined();
+      expect(parsed.cnpj).toBe(VALID_CNPJ);
       expect(parsed.message).toBeUndefined();
       expect(parsed.productSlug).toBeUndefined();
     });
@@ -268,8 +269,8 @@ describe("contactSchema", () => {
     });
   });
 
-  describe("cnpj field (optional)", () => {
-    it("accepts a valid CNPJ when provided", () => {
+  describe("cnpj field (required)", () => {
+    it("accepts a valid CNPJ", () => {
       const parsed = contactSchema.parse({
         ...VALID_INPUT,
         cnpj: VALID_CNPJ,
@@ -277,27 +278,18 @@ describe("contactSchema", () => {
       expect(parsed.cnpj).toBe(VALID_CNPJ);
     });
 
-    it("converts empty CNPJ string to undefined", () => {
-      const parsed = contactSchema.parse({
-        ...VALID_INPUT,
-        cnpj: "",
-      });
-      expect(parsed.cnpj).toBeUndefined();
+    it("rejects an empty CNPJ", () => {
+      expect(contactSchema.safeParse({ ...VALID_INPUT, cnpj: "" }).success).toBe(false);
     });
 
-    it("converts whitespace-only CNPJ to undefined", () => {
-      const parsed = contactSchema.parse({
-        ...VALID_INPUT,
-        cnpj: "   ",
-      });
-      expect(parsed.cnpj).toBeUndefined();
+    it("rejects a whitespace-only CNPJ", () => {
+      expect(contactSchema.safeParse({ ...VALID_INPUT, cnpj: "   " }).success).toBe(false);
     });
 
-    it("accepts omitted CNPJ", () => {
-      const input = { ...MINIMAL_VALID_INPUT };
-      delete input.cnpj;
-      const parsed = contactSchema.parse(input);
-      expect(parsed.cnpj).toBeUndefined();
+    it("rejects an omitted CNPJ", () => {
+      const { cnpj: _omitted, ...input } = MINIMAL_VALID_INPUT;
+      void _omitted;
+      expect(contactSchema.safeParse(input).success).toBe(false);
     });
 
     it("rejects CNPJ with invalid digit verificador", () => {
@@ -612,6 +604,7 @@ describe("contactSchema", () => {
         name: "Test",
         email: "test@example.com",
         phone: "(47) 99999-1234",
+        cnpj: VALID_CNPJ,
         subject: "quote",
         locale: "pt",
         consent: true,

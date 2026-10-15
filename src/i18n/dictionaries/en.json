@@ -29,11 +29,6 @@
         "icon": ""
       },
       {
-        "label": "Contact",
-        "href": "#contato",
-        "icon": ""
-      },
-      {
         "label": "We'll call you",
         "href": "#ligamos",
         "icon": ""
@@ -236,6 +231,7 @@
       "name": "Full name",
       "email": "Email",
       "phone": "Phone",
+      "cnpj": "CNPJ (company tax ID)",
       "companyName": "Company (optional)"
     },
     "consent": "I agree to the processing of my personal data so that ROCO can contact me, in accordance with the Privacy Policy.",
@@ -249,7 +245,8 @@
       "invalidEmail": "Invalid email. Please check the address.",
       "invalidPhone": "Invalid phone number. Use the format (XX) 9XXXX-XXXX.",
       "consentRequired": "You must agree to the processing of your data to continue.",
-      "invalid": "Please check this field and try again."
+      "invalid": "Please check this field and try again.",
+      "invalidCnpj": "Invalid CNPJ. Please check the digits."
     },
     "errors": {
       "rateLimited": "Too many attempts in a row. Please wait a few minutes and try again.",
@@ -281,7 +278,7 @@
       "email": "Email",
       "phone": "Phone",
       "companyName": "Company (optional)",
-      "cnpj": "CNPJ (optional)",
+      "cnpj": "CNPJ (company tax ID)",
       "subject": {
         "label": "Subject",
         "options": {
@@ -2254,6 +2251,7 @@
       "name": "Full name",
       "email": "Email",
       "phone": "Phone",
+      "cnpj": "CNPJ (company tax ID)",
       "companyName": "Company (optional)",
       "consent": "I agree to the processing of my personal data so that ROCO can contact me, in accordance with the Privacy Policy.",
       "submit": "Request quote",
@@ -2264,7 +2262,8 @@
       "invalidEmail": "Invalid email. Please check the address.",
       "invalidPhone": "Invalid phone number. Use the format (XX) 9XXXX-XXXX.",
       "consentRequired": "You must agree to the processing of your data to continue.",
-      "invalid": "Please check this field and try again."
+      "invalid": "Please check this field and try again.",
+      "invalidCnpj": "Invalid CNPJ. Please check the digits."
     },
     "errors": {
       "validation": "Please check the details you entered and try again.",
@@ -2510,7 +2509,7 @@
             "We collect the data you enter in our forms and some technical data generated while you browse."
           ],
           "items": [
-            "Contact, quote and catalog forms: name, email, phone, company (optional), company tax ID / CNPJ (optional), subject, message (optional) and products of interest.",
+            "Contact, quote and catalog forms: name, email, phone, company (optional), company tax ID / CNPJ, subject, message (optional) and products of interest.",
             "Consent record: the confirmation you ticked in the form, with date and time.",
             "Technical data of the submission: IP address, website language, the website section you came from and campaign parameters (UTM).",
             "Sales representative pre-registration: name, email, phone, CNPJ, legal company name and password. The password is stored only as a protected code (hash).",
@@ -2818,5 +2817,28 @@
         }
       ]
     }
+  },
+  "leadWhatsapp": {
+    "intro": {
+      "call_back": "Hello! I just asked ROCO to call me through the website.",
+      "quote": "Hello! I just requested a quote on the ROCO website.",
+      "general": "Hello! I just sent a message on the ROCO website.",
+      "catalog": "Hello! I just downloaded the ROCO catalog from the website.",
+      "cart": "Hello! I just sent a quote list on the ROCO website."
+    },
+    "labels": {
+      "name": "Name",
+      "company": "Company",
+      "cnpj": "CNPJ",
+      "phone": "Phone",
+      "email": "Email",
+      "product": "Product",
+      "message": "Message",
+      "items": "Products"
+    },
+    "moreItems": "+ {count} items (full list sent through the website form)",
+    "truncated": "… (full message sent through the form)",
+    "button": "Continue on WhatsApp",
+    "opened": "We also opened WhatsApp with your details to speed things up. If it did not open, use the button below."
   }
 }

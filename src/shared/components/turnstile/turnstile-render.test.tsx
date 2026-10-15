@@ -71,7 +71,7 @@ const FORMS: FormCase[] = [
   {
     name: "contato",
     render: (locale) => (
-      <ContactForm content={(DICTIONARIES[locale] as unknown as { contact: ContactDictionary }).contact} locale={locale} />
+      <ContactForm content={(DICTIONARIES[locale] as unknown as { contact: ContactDictionary }).contact} locale={locale} whatsappContent={DICTIONARIES[locale].leadWhatsapp} />
     ),
     pending: (locale) => DICTIONARIES[locale].contact.errors.captchaPending,
   },
@@ -83,13 +83,14 @@ const FORMS: FormCase[] = [
         locale={locale}
         pdfUrl="/downloads/catalogo-roco-2026.pdf"
         origin="catalogo"
+        whatsappContent={DICTIONARIES[locale].leadWhatsapp}
       />
     ),
     pending: (locale) => DICTIONARIES[locale].catalog.errors.captchaPending,
   },
   {
     name: "orçamento",
-    render: (locale) => <CartPageView content={DICTIONARIES[locale].cart} locale={locale} />,
+    render: (locale) => <CartPageView content={DICTIONARIES[locale].cart} locale={locale} whatsappContent={DICTIONARIES[locale].leadWhatsapp} />,
     pending: (locale) => DICTIONARIES[locale].cart.errors.captchaPending,
   },
   {

@@ -1,7 +1,12 @@
 # Active Context — ROCO
-> Atualizado: 2026-10-13
+> Atualizado: 2026-10-15
 
 ## Foco Atual
+**2026-10-15 (não commitado, não implantado)**: ajustes do fluxo de lead. Menu sem "Contato" (fica "Ligamos pra você"); CNPJ
+obrigatório em `POST /api/contact` (contato, catálogo, orçamento); `cf_origem` com valor fixo por assunto no RD (ex.:
+`site-contato-ligamos-pra-voce`); botão "Continuar no WhatsApp" após o envio (`src/shared/lib/lead-whatsapp.ts`). Decisão em
+`decisionLog.md` (2026-10-15). Falta smoke no navegador e criar `cf_origem` no painel do RD.
+
 Spec 003 — "Site pronto para IA" (SEO técnico, JSON-LD, llms.txt, MCP público e WebMCP): **implementada no código em
 2026-10-13**, commitada e enviada à `main` (junto com a camada de segurança), ainda NÃO implantada (deploy automático desligado). Spec: `memory-bank/specs/003-site-pronto-para-ia.md`.
 Decisões D1–D7 em `decisionLog.md` (2026-10-13).
@@ -20,12 +25,17 @@ Decisões D1–D7 em `decisionLog.md` (2026-10-13).
   da ROCO — ver decisionLog), `/ia` ("Tire dúvidas com IA"), atalho no produto e crédito da Archicode no rodapé.
 
 ## Decisões Recentes
+- 2026-10-15: "Contato" sai do menu (fica "Ligamos pra você"); CNPJ obrigatório em todos os formulários públicos; origem no RD
+  fixa por assunto (`site-*`), também em `cf_origem`; WhatsApp após o envio com resumo personalizado (teto 1900 caracteres).
+  Revisa os identificadores de conversão de 2026-08-25 e 2026-09-30 (histórico preservado).
 - 2026-10-13: D1 bots de IA liberados (inclusive treinamento); D2 CNPJ fora até confirmação; D3 homônimo citado; D4 FAQ
   adiada; D5 llms só em pt; D6 WebMCP agora; D7 `?category=` indexável sem rota nova.
 - 2026-10-13: sitemap passa a listar produtos (revisa a decisão de 2026-08-11).
 - 2026-10-13: `/mcp` na raiz exige entrada em `ROOT_ROUTES` e no matcher do `src/proxy.ts`.
 
 ## Próximos Passos Prioritários
+0. **Lead (2026-10-15)**: smoke no navegador (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de
+   fallback, origem no RD); criar `cf_origem` no painel do RD; commit e deploy junto com o restante.
 1. **Deploy** da spec 003 junto com a camada de segurança (depende do avanço da `main` e do aval do stakeholder; ver abaixo).
 2. Em produção: conferir "AI Crawl Control"/"Block AI bots" na Cloudflare (podem bloquear sem aparecer no robots.txt); gerar
    `INDEXNOW_KEY`; registrar o origin trial do WebMCP para `roco.com.br` (`WEBMCP_ORIGIN_TRIAL_TOKEN`).

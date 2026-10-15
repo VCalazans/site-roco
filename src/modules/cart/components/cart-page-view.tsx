@@ -8,7 +8,13 @@ import { productsPath, siteLinks } from "@/core/config/site";
 import { contactSchema, HONEYPOT_FIELD, MAX_CART_ITEM_QUANTITY } from "@/server/lib/contact-submit";
 import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
 import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
+import { formatCNPJ, isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { interpolate } from "@/shared/lib/interpolate";
+import {
+  buildLeadWhatsappUrl,
+  openLeadWhatsapp,
+  type LeadWhatsappDictionary,
+} from "@/shared/lib/lead-whatsapp";
 import { formatPhoneBR, isValidPhoneBR } from "@/shared/lib/phone";
 import {
   CAPTCHA_ERROR,
@@ -36,7 +42,7 @@ const CART_SUBJECT = "cart" as const;
 /** Campanha externa (`utm_*`), já resolvida/sanitizada pelo Server Component. */
 export type CartUtm = { source?: string; medium?: string; campaign?: string };
 
-type TextFieldName = "name" | "email" | "phone" | "companyName";
+type TextFieldName = "name" | "email" | "phone" | "cnpj" | "companyName";
 type FormState = Record<TextFieldName, string>;
 type FormErrors = Partial<Record<TextFieldName, string>> & { consent?: string };
 
@@ -49,9 +55,11 @@ type CartPageViewProps = {
   utm?: CartUtm;
   /** `assistente-ia` quando a lista veio de um link montado pela IA (MCP). */
   origin?: "assistente-ia";
+  /** Textos da mensagem de WhatsApp aberta depois do envio (`leadWhatsapp`). */
+  whatsappContent: LeadWhatsappDictionary;
 };
 
-const EMPTY_FORM: FormState = { name: "", email: "", phone: "", companyName: "" };
+const EMPTY_FORM: FormState = { name: "", email: "", phone: "", cnpj: "", companyName: "" };
 
 /**
  * Título FIXO da página — mesmo papel de `contact.headline`/`contact.subheadline`
@@ -80,7 +88,7 @@ function PageHeading({ content, children }: { content: CartDictionary; children:
  * este componente só o lê/muta; a fonte de verdade para o ENVIO é sempre o
  * servidor, que re-resolve nome/SKU a partir do `slug` no submit.
  */
-export function CartPageView({ content, locale, utm, origin }: CartPageViewProps) {
+export function CartPageView({ content, locale, utm, origin, whatsappContent }: CartPageViewProps) {
   const items = useCartItems();
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -90,13 +98,15 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
   const [serverError, setServerError] = useState<string | null>(null);
   const [cartEmptyError, setCartEmptyError] = useState(false);
   const [honeypot, setHoneypot] = useState("");
+  const [successWhatsappHref, setSuccessWhatsappHref] = useState<string | null>(null);
   // Verificação anti-robô: o token vai no corpo e é de uso único.
   const turnstile = useTurnstile();
 
   function setField(name: TextFieldName) {
     return (event: ChangeEvent<HTMLInputElement>) => {
       const raw = event.target.value;
-      const value = name === "phone" ? formatPhoneBR(raw) : raw;
+      const value =
+        name === "phone" ? formatPhoneBR(raw) : name === "cnpj" ? formatCNPJ(raw) : raw;
       setForm((current) => ({ ...current, [name]: value }));
       setErrors((current) => ({ ...current, [name]: undefined }));
       setServerError(null);
@@ -123,6 +133,7 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
       name: ["name", v.invalid],
       email: ["email", v.invalidEmail],
       phone: ["phone", v.invalidPhone],
+      cnpj: ["cnpj", v.invalidCnpj],
       companyName: ["companyName", v.invalid],
       consent: ["consent", v.consentRequired],
     };
@@ -145,6 +156,8 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
     else if (!emailField.safeParse(form.email.trim()).success) found.email = v.invalidEmail;
     if (!form.phone.trim()) found.phone = v.required;
     else if (!isValidPhoneBR(form.phone)) found.phone = v.invalidPhone;
+    if (!form.cnpj.trim()) found.cnpj = v.required;
+    else if (!isValidCNPJ(form.cnpj)) found.cnpj = v.invalidCnpj;
     if (!consent) found.consent = v.consentRequired;
 
     return found;
@@ -172,6 +185,7 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
           email: form.email.trim(),
           phone: form.phone,
           companyName: form.companyName.trim() || undefined,
+          cnpj: form.cnpj.trim(),
           subject: CART_SUBJECT,
           items: items.map((item) => ({ slug: item.slug, quantity: item.quantity })),
           // Rastreio de campanha (UTM): o servidor grava `origin: "orcamento"`
@@ -191,7 +205,24 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
       });
 
       if (response.ok) {
+        // Monta a mensagem ANTES de limpar a lista: depois do envio a pessoa
+        // segue para o WhatsApp com os dados e os produtos que pediu.
+        const href = buildLeadWhatsappUrl(
+          siteLinks.whatsapp,
+          {
+            subject: CART_SUBJECT,
+            name: form.name,
+            companyName: form.companyName,
+            cnpj: form.cnpj,
+            phone: form.phone,
+            email: form.email,
+            items: items.map((item) => ({ name: item.name, sku: item.sku, quantity: item.quantity })),
+          },
+          whatsappContent
+        );
+        setSuccessWhatsappHref(href);
         setPhase("success");
+        openLeadWhatsapp(href);
         // A unidade de trabalho terminou: sem isto a pessoa voltaria e veria
         // os mesmos itens "fantasma" depois de já ter enviado a solicitação.
         clearCart();
@@ -261,6 +292,19 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
           <CheckCircle2 className="mx-auto mb-3 size-10 text-neon-cyan-bright" aria-hidden />
           <h2 className="font-display text-h2 text-white">{content.success.title}</h2>
           <p className="mt-2 text-meta text-white/80">{content.success.message}</p>
+          {successWhatsappHref ? (
+            <>
+              <p className="mt-4 text-micro text-white/70">{whatsappContent.opened}</p>
+              <a
+                href={successWhatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-neon btn-neon--amber mt-3 inline-flex"
+              >
+                {whatsappContent.button}
+              </a>
+            </>
+          ) : null}
           <Link href={productsPath(locale)} className="btn-neon mt-5 inline-flex">
             {content.page.emptyCta}
           </Link>
@@ -490,7 +534,19 @@ export function CartPageView({ content, locale, utm, origin }: CartPageViewProps
               {fieldError("phone")}
             </label>
 
-            <label className={cn(fieldClass, "sm:col-span-2")}>
+            <label className={fieldClass}>
+              {content.form.cnpj}
+              <input
+                type="text"
+                inputMode="text"
+                placeholder="00.000.000/0000-00"
+                required
+                {...fieldProps("cnpj")}
+              />
+              {fieldError("cnpj")}
+            </label>
+
+            <label className={fieldClass}>
               {content.form.companyName}
               <input type="text" autoComplete="organization" {...fieldProps("companyName")} />
               {fieldError("companyName")}

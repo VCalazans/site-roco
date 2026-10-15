@@ -116,6 +116,7 @@ export default async function QuotePage({ params, searchParams }: PageProps) {
           <QuoteImport items={imported} missing={requested.length - imported.length} copy={cart.imported} />
         ) : null}
         <CartPageView
+          whatsappContent={dictionary.leadWhatsapp}
           content={cart}
           locale={locale}
           utm={utm}

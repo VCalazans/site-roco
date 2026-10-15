@@ -12,6 +12,7 @@
 import { CATALOG_PDF_FILENAME } from "@/core/config/site";
 import { contactSchema } from "@/server/lib/contact-submit";
 import { normalizeLeadOrigin, type LeadOrigin } from "@/shared/lib/lead-origin";
+import { isValidCNPJ } from "@/shared/components/contact-form/cnpj";
 import { isValidPhoneBR } from "@/shared/lib/phone";
 
 /**
@@ -19,7 +20,7 @@ import { isValidPhoneBR } from "@/shared/lib/phone";
  * `/contato` (`SELECTABLE_CONTACT_SUBJECTS`) porque quem o define é esta
  * página, não o visitante — ver `CONTACT_SUBJECTS` em
  * `@/server/lib/contact-submit`, que o aceita e o mapeia para o
- * `conversion_identifier` `download_catalogo` no RD Station.
+ * `conversion_identifier` `site-catalogo-baixar-catalogo` no RD Station.
  */
 export const CATALOG_SUBJECT = "catalog" as const;
 
@@ -57,6 +58,7 @@ export type CatalogFormValues = {
   name: string;
   email: string;
   phone: string;
+  cnpj: string;
   companyName: string;
 };
 
@@ -72,6 +74,7 @@ export type CatalogErrorCode =
   | "nameTooShort"
   | "invalidEmail"
   | "invalidPhone"
+  | "invalidCnpj"
   | "consentRequired"
   | "invalid";
 
@@ -84,8 +87,9 @@ export type CatalogFormErrors = Partial<
  * o submit ANTES de qualquer fetch — o servidor revalida tudo de novo, aqui é
  * só para a pessoa receber o erro no campo em vez de um 400 genérico.
  *
- * `companyName` é opcional (só o teto de tamanho vale); `cnpj`, `message` e
- * `productSlug` não existem neste formulário — quem quer falar de um produto
+ * `companyName` é opcional (só o teto de tamanho vale); `cnpj` é obrigatório
+ * (2026-10-15, todos os formulários); `message` e `productSlug` não existem
+ * neste formulário — quem quer falar de um produto
  * específico vai para `/contato`.
  */
 export function validateCatalogForm(
@@ -105,6 +109,10 @@ export function validateCatalogForm(
   const phone = values.phone.trim();
   if (!phone) errors.phone = "required";
   else if (!isValidPhoneBR(phone)) errors.phone = "invalidPhone";
+
+  const cnpj = values.cnpj.trim();
+  if (!cnpj) errors.cnpj = "required";
+  else if (!isValidCNPJ(cnpj)) errors.cnpj = "invalidCnpj";
 
   if (!consent) errors.consent = "consentRequired";
 
@@ -154,6 +162,7 @@ const SERVER_FIELD_ERRORS: Record<
   name: ["name", "invalid"],
   email: ["email", "invalidEmail"],
   phone: ["phone", "invalidPhone"],
+  cnpj: ["cnpj", "invalidCnpj"],
   companyName: ["companyName", "invalid"],
   consent: ["consent", "consentRequired"],
 };

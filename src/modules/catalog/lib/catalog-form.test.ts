@@ -17,6 +17,7 @@ const VALID: CatalogFormValues = {
   name: "Maria Silva",
   email: "maria@exemplo.com.br",
   phone: "(47) 99999-8888",
+  cnpj: "11.222.333/0001-81",
   companyName: "Construtora Exemplo",
 };
 
@@ -31,6 +32,16 @@ describe("validateCatalogForm", () => {
 
   it("aceita empresa vazia (campo opcional)", () => {
     expect(validateCatalogForm(values({ companyName: "" }), true)).toEqual({});
+  });
+
+  it("exige CNPJ", () => {
+    expect(validateCatalogForm(values({ cnpj: "  " }), true)).toEqual({ cnpj: "required" });
+  });
+
+  it("recusa CNPJ com dígito verificador errado", () => {
+    expect(validateCatalogForm(values({ cnpj: "11.222.333/0001-80" }), true)).toEqual({
+      cnpj: "invalidCnpj",
+    });
   });
 
   it("exige nome", () => {
@@ -73,10 +84,11 @@ describe("validateCatalogForm", () => {
   });
 
   it("acumula todos os erros de uma vez (a pessoa corrige tudo numa passada)", () => {
-    expect(validateCatalogForm({ name: "", email: "x", phone: "", companyName: "" }, false)).toEqual({
+    expect(validateCatalogForm({ name: "", email: "x", phone: "", cnpj: "", companyName: "" }, false)).toEqual({
       name: "required",
       email: "invalidEmail",
       phone: "required",
+      cnpj: "required",
       consent: "consentRequired",
     });
   });
@@ -113,6 +125,7 @@ describe("paridade com o schema do servidor", () => {
       name: VALID.name,
       email: VALID.email,
       phone: VALID.phone,
+      cnpj: VALID.cnpj,
       companyName: VALID.companyName,
       subject: CATALOG_SUBJECT,
       origin: CATALOG_FALLBACK_ORIGIN,
@@ -140,6 +153,7 @@ describe("paridade com o schema do servidor", () => {
       name: VALID.name,
       email: VALID.email,
       phone: VALID.phone,
+      cnpj: VALID.cnpj,
       companyName: "",
       subject: CATALOG_SUBJECT,
       locale: "pt",
@@ -259,7 +273,7 @@ describe("catalogServerFieldErrors", () => {
   });
 
   it("ignora campo que este formulário nem renderiza (o caller cai no banner)", () => {
-    expect(catalogServerFieldErrors(["cnpj", "message", "productSlug"])).toEqual({});
+    expect(catalogServerFieldErrors(["message", "productSlug"])).toEqual({});
   });
 
   it("ignora entradas que não são string", () => {
@@ -275,7 +289,7 @@ describe("catalogServerFieldErrors", () => {
 
   it("o resultado alimenta hasCatalogFormErrors (é o que decide o banner)", () => {
     expect(hasCatalogFormErrors(catalogServerFieldErrors(["email"]))).toBe(true);
-    expect(hasCatalogFormErrors(catalogServerFieldErrors(["cnpj"]))).toBe(false);
+    expect(hasCatalogFormErrors(catalogServerFieldErrors(["message"]))).toBe(false);
   });
 
   it("nunca lança, mesmo com array gigante ou valores estranhos", () => {

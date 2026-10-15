@@ -29,11 +29,6 @@
         "icon": ""
       },
       {
-        "label": "Contato",
-        "href": "#contato",
-        "icon": ""
-      },
-      {
         "label": "Ligamos pra você",
         "href": "#ligamos",
         "icon": ""
@@ -236,6 +231,7 @@
       "name": "Nome completo",
       "email": "E-mail",
       "phone": "Telefone",
+      "cnpj": "CNPJ",
       "companyName": "Empresa (opcional)"
     },
     "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
@@ -249,7 +245,8 @@
       "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
       "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
       "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar.",
-      "invalid": "Confira este campo e tente novamente."
+      "invalid": "Confira este campo e tente novamente.",
+      "invalidCnpj": "CNPJ inválido. Confira os números digitados."
     },
     "errors": {
       "rateLimited": "Muitas tentativas em sequência. Aguarde alguns minutos e tente novamente.",
@@ -281,7 +278,7 @@
       "email": "E-mail",
       "phone": "Telefone",
       "companyName": "Empresa (opcional)",
-      "cnpj": "CNPJ (opcional)",
+      "cnpj": "CNPJ",
       "subject": {
         "label": "Assunto",
         "options": {
@@ -2254,6 +2251,7 @@
       "name": "Nome completo",
       "email": "E-mail",
       "phone": "Telefone",
+      "cnpj": "CNPJ",
       "companyName": "Empresa (opcional)",
       "consent": "Concordo com o tratamento dos meus dados pessoais para que a ROCO entre em contato comigo, conforme a Política de Privacidade.",
       "submit": "Solicitar orçamento",
@@ -2264,7 +2262,8 @@
       "invalidEmail": "E-mail inválido. Confira o endereço digitado.",
       "invalidPhone": "Telefone inválido. Use o formato (XX) 9XXXX-XXXX.",
       "consentRequired": "Você precisa concordar com o tratamento dos seus dados para continuar.",
-      "invalid": "Confira este campo e tente novamente."
+      "invalid": "Confira este campo e tente novamente.",
+      "invalidCnpj": "CNPJ inválido. Confira os números digitados."
     },
     "errors": {
       "validation": "Confira os dados informados e tente novamente.",
@@ -2510,7 +2509,7 @@
             "Coletamos os dados que você informa nos formulários e alguns dados técnicos gerados pela navegação."
           ],
           "items": [
-            "Formulários de contato, orçamento e catálogo: nome, e-mail, telefone, empresa (opcional), CNPJ (opcional), assunto, mensagem (opcional) e produtos de interesse.",
+            "Formulários de contato, orçamento e catálogo: nome, e-mail, telefone, empresa (opcional), CNPJ, assunto, mensagem (opcional) e produtos de interesse.",
             "Registro do consentimento: a confirmação marcada no formulário, com data e hora.",
             "Dados técnicos do envio: endereço IP, idioma do site, a seção do site de onde você veio e parâmetros de campanha (UTM).",
             "Pré-cadastro de representantes: nome, e-mail, telefone, CNPJ, razão social e senha. A senha é guardada apenas como código protegido (hash).",
@@ -2818,5 +2817,28 @@
         }
       ]
     }
+  },
+  "leadWhatsapp": {
+    "intro": {
+      "call_back": "Olá! Acabei de pedir pelo site que a ROCO me ligue.",
+      "quote": "Olá! Acabei de solicitar um orçamento pelo site da ROCO.",
+      "general": "Olá! Acabei de enviar uma mensagem pelo site da ROCO.",
+      "catalog": "Olá! Acabei de baixar o catálogo da ROCO pelo site.",
+      "cart": "Olá! Acabei de enviar uma lista de orçamento pelo site da ROCO."
+    },
+    "labels": {
+      "name": "Nome",
+      "company": "Empresa",
+      "cnpj": "CNPJ",
+      "phone": "Telefone",
+      "email": "E-mail",
+      "product": "Produto",
+      "message": "Mensagem",
+      "items": "Produtos"
+    },
+    "moreItems": "+ {count} itens (lista completa enviada pelo formulário do site)",
+    "truncated": "… (mensagem completa enviada pelo formulário)",
+    "button": "Continuar no WhatsApp",
+    "opened": "Também abrimos o WhatsApp com seus dados para agilizar o atendimento. Se ele não abriu, use o botão abaixo."
   }
 }

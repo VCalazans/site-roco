@@ -2,6 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { siteLinks } from "@/core/config/site";
 import { cn } from "@/core/lib/utils";
 import {
   CATALOG_COMPANY_MAX,
@@ -21,6 +22,8 @@ import type { CatalogDictionary } from "@/modules/catalog/lib/types";
 import { HONEYPOT_FIELD } from "@/server/lib/contact-submit";
 import { TurnstileField } from "@/shared/components/turnstile/turnstile-field";
 import { useTurnstile } from "@/shared/components/turnstile/use-turnstile";
+import { formatCNPJ } from "@/shared/components/contact-form/cnpj";
+import { buildLeadWhatsappUrl, type LeadWhatsappDictionary } from "@/shared/lib/lead-whatsapp";
 import { formatPhoneBR } from "@/shared/lib/phone";
 import type { LeadOrigin } from "@/shared/lib/lead-origin";
 import {
@@ -45,12 +48,15 @@ type CatalogFormProps = {
   utm?: CatalogUtm;
   /** Política de privacidade (`NEXT_PUBLIC_PRIVACY_URL`); vazia = texto sem link. */
   privacyHref?: string;
+  /** Textos da mensagem de WhatsApp oferecida depois do envio (`leadWhatsapp`). */
+  whatsappContent: LeadWhatsappDictionary;
 };
 
 const EMPTY_FORM: CatalogFormValues = {
   name: "",
   email: "",
   phone: "",
+  cnpj: "",
   companyName: "",
 };
 
@@ -66,7 +72,7 @@ const EMPTY_FORM: CatalogFormValues = {
  * própria: rate limit, honeypot, gravação em `contact_submissions` e os dois
  * canais de saída (RD Station, e-mail) já estão lá, e duplicá-los criaria uma
  * segunda superfície pública para manter em dia. No RD Station o assunto vira
- * o `conversion_identifier` `download_catalogo`, então o funil separa esta
+ * o `conversion_identifier` `site-catalogo-baixar-catalogo`, então o funil separa esta
  * intenção das outras três sem nenhum campo extra.
  *
  * Tailwind puro (`.form-neon`), como todo o route group `(site)`: MUI aqui já
@@ -79,6 +85,7 @@ export function CatalogForm({
   origin,
   utm,
   privacyHref,
+  whatsappContent,
 }: CatalogFormProps) {
   const [form, setForm] = useState<CatalogFormValues>(EMPTY_FORM);
   const [errors, setErrors] = useState<CatalogFormErrors>({});
@@ -86,6 +93,7 @@ export function CatalogForm({
   const [phase, setPhase] = useState<"idle" | "sending" | "success">("idle");
   const [serverError, setServerError] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [whatsappHref, setWhatsappHref] = useState<string | null>(null);
   // Verificação anti-robô: o token vai no corpo e é de uso único.
   const turnstile = useTurnstile();
 
@@ -94,7 +102,8 @@ export function CatalogForm({
   function setField(name: CatalogFieldName) {
     return (event: ChangeEvent<HTMLInputElement>) => {
       const raw = event.target.value;
-      const value = name === "phone" ? formatPhoneBR(raw) : raw;
+      const value =
+        name === "phone" ? formatPhoneBR(raw) : name === "cnpj" ? formatCNPJ(raw) : raw;
       setForm((current) => ({ ...current, [name]: value }));
       setErrors((current) => ({ ...current, [name]: undefined }));
       setServerError(null);
@@ -149,6 +158,7 @@ export function CatalogForm({
           email: form.email.trim(),
           phone: form.phone,
           companyName: form.companyName.trim() || undefined,
+          cnpj: form.cnpj.trim(),
           subject: CATALOG_SUBJECT,
           // Rastreio de aquisição: o servidor revalida os dois (origem contra
           // a lista fechada, UTM saneada) — aqui é só transporte.
@@ -164,6 +174,22 @@ export function CatalogForm({
       });
 
       if (response.ok) {
+        // Aqui o WhatsApp fica só no botão do painel de sucesso: o download já
+        // ocupa a ação automática (abrir os dois disputaria a aba/janela).
+        setWhatsappHref(
+          buildLeadWhatsappUrl(
+            siteLinks.whatsapp,
+            {
+              subject: CATALOG_SUBJECT,
+              name: form.name,
+              companyName: form.companyName,
+              cnpj: form.cnpj,
+              phone: form.phone,
+              email: form.email,
+            },
+            whatsappContent
+          )
+        );
         setPhase("success");
         triggerDownload();
         return;
@@ -220,6 +246,16 @@ export function CatalogForm({
         <a {...downloadLink} className="btn-neon mt-5 inline-flex">
           {content.success.action}
         </a>
+        {whatsappHref ? (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-neon btn-neon--amber mt-3 inline-flex"
+          >
+            {whatsappContent.button}
+          </a>
+        ) : null}
       </div>
     );
   }
@@ -311,7 +347,20 @@ export function CatalogForm({
           {fieldError("phone")}
         </label>
 
-        <label className={cn(fieldClass, "sm:col-span-2")}>
+        <label className={fieldClass}>
+          {content.fields.cnpj}
+          <input
+            type="text"
+            inputMode="text"
+            placeholder="00.000.000/0000-00"
+            maxLength={18}
+            required
+            {...fieldProps("cnpj")}
+          />
+          {fieldError("cnpj")}
+        </label>
+
+        <label className={fieldClass}>
           {content.fields.companyName}
           <input
             type="text"
