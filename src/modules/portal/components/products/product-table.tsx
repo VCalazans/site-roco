@@ -29,6 +29,7 @@ import type {
   ProductBadge,
   ProductListItem,
 } from "@/modules/portal/lib/product-types";
+import { useLocalImageSrc } from "@/modules/portal/lib/local-image-previews";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { interpolate } from "@/shared/lib/interpolate";
 import { ProductRowActions } from "./product-row-actions";
@@ -80,7 +81,9 @@ type ProductTableProps = {
   onDelete: (product: ProductListItem) => void;
 };
 
-function ProductThumb({ src }: { src: string | null }) {
+function ProductThumb({ src: serverSrc }: { src: string | null }) {
+  // Foto enviada nesta aba aparece na hora (prévia local); excluída some antes da lista voltar.
+  const src = useLocalImageSrc(serverSrc);
   return (
     <Box
       aria-hidden

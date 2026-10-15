@@ -7,6 +7,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Locale } from "@/i18n/config";
+import { useLocalImageSrc } from "@/modules/portal/lib/local-image-previews";
 import type { ProductImage } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
 import { formatFileSize } from "@/shared/lib/file-size";
@@ -23,8 +24,6 @@ type ProductImageTileProps = {
   children?: ReactNode;
   /** Botões de ação (usar como capa, baixar, remover). */
   actions?: ReactNode;
-  /** Prévia local (blob:) da imagem recém-enviada: aparece na hora, sem baixar o original. */
-  previewUrl?: string;
 };
 
 /**
@@ -40,8 +39,9 @@ export function ProductImageTile({
   labels,
   children,
   actions,
-  previewUrl,
 }: ProductImageTileProps) {
+  // Recém-enviada nesta aba: a prévia local aparece na hora, sem baixar o original.
+  const src = useLocalImageSrc(image.url) ?? image.url;
   return (
     <Paper
       variant="outlined"
@@ -65,7 +65,7 @@ export function ProductImageTile({
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do domínio público do R2, fora do `next/image` de propósito (mesma escolha da tabela de produtos): o otimizador reprocessaria cada miniatura do portal. */}
         <img
-          src={previewUrl ?? image.url}
+          src={src}
           alt={image.altPt ?? ""}
           loading="lazy"
           decoding="async"

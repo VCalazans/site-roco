@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { useState, type ChangeEvent, type DragEvent } from "react";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -21,6 +21,7 @@ import Typography from "@mui/material/Typography";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/core/trpc-client";
 import type { Locale } from "@/i18n/config";
+import { markImageRemoved, registerLocalPreview } from "@/modules/portal/lib/local-image-previews";
 import { productImageDownloadHref, siteCoverId } from "@/modules/portal/lib/product-images";
 import type { ProductImage } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
@@ -103,17 +104,6 @@ export function ProductImagesManager({
   const [justUploaded, setJustUploaded] = useState<ProductImage[]>([]);
   /** Excluídas aqui: somem no clique, antes da lista do servidor voltar. */
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  /** Prévia local por id de imagem: o tile não baixa o original recém-enviado. */
-  const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
-  const objectUrls = useRef<string[]>([]);
-
-  // Libera as prévias locais quando o gerenciador sai da tela.
-  useEffect(() => {
-    const urls = objectUrls.current;
-    return () => {
-      for (const url of urls) URL.revokeObjectURL(url);
-    };
-  }, []);
 
   const presignMutation = useMutation(trpc.products.presignImageUpload.mutationOptions());
   const confirmMutation = useMutation(trpc.products.confirmImageUpload.mutationOptions());
@@ -136,7 +126,6 @@ export function ProductImagesManager({
       .filter((file) => isAllowedImageType(file.type))
       .map((file) => {
         const previewUrl = URL.createObjectURL(file);
-        objectUrls.current.push(previewUrl);
         return {
           key: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,
           file,
@@ -201,7 +190,8 @@ export function ProductImagesManager({
           altPt: item.alt || undefined,
           showOnSite: item.showOnSite,
         });
-        setLocalPreviews((current) => ({ ...current, [image.id]: item.previewUrl }));
+        // Cadastro e tabela de produtos passam a mostrar a prévia local na hora.
+        registerLocalPreview(image.url, item.previewUrl);
         setJustUploaded((current) => [
           ...current,
           {
@@ -228,18 +218,24 @@ export function ProductImagesManager({
   async function runImageAction(
     imageId: string,
     action: () => Promise<unknown>,
-    options: { removes?: boolean } = {}
+    options: { removes?: string } = {}
   ) {
     if (busyImageId) return;
     setError(null);
     setBusyImageId(imageId);
     // Exclusão some no clique; volta se o servidor recusar.
-    if (options.removes) setRemovedIds((current) => [...current, imageId]);
+    if (options.removes) {
+      setRemovedIds((current) => [...current, imageId]);
+      markImageRemoved(options.removes);
+    }
     try {
       await action();
       onImagesChanged();
     } catch {
-      if (options.removes) setRemovedIds((current) => current.filter((id) => id !== imageId));
+      if (options.removes) {
+        setRemovedIds((current) => current.filter((id) => id !== imageId));
+        markImageRemoved(options.removes, true);
+      }
       setError(dictionary.updateError);
     } finally {
       setBusyImageId(null);
@@ -327,7 +323,10 @@ export function ProductImagesManager({
               <IconButton
                 size="small"
                 aria-label={`${removeLabel}: ${item.file.name}`}
-                onClick={() => setPending((current) => current.filter((pendingItem) => pendingItem.key !== item.key))}
+                onClick={() => {
+                  URL.revokeObjectURL(item.previewUrl);
+                  setPending((current) => current.filter((pendingItem) => pendingItem.key !== item.key));
+                }}
                 sx={{ alignSelf: { xs: "flex-end", sm: "center" } }}
               >
                 <CloseIcon fontSize="small" />
@@ -358,7 +357,6 @@ export function ProductImagesManager({
             <ProductImageTile
               key={image.id}
               image={image}
-              previewUrl={localPreviews[image.id]}
               isCover={isCover}
               locale={locale}
               labels={dictionary}
@@ -392,7 +390,7 @@ export function ProductImagesManager({
                       disabled={busy}
                       onClick={() =>
                         void runImageAction(image.id, () => deleteMutation.mutateAsync({ imageId: image.id }), {
-                          removes: true,
+                          removes: image.url,
                         })
                       }
                     />
