@@ -106,11 +106,13 @@ export function ProductImagesManager({
   const coverId = siteCoverId(images);
 
   function handleSelectFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files;
+    // Copia ANTES de limpar o input: no Chrome o `FileList` é esvaziado no
+    // lugar por `value = ""`, e a seleção chegava aqui vazia (nada entrava na fila).
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!files || files.length === 0) return;
+    if (files.length === 0) return;
 
-    const accepted: PendingImage[] = Array.from(files)
+    const accepted: PendingImage[] = files
       .filter((file) => isAllowedImageType(file.type))
       .map((file) => ({
         key: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`,

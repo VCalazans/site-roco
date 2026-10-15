@@ -69,14 +69,16 @@ export function DocumentsStep({
   );
 
   async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = event.target.files;
+    // Copia ANTES de limpar o input: no Chrome o `FileList` é esvaziado no
+    // lugar por `value = ""`, e a seleção chegava aqui vazia.
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!files || files.length === 0) {
+    if (files.length === 0) {
       return;
     }
     setError(null);
 
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       if (file.size > MAX_SIZE_BYTES) {
         setError(dictionary.validation.fileTooLarge);
         continue;
