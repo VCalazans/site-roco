@@ -23,6 +23,8 @@ type ProductImageTileProps = {
   children?: ReactNode;
   /** Botões de ação (usar como capa, baixar, remover). */
   actions?: ReactNode;
+  /** Prévia local (blob:) da imagem recém-enviada: aparece na hora, sem baixar o original. */
+  previewUrl?: string;
 };
 
 /**
@@ -31,7 +33,15 @@ type ProductImageTileProps = {
  * miniatura, selo de capa, se aparece no site ou só no portal, nome do
  * arquivo e tamanho do ORIGINAL.
  */
-export function ProductImageTile({ image, isCover, locale, labels, children, actions }: ProductImageTileProps) {
+export function ProductImageTile({
+  image,
+  isCover,
+  locale,
+  labels,
+  children,
+  actions,
+  previewUrl,
+}: ProductImageTileProps) {
   return (
     <Paper
       variant="outlined"
@@ -55,7 +65,7 @@ export function ProductImageTile({ image, isCover, locale, labels, children, act
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- miniatura do domínio público do R2, fora do `next/image` de propósito (mesma escolha da tabela de produtos): o otimizador reprocessaria cada miniatura do portal. */}
         <img
-          src={image.url}
+          src={previewUrl ?? image.url}
           alt={image.altPt ?? ""}
           loading="lazy"
           decoding="async"
