@@ -30,8 +30,18 @@ export const PG_QUERY_CANCELED = "57014";
  * tentar de novo, porque o obstáculo era o lock, não a query.
  */
 export function isStatementTimeout(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) {
-    return false;
-  }
-  return (error as { code?: unknown }).code === PG_QUERY_CANCELED;
+  return pgErrorCode(error) === PG_QUERY_CANCELED;
+}
+
+/**
+ * SQLSTATE do erro, venha ele cru do driver `pg` ou embrulhado pelo Drizzle.
+ * Desde o drizzle-orm 0.45 toda falha de consulta chega como
+ * `DrizzleQueryError`, com o erro do `pg` em `cause` — ler só `error.code`
+ * nunca acha o código (um SKU duplicado virava 500 genérico em vez de 409).
+ */
+export function pgErrorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) return undefined;
+  const withCode = error as { code?: unknown; cause?: { code?: unknown } | null };
+  const code = withCode.cause?.code ?? withCode.code;
+  return typeof code === "string" ? code : undefined;
 }

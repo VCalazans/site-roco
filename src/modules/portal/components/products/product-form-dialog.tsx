@@ -50,6 +50,7 @@ import {
   type ProductFormState,
 } from "@/modules/portal/lib/product-types";
 import type { PortalDictionary } from "@/modules/portal/lib/types";
+import { interpolate } from "@/shared/lib/interpolate";
 import { ProductImagesManager } from "./product-images-manager";
 
 const BADGE_LABEL_KEY: Record<ProductBadge, keyof PortalDictionary["products"]["badges"]> = {
@@ -144,14 +145,22 @@ function SwitchField({
   );
 }
 
-/** Mensagem de erro do salvamento conforme o código tRPC (sem vazar texto do servidor). */
+/**
+ * Mensagem de erro do salvamento conforme o código tRPC (sem vazar texto do
+ * servidor). Erro interno mostra só a referência (`data.errorRef`), que a
+ * equipe procura no log do servidor.
+ */
 function saveErrorMessage(
   error: unknown,
   errors: PortalDictionary["products"]["form"]["errors"],
   fallback: string
 ): string {
-  const code = (error as { data?: { code?: string } } | null)?.data?.code;
+  const trpcError = error as { data?: { code?: string; errorRef?: string } } | null;
+  const code = trpcError?.data?.code;
+  const ref = trpcError?.data?.errorRef;
+  if (code === "INTERNAL_SERVER_ERROR" && ref) return interpolate(errors.reference, { message: fallback, ref });
   if (code === "CONFLICT") return errors.duplicate;
+  if (code === "BAD_REQUEST") return errors.invalid;
   if (code === "FORBIDDEN") return errors.forbidden;
   return fallback;
 }

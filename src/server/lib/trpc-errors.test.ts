@@ -1,6 +1,6 @@
 import { getTRPCErrorFromUnknown, TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
-import { isUnexpectedError, unexpectedErrorCode } from "./trpc-errors";
+import { errorRefOf, isUnexpectedError, unexpectedErrorCode } from "./trpc-errors";
 
 /** Erro como o Drizzle o lança: mensagem com a consulta e os parâmetros, erro do pg na causa. */
 function drizzleError() {
@@ -26,5 +26,15 @@ describe("isUnexpectedError", () => {
         new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao salvar o cadastro.", cause: drizzleError() })
       )
     ).toBe(false);
+  });
+});
+
+describe("errorRefOf", () => {
+  it("devolve a mesma referência para o mesmo erro e outra para outro erro", () => {
+    const a = new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "x" });
+    const b = new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "x" });
+    expect(errorRefOf(a)).toMatch(/^[0-9A-F]{8}$/);
+    expect(errorRefOf(a)).toBe(errorRefOf(a));
+    expect(errorRefOf(a)).not.toBe(errorRefOf(b));
   });
 });

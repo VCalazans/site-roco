@@ -1301,7 +1301,8 @@
         "errors": {
           "duplicate": "Já existe um produto com este SKU ou nome. Ajuste os dados e tente novamente.",
           "forbidden": "Você não tem permissão para salvar este produto.",
-          "invalid": "Confira os campos destacados antes de salvar."
+          "invalid": "Confira os campos destacados antes de salvar.",
+          "reference": "{message} Código do erro: {ref}."
         },
         "fields": {
           "sku": "SKU",

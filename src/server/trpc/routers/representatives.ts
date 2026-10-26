@@ -23,6 +23,7 @@ import {
 import { resolveTerritoryEntries } from "@/shared/lib/territory";
 import { territoryInputSchema } from "@/shared/lib/territory-schema";
 import { translateDbError } from "@/server/lib/db-error";
+import { pgErrorCode } from "@/server/lib/pg-error";
 import { checkRateLimit } from "@/server/lib/rate-limit";
 import {
   representativeAdminUpdateSchema,
@@ -756,7 +757,7 @@ export const representativesRouter = router({
         return updated;
       } catch (error) {
         // Corrida com outro usuário gravando o mesmo e-mail (índice único).
-        if ((error as { code?: string } | undefined)?.code === "23505") {
+        if (pgErrorCode(error) === "23505") {
           throw new TRPCError({ code: "CONFLICT", message: "email_exists" });
         }
         throw translateDbError(error, "Falha ao atualizar o cadastro.");

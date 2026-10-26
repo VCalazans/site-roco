@@ -2,7 +2,7 @@ import "server-only";
 import { revalidateTag } from "next/cache";
 import { productUrls, submitToIndexNow } from "@/server/lib/indexnow";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { hasPermission } from "@/core/auth/rbac";
 import { deleteObject, getPresignedUploadUrl, getPublicUrl, headObject } from "@/core/storage/r2";
@@ -57,7 +57,8 @@ function safePublicUrl(key: string): string | null {
 
 const packagingInputSchema = z.object({
   packagingType: z.enum(packagingTypeEnum.enumValues),
-  unitsPerPack: z.number().int().positive(),
+  /** Teto bem abaixo do `integer` do banco: EAN colado no campo de quantidade é recusado aqui. */
+  unitsPerPack: z.number().int().positive().max(1_000_000),
   erpComplementCode: z.string().trim().max(4).optional(),
   barcodeEan13: z.string().trim().max(13).optional(),
   isDefault: z.boolean().default(false),
@@ -306,6 +307,39 @@ async function replacePackagings(
   }
 }
 
+/**
+ * SKU e slug são únicos na tabela INTEIRA, e "excluir" no portal só desativa
+ * (`active = false`): a linha continua lá, fora da listagem. Para o SKU/slug de
+ * um produto excluído poder ser reaproveitado, o excluído cede o valor — o SKU
+ * vira `DEL-` + 16 caracteres do id (cabe nos 20 da coluna) e o slug ganha o
+ * sufixo `-excluido-<id>`. Roda dentro da transação do cadastro/edição; produto
+ * ATIVO nunca é tocado (o conflito com ele segue como CONFLICT pelo índice).
+ */
+async function releaseFromDeletedProducts(
+  tx: Database,
+  values: { sku?: string; slug?: string },
+  excludeId?: string
+): Promise<string[]> {
+  const matches = [
+    values.sku !== undefined ? eq(products.sku, values.sku) : undefined,
+    values.slug !== undefined ? eq(products.slug, values.slug) : undefined,
+  ].filter((condition) => condition !== undefined);
+  if (matches.length === 0) return [];
+
+  const released = await tx
+    .update(products)
+    .set({
+      sku: sql`'DEL-' || substr(replace(${products.id}::text, '-', ''), 1, 16)`,
+      slug: sql`left(${products.slug}, 200) || '-excluido-' || substr(${products.id}::text, 1, 8)`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(products.active, false), or(...matches), excludeId ? ne(products.id, excludeId) : undefined)
+    )
+    .returning({ id: products.id });
+  return released.map((row) => row.id);
+}
+
 export const productsRouter = router({
   /**
    * Página numerada da tabela do portal. A contagem roda antes da página: a
@@ -506,8 +540,10 @@ export const productsRouter = router({
       const featuredOrder = featured ? (input.featuredOrder ?? (await nextFeaturedOrder(ctx.db))) : 0;
 
       let productId: string;
+      let releasedFrom: string[] = [];
       try {
         productId = await ctx.db.transaction(async (tx) => {
+          releasedFrom = await releaseFromDeletedProducts(tx, { sku: input.sku, slug });
           const [inserted] = await tx
             .insert(products)
             .values({
@@ -542,7 +578,7 @@ export const productsRouter = router({
         action: "products.create",
         resource: "products",
         resourceId: productId,
-        metadata: { sku: input.sku, namePt: input.namePt },
+        metadata: { sku: input.sku, namePt: input.namePt, releasedFromDeleted: releasedFrom },
       });
       revalidateTag("products", IMMEDIATE_EXPIRY);
 
@@ -570,6 +606,7 @@ export const productsRouter = router({
       if (patch.featuredOrder !== undefined) setValues.featuredOrder = patch.featuredOrder;
       setValues.updatedAt = new Date();
 
+      let releasedFrom: string[] = [];
       try {
         await ctx.db.transaction(async (tx) => {
           const [existing] = await tx
@@ -593,6 +630,7 @@ export const productsRouter = router({
             setValues.featuredOrder = await nextFeaturedOrder(tx);
           }
 
+          releasedFrom = await releaseFromDeletedProducts(tx, { sku: patch.sku, slug: patch.slug }, id);
           await tx.update(products).set(setValues).where(eq(products.id, id));
 
           if (patch.categoryIds !== undefined) {
@@ -614,7 +652,7 @@ export const productsRouter = router({
         action: "products.update",
         resource: "products",
         resourceId: id,
-        metadata: { changedFields: Object.keys(patch) },
+        metadata: { changedFields: Object.keys(patch), releasedFromDeleted: releasedFrom },
       });
       revalidateTag("products", IMMEDIATE_EXPIRY);
 

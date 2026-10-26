@@ -1,4 +1,5 @@
 import type { TRPCError } from "@trpc/server";
+import { pgErrorCode } from "./pg-error";
 
 /**
  * Erro INESPERADO num procedure (bug, falha do banco): o tRPC o embrulha num
@@ -18,11 +19,30 @@ export function isUnexpectedError(error: TRPCError): boolean {
   );
 }
 
-/** Código do banco (SQLSTATE) do erro inesperado, se houver — o único detalhe que vai ao log. */
+/** Código do banco (SQLSTATE) do erro, se houver — o único detalhe da causa que vai ao log. */
 export function unexpectedErrorCode(error: TRPCError): string | undefined {
-  const cause = error.cause as { code?: unknown; cause?: { code?: unknown } } | undefined;
-  const code = cause?.cause?.code ?? cause?.code;
-  return typeof code === "string" ? code : undefined;
+  return pgErrorCode(error.cause);
+}
+
+/** Erros internos do tRPC: os únicos que ganham referência (o resto o operador entende pela mensagem). */
+export function isInternalError(error: TRPCError): boolean {
+  return error.code === "INTERNAL_SERVER_ERROR";
+}
+
+const errorRefs = new WeakMap<object, string>();
+
+/**
+ * Referência curta de um erro interno, a mesma no log (`onError`) e na resposta
+ * (`errorFormatter`): o cliente mostra só ela ao operador; rota e código do
+ * banco ficam no log do servidor. Quem reporta o erro passa a referência.
+ */
+export function errorRefOf(error: TRPCError): string {
+  let ref = errorRefs.get(error);
+  if (!ref) {
+    ref = crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase();
+    errorRefs.set(error, ref);
+  }
+  return ref;
 }
 
 /** Mensagem que o cliente recebe no lugar da original. */

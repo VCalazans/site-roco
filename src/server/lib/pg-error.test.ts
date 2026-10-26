@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isStatementTimeout, PG_QUERY_CANCELED } from "./pg-error";
+import { isStatementTimeout, pgErrorCode, PG_QUERY_CANCELED } from "./pg-error";
 
 describe("isStatementTimeout", () => {
   it("reconhece o erro que o statement_timeout do pool produz", () => {
@@ -40,5 +40,23 @@ describe("isStatementTimeout", () => {
     ])("devolve false para %s", (_label, value) => {
       expect(isStatementTimeout(value)).toBe(false);
     });
+  });
+});
+
+describe("pgErrorCode", () => {
+  it("lê o código do erro cru do pg", () => {
+    expect(pgErrorCode({ code: "23505" })).toBe("23505");
+  });
+
+  it("lê o código dentro do DrizzleQueryError (cause)", () => {
+    const wrapped = Object.assign(new Error("Failed query"), { cause: { code: "57014" } });
+    expect(pgErrorCode(wrapped)).toBe("57014");
+    expect(isStatementTimeout(wrapped)).toBe(true);
+  });
+
+  it("devolve undefined sem código", () => {
+    expect(pgErrorCode(null)).toBeUndefined();
+    expect(pgErrorCode("x")).toBeUndefined();
+    expect(pgErrorCode({ code: 1 })).toBeUndefined();
   });
 });

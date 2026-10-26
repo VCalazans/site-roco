@@ -4,7 +4,12 @@ import { cache } from "react";
 import { auth } from "@/core/auth";
 import { hasPermission } from "@/core/auth/rbac";
 import { db } from "@/db";
-import { isUnexpectedError, UNEXPECTED_ERROR_MESSAGE } from "@/server/lib/trpc-errors";
+import {
+  errorRefOf,
+  isInternalError,
+  isUnexpectedError,
+  UNEXPECTED_ERROR_MESSAGE,
+} from "@/server/lib/trpc-errors";
 
 /**
  * Contexto por-request do tRPC. `cache()` evita chamar `auth()` mais de uma
@@ -21,11 +26,17 @@ export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
  * Erro inesperado (bug, falha do banco) chega ao cliente só como
  * `internal_error`: a mensagem original do Drizzle traz a consulta SQL com os
  * parâmetros. Os erros lançados de propósito passam como estão.
+ *
+ * Todo erro interno leva `data.errorRef`: a tela mostra a referência e o log do
+ * servidor (`src/app/api/trpc/[trpc]/route.ts`) a grava com a rota e o código do
+ * banco. Nada da causa vai ao cliente.
  */
 const t = initTRPC.context<Context>().create({
   errorFormatter({ shape, error }) {
-    if (!isUnexpectedError(error)) return shape;
-    return { ...shape, message: UNEXPECTED_ERROR_MESSAGE, data: { ...shape.data, stack: undefined } };
+    if (!isInternalError(error)) return shape;
+    const data = { ...shape.data, stack: undefined, errorRef: errorRefOf(error) };
+    if (!isUnexpectedError(error)) return { ...shape, data };
+    return { ...shape, message: UNEXPECTED_ERROR_MESSAGE, data };
   },
 });
 

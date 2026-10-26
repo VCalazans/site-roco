@@ -13,6 +13,24 @@ describe("translateDbError", () => {
       expect(result.message).toBe("Já existe um registro com esses dados (SKU/slug duplicado).");
     });
 
+    it("reads the code inside DrizzleQueryError (drizzle-orm 0.45 wraps the pg error in `cause`)", () => {
+      const wrapped = Object.assign(new Error("Failed query: insert ... params: 123"), {
+        cause: { code: "23505" },
+      });
+      const result = translateDbError(wrapped, "fallback");
+
+      expect(result.code).toBe("CONFLICT");
+    });
+
+    it("keeps the original error as cause on INTERNAL_SERVER_ERROR (for the server log only)", () => {
+      const wrapped = Object.assign(new Error("Failed query"), { cause: { code: "42P01" } });
+      const result = translateDbError(wrapped, "fallback");
+
+      expect(result.code).toBe("INTERNAL_SERVER_ERROR");
+      expect(result.message).toBe("fallback");
+      expect(result.cause).toBe(wrapped);
+    });
+
     it("ignores fallback message for 23505", () => {
       const pgError = { code: "23505" };
       const result = translateDbError(pgError, "this should be ignored");

@@ -992,6 +992,8 @@ export type PortalProductsDictionary = {
       duplicate: string;
       forbidden: string;
       invalid: string;
+      /** Erro interno: mensagem genérica + referência que a equipe procura no log. */
+      reference: string;
     };
     fields: {
       sku: string;

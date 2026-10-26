@@ -2412,3 +2412,19 @@ Quem envia a mensagem é a própria pessoa, pelo WhatsApp dela.
 - Verificação: tsc ok, lint 0 erros (6 warnings pré-existentes), 2116 testes em 97 arquivos (novo `lead-whatsapp.test.ts`;
   testes de `contact-submit`, `catalog-form`, `rd-station` e `turnstile-render` ajustados), `next build` verde.
   **Não testado no navegador.** Não commitado e não implantado.
+
+## 2026-10-26 — SKU de produto excluído pode ser reaproveitado; erro interno do portal só com referência
+**Decisão**: (1) "Excluir" produto continua desativando (`active = false`). Quando um cadastro ou edição usa o SKU ou o slug de
+um produto EXCLUÍDO, o excluído cede o valor na mesma transação: SKU vira `DEL-` + 16 caracteres do id e o slug ganha
+`-excluido-<id>` (`releaseFromDeletedProducts`, `products.ts`); o audit registra `releasedFromDeleted`. Produto ativo nunca é
+tocado: o conflito com ele segue como CONFLICT. (2) O Drizzle 0.45 embrulha o erro do `pg` em `DrizzleQueryError` (código em
+`cause`), então `translateDbError` nunca reconhecia o `23505` e todo SKU repetido virava 500 genérico. Agora há um leitor único,
+`pgErrorCode` (`src/server/lib/pg-error.ts`), usado também no retry por timeout do contato e na edição de representante.
+(3) Erro interno do tRPC: o cliente recebe só `data.errorRef` (8 caracteres) e a tela mostra "Código do erro: XXXX"; o log do
+servidor grava a mesma referência com rota e SQLSTATE, nunca a consulta nem os parâmetros (`errorRefOf`, `trpc-errors.ts`).
+(4) `unitsPerPack` com teto de 1.000.000 no zod.
+**Alternativas**: reativar o produto excluído com os dados novos (traria de volta as imagens antigas); mostrar ao operador que o
+SKU é de um produto excluído (rejeitado: o stakeholder quer que o SKU excluído não seja problema).
+**Justificativa**: o cliente recebia "Falha ao criar o produto." ao recadastrar o SKU 123123123 de um produto que havia excluído;
+reproduzido em produção em 2026-10-26.
+**Impacto**: sem migration. O importador (upsert por SKU) passa a criar produto novo para um SKU liberado.
