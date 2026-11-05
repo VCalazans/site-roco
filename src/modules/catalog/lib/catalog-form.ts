@@ -20,7 +20,7 @@ import { isValidPhoneBR } from "@/shared/lib/phone";
  * `/contato` (`SELECTABLE_CONTACT_SUBJECTS`) porque quem o define é esta
  * página, não o visitante — ver `CONTACT_SUBJECTS` em
  * `@/server/lib/contact-submit`, que o aceita e o mapeia para o
- * `conversion_identifier` `site-catalogo-baixar-catalogo` no RD Station.
+ * `conversion_identifier` `catalogo-roco` no RD Station.
  */
 export const CATALOG_SUBJECT = "catalog" as const;
 
@@ -187,10 +187,9 @@ export type CatalogDownloadLink = {
  * Atributos do link do PDF — usados tanto pelo link visível de fallback
  * quanto pelo disparo programático do download.
  *
- * A URL do PDF é configurável pelo admin (`site_settings` → env → constante,
- * ver `getCatalogPdfUrl`), então pode ser same-origin (`/downloads/…`) OU um
- * objeto no R2 (`https://pub-….r2.dev/…`). Os dois casos exigem tratamento
- * diferente:
+ * A página usa a rota própria `CATALOG_DOWNLOAD_PATH`, same-origin, cujo
+ * redirect traz `Content-Disposition: attachment`. O caso cross-origin segue
+ * coberto para quem passar uma URL externa. Os dois exigem tratamento diferente:
  *
  *  - **same-origin**: `download` é honrado, o arquivo baixa e a pessoa
  *    permanece no painel de sucesso.

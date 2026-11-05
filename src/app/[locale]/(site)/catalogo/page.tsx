@@ -5,8 +5,7 @@ import Image from "next/image";
 import { CatalogForm } from "@/modules/catalog/components/catalog-form";
 import { resolveCatalogOrigin } from "@/modules/catalog/lib/catalog-form";
 import { getCatalogDictionary } from "@/modules/catalog/lib/types";
-import { CATALOG_SEGMENT, catalogPath, siteLinks } from "@/core/config/site";
-import { getCatalogPdfUrl } from "@/server/lib/site-settings";
+import { CATALOG_DOWNLOAD_PATH, CATALOG_SEGMENT, siteLinks } from "@/core/config/site";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -21,13 +20,13 @@ import { getDictionary } from "@/i18n/get-dictionary";
  * `catalog-form.tsx`); o PDF servido em `/downloads/…` para o portal interno
  * não é afetado — quem já está logado não passa por captura.
  *
- * O gate é de MARKETING, não de acesso: a URL do PDF desce como prop do
- * formulário (o painel de sucesso precisa dela) e o arquivo padrão mora em
- * `public/`, então quem abrir o código-fonte a encontra. Isso não é uma
- * regressão nem um vazamento novo — o arquivo sempre foi público e o portal
- * interno o linka direto. Se algum dia o catálogo precisar de acesso
- * controlado, o caminho é servi-lo por rota autenticada (ou por presigned URL
- * do R2, como os materiais de representante), nunca esconder o link daqui.
+ * O arquivo é o enviado pelo portal (Configurações do Site › Catálogo em PDF),
+ * entregue por `GET /api/catalog/download`.
+ *
+ * O gate é de MARKETING, não de acesso: a rota de download é pública, e quem
+ * abrir o código-fonte a encontra. O portal interno usa a mesma rota. Se algum
+ * dia o catálogo precisar de acesso controlado, o caminho é exigir sessão nela,
+ * nunca esconder o link daqui.
  *
  * Escrita em Tailwind, não MUI: esta rota vive no route group `(site)`, que
  * por arquitetura é Tailwind-only — MUI é do `(internal)` (ver
@@ -92,8 +91,6 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
   const catalog = getCatalogDictionary(dictionary);
   const { navigation } = dictionary;
 
-  const pdfUrl = await getCatalogPdfUrl();
-
   // Rastreio de aquisição validado AQUI, no servidor: origem fora da lista
   // fechada cai no fallback `"catalogo"` e UTM malformada é descartada — a
   // rota `POST /api/contact` revalida os dois de novo, por princípio.
@@ -137,7 +134,7 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
           whatsappContent={dictionary.leadWhatsapp}
           content={catalog}
           locale={locale}
-          pdfUrl={pdfUrl}
+          pdfUrl={CATALOG_DOWNLOAD_PATH}
           origin={origin}
           utm={utm}
           privacyHref={siteLinks.privacy || undefined}

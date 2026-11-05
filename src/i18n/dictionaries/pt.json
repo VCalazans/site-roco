@@ -1963,7 +1963,7 @@
         },
         "catalog": {
           "title": "Catálogo em PDF",
-          "description": "Arquivo da página de catálogo com formulário (/catalogo). O botão “Baixar catálogo” da home e do rodapé leva ao catálogo online."
+          "description": "Arquivo baixado por quem preenche o formulário da página de catálogo (/catalogo). Os botões “Baixar catálogo” do site levam a essa página."
         }
       },
       "fields": {
@@ -2002,10 +2002,6 @@
           "label": "WhatsApp",
           "hint": "Digite o número com DDD (ex.: (47) 3335-2012) — o link de conversa é montado sozinho.",
           "placeholder": "(47) 99999-9999"
-        },
-        "catalogPdf": {
-          "label": "Link do catálogo (PDF)",
-          "hint": "Endereço completo (https://…) ou caminho iniciado por /"
         }
       },
       "social": {
@@ -2032,12 +2028,31 @@
           "invalidPhone": "Informe um telefone válido, com código do país e DDD.",
           "invalidWhatsapp": "Informe o número com DDD (ex.: (47) 3335-2012) ou um link wa.me.",
           "tooLong": "Endereço longo demais.",
-          "invalidPath": "Informe um endereço completo (https://…) ou um caminho iniciado por /.",
           "storedInvalid": "O valor salvo das redes sociais estava em formato inválido e foi ignorado. Salvar irá substituí-lo."
         }
       },
       "errors": {
         "loadFailed": "Erro ao carregar as configurações."
+      },
+      "catalogFile": {
+        "currentTitle": "Arquivo em uso no site",
+        "currentDetail": "{filename} · {size} · enviado em {date}",
+        "defaultTitle": "Nenhum arquivo enviado pelo portal",
+        "defaultDetail": "O site está entregando o catálogo padrão. Envie o PDF abaixo para substituí-lo.",
+        "download": "Baixar o arquivo atual",
+        "viewPage": "Ver a página do catálogo",
+        "saved": "Catálogo atualizado. O novo arquivo já vale no site.",
+        "loadFailed": "Não foi possível carregar o catálogo atual.",
+        "dropzone": "Clique para escolher o PDF do catálogo",
+        "dropzoneReplace": "Clique para enviar outro PDF e substituir o atual",
+        "accepted": "Formato aceito: PDF",
+        "maxSize": "Tamanho máximo: {size}",
+        "remove": "Limpar seleção",
+        "replace": "Escolher outro arquivo",
+        "uploading": "Enviando o catálogo…",
+        "uploadError": "Não foi possível enviar o arquivo. O catálogo atual continua no ar. Tente novamente.",
+        "errorType": "Envie um arquivo em PDF.",
+        "errorSize": "O arquivo passa do limite de {size}."
       },
       "certifications": {
         "title": "Certificações",

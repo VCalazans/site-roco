@@ -2428,3 +2428,34 @@ SKU é de um produto excluído (rejeitado: o stakeholder quer que o SKU excluíd
 **Justificativa**: o cliente recebia "Falha ao criar o produto." ao recadastrar o SKU 123123123 de um produto que havia excluído;
 reproduzido em produção em 2026-10-26.
 **Impacto**: sem migration. O importador (upsert por SKU) passa a criar produto novo para um SKU liberado.
+
+## 2026-11-05 — "Baixar Catálogo" volta para a página `/{locale}/catalogo`; PDF enviado pelo portal; download por rota pública
+**Decisão**: (1) Os CTAs "Baixar Catálogo" (`#catalogo`, `/catalogo`) voltam a levar à página própria `/{locale}/catalogo`
+(formulário de captura + download), com `?origem=` anexado. Reverte a decisão de 2026-09-30 ("Baixar Catálogo leva sempre ao
+catálogo online"). `ONLINE_CATALOG_URL` removida; `siteLinks.catalog` passa a ser `NEXT_PUBLIC_CATALOG_URL || ""`. A env só
+manda o botão a outro endereço, sem captura de lead. (2) O PDF é enviado pelo portal em Configurações do Site › Catálogo em PDF
+(`src/modules/portal/components/settings/catalog-file-manager.tsx`, permissão `users:manage`), no lugar do campo de texto
+"Link do catálogo". Procedures `siteSettings.catalogFile`, `presignCatalogFile` e `confirmCatalogFile`: tipo e tamanho assinados
+no presign, HEAD no confirm; o confirm publica na hora e apaga o arquivo anterior; audit `site_settings.catalog_file`. Campo de
+upload `catalogPdf` em `upload-limits`: só PDF, até 95 MB (limite do proxy da Cloudflare). Chave `site/catalogo/<uuid>.pdf`.
+Setting nova `catalog.file` (json), deliberadamente fora de `ALL_PUBLIC_SETTING_KEYS`. Módulo puro
+`src/modules/catalog/lib/catalog-file.ts`. Sem migration. (3) Rota pública `GET /api/catalog/download` (`CATALOG_DOWNLOAD_PATH`):
+303 para URL assinada de 60 s com `Content-Disposition: attachment` e o nome original. Sem arquivo enviado, cai em
+`getCatalogPdfUrl` (legado `catalog.pdf-url` → env → `/downloads/catalogo-roco-2026.pdf`); em falha de banco ou armazenamento,
+cai no PDF da imagem. A página `/catalogo` e o card de catálogo das boas-vindas do portal usam essa rota. O gate continua sendo de
+marketing: a rota é pública. (4) Bug corrigido em `getCatalogPdfUrl`: caminho `/downloads/...` recebia o prefixo de `R2_PUBLIC_URL`
+e daria 404. (5) RD Station: `RD_LEAD_SOURCES.catalog` passou de `site-catalogo-baixar-catalogo` para `catalogo-roco` (vai em
+`conversion_identifier` e em `cf_origem`). Revisa a entrada de 2026-10-15; o histórico do RD mantém o nome antigo. CNPJ já era
+obrigatório e validado no cliente e no servidor; nada mudou nisso.
+**Alternativas**: não registradas na sessão. Os motivos técnicos da rota ficam registrados: a URL assinada na página venceria, e
+entre domínios o navegador ignora o atributo `download`.
+**Justificativa**: pedido de 2026-11-05. O motivo do retorno ao formulário não foi registrado na sessão; a pendência de destino de
+`/catalogo` (aberta desde 2026-09-30) fica resolvida.
+**Impacto**: o botão da home deixa de mandar ao catálogo online; leads com `subject: "catalog"` voltam a vir do botão. Verificação:
+tsc de `src/` ok, lint 0 erros, testes verdes (2133 em 98 arquivos). `next build` verde em cópia limpa da árvore (na pasta local, `.next/dev/types` ficou corrompida pelo dev server encerrado: apagar `.next/dev` antes de buildar ali). Ponta a ponta contra o bucket de homologação
+`roco-test`: links da home, CNPJ inválido/ausente 400, válido 201, upload real, PUT adulterado 403, não-PDF e >95 MB 400, sem
+sessão 401, `Content-Disposition` correto, troca apaga o anterior; dados de teste removidos. No navegador: página, erro de CNPJ,
+tela de sucesso e disparo do download (clique interceptado). **NÃO verificado**: envio real ao RD com a origem nova (só payload em
+teste de unidade, sem chave no teste); download até o fim no navegador; tela do portal no navegador (só teste de render).
+Pendências: enviar o PDF atual após o deploy; conferir slides do hero com link direto de `catalogo.roco.com.br`; `cf_origem` segue
+faltando no painel do RD.

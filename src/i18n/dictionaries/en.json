@@ -1963,7 +1963,7 @@
         },
         "catalog": {
           "title": "Catalog PDF",
-          "description": "File served by the catalog page with the form (/catalogo). The “Download catalog” button on the home page and footer goes to the online catalog."
+          "description": "File downloaded by whoever fills in the form on the catalog page (/catalogo). The site's “Download catalog” buttons lead to that page."
         }
       },
       "fields": {
@@ -2002,10 +2002,6 @@
           "label": "WhatsApp",
           "hint": "Type the number with area code (e.g. (47) 3335-2012) — the chat link is built for you.",
           "placeholder": "(47) 99999-9999"
-        },
-        "catalogPdf": {
-          "label": "Catalog link (PDF)",
-          "hint": "Full address (https://…) or a path starting with /"
         }
       },
       "social": {
@@ -2032,12 +2028,31 @@
           "invalidPhone": "Enter a valid phone number, with country code and area code.",
           "invalidWhatsapp": "Enter the number with area code (e.g. (47) 3335-2012) or a wa.me link.",
           "tooLong": "Address is too long.",
-          "invalidPath": "Enter a full address (https://…) or a path starting with /.",
           "storedInvalid": "The saved social links value was in an invalid format and was ignored. Saving will replace it."
         }
       },
       "errors": {
         "loadFailed": "Failed to load settings."
+      },
+      "catalogFile": {
+        "currentTitle": "File in use on the site",
+        "currentDetail": "{filename} · {size} · uploaded on {date}",
+        "defaultTitle": "No file uploaded through the portal",
+        "defaultDetail": "The site is serving the default catalog. Upload the PDF below to replace it.",
+        "download": "Download current file",
+        "viewPage": "View the catalog page",
+        "saved": "Catalog updated. The new file is already live on the site.",
+        "loadFailed": "Could not load the current catalog.",
+        "dropzone": "Click to choose the catalog PDF",
+        "dropzoneReplace": "Click to upload another PDF and replace the current one",
+        "accepted": "Accepted format: PDF",
+        "maxSize": "Maximum size: {size}",
+        "remove": "Clear selection",
+        "replace": "Choose another file",
+        "uploading": "Uploading the catalog…",
+        "uploadError": "Could not upload the file. The current catalog stays live. Please try again.",
+        "errorType": "Please upload a PDF file.",
+        "errorSize": "The file exceeds the {size} limit."
       },
       "certifications": {
         "title": "Certifications",

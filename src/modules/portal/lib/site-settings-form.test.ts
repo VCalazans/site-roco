@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_SOCIAL_LINKS,
-  isCatalogLocation,
   isHttpUrl,
   isValidEmail,
   normalizePhone,
@@ -110,21 +109,6 @@ describe("normalizePhone", () => {
     expect(normalizePhone("3335-2012")).toBeNull();
     expect(normalizePhone("1".repeat(16))).toBeNull();
     expect(normalizePhone("")).toBeNull();
-  });
-});
-
-describe("isCatalogLocation", () => {
-  it("aceita URL http(s) e caminho iniciado por /", () => {
-    expect(isCatalogLocation("https://cdn.roco.com.br/catalogo.pdf")).toBe(true);
-    expect(isCatalogLocation("/downloads/catalogo-roco-2026.pdf")).toBe(true);
-  });
-
-  it("rejeita esquema perigoso, URL sem esquema e //host", () => {
-    expect(isCatalogLocation("javascript:alert(1)")).toBe(false);
-    expect(isCatalogLocation("//evil.com/catalogo.pdf")).toBe(false);
-    expect(isCatalogLocation("catalogo.pdf")).toBe(false);
-    expect(isCatalogLocation("/com espaço.pdf")).toBe(false);
-    expect(isCatalogLocation("")).toBe(false);
   });
 });
 

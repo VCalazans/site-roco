@@ -671,13 +671,18 @@ describe.each(["pt", "en"] as const)("configurações do site (%s)", (locale) =>
         { key: "contact.address.matriz", value: "Rua Amsterdam, 853", type: "string", description: null, updatedAt: "" },
         { key: "contact.address.filial", value: "Unidade fabril em Gaspar", type: "string", description: null, updatedAt: "" },
         { key: "social.links", value: socialValue, type: "string", description: null, updatedAt: "" },
-        { key: "catalog.pdf-url", value: "/downloads/catalogo-roco-2026.pdf", type: "string", description: null, updatedAt: "" },
       ]
     );
+    client.setQueryData([["siteSettings", "catalogFile"], { type: "query" }], {
+      key: "site/catalogo/3f2b8c1e-7a54-4d21-9c0e-1b2a3c4d5e6f.pdf",
+      filename: "catalogo-2027.pdf",
+      sizeBytes: 2 * 1024 * 1024,
+      updatedAt: "2026-11-05T12:00:00.000Z",
+    });
     return client;
   }
 
-  it("quatro blocos, redes em campos separados (nada de JSON cru) e valores carregados", () => {
+  it("blocos, upload do catálogo, redes em campos separados (nada de JSON cru) e valores carregados", () => {
     const html = render(
       <SettingsPageClient labels={labels} />,
       locale,
@@ -686,18 +691,22 @@ describe.each(["pt", "en"] as const)("configurações do site (%s)", (locale) =>
     for (const block of ["contact", "addresses", "social", "catalog"] as const) {
       expect(html).toContain(labels.blocks[block].title);
     }
-    for (const field of ["phone", "email", "addressMatriz", "addressFilial", "instagram", "linkedin", "youtube", "whatsapp", "catalogPdf"] as const) {
+    for (const field of ["phone", "email", "addressMatriz", "addressFilial", "instagram", "linkedin", "youtube", "whatsapp"] as const) {
       expect(html).toContain(labels.fields[field].label);
     }
     expect(html).toContain('value="554733352012"');
     expect(html).toContain('value="https://instagram.com/roco"');
-    expect(html).toContain('value="/downloads/catalogo-roco-2026.pdf"');
+    // Catálogo: mostra o arquivo em uso e aponta para a rota de download.
+    expect(html).toContain("catalogo-2027.pdf");
+    expect(html).toContain(labels.catalogFile.currentTitle);
+    expect(html).toContain(labels.catalogFile.dropzoneReplace);
+    expect(html).toContain('href="/api/catalog/download"');
     // Sem campo de JSON cru.
     expect(html).not.toContain("JSON");
     expect(html).not.toContain(labels.form.errors.storedInvalid);
     // Um botão de salvar por bloco, todos desabilitados (nada foi alterado).
     const saveButtons = html.match(/<button[^>]*type="submit"[^>]*>/g) ?? [];
-    expect(saveButtons.length).toBe(4);
+    expect(saveButtons.length).toBe(3);
     expect(saveButtons.every((tag) => tag.includes("disabled"))).toBe(true);
     expectNoBrokenText(html);
   });

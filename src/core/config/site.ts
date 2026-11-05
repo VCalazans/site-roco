@@ -8,24 +8,15 @@
 import { locales } from "@/i18n/config";
 import { withLeadOrigin, type LeadOrigin } from "@/shared/lib/lead-origin";
 
-/**
- * Catálogo online da ROCO (página de download do catálogo, fora deste site).
- * Pedido do stakeholder em 2026-09-30: o botão "Baixar Catálogo" leva SEMPRE
- * para lá — da home, do slide de reserva do hero e do rodapé.
- */
-export const ONLINE_CATALOG_URL = "https://catalogo.roco.com.br/catalogo-roco";
-
 export const siteLinks = {
   /** "Conheça nossos Produtos" — empty until the products URL is defined. */
   products: process.env.NEXT_PUBLIC_PRODUCTS_URL || "",
   /**
-   * "Baixar Catálogo": o catálogo online da ROCO (`ONLINE_CATALOG_URL`);
-   * `NEXT_PUBLIC_CATALOG_URL` só troca esse endereço. A página própria
-   * `/{locale}/catalogo` (formulário + PDF) continua no ar, mas nenhum botão
-   * aponta mais para ela — e, sendo endereço externo, o link não leva
-   * `?origem=` e abre em nova aba (`externalProps`).
+   * "Baixar Catálogo": vazio = a página própria `/{locale}/catalogo`, com o
+   * formulário de captura (padrão desde 2026-11-05). `NEXT_PUBLIC_CATALOG_URL`
+   * só serve para mandar o botão a outro endereço — e aí o lead não é capturado.
    */
-  catalog: process.env.NEXT_PUBLIC_CATALOG_URL || ONLINE_CATALOG_URL,
+  catalog: process.env.NEXT_PUBLIC_CATALOG_URL || "",
   /** The catalog PDF itself, served from /public (must stay same-origin so the
    *  browser honours the `download` attribute on the catalog page). */
   catalogPdf:
@@ -131,6 +122,9 @@ export function contactPath(locale: string): string {
 export function quotePath(locale: string): string {
   return `/${locale}/${QUOTE_SEGMENT}`;
 }
+
+/** Rota que entrega o catálogo em PDF (arquivo enviado pelo portal). */
+export const CATALOG_DOWNLOAD_PATH = "/api/catalog/download";
 
 /** Filename suggested to the browser when the catalog PDF is downloaded. */
 export const CATALOG_PDF_FILENAME = "catalogo-roco-2026.pdf";

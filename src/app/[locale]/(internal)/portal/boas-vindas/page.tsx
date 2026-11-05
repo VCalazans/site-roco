@@ -5,6 +5,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FactoryIcon from "@mui/icons-material/Factory";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import Box from "@mui/material/Box";
+import { CATALOG_DOWNLOAD_PATH } from "@/core/config/site";
 import { PortalShell } from "@/modules/portal/components/portal-shell";
 import { WelcomeClosing } from "@/modules/portal/components/welcome/welcome-closing";
 import { WelcomeDwSystemCard } from "@/modules/portal/components/welcome/welcome-dw-system-card";
@@ -116,7 +117,7 @@ export default async function PortalWelcomePage({ params }: PageProps) {
             body={welcome.catalog.body}
             ctaLabel={welcome.catalog.cta}
             ctaIcon={<DownloadIcon fontSize="small" />}
-            href="/downloads/catalogo-roco-2026.pdf"
+            href={CATALOG_DOWNLOAD_PATH}
             download
             comingSoonLabel={welcome.comingSoon}
           />

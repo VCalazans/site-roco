@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db as dbClient } from "@/db";
 import {
+  SITE_SETTING_CATALOG_FILE,
   SITE_SETTING_CATALOG_PDF_URL,
   SITE_SETTING_CONTACT_EMAIL,
   SITE_SETTING_CONTACT_PHONE,
@@ -12,6 +13,7 @@ import {
   siteSettings,
 } from "@/db/schema/site-settings";
 import { getPublicUrl } from "@/core/storage/r2";
+import { parseCatalogFile, type CatalogFile } from "@/modules/catalog/lib/catalog-file";
 
 type Database = typeof dbClient;
 
@@ -55,8 +57,17 @@ async function readSetting(
 }
 
 /**
- * URL do PDF de catálogo, com fallback em camadas:
- *   1. Linha `catalog.pdf-url` em `site_settings` (admin editou).
+ * Catálogo enviado pelo portal, ou `null` enquanto ninguém enviou. A tag
+ * `site-settings` é expirada na hora pelo upload.
+ */
+export async function getCatalogFile(): Promise<CatalogFile | null> {
+  return parseCatalogFile(await cachedReadSetting(SITE_SETTING_CATALOG_FILE));
+}
+
+/**
+ * URL do PDF de catálogo quando não há arquivo enviado pelo portal, com
+ * fallback em camadas:
+ *   1. Linha `catalog.pdf-url` em `site_settings` (valor legado).
  *   2. `NEXT_PUBLIC_CATALOG_PDF_URL` (env em build-time).
  *   3. `siteLinks.catalogPdf` (constante de fallback — `/downloads/catalogo-roco-2026.pdf`).
  *
@@ -69,6 +80,9 @@ export async function getCatalogPdfUrl(): Promise<string> {
     // Mesmo esquema de fallback da `siteLinks.catalogPdf`: se a string já
     // for absoluta (`https://...`), usa direto; senão prefixa `R2_PUBLIC_URL`.
     if (/^https?:\/\//.test(fromDb)) return fromDb;
+    // Caminho do próprio site (`/downloads/…`, o que a tela antiga aceitava)
+    // não é chave do bucket: prefixar `R2_PUBLIC_URL` daria 404.
+    if (fromDb.startsWith("/")) return fromDb;
     try {
       return getPublicUrl(fromDb.replace(/^\//, ""));
     } catch {

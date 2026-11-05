@@ -419,7 +419,7 @@
 - [x] Testes: 12 arquivos novos → 1744 em 75 arquivos (antes 1660 em 63).
 
 ### Pós-5ª rodada (2026-09-30)
-- [x] **"Baixar Catálogo" → catálogo online** (`https://catalogo.roco.com.br/catalogo-roco`): padrão de `siteLinks.catalog` via `ONLINE_CATALOG_URL`; vale para o CTA do slide do hero, o CTA de reserva e o link do rodapé (nova aba, sem `?origem=`). Página `/catalogo` segue no ar, sem link.
+- [x] **"Baixar Catálogo" → catálogo online** (`https://catalogo.roco.com.br/catalogo-roco`): padrão de `siteLinks.catalog` via `ONLINE_CATALOG_URL`; vale para o CTA do slide do hero, o CTA de reserva e o link do rodapé (nova aba, sem `?origem=`). Página `/catalogo` segue no ar, sem link. **(Revertido em 2026-11-05: ver decisionLog.)**
 - [x] Texto do bloco "Catálogo em PDF" (Configurações do Site) corrigido em pt/en — não é mais o arquivo do botão da home.
 - [x] Manual de uso do sistema com 48 telas reais (site, acesso, equipe, representante) e resumo de entregas para o cliente publicados como artifacts privados: manual https://claude.ai/artifact/RWXamY1MKBeUWhBiqa6BeD · resumo https://claude.ai/artifact/Y8PMi7dqU4u1vtwHtDWGno. Capturas feitas no container local com contas temporárias (apagadas ao final) e nomes reais mascarados.
 - [x] **Merge da `main`** (6 commits de produção): pop-ups do RD liberados na CSP (hosts dos pop-ups em
@@ -475,11 +475,32 @@
       de fallback; catálogo só o botão. Teto de 1900 caracteres na URL.
 - [x] 2116 testes em 97 arquivos (novo `lead-whatsapp.test.ts`). tsc ok, lint 0 erros, `next build` verde. Não testado no navegador.
 
+### Catálogo: página própria com formulário e PDF enviado pelo portal (2026-11-05, na `main`, não implantado)
+- [x] "Baixar Catálogo" (`#catalogo`, `/catalogo`) volta para `/{locale}/catalogo` (formulário de captura, `?origem=`). Reverte
+      2026-09-30 (catálogo online). `ONLINE_CATALOG_URL` removida; `siteLinks.catalog` = `NEXT_PUBLIC_CATALOG_URL` (vazio = página própria).
+- [x] PDF enviado em Configurações do Site › Catálogo em PDF (`catalog-file-manager.tsx`, `users:manage`): presign com tipo e tamanho
+      assinados, HEAD no confirm, publica na hora, apaga o anterior; audit `site_settings.catalog_file`. Só PDF, até 95 MB. Sem migration.
+      Campo de texto "Link do catálogo" removido.
+- [x] `GET /api/catalog/download` (303 para URL de 60 s com nome original; fallbacks legado → env → estático; falha → PDF da imagem).
+- [x] Bug corrigido: `getCatalogPdfUrl` prefixava `R2_PUBLIC_URL` em caminho `/downloads/...` (daria 404).
+- [x] RD Station: `RD_LEAD_SOURCES.catalog` = `catalogo-roco` (em `conversion_identifier` e `cf_origem`).
+- [x] Verificação: tsc de `src/` ok, lint 0 erros, testes verdes (2133 em 98 arquivos); `next build` verde em cópia limpa da árvore (na pasta local, `.next/dev/types` ficou corrompida pelo dev server encerrado: apagar `.next/dev` antes de buildar ali). Ponta a ponta contra o bucket de
+      homologação `roco-test`: links da home, CNPJ inválido/ausente 400, válido 201, upload real, PUT adulterado 403, não-PDF e
+      >95 MB 400, sem sessão 401, `Content-Disposition` correto, troca apaga o anterior. Dados de teste removidos. No navegador: página,
+      erro de CNPJ, tela de sucesso e disparo do download (clique interceptado, sem baixar o arquivo).
+- [ ] NÃO verificado: envio real ao RD com a origem nova (só payload em teste de unidade; RD sem chave no teste); download até o
+      fim no navegador; tela do portal no navegador (só teste de render).
+
 ### Qualidade
 - [x] `npm run build` verde (incluindo `tsc` completo)
 - [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12; 1884 em 84 arquivos com a camada de segurança (2026-10-12)
 
 ## 🔄 Em Andamento
+- [ ] **Catálogo — pós-deploy** (2026-11-05, Alto, na `main`, não implantado): (1) enviar o PDF atual em Configurações do Site
+      depois do deploy; sem isso vale o legado `catalog.pdf-url` (se existir em produção) ou o PDF da imagem; (2) conferir se algum
+      slide do hero em produção tem o link direto de `catalogo.roco.com.br` digitado; (3) `cf_origem` continua faltando no painel do
+      RD (a origem segue no `conversion_identifier`); (4) revisão do `security` ainda não feita para `GET /api/catalog/download` e
+      para o upload `catalogPdf`.
 - [ ] **Ajustes do fluxo de lead** (2026-10-15, Alto, não commitado/não implantado): implementado; falta smoke no navegador
       (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de fallback, origem no RD). Criar `cf_origem`
       no painel do RD (sem ele o valor `site-*` por assunto é descartado em silêncio). Ver decisionLog 2026-10-15.
@@ -618,7 +639,7 @@ catálogo vivo via ERP → cotação como dado estruturado.
       visível, cookies `rd_*`, console sem violação de CSP); decidir se o pop-up "teste" de scroll
       (id 9325167) deve ser pausado e se o telefone terá máscara internacional (exigiria liberar
       cdn.jsdelivr.net em `script-src`). Os pop-ups só reavaliam as regras no carregamento inicial.
-- [ ] **Página `/catalogo` sem link** (2026-09-30): decidir se redireciona para o catálogo online ou sai do sitemap (hoje continua indexável, com formulário e PDF próprios).
+- [x] **Página `/catalogo` sem link** (2026-09-30) — **RESOLVIDO 2026-11-05**: a página voltou a ser o destino do "Baixar Catálogo" (formulário + PDF enviado pelo portal). Ver decisionLog 2026-11-05.
 - [ ] **Dados de `site_settings` não têm dimensão de locale** (2026-08-30, Médio): os endereços e a
       descrição da unidade fabril vêm do banco em PORTUGUÊS e renderizam assim na versão em inglês,
       sem `lang="pt"` (WCAG SC 3.1.2, "Language of Parts") — o rodapé está em toda página de `(site)`.

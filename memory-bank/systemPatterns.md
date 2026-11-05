@@ -311,5 +311,13 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
 - **Cache**: produtos pelo `unstable_cache` com tag `products`, como nas páginas; `llms*.txt` com `Cache-Control` de 1 h;
   IndexNow em `after()`, fora do caminho da mutação.
 
+## Arquivo público trocável pelo portal (2026-11-05)
+- Padrão do PDF do catálogo: upload 2-step com tipo e tamanho ASSINADOS (presign) + HEAD no confirm; o confirm grava a chave em
+  `site_settings` (`catalog.file`, json) e apaga o arquivo anterior.
+- A página nunca recebe URL assinada: aponta para `GET /api/catalog/download`, que responde 303 para uma URL de 60 s com
+  `Content-Disposition: attachment` e o nome original. Motivo: URL na página venceria, e entre domínios o atributo `download`
+  é ignorado pelo navegador. Cadeia de fallback (legado → env → arquivo estático → PDF da imagem) fica dentro de `getCatalogPdfUrl`
+  e da rota.
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

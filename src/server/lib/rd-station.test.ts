@@ -54,12 +54,12 @@ describe("buildRdStationConversionPayload", () => {
       expect(payload.payload.conversion_identifier).toBe("site-contato-ligamos-pra-voce");
     });
 
-    it("maps 'catalog' subject to 'site-catalogo-baixar-catalogo'", () => {
+    it("maps 'catalog' subject to 'catalogo-roco'", () => {
       const input = createContactInput({ subject: "catalog" });
       const meta = createMeta();
       const payload = buildRdStationConversionPayload(input, meta);
 
-      expect(payload.payload.conversion_identifier).toBe("site-catalogo-baixar-catalogo");
+      expect(payload.payload.conversion_identifier).toBe("catalogo-roco");
     });
 
     it("gives every subject its own identifier", () => {

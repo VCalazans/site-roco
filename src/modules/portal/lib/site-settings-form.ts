@@ -221,14 +221,3 @@ export function normalizePhone(value: string): string | null {
   return digits.length >= 10 && digits.length <= 15 ? digits : null;
 }
 
-/**
- * Local do PDF do catálogo: URL `http(s)` ou caminho iniciado por uma barra
- * (`/downloads/...`). `//host` é rejeitado — seria uma URL sem esquema que o
- * navegador trataria como outro domínio.
- */
-export function isCatalogLocation(value: string): boolean {
-  const text = value.trim();
-  if (text === "" || /\s/.test(text)) return false;
-  if (/^https?:\/\//i.test(text)) return isHttpUrl(text);
-  return text.startsWith("/") && !text.startsWith("//");
-}

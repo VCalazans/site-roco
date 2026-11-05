@@ -1,5 +1,6 @@
 "use client";
 
+import { CatalogFileManager } from "./catalog-file-manager";
 import { CertificationsManager } from "./certifications-manager";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import CloseIcon from "@mui/icons-material/Close";
@@ -27,7 +28,6 @@ import { useTRPC } from "@/core/trpc-client";
 import type { PortalSettingsDictionary } from "@/modules/portal/lib/types";
 import {
   SOCIAL_NETWORKS,
-  isCatalogLocation,
   isValidEmail,
   normalizePhone,
   normalizeSocialLink,
@@ -56,23 +56,21 @@ function isSocialField(field: FieldKey): field is SocialNetwork {
   return (SOCIAL_NETWORKS as readonly string[]).includes(field);
 }
 
-type BlockKey = "contact" | "addresses" | "social" | "catalog";
+type BlockKey = "contact" | "addresses" | "social";
 type FieldKey =
   | "phone"
   | "email"
   | "addressMatriz"
   | "addressFilial"
-  | SocialNetwork
-  | "catalogPdf";
+  | SocialNetwork;
 type SaveStatus = "saving" | "saved" | "error";
 
-const BLOCK_ORDER: BlockKey[] = ["contact", "addresses", "social", "catalog"];
+const BLOCK_ORDER: BlockKey[] = ["contact", "addresses", "social"];
 
 const BLOCK_FIELDS: Record<BlockKey, FieldKey[]> = {
   contact: ["phone", "email"],
   addresses: ["addressMatriz", "addressFilial"],
   social: [...SOCIAL_NETWORKS],
-  catalog: ["catalogPdf"],
 };
 
 /** Chaves de `site_settings` de cada campo simples (as redes viajam juntas em `social.links`). */
@@ -81,7 +79,6 @@ const SETTING_KEY = {
   email: "contact.email",
   addressMatriz: "contact.address.matriz",
   addressFilial: "contact.address.filial",
-  catalogPdf: "catalog.pdf-url",
 } as const;
 type SimpleFieldKey = keyof typeof SETTING_KEY;
 const SOCIAL_SETTING_KEY = "social.links" as const;
@@ -94,7 +91,6 @@ const REQUIRED_FIELDS: ReadonlySet<FieldKey> = new Set([
   "email",
   "addressMatriz",
   "addressFilial",
-  "catalogPdf",
 ]);
 
 type ServerState = {
@@ -114,7 +110,6 @@ function readServerState(rows: { key: string; value: string }[]): ServerState {
       email: raw.get(SETTING_KEY.email) ?? "",
       addressMatriz: raw.get(SETTING_KEY.addressMatriz) ?? "",
       addressFilial: raw.get(SETTING_KEY.addressFilial) ?? "",
-      catalogPdf: raw.get(SETTING_KEY.catalogPdf) ?? "",
       ...social.values,
     },
   };
@@ -150,19 +145,16 @@ function validateField(field: FieldKey, value: string, labels: PortalSettingsDic
       return normalizePhone(text) === null ? errors.invalidPhone : "";
     case "email":
       return isValidEmail(text) ? "" : errors.invalidEmail;
-    case "catalogPdf":
-      return isCatalogLocation(text) ? "" : errors.invalidPath;
     default:
       return "";
   }
 }
 
 const FIELD_INPUT: Partial<
-  Record<FieldKey, { type: "email" | "tel" | "url"; inputMode?: "email" | "tel" | "url" }>
+  Record<FieldKey, { type: "email" | "tel"; inputMode?: "email" | "tel" }>
 > = {
   phone: { type: "tel", inputMode: "tel" },
   email: { type: "email", inputMode: "email" },
-  catalogPdf: { type: "url", inputMode: "url" },
 };
 
 const MULTILINE_FIELDS: ReadonlySet<FieldKey> = new Set(["addressMatriz", "addressFilial"]);
@@ -613,6 +605,7 @@ export function SettingsPageClient({ labels, locale = "pt" }: SettingsPageClient
             {block === "social" ? renderFooterPreview() : null}
           </SettingsBlock>
         ))}
+        <CatalogFileManager block={labels.blocks.catalog} copy={labels.catalogFile} locale={locale} />
         <CertificationsManager copy={labels.certifications} locale={locale} />
       </Stack>
     </Box>

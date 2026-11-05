@@ -707,6 +707,27 @@ type SocialFieldCopy = SettingsFieldCopy & { placeholder: string };
 type SettingsBlockCopy = { title: string; description: string };
 
 export type PortalSettingsDictionary = {
+  /** Upload do catálogo em PDF. `{filename}`/`{size}`/`{date}` interpolados. */
+  catalogFile: {
+    currentTitle: string;
+    currentDetail: string;
+    defaultTitle: string;
+    defaultDetail: string;
+    download: string;
+    viewPage: string;
+    saved: string;
+    loadFailed: string;
+    dropzone: string;
+    dropzoneReplace: string;
+    accepted: string;
+    maxSize: string;
+    remove: string;
+    replace: string;
+    uploading: string;
+    uploadError: string;
+    errorType: string;
+    errorSize: string;
+  };
   /** Selos de certificação (cadastro no portal). `{date}`/`{name}` interpolados. */
   certifications: {
     title: string;
@@ -773,7 +794,6 @@ export type PortalSettingsDictionary = {
     linkedin: SocialFieldCopy;
     youtube: SocialFieldCopy;
     whatsapp: SocialFieldCopy;
-    catalogPdf: SettingsFieldCopy;
   };
   /** Bloco de redes sociais: prévia do link, teste, prévia do rodapé. Placeholders `{url}`/`{network}`. */
   social: {
@@ -801,7 +821,6 @@ export type PortalSettingsDictionary = {
       invalidPhone: string;
       invalidWhatsapp: string;
       tooLong: string;
-      invalidPath: string;
       storedInvalid: string;
     };
   };

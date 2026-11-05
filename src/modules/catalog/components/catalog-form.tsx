@@ -40,7 +40,7 @@ export type CatalogUtm = { source?: string; medium?: string; campaign?: string }
 type CatalogFormProps = {
   content: CatalogDictionary;
   locale: Locale;
-  /** URL do PDF resolvida no servidor (`getCatalogPdfUrl`: banco → env → constante). */
+  /** Rota que entrega o PDF (`CATALOG_DOWNLOAD_PATH`). */
   pdfUrl: string;
   /** Seção do site que originou o clique, já resolvida (`resolveCatalogOrigin`). */
   origin: LeadOrigin;
@@ -72,7 +72,7 @@ const EMPTY_FORM: CatalogFormValues = {
  * própria: rate limit, honeypot, gravação em `contact_submissions` e os dois
  * canais de saída (RD Station, e-mail) já estão lá, e duplicá-los criaria uma
  * segunda superfície pública para manter em dia. No RD Station o assunto vira
- * o `conversion_identifier` `site-catalogo-baixar-catalogo`, então o funil separa esta
+ * o `conversion_identifier` `catalogo-roco`, então o funil separa esta
  * intenção das outras três sem nenhum campo extra.
  *
  * Tailwind puro (`.form-neon`), como todo o route group `(site)`: MUI aqui já

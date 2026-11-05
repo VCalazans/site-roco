@@ -42,13 +42,14 @@ export const RD_CUSTOM_FIELD_PREFIX = "cf_";
  *
  * Antes eram `orcamento_produto`, `download_catalogo`, `ligamos_pra_voce`,
  * `contato_geral` e `orcamento_lista_produtos`: o histórico do RD guarda as
- * conversões antigas com esses nomes.
+ * conversões antigas com esses nomes. O catálogo foge do formato a pedido do
+ * stakeholder (2026-11-05): a origem é `catalogo-roco`.
  */
 export const RD_LEAD_SOURCES: Record<ContactInput["subject"], string> = {
   call_back: "site-contato-ligamos-pra-voce",
   quote: "site-contato-solicite-um-orcamento",
   general: "site-contato-fale-conosco",
-  catalog: "site-catalogo-baixar-catalogo",
+  catalog: "catalogo-roco",
   cart: "site-orcamento-lista-de-produtos",
 };
 

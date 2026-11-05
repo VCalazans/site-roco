@@ -7,9 +7,9 @@
  * continuam por env.
  *
  * Exemplos atuais:
- *   - "catalog.pdf-url"   (string) → URL do PDF de catálogo que o site
- *     serve na landing `/catalogo`. Substitui `NEXT_PUBLIC_CATALOG_PDF_URL`
- *     quando setada.
+ *   - "catalog.file"      (json) → PDF de catálogo enviado pelo portal.
+ *   - "catalog.pdf-url"   (string) → legado: URL do PDF, usada enquanto não há
+ *     `catalog.file`. Substitui `NEXT_PUBLIC_CATALOG_PDF_URL` quando setada.
  *
  * Itens FUTUROS plausíveis: "site.contact-email", "footer.address",
  * "home.cta-product-url", etc. — adicionar aqui quando virar requisito,
@@ -41,6 +41,13 @@ export const siteSettings = pgTable(
 
 /** Chave canônica do link do PDF de catálogo (referenciada pelo site e pelo admin). */
 export const SITE_SETTING_CATALOG_PDF_URL = "catalog.pdf-url";
+
+/**
+ * Arquivo do catálogo enviado pelo portal (JSON, ver `catalog-file.ts`). Tem
+ * precedência sobre `catalog.pdf-url`. Fora de `ALL_PUBLIC_SETTING_KEYS` de
+ * propósito: só o fluxo de upload grava, depois de conferir o objeto.
+ */
+export const SITE_SETTING_CATALOG_FILE = "catalog.file";
 
 /** Chave canônica do telefone/WhatsApp da matriz. */
 export const SITE_SETTING_CONTACT_PHONE = "contact.phone";

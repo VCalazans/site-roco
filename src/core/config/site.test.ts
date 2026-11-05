@@ -6,7 +6,6 @@ import {
   PRODUCTS_SEGMENT,
   CONTACT_SEGMENT,
   CATALOG_PDF_FILENAME,
-  ONLINE_CATALOG_URL,
   representativesPath,
   productsPath,
   catalogPath,
@@ -191,10 +190,9 @@ describe("site config", () => {
     });
 
     describe("catalog anchor resolution", () => {
-      it("resolves #catalogo to the online catalog in every locale", () => {
-        expect(siteLinks.catalog).toBe(process.env.NEXT_PUBLIC_CATALOG_URL || ONLINE_CATALOG_URL);
-        expect(resolveDestination("#catalogo", "pt")).toBe(siteLinks.catalog);
-        expect(resolveDestination("#catalogo", "en")).toBe(siteLinks.catalog);
+      it("resolves #catalogo to the lead page in every locale", () => {
+        expect(resolveDestination("#catalogo", "pt")).toBe("/pt/catalogo");
+        expect(resolveDestination("#catalogo", "en")).toBe("/en/catalogo");
       });
     });
 
@@ -330,8 +328,8 @@ describe("resolveDestination — origem de lead (3º parâmetro)", () => {
       expect(resolveDestination("#contato", "en", "rodape")).toBe("/en/contato?origem=rodape");
     });
 
-    it("never tags the catalog button: it leaves the site for the online catalog", () => {
-      expect(resolveDestination("#catalogo", "pt", "home-hero")).toBe(siteLinks.catalog);
+    it("tags the catalog button: it leads to the lead page", () => {
+      expect(resolveDestination("#catalogo", "pt", "home-hero")).toBe("/pt/catalogo?origem=home-hero");
     });
 
     it("still tags the internal catalog page when a link points straight at it", () => {

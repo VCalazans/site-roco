@@ -22,7 +22,7 @@ export interface UploadLimit {
 }
 
 /** Campos de upload conhecidos hoje. Adicionar aqui ao introduzir um novo. */
-export type UploadField = "heroVideo" | "heroPoster" | "material" | "siteImage";
+export type UploadField = "heroVideo" | "heroPoster" | "material" | "siteImage" | "catalogPdf";
 
 /**
  * Vídeos: 95 MB (era 200). Em produção o upload presignado passa pelo proxy
@@ -43,6 +43,8 @@ const SITE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 const MATERIAL_DOCUMENT_MAX_BYTES = 50 * 1024 * 1024;
 const MATERIAL_VIDEO_MAX_BYTES = VIDEO_MAX_BYTES;
 const MATERIAL_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+/** Catálogo em PDF do site: mesmo teto dos vídeos, pelo limite do proxy da Cloudflare. */
+const CATALOG_PDF_MAX_BYTES = VIDEO_MAX_BYTES;
 
 /** Tabela `contentType -> limite`, uma por campo de upload. */
 const UPLOAD_LIMITS: Record<UploadField, Record<string, UploadLimit>> = {
@@ -99,6 +101,9 @@ const UPLOAD_LIMITS: Record<UploadField, Record<string, UploadLimit>> = {
     "image/jpeg": { extension: "jpg", maxBytes: SITE_IMAGE_MAX_BYTES },
     "image/png": { extension: "png", maxBytes: SITE_IMAGE_MAX_BYTES },
     "image/webp": { extension: "webp", maxBytes: SITE_IMAGE_MAX_BYTES },
+  },
+  catalogPdf: {
+    "application/pdf": { extension: "pdf", maxBytes: CATALOG_PDF_MAX_BYTES },
   },
 };
 
