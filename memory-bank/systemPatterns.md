@@ -316,8 +316,7 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
   `site_settings` (`catalog.file`, json) e apaga o arquivo anterior.
 - A página nunca recebe URL assinada: aponta para `GET /api/catalog/download`, que responde 303 para uma URL de 60 s com
   `Content-Disposition: attachment` e o nome original. Motivo: URL na página venceria, e entre domínios o atributo `download`
-  é ignorado pelo navegador. Cadeia de fallback (legado → env → arquivo estático → PDF da imagem) fica dentro de `getCatalogPdfUrl`
-  e da rota.
+  é ignorado pelo navegador. Sem arquivo enviado, a rota entrega o PDF da imagem; nunca um endereço externo.
 
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

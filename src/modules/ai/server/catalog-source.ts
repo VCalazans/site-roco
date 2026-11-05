@@ -7,7 +7,6 @@ import {
   productsPath,
   quotePath,
   representativesPath,
-  siteLinks,
 } from "@/core/config/site";
 import { getDictionary } from "@/i18n/get-dictionary";
 import type { CatalogSource, McpLocale, ProductDetail, ProductSummary } from "@/modules/ai/lib/mcp-tools";
@@ -107,7 +106,7 @@ export const catalogSource: CatalogSource = {
     const dictionary = await getDictionary(locale);
     const links = {
       contactUrl: absoluteUrl(withLeadOrigin(contactPath(locale), AI_ORIGIN)),
-      catalogUrl: siteLinks.catalog || absoluteUrl(catalogPath(locale)),
+      catalogUrl: absoluteUrl(catalogPath(locale)),
       representativesUrl: absoluteUrl(representativesPath(locale)),
     };
     return {

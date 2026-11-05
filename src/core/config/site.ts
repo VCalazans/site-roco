@@ -12,16 +12,10 @@ export const siteLinks = {
   /** "Conheça nossos Produtos" — empty until the products URL is defined. */
   products: process.env.NEXT_PUBLIC_PRODUCTS_URL || "",
   /**
-   * "Baixar Catálogo": vazio = a página própria `/{locale}/catalogo`, com o
-   * formulário de captura (padrão desde 2026-11-05). `NEXT_PUBLIC_CATALOG_URL`
-   * só serve para mandar o botão a outro endereço — e aí o lead não é capturado.
+   * PDF que vai na imagem, usado enquanto ninguém enviar um arquivo pelo portal.
+   * Fixo de propósito: o catálogo só sai como arquivo, nunca por um link externo.
    */
-  catalog: process.env.NEXT_PUBLIC_CATALOG_URL || "",
-  /** The catalog PDF itself, served from /public (must stay same-origin so the
-   *  browser honours the `download` attribute on the catalog page). */
-  catalogPdf:
-    process.env.NEXT_PUBLIC_CATALOG_PDF_URL ||
-    "/downloads/catalogo-roco-2026.pdf",
+  catalogPdf: "/downloads/catalogo-roco-2026.pdf",
   /** Privacy policy — shown next to the LGPD notice when defined. */
   privacy: process.env.NEXT_PUBLIC_PRIVACY_URL || "",
   /**
@@ -163,7 +157,7 @@ export function resolveDestination(
   // A origem só acompanha os destinos que SABEM lê-la: as duas páginas
   // internas de captura de lead. Nunca vai para a home, para a listagem de
   // produtos, nem — principalmente — para uma URL de terceiro configurada
-  // via `NEXT_PUBLIC_PRODUCTS_URL`/`NEXT_PUBLIC_CATALOG_URL`, onde vazaria
+  // via `NEXT_PUBLIC_PRODUCTS_URL`, onde vazaria
   // taxonomia interna e poderia colidir com um parâmetro do destino.
   //
   // Compara só o CAMINHO: desde `#ligamos` um destino interno pode chegar
@@ -220,14 +214,18 @@ export function resolveCtaHref(href: string, locale: string, origin?: LeadOrigin
   return origin ? resolveDestination(localized, locale, origin) : localized;
 }
 
+/** Catálogo online antigo: link digitado num slide ou CTA leva à página de download. */
+const RETIRED_CATALOG_URL = /^https?:\/\/catalogo\.roco\.com\.br(?:[/?#]|$)/i;
+
 function resolveHref(href: string, locale: string): string {
+  if (RETIRED_CATALOG_URL.test(href)) return catalogPath(locale);
   switch (href) {
     case "#produtos":
     case "/produtos":
       return siteLinks.products || productsPath(locale);
     case "#catalogo":
     case "/catalogo":
-      return siteLinks.catalog || catalogPath(locale);
+      return catalogPath(locale);
     case "#representantes":
     case "/representantes":
       return representativesPath(locale);

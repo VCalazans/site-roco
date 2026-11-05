@@ -44,6 +44,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/downloads/:path*",
+        headers: [{ key: "Content-Disposition", value: "attachment" }],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-DNS-Prefetch-Control", value: "on" },

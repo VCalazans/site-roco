@@ -41,10 +41,6 @@ describe("site config", () => {
       expect(typeof siteLinks.products).toBe("string");
     });
 
-    it("provides default catalog URL as string", () => {
-      expect(typeof siteLinks.catalog).toBe("string");
-    });
-
     it("provides default catalogPdf URL", () => {
       expect(siteLinks.catalogPdf).toBe("/downloads/catalogo-roco-2026.pdf");
     });
@@ -59,7 +55,6 @@ describe("site config", () => {
 
     it("exports siteLinks as object with all properties", () => {
       expect(siteLinks).toHaveProperty("products");
-      expect(siteLinks).toHaveProperty("catalog");
       expect(siteLinks).toHaveProperty("catalogPdf");
       expect(siteLinks).toHaveProperty("privacy");
       expect(siteLinks).toHaveProperty("whatsapp");
@@ -193,6 +188,14 @@ describe("site config", () => {
       it("resolves #catalogo to the lead page in every locale", () => {
         expect(resolveDestination("#catalogo", "pt")).toBe("/pt/catalogo");
         expect(resolveDestination("#catalogo", "en")).toBe("/en/catalogo");
+      });
+
+      it("sends a typed link to the retired online catalog to the lead page", () => {
+        expect(resolveDestination("https://catalogo.roco.com.br/catalogo-roco", "pt")).toBe("/pt/catalogo");
+        expect(resolveDestination("https://catalogo.roco.com.br", "en")).toBe("/en/catalogo");
+        expect(resolveDestination("https://catalogo.roco.com.br.evil.test/x", "pt")).toBe(
+          "https://catalogo.roco.com.br.evil.test/x"
+        );
       });
     });
 

@@ -488,6 +488,7 @@
       homologação `roco-test`: links da home, CNPJ inválido/ausente 400, válido 201, upload real, PUT adulterado 403, não-PDF e
       >95 MB 400, sem sessão 401, `Content-Disposition` correto, troca apaga o anterior. Dados de teste removidos. No navegador: página,
       erro de CNPJ, tela de sucesso e disparo do download (clique interceptado, sem baixar o arquivo).
+- [x] Corrigido no mesmo dia: sem PDF enviado, a rota redirecionava ao catálogo online (valor legado de `catalog.pdf-url`). Agora só entrega arquivo; link digitado para `catalogo.roco.com.br` leva a `/{locale}/catalogo`; círculo com recorte do hero trocado pelas seis famílias de produtos.
 - [ ] NÃO verificado: envio real ao RD com a origem nova (só payload em teste de unidade; RD sem chave no teste); download até o
       fim no navegador; tela do portal no navegador (só teste de render).
 
@@ -497,9 +498,8 @@
 
 ## 🔄 Em Andamento
 - [ ] **Catálogo — pós-deploy** (2026-11-05, Alto, na `main`, não implantado): (1) enviar o PDF atual em Configurações do Site
-      depois do deploy; sem isso vale o legado `catalog.pdf-url` (se existir em produção) ou o PDF da imagem; (2) conferir se algum
-      slide do hero em produção tem o link direto de `catalogo.roco.com.br` digitado; (3) `cf_origem` continua faltando no painel do
-      RD (a origem segue no `conversion_identifier`); (4) revisão do `security` ainda não feita para `GET /api/catalog/download` e
+      depois do deploy; sem isso vale o PDF da imagem; (2) `cf_origem` continua faltando no painel do
+      RD (a origem segue no `conversion_identifier`); (3) revisão do `security` ainda não feita para `GET /api/catalog/download` e
       para o upload `catalogPdf`.
 - [ ] **Ajustes do fluxo de lead** (2026-10-15, Alto, não commitado/não implantado): implementado; falta smoke no navegador
       (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de fallback, origem no RD). Criar `cf_origem`

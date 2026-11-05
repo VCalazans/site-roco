@@ -5,7 +5,7 @@
 **2026-11-05 (na `main`, não implantado)**: catálogo. "Baixar Catálogo" (`#catalogo`, `/catalogo`) volta para a página própria
 `/{locale}/catalogo` (formulário + `?origem=`); o PDF é enviado em Configurações do Site › Catálogo em PDF e servido por
 `GET /api/catalog/download` (303 para URL de 60 s). `ONLINE_CATALOG_URL` removida. RD: `catalogo-roco` como origem do catálogo.
-Decisão em `decisionLog.md` (2026-11-05). Falta o pós-deploy: enviar o PDF atual e conferir links diretos no hero.
+Decisão em `decisionLog.md` (2026-11-05). Nenhum caminho leva mais ao catálogo online (entrada seguinte do decisionLog). Falta o pós-deploy: enviar o PDF atual.
 
 **2026-10-15 (não commitado, não implantado)**: ajustes do fluxo de lead. Menu sem "Contato" (fica "Ligamos pra você"); CNPJ
 obrigatório em `POST /api/contact` (contato, catálogo, orçamento); `cf_origem` com valor fixo por assunto no RD (ex.:
@@ -41,8 +41,7 @@ Decisões D1–D7 em `decisionLog.md` (2026-10-13).
 - 2026-10-13: `/mcp` na raiz exige entrada em `ROOT_ROUTES` e no matcher do `src/proxy.ts`.
 
 ## Próximos Passos Prioritários
-00. **Catálogo (2026-11-05)**: após o deploy, enviar o PDF atual em Configurações do Site › Catálogo em PDF; conferir se algum slide
-   do hero tem o link direto de `catalogo.roco.com.br`; revisão do `security` em `GET /api/catalog/download` e no upload `catalogPdf`;
+00. **Catálogo (2026-11-05)**: após o deploy, enviar o PDF atual em Configurações do Site › Catálogo em PDF; revisão do `security` em `GET /api/catalog/download` e no upload `catalogPdf`;
    smoke de envio real ao RD com a origem `catalogo-roco` (ainda não testado com chave).
 0. **Lead (2026-10-15)**: smoke no navegador (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de
    fallback, origem no RD); criar `cf_origem` no painel do RD; commit e deploy junto com o restante.

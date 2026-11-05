@@ -6,7 +6,6 @@ import {
   contactPath,
   productsPath,
   representativesPath,
-  siteLinks,
 } from "@/core/config/site";
 import type { Locale } from "@/i18n/config";
 import type { LlmsInput, LlmsProduct } from "@/modules/ai/lib/llms";
@@ -40,7 +39,7 @@ export async function getLlmsInput(locale: Locale): Promise<LlmsInput> {
       about: absoluteUrl(aboutPath(locale)),
       contact: absoluteUrl(contactPath(locale)),
       representatives: absoluteUrl(representativesPath(locale)),
-      catalog: siteLinks.catalog || absoluteUrl(catalogPath(locale)),
+      catalog: absoluteUrl(catalogPath(locale)),
       full: absoluteUrl("/llms-full.txt"),
       mcp: absoluteUrl(MCP_PATH),
     },

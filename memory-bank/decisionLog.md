@@ -2459,3 +2459,10 @@ tela de sucesso e disparo do download (clique interceptado). **NÃO verificado**
 teste de unidade, sem chave no teste); download até o fim no navegador; tela do portal no navegador (só teste de render).
 Pendências: enviar o PDF atual após o deploy; conferir slides do hero com link direto de `catalogo.roco.com.br`; `cf_origem` segue
 faltando no painel do RD.
+
+## 2026-11-05 — Catálogo só sai como arquivo; nenhum caminho leva ao catálogo online
+**Decisão**: revisa a entrada anterior do mesmo dia. `GET /api/catalog/download` entrega só o arquivo enviado pelo portal ou, sem ele, o PDF da imagem (`/downloads/catalogo-roco-2026.pdf`, com `Content-Disposition: attachment` em `next.config.ts`). Saíram `getCatalogPdfUrl`, a chave `catalog.pdf-url` de `ALL_PUBLIC_SETTING_KEYS` (a linha antiga no banco fica sem efeito, sem migration), `NEXT_PUBLIC_CATALOG_URL` e `NEXT_PUBLIC_CATALOG_PDF_URL`. Link digitado para `catalogo.roco.com.br` em slide ou CTA passa a levar a `/{locale}/catalogo` (`RETIRED_CATALOG_URL`, `site.ts`). Na página, o círculo com recorte do `hero-stage.jpg` deu lugar às seis famílias de produtos (arte da home); chave `catalog.familiesTitle` no lugar de `catalog.sceneAlt`.
+**Causa**: a entrada anterior manteve o fallback para o valor legado, e `catalog.pdf-url` guardava `https://catalogo.roco.com.br/catalogo-roco`. Sem PDF enviado, quem concluía o formulário era redirecionado ao catálogo online. O teste de 2026-11-05 usou um PDF enviado e não passou por esse caminho.
+**Alternativas**: manter o legado aceitando só `.pdf` (rejeitado: o pedido é só baixar, e o arquivo agora vem do portal).
+**Justificativa**: pedido do stakeholder: "preciso matar isso e somente conseguir baixar o catálogo".
+**Impacto**: 2136 testes em 99 arquivos; `next build` verde em cópia limpa. Reproduzido com o valor legado no banco local e sem PDF enviado: a rota responde 303 para o PDF, e um `fetch` no navegador termina em `application/pdf` no mesmo domínio. O download não foi salvo em disco, e o formulário não foi reenviado neste build (rastreador real do RD ativo). Um PDF antigo que estivesse em `catalog.pdf-url` deixa de valer: envie o atual pelo portal.

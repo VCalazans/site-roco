@@ -13,7 +13,7 @@ export type CatalogDictionary = {
   seo: { title: string; description: string };
   headline: string;
   description: string;
-  sceneAlt: string;
+  familiesTitle: string;
   formTitle: string;
   fields: {
     name: string;

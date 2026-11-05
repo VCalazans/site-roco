@@ -90,6 +90,7 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
   const dictionary = await getDictionary(locale);
   const catalog = getCatalogDictionary(dictionary);
   const { navigation } = dictionary;
+  const families = dictionary.home.categories.items;
 
   // Rastreio de aquisição validado AQUI, no servidor: origem fora da lista
   // fechada cai no fallback `"catalogo"` e UTM malformada é descartada — a
@@ -119,14 +120,27 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
           </h1>
           <p className="mt-4 text-body text-white/80">{catalog.description}</p>
 
-          <div className="relative mt-8 hidden h-56 w-56 overflow-hidden rounded-full shadow-[0_0_60px_-10px_rgba(53,217,255,0.35)] lg:block">
-            <Image
-              src="/images/hero/hero-stage.jpg"
-              alt={catalog.sceneAlt}
-              fill
-              sizes="224px"
-              className="object-cover"
-            />
+          <div className="mt-8 hidden lg:block">
+            <h2 className="text-meta font-semibold uppercase tracking-[0.14em] text-white/70">
+              {catalog.familiesTitle}
+            </h2>
+            <ul className="mt-3 grid grid-cols-3 gap-3">
+              {families.map((family) => (
+                <li
+                  key={family.label}
+                  className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-background"
+                >
+                  <Image src={family.image} alt="" fill sizes="170px" className="object-cover" />
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background via-background/60 to-transparent"
+                  />
+                  <span className="card-neon-label absolute inset-x-1 bottom-3 text-center text-meta font-semibold uppercase tracking-[0.08em]">
+                    {family.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 

@@ -1,13 +1,13 @@
 import { siteLinks } from "@/core/config/site";
 import { getPresignedDownloadUrl } from "@/core/storage/r2";
 import { buildContentDisposition } from "@/server/lib/content-disposition";
-import { getCatalogFile, getCatalogPdfUrl } from "@/server/lib/site-settings";
+import { getCatalogFile } from "@/server/lib/site-settings";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Entrega o catálogo em PDF: o arquivo enviado pelo portal ou, sem ele, o
- * endereço antigo (`getCatalogPdfUrl`).
+ * Entrega o catálogo em PDF: o arquivo enviado pelo portal ou, sem ele, o PDF
+ * que vai na imagem. Sempre um arquivo: esta rota nunca leva a um site externo.
  *
  * Existe por dois motivos: a página não recebe URL assinada (venceria com a
  * aba aberta) e o arquivo fica em outro domínio, onde o navegador ignora o
@@ -25,7 +25,7 @@ async function resolveLocation(): Promise<string> {
         contentDisposition: buildContentDisposition("attachment", file.filename),
       });
     }
-    return await getCatalogPdfUrl();
+    return siteLinks.catalogPdf;
   } catch (error) {
     // Banco ou armazenamento fora do ar: entrega o PDF que vai na imagem.
     console.error("[catalog.download]", error instanceof Error ? error.message : "erro desconhecido");
