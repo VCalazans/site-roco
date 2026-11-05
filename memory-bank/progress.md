@@ -488,7 +488,7 @@
       homologação `roco-test`: links da home, CNPJ inválido/ausente 400, válido 201, upload real, PUT adulterado 403, não-PDF e
       >95 MB 400, sem sessão 401, `Content-Disposition` correto, troca apaga o anterior. Dados de teste removidos. No navegador: página,
       erro de CNPJ, tela de sucesso e disparo do download (clique interceptado, sem baixar o arquivo).
-- [x] Corrigido no mesmo dia: sem PDF enviado, a rota redirecionava ao catálogo online (valor legado de `catalog.pdf-url`). Agora só entrega arquivo; link digitado para `catalogo.roco.com.br` leva a `/{locale}/catalogo`; círculo com recorte do hero trocado pelas seis famílias de produtos.
+- [x] Corrigido no mesmo dia: sem PDF enviado, a rota redirecionava ao catálogo online (valor legado de `catalog.pdf-url`). Agora só entrega arquivo; link digitado para `catalogo.roco.com.br` leva a `/{locale}/catalogo`; círculo com recorte do hero trocado pelas seis famílias de produtos. Cada card da família leva a `/produtos` já filtrado (mesmos destinos do dicionário da home, via `resolveCategoryCardHref`; banco fora do ar leva à listagem completa, sem derrubar o formulário).
 - [ ] NÃO verificado: envio real ao RD com a origem nova (só payload em teste de unidade; RD sem chave no teste); download até o
       fim no navegador; tela do portal no navegador (só teste de render).
 

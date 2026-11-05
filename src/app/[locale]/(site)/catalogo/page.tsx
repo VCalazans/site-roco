@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { buildAlternates } from "@/core/config/metadata";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { CatalogForm } from "@/modules/catalog/components/catalog-form";
 import { resolveCatalogOrigin } from "@/modules/catalog/lib/catalog-form";
 import { getCatalogDictionary } from "@/modules/catalog/lib/types";
+import { resolveCategoryCardHref } from "@/modules/home/lib/category-cards";
 import { CATALOG_DOWNLOAD_PATH, CATALOG_SEGMENT, siteLinks } from "@/core/config/site";
 import { resolveLeadUtm } from "@/server/lib/lead-utm";
+import { getPublicCategoryList } from "@/server/lib/public-products";
 import { locales, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -91,6 +94,11 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
   const catalog = getCatalogDictionary(dictionary);
   const { navigation } = dictionary;
   const families = dictionary.home.categories.items;
+  // Banco fora do ar não pode derrubar a captura de lead: sem os slugs, o card
+  // de categoria leva à listagem completa.
+  const categorySlugs = await getPublicCategoryList()
+    .then((list) => list.map((category) => category.slug))
+    .catch(() => []);
 
   // Rastreio de aquisição validado AQUI, no servidor: origem fora da lista
   // fechada cai no fallback `"catalogo"` e UTM malformada é descartada — a
@@ -126,18 +134,26 @@ export default async function CatalogPage({ params, searchParams }: PageProps) {
             </h2>
             <ul className="mt-3 grid grid-cols-3 gap-3">
               {families.map((family) => (
-                <li
-                  key={family.label}
-                  className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-background"
-                >
-                  <Image src={family.image} alt="" fill sizes="170px" className="object-cover" />
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background via-background/60 to-transparent"
-                  />
-                  <span className="card-neon-label absolute inset-x-1 bottom-3 text-center text-meta font-semibold uppercase tracking-[0.08em]">
-                    {family.label}
-                  </span>
+                <li key={family.label}>
+                  <Link
+                    href={resolveCategoryCardHref(family.href, locale, categorySlugs)}
+                    className="group relative block aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-background transition-colors hover:border-neon-cyan/60 focus-visible:border-neon-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-cyan"
+                  >
+                    <Image
+                      src={family.image}
+                      alt=""
+                      fill
+                      sizes="170px"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                    />
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background via-background/60 to-transparent"
+                    />
+                    <span className="card-neon-label absolute inset-x-1 bottom-3 text-center text-meta font-semibold uppercase tracking-[0.08em]">
+                      {family.label}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
