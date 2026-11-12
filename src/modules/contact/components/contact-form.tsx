@@ -22,6 +22,7 @@ import {
 import { contactSchema, SELECTABLE_CONTACT_SUBJECTS } from "@/server/lib/contact-submit";
 import type { ContactDictionary } from "@/modules/contact/lib/types";
 import type { LeadOrigin } from "@/shared/lib/lead-origin";
+import { META_WHATSAPP_EVENT, readLeadEventId, trackMeta, trackMetaLead } from "@/shared/lib/meta-pixel";
 import type { Locale } from "@/i18n/config";
 
 /**
@@ -226,6 +227,7 @@ export function ContactForm({
       });
 
       if (response.ok) {
+        trackMetaLead(form.subject, await readLeadEventId(response), context ? { content_ids: [context.sku], content_type: "product" } : undefined);
         // Depois do lead gravado, a pessoa segue para o WhatsApp com os dados
         // que acabou de preencher.
         const href = buildLeadWhatsappUrl(
@@ -297,6 +299,7 @@ export function ContactForm({
             <p className="mt-4 text-micro text-white/70">{whatsappContent.opened}</p>
             <a
               href={whatsappHref}
+              onClick={() => trackMeta(META_WHATSAPP_EVENT, undefined, undefined, true)}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-neon btn-neon--amber mt-3 inline-flex"

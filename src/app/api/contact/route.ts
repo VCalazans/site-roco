@@ -13,6 +13,9 @@ import {
 import { isStatementTimeout } from "@/server/lib/pg-error";
 import { buildRdStationConversionPayload } from "@/server/lib/rd-station";
 import { sendRdStationConversion } from "@/server/lib/rd-station-send";
+import { buildMetaLeadEvent } from "@/server/lib/meta-capi";
+import { sendMetaCapiEvent } from "@/server/lib/meta-capi-send";
+import { META_FBC_COOKIE, META_FBP_COOKIE } from "@/shared/lib/meta-pixel";
 import { getPublicProductBySlug, getPublicProductsBySlugs } from "@/server/lib/public-products";
 import { turnstileRejection, turnstileTokenFrom, verifyTurnstile } from "@/server/lib/turnstile";
 import { contactTurnstileAction } from "@/shared/lib/turnstile";
@@ -367,9 +370,28 @@ export async function POST(request: NextRequest) {
       cartItems: cartItemsMeta,
     });
 
-    const [rdResult, emailResult] = await Promise.allSettled([
+    // Meta (API de Conversões): mesmo `event_id` que o navegador usa no Pixel
+    // (devolvido na resposta), para a Meta deduplicar. O schema exige
+    // consentimento (`consent: true`), então todo lead que chega aqui consentiu.
+    const metaEvent = buildMetaLeadEvent({
+      subject: input.subject,
+      name: input.name,
+      email: input.email,
+      phone: input.phone,
+      eventId: clientTrackingId,
+      ip,
+      userAgent: request.headers.get("user-agent"),
+      fbp: request.cookies.get(META_FBP_COOKIE)?.value,
+      fbc: request.cookies.get(META_FBC_COOKIE)?.value,
+      sourceUrl: request.headers.get("referer"),
+      productSku,
+      cartItems: cartItemsMeta?.map((item) => ({ sku: item.sku, quantity: item.quantity })),
+    });
+
+    const [rdResult, emailResult, metaResult] = await Promise.allSettled([
       sendRdStationConversion(rdPayload),
       sendContactNotificationEmail(emailContent, input.email),
+      sendMetaCapiEvent(metaEvent),
     ]);
 
     // `rdStationError` é gravado MESMO no caminho feliz: o envio pode ter
@@ -385,6 +407,10 @@ export async function POST(request: NextRequest) {
     const emailError =
       emailResult.status === "fulfilled" ? emailResult.value.error ?? null : String(emailResult.reason);
 
+    const metaCapiStatus = metaResult.status === "fulfilled" ? metaResult.value.status : "failed";
+    const metaCapiError =
+      metaResult.status === "fulfilled" ? metaResult.value.error ?? null : String(metaResult.reason).slice(0, 300);
+
     try {
       await db
         .update(contactSubmissions)
@@ -394,6 +420,8 @@ export async function POST(request: NextRequest) {
           rdStationError,
           emailStatus,
           emailError,
+          metaCapiStatus,
+          metaCapiError,
           updatedAt: new Date(),
         })
         .where(eq(contactSubmissions.id, submissionId));
@@ -402,7 +430,9 @@ export async function POST(request: NextRequest) {
       console.error("[api/contact] Falha ao atualizar status dos canais de saída.", error);
     }
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    // `eventId`: o navegador dispara o Lead/Contact do Pixel com este id
+    // (deduplicação com a API de Conversões). Não é segredo: é o id do lead.
+    return NextResponse.json({ ok: true, eventId: clientTrackingId }, { status: 201 });
   } catch (error) {
     console.error("[api/contact]", error);
     return NextResponse.json({ error: "internal" }, { status: 500 });

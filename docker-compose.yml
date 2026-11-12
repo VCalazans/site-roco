@@ -16,6 +16,7 @@ services:
         # Turnstile (anti-robô): site key pública, build-time. Vazia = widget
         # desligado; para testar, a chave de teste da Cloudflare (.env.example).
         - NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+        - NEXT_PUBLIC_META_PIXEL_ID=${NEXT_PUBLIC_META_PIXEL_ID:-}
         # S3 que não é o R2 (ex.: MinIO): host da API na CSP (build-time).
         - S3_ENDPOINT=${S3_ENDPOINT:-}
         - S3_FORCE_PATH_STYLE=${S3_FORCE_PATH_STYLE:-}

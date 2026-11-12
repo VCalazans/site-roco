@@ -30,6 +30,7 @@ import {
 } from "@/shared/lib/cart-store";
 import { buildWhatsappCartMessage } from "@/modules/cart/lib/cart-whatsapp";
 import type { CartDictionary } from "@/modules/cart/lib/types";
+import { META_WHATSAPP_EVENT, readLeadEventId, trackMeta, trackMetaLead } from "@/shared/lib/meta-pixel";
 import type { Locale } from "@/i18n/config";
 
 /** O PRÓPRIO campo do schema do servidor, não um regex paralelo — mesma
@@ -205,6 +206,12 @@ export function CartPageView({ content, locale, utm, origin, whatsappContent }: 
       });
 
       if (response.ok) {
+        trackMetaLead(CART_SUBJECT, await readLeadEventId(response), {
+          content_type: "product",
+          content_ids: items.map((item) => item.sku),
+          contents: items.map((item) => ({ id: item.sku, quantity: item.quantity })),
+          num_items: items.reduce((sum, item) => sum + item.quantity, 0),
+        });
         // Monta a mensagem ANTES de limpar a lista: depois do envio a pessoa
         // segue para o WhatsApp com os dados e os produtos que pediu.
         const href = buildLeadWhatsappUrl(
@@ -297,6 +304,7 @@ export function CartPageView({ content, locale, utm, origin, whatsappContent }: 
               <p className="mt-4 text-micro text-white/70">{whatsappContent.opened}</p>
               <a
                 href={successWhatsappHref}
+                onClick={() => trackMeta(META_WHATSAPP_EVENT, undefined, undefined, true)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-neon btn-neon--amber mt-3 inline-flex"
@@ -476,6 +484,7 @@ export function CartPageView({ content, locale, utm, origin, whatsappContent }: 
             {whatsappHref ? (
               <a
                 href={whatsappHref}
+                onClick={() => trackMeta(META_WHATSAPP_EVENT, undefined, undefined, true)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-neon btn-neon--amber w-full justify-center sm:w-auto"

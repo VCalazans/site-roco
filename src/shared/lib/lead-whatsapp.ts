@@ -7,6 +7,7 @@
  * PURA, sem I/O e sem `@/core/config/site`: quem chama passa o número e os
  * textos do dicionário (`leadWhatsapp`), o que mantém o módulo testável.
  */
+import { META_WHATSAPP_EVENT, trackMeta } from "@/shared/lib/meta-pixel";
 import { interpolate } from "@/shared/lib/interpolate";
 
 /** Mesmo teto da URL do botão de WhatsApp do orçamento (`cart-whatsapp.ts`). */
@@ -130,7 +131,10 @@ export function openLeadWhatsapp(url: string): void {
   if (typeof window === "undefined") return;
   try {
     const opened = window.open(url, "_blank");
-    if (opened) opened.opener = null;
+    if (opened) {
+      opened.opener = null;
+      trackMeta(META_WHATSAPP_EVENT, undefined, undefined, true);
+    }
   } catch {
     // Silencioso: o botão da tela de sucesso cobre o caso.
   }

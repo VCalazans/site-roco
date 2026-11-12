@@ -27,6 +27,13 @@ import {
   UTM_COOKIE,
   UTM_COOKIE_MAX_AGE,
 } from "@/shared/lib/lead-origin";
+import {
+  buildFbc,
+  fbclidFromFbc,
+  META_FBC_COOKIE,
+  META_FBC_MAX_AGE,
+  normalizeFbclid,
+} from "@/shared/lib/meta-pixel";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -99,6 +106,24 @@ function persistUtm(request: NextRequest, response: NextResponse): NextResponse 
       httpOnly: true,
     });
   }
+  return persistFbc(request, response);
+}
+
+/**
+ * Clique em anúncio da Meta (`?fbclid=`) → cookie `_fbc` de primeira parte,
+ * gravado pelo SERVIDOR (dura os 90 dias mesmo onde o navegador encurta cookie
+ * gravado por script). Não é `httpOnly`: o Pixel lê o mesmo cookie e não cria
+ * outro. O mesmo clique não é regravado (manteria o horário do primeiro).
+ */
+function persistFbc(request: NextRequest, response: NextResponse): NextResponse {
+  const fbclid = normalizeFbclid(request.nextUrl.searchParams.get("fbclid"));
+  if (!fbclid) return response;
+  if (fbclidFromFbc(request.cookies.get(META_FBC_COOKIE)?.value) === fbclid) return response;
+  response.cookies.set(META_FBC_COOKIE, buildFbc(fbclid), {
+    path: "/",
+    maxAge: META_FBC_MAX_AGE,
+    sameSite: "lax",
+  });
   return response;
 }
 

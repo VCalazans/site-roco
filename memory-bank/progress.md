@@ -497,6 +497,11 @@
 - [x] `npm run test` e `npm run test:coverage` funcionando (1744 testes em 75 arquivos; +84 sobre os 1660 da 4ª rodada) — 1761 em 77 arquivos em 2026-10-12; 1884 em 84 arquivos com a camada de segurança (2026-10-12)
 
 ## 🔄 Em Andamento
+- [ ] **Meta Pixel + API de Conversões** (2026-11-11, Alto, não commitado/não implantado): código pronto (Pixel no navegador,
+      CAPI no `POST /api/contact`, migration 0018, CSP). Falta: token CAPI (`META_CAPI_ACCESS_TOKEN`, runtime) e ID do Pixel
+      (`NEXT_PUBLIC_META_PIXEL_ID`, build-arg com rebuild) no `site-roco`; teste com `META_CAPI_TEST_EVENT_CODE` (depois remover);
+      deduplicação no painel; domínio roco.com.br na Meta (TXT na Cloudflare); smoke do Pixel no navegador; ROCO configura a venda
+      no RD Station. Decisão em `decisionLog.md` (2026-11-11).
 - [ ] **Catálogo — pós-deploy** (2026-11-05, Alto, na `main`, não implantado): (1) enviar o PDF atual em Configurações do Site
       depois do deploy; sem isso vale o PDF da imagem; (2) `cf_origem` continua faltando no painel do
       RD (a origem segue no `conversion_identifier`); (3) revisão do `security` ainda não feita para `GET /api/catalog/download` e
@@ -796,6 +801,9 @@ catálogo vivo via ERP → cotação como dado estruturado.
 - **`site_settings`**: tabela genérica chave-valor para configs 1-por-site (hoje: `catalog.pdf-url`). Edits via admin sem deploy.
 
 ## 🔐 Riscos de Segurança
+- (Médio/LGPD, 2026-11-11) O Pixel da Meta carrega sem gate de consentimento. O banner do RD Cookie Control só controla os scripts
+  do RD. Decisão de consentimento pendente com a ROCO e o jurídico.
+- (Baixo, 2026-11-11) `META_CAPI_ACCESS_TOKEN` é segredo de runtime. Não entra em log nem em resposta. Revisão do `security` ainda não feita.
 - (Baixo/LGPD, 2026-10-15) O link `wa.me` do lead leva nome, CNPJ, telefone e e-mail na query string. Fica no histórico do
   navegador do próprio visitante. Não há consentimento específico para esse envio além do checkbox do formulário.
 - (Baixo/informativo, spec 003) Nome e descrição de produto vindos do ERP chegam ao MCP e ao `llms.txt` como texto não

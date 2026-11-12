@@ -18,6 +18,7 @@ import {
 } from "@/shared/lib/turnstile";
 import { isValidPersonName, normalizePersonName } from "@/server/lib/representative-register";
 import type { RepresentativesDictionary } from "@/modules/representatives/lib/types";
+import { trackMeta } from "@/shared/lib/meta-pixel";
 
 /** Espera entre dois reenvios do e-mail de confirmação na tela de sucesso. */
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -145,6 +146,8 @@ export function RegisterForm({ content, loginHref, locale }: RegisterFormProps) 
       });
 
       if (response.ok) {
+        // Pré-cadastro de representante (só navegador; sem dado pessoal).
+        trackMeta("CompleteRegistration", { content_name: "pre-cadastro-representante" });
         setPhase("success");
         return;
       }

@@ -26,6 +26,7 @@ import { formatCNPJ } from "@/shared/components/contact-form/cnpj";
 import { buildLeadWhatsappUrl, type LeadWhatsappDictionary } from "@/shared/lib/lead-whatsapp";
 import { formatPhoneBR } from "@/shared/lib/phone";
 import type { LeadOrigin } from "@/shared/lib/lead-origin";
+import { META_WHATSAPP_EVENT, readLeadEventId, trackMeta, trackMetaLead } from "@/shared/lib/meta-pixel";
 import {
   CAPTCHA_ERROR,
   CAPTCHA_UNAVAILABLE_ERROR,
@@ -174,6 +175,7 @@ export function CatalogForm({
       });
 
       if (response.ok) {
+        trackMetaLead(CATALOG_SUBJECT, await readLeadEventId(response));
         // Aqui o WhatsApp fica só no botão do painel de sucesso: o download já
         // ocupa a ação automática (abrir os dois disputaria a aba/janela).
         setWhatsappHref(
@@ -249,6 +251,7 @@ export function CatalogForm({
         {whatsappHref ? (
           <a
             href={whatsappHref}
+            onClick={() => trackMeta(META_WHATSAPP_EVENT, undefined, undefined, true)}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-neon btn-neon--amber mt-3 inline-flex"

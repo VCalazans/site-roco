@@ -318,5 +318,10 @@ Hoje: tRPC é suficiente para a complexidade (queries type-safe, RBAC, streaming
   `Content-Disposition: attachment` e o nome original. Motivo: URL na página venceria, e entre domínios o atributo `download`
   é ignorado pelo navegador. Sem arquivo enviado, a rota entrega o PDF da imagem; nunca um endereço externo.
 
+## Rastreamento de conversões: navegador + servidor (2026-11-11)
+- Lead e Contact saem do navegador (Pixel) e do servidor (CAPI, no mesmo `Promise.allSettled` dos canais de lead) com o mesmo
+  `event_id` (`client_tracking_id`). Venda (Purchase) sai só pelo RD Station. Cada evento sai de um lugar só.
+- Lógica pura em `src/server/lib/meta-capi.ts` e `src/shared/lib/meta-pixel.ts`; rede só em `meta-capi-send.ts`.
+
 ## Decisões Arquiteturais
 Registradas em @memory-bank/decisionLog.md (nunca deletar entradas).

@@ -135,6 +135,15 @@ const RD_STATION_CONNECT_HOSTS = `${RD_STATION_SCRIPT_HOSTS} https://app.rdstati
  */
 const TURNSTILE_HOST = "https://challenges.cloudflare.com";
 
+/**
+ * Meta Pixel (2026-11-11): o snippet carrega `fbevents.js` de
+ * `connect.facebook.net` (`script-src`) e manda os hits para `www.facebook.com`
+ * (pixel de imagem em `img-src`, beacon/fetch em `connect-src`). Como os do RD,
+ * entram sempre: a CSP é de build e o Pixel liga pelo ID.
+ */
+const META_SCRIPT_HOST = "https://connect.facebook.net";
+const META_DATA_HOSTS = "https://www.facebook.com https://connect.facebook.net";
+
 function contentSecurityPolicy(): string {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -197,7 +206,7 @@ function contentSecurityPolicy(): string {
     // a política dependente de quando a imagem foi buildada.
     //
     // Turnstile: ver `TURNSTILE_HOST`.
-    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS} ${TURNSTILE_HOST}${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' ${RD_STATION_SCRIPT_HOSTS} ${TURNSTILE_HOST} ${META_SCRIPT_HOST}${isDev ? " 'unsafe-eval'" : ""}`,
     // Google Fonts: o HTML dos pop-ups do RD traz um `<link>` para
     // fonts.googleapis.com (CSS) que baixa as fontes de fonts.gstatic.com.
     // Sem isto os pop-ups aparecem, mas com a fonte de fallback.
@@ -205,7 +214,7 @@ function contentSecurityPolicy(): string {
     // R2 público (catálogo de imagens) + MAUTIC removido em 2026-08-23.
     // `d335luupugsy2.cloudfront.net`: o `scout/bundle.js` do RD (banner de
     // consentimento) serve seus próprios assets de imagem do mesmo host.
-    `img-src 'self' data: blob: ${RD_STATION_SCRIPT_HOSTS}${r2Public ? ` ${r2Public}` : ""}`,
+    `img-src 'self' data: blob: ${RD_STATION_SCRIPT_HOSTS} ${META_DATA_HOSTS}${r2Public ? ` ${r2Public}` : ""}`,
     // Vídeo do hero servido do R2 (slides `kind: "upload"` — ver
     // `hero-slider.tsx`). SEM esta diretiva o `<video>` cairia no
     // `default-src 'self'` e o navegador bloquearia o arquivo: o hero
@@ -217,7 +226,7 @@ function contentSecurityPolicy(): string {
     // visitante) saem por XHR/fetch para a API do RD e para as CDNs acima.
     // Sem isto o script CARREGA mas nenhum dado chega ao RD — falha silenciosa,
     // visível só no console.
-    `connect-src 'self' ${RD_STATION_CONNECT_HOSTS}${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
+    `connect-src 'self' ${RD_STATION_CONNECT_HOSTS} ${META_DATA_HOSTS}${r2Endpoint ? ` ${r2Endpoint}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
     "form-action 'self'",
     // youtube-nocookie.com: mantido porque o admin pode criar slides YouTube
     // no carrossel do hero (home-slider.tsx) — o rationale de "enquadrar ≠

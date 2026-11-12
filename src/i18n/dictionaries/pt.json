@@ -2562,6 +2562,7 @@
           ],
           "items": [
             "RD Station, plataforma de CRM e automação de marketing, que recebe os contatos e pedidos enviados pelo site.",
+        "Meta Platforms (Facebook e Instagram), que mede os resultados dos anúncios da ROCO. Quando você envia um formulário, o site informa à Meta que houve um contato, com e-mail, telefone e nome convertidos em código irreversível (hash), além do endereço IP, do navegador e dos identificadores de anúncio do navegador.",
             "E-mail do time comercial da ROCO, quando o envio de notificações estiver configurado.",
             "Cloudflare, que presta serviços de rede, firewall, limite de requisições e verificação anti-robô (Turnstile).",
             "Autoridades públicas, quando exigido por lei ou ordem legal."
@@ -2799,7 +2800,8 @@
             "Sessão do Portal ROCO (necessários): mantém você conectado. É gravado apenas para quem faz login, com validade de até 8 horas.",
             "roco_cart_v1 (preferências, armazenamento local): guarda a lista de produtos do orçamento no seu navegador. Permanece até você remover os itens ou limpar os dados do site no navegador.",
             "Cloudflare e Turnstile (segurança): ajudam a identificar tráfego automatizado e a proteger formulários e login. Duração definida pelo fornecedor.",
-            "RD Station (marketing e medição): script de rastreamento e pop-ups, com cookies próprios do RD. Duração definida pelo fornecedor."
+            "RD Station (marketing e medição): script de rastreamento e pop-ups, com cookies próprios do RD. Duração definida pelo fornecedor.",
+        "Meta Pixel (marketing e medição): _fbp (identificador do navegador, até 90 dias) e _fbc (clique em anúncio da Meta, 90 dias). Medem visitas, produtos vistos, itens adicionados ao orçamento e envios de formulário para os anúncios da ROCO."
           ]
         },
         {
@@ -2807,6 +2809,7 @@
           "heading": "Cookies de terceiros",
           "paragraphs": [
             "O RD Station grava cookies próprios ao carregar seu script de rastreamento e seus pop-ups, inclusive o botão de WhatsApp.",
+        "O Meta Pixel carrega um script da Meta (connect.facebook.net) e envia os eventos de navegação à Meta. Para recusar a personalização de anúncios, use também as configurações de anúncios da sua conta do Facebook ou do Instagram.",
             "O vídeo da página inicial pode vir do YouTube em modo de privacidade aprimorada (youtube-nocookie.com). Ao reproduzi-lo, o YouTube pode definir cookies conforme a política dele.",
             "A Cloudflare e o Turnstile também podem definir cookies de segurança. Esses cookies são controlados pelos respectivos fornecedores."
           ],

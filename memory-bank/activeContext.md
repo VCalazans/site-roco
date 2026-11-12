@@ -1,7 +1,9 @@
 # Active Context — ROCO
-> Atualizado: 2026-11-05
+> Atualizado: 2026-11-11
 
 ## Foco Atual
+**2026-11-11 (não commitado, não implantado)**: Meta Pixel + API de Conversões (CAPI). O site envia Lead e Contact à Meta pelo navegador e pelo servidor, com o mesmo `event_id` (o `client_tracking_id` do lead). A venda (Purchase) vai pelo RD Station (integração nativa, configurada pela ROCO). Decisão em `decisionLog.md` (2026-11-11). Falta: token CAPI e ID do Pixel no `site-roco`, teste com `META_CAPI_TEST_EVENT_CODE`, deploy, e decisão LGPD sobre o Pixel sem consentimento.
+
 **2026-11-05 (na `main`, não implantado)**: catálogo. "Baixar Catálogo" (`#catalogo`, `/catalogo`) volta para a página própria
 `/{locale}/catalogo` (formulário + `?origem=`); o PDF é enviado em Configurações do Site › Catálogo em PDF e servido por
 `GET /api/catalog/download` (303 para URL de 60 s). `ONLINE_CATALOG_URL` removida. RD: `catalogo-roco` como origem do catálogo.
@@ -30,6 +32,7 @@ Decisões D1–D7 em `decisionLog.md` (2026-10-13).
   da ROCO — ver decisionLog), `/ia` ("Tire dúvidas com IA"), atalho no produto e crédito da Archicode no rodapé.
 
 ## Decisões Recentes
+- 2026-11-11: Meta Pixel no navegador + CAPI no servidor para leads (mesmo `event_id`); venda pelo RD Station; `_fbc` por `?fbclid=`; migration 0018.
 - 2026-11-05: catálogo volta à página própria com formulário (reverte 2026-09-30); PDF enviado pelo portal; download por
   `GET /api/catalog/download`; `ONLINE_CATALOG_URL` removida; `RD_LEAD_SOURCES.catalog` = `catalogo-roco`.
 - 2026-10-15: "Contato" sai do menu (fica "Ligamos pra você"); CNPJ obrigatório em todos os formulários públicos; origem no RD
@@ -41,6 +44,7 @@ Decisões D1–D7 em `decisionLog.md` (2026-10-13).
 - 2026-10-13: `/mcp` na raiz exige entrada em `ROOT_ROUTES` e no matcher do `src/proxy.ts`.
 
 ## Próximos Passos Prioritários
+000. **Meta (2026-11-11)**: gerar token CAPI e gravar envs no `site-roco`; testar com `META_CAPI_TEST_EVENT_CODE`; checar deduplicação; verificar domínio na Meta; decidir consentimento do Pixel (LGPD).
 00. **Catálogo (2026-11-05)**: após o deploy, enviar o PDF atual em Configurações do Site › Catálogo em PDF; revisão do `security` em `GET /api/catalog/download` e no upload `catalogPdf`;
    smoke de envio real ao RD com a origem `catalogo-roco` (ainda não testado com chave).
 0. **Lead (2026-10-15)**: smoke no navegador (contato, orçamento e catálogo: CNPJ obrigatório, aba do WhatsApp e botão de

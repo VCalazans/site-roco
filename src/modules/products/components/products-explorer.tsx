@@ -23,6 +23,7 @@ import { rememberListingUrl } from "@/modules/products/lib/listing-memory";
 import type { PublicCategory, PublicProductItem } from "@/modules/products/lib/types";
 import { ProductCard, type ProductCardContent } from "@/shared/components/product-card";
 import { interpolate } from "@/shared/lib/interpolate";
+import { trackMeta } from "@/shared/lib/meta-pixel";
 import { FilterChip } from "./filter-chip";
 import { categoryDisplayName, ProductsFilters } from "./products-filters";
 import { SearchTermsField } from "./search-terms-field";
@@ -221,6 +222,13 @@ export function ProductsExplorer({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  // Meta Pixel: Search quando os termos FIXADOS (chips) mudam — não a cada
+  // tecla, para não inflar o evento com buscas pela metade.
+  const searchKey = terms.join(" ");
+  useEffect(() => {
+    if (searchKey) trackMeta("Search", { search_string: searchKey.slice(0, 200) });
+  }, [searchKey]);
 
   // Gaveta mobile: Escape fecha e a página não rola por baixo.
   useEffect(() => {

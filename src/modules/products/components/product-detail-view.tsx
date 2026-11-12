@@ -1,3 +1,4 @@
+import { MetaViewContent } from "@/shared/components/analytics/meta-view-content";
 import Image from "next/image";
 import { AskAiLinks } from "@/modules/ai/components/ask-ai-links";
 import Link from "next/link";
@@ -75,6 +76,11 @@ export function ProductDetailView({
 
   return (
     <div className="relative min-h-[100svh] w-full bg-[#05070b]">
+      <MetaViewContent
+        sku={product.sku}
+        name={name}
+        category={primaryCategory ? categoryLabel(primaryCategory) : undefined}
+      />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[40rem] overflow-hidden">
         <Image src={SCENE} alt="" fill priority sizes="100vw" className="object-cover object-right opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#05070b]/10 via-[#05070b]/60 to-[#05070b]" />

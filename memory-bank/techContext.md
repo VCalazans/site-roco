@@ -101,6 +101,24 @@ rastreio de clique do provedor SMTP nos e-mails transacionais (ele reescreveria 
 - **Homologação**: EasyPanel, projeto `whats`, serviço `roco-test`, site `https://devroco.archicode.tech`
   (o `AUTH_URL` de lá); SMTP Hostinger na 587.
 
+### Meta Pixel e API de Conversões (2026-11-11)
+| Variável                     | Obrig. | Descrição                                  |
+|------------------------------|:------:|--------------------------------------------|
+| NEXT_PUBLIC_META_PIXEL_ID    | não    | ID do Pixel. BUILD-TIME (build-arg do `Dockerfile`, `docker-compose.yml` e `scripts/docker-build.cmd`; mudar = rebuild). Vazio = Pixel desligado. Produção: 581081397147905 ("Site Roco") |
+| NEXT_PUBLIC_META_PIXEL_ENABLED | não | `false` desliga o Pixel. BUILD-TIME |
+| META_CAPI_ACCESS_TOKEN       | não    | Token da API de Conversões. RUNTIME, segredo. Vazio = `meta_capi_status = skipped` |
+| META_DATASET_ID              | não    | Dataset da CAPI. Vazio = ID do Pixel |
+| META_CAPI_TEST_EVENT_CODE    | não    | Só teste (aba "Eventos de teste"). Remover depois |
+| META_GRAPH_API_VERSION       | não    | Versão da Graph API (padrão v23.0)         |
+- **Divisão**: navegador envia PageView, ViewContent, Search, AddToCart, CompleteRegistration e `ContinuarNoWhatsApp`; navegador e
+  servidor enviam Lead e Contact com o mesmo `event_id` (`client_tracking_id`, devolvido no 201 de `POST /api/contact` como `eventId`).
+  Purchase vai pelo RD Station (integração nativa; configuração da ROCO).
+- **Cookie `_fbc`**: `?fbclid=` vira `fb.1.<ms>.<fbclid>` em `src/proxy.ts` (90 dias, SameSite=Lax, não httpOnly).
+- **CSP**: `connect.facebook.net` em `script-src`; `www.facebook.com` e `connect.facebook.net` em `img-src` e `connect-src`.
+- **Banco**: migration `drizzle/0018_contact_meta_capi.sql` (`contact_submissions.meta_capi_status`, `meta_capi_error`); journal com 19 entradas.
+- **Código**: `src/server/lib/meta-capi.ts` (puro), `src/server/lib/meta-capi-send.ts` (Graph API, timeout 8 s, nunca lança),
+  `src/shared/lib/meta-pixel.ts`, `src/shared/components/analytics/meta-pixel.tsx` e `meta-view-content.tsx`.
+
 ### Verificação anti-robô — Cloudflare Turnstile (2026-10-12)
 | Variável                       | Obrig. | Descrição                                  |
 |--------------------------------|:------:|--------------------------------------------|
@@ -181,7 +199,7 @@ provedor S3. Em produção (MinIO): `R2_BUCKET=roco-site` e `R2_PUBLIC_URL=https
   `ver_orcamento`, `preparar_contato` (nunca envia).
 - `/indexnow.txt`: chave do IndexNow.
 - `GET /api/ai/conectar-claude?de=home|ia`: conta o clique (≤ 3 por IP a cada 10 min) e redireciona 302 ao link oficial de
-  instalação do conector no Claude. Contadores de uso da IA em `ai_usage_daily` (migration 0017; journal com 18 migrations).
+  instalação do conector no Claude. Contadores de uso da IA em `ai_usage_daily` (migration 0017; journal com 19 migrations após a 0018 da Meta CAPI).
 - `robots.ts`: grupos explícitos para robôs de IA (liberados) e `Disallow` de `/api/`, portal, admin e orçamento.
 - `sitemap.ts` (`force-dynamic`): produtos publicados × 2 idiomas, categorias, `lastmod` real e alternates (1.518 URLs no banco local).
 

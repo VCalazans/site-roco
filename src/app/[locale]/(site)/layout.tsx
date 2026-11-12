@@ -1,5 +1,5 @@
 import { ViewTransition, type ReactNode } from "react";
-import { RdStationTracking } from "@/shared/components/analytics";
+import { MetaPixel, RdStationTracking } from "@/shared/components/analytics";
 import { BackToTop } from "@/shared/components/back-to-top/back-to-top";
 import { ConsentBanner } from "@/shared/components/consent/consent-banner";
 import { SiteFooter } from "@/shared/components/footer";
@@ -82,6 +82,9 @@ export default async function SiteLayout({ children, params }: SiteLayoutProps) 
        * (removido na main em 2026-09-21). Nos builds locais a flag
        * NEXT_PUBLIC_RDSTATION_TRACKING_ENABLED vem "false": sem RD, sem pop-up. */}
       <RdStationTracking />
+      {/* Meta Pixel (anúncios): liga só com NEXT_PUBLIC_META_PIXEL_ID. Os
+       * leads também saem pelo servidor (API de Conversões, POST /api/contact). */}
+      <MetaPixel />
       {/* Banner LGPD. Liga via NEXT_PUBLIC_CONSENT_ENABLED=true; o jurídico
        * precisa preencher a `body` final do dicionário antes de ligar em
        * produção. Renderiza `null` quando desligado — zero overhead. */}

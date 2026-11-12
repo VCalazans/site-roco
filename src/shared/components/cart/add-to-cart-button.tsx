@@ -7,6 +7,7 @@ import { cn } from "@/core/lib/utils";
 import { quotePath } from "@/core/config/site";
 import { addItem, useCartItems } from "@/shared/lib/cart-store";
 import { interpolate } from "@/shared/lib/interpolate";
+import { trackMeta } from "@/shared/lib/meta-pixel";
 import type { Locale } from "@/i18n/config";
 
 /** Mesmo shape de `dictionary.cart.addButton` — reaproveitado direto. */
@@ -68,6 +69,7 @@ export function AddToCartButton({ slug, name, sku, image, locale, labels, varian
     event.stopPropagation();
 
     addItem({ slug, name, sku, image }, 1);
+    trackMeta("AddToCart", { content_ids: [sku], content_type: "product", content_name: name, num_items: 1 });
 
     setJustAdded(true);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);

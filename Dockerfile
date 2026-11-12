@@ -29,6 +29,9 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 # no build recusa todo envio dos formulários e do login.
 ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
+# Meta Pixel (anúncios). Vazio = Pixel desligado. Público (vai no HTML).
+ARG NEXT_PUBLIC_META_PIXEL_ID=
+ENV NEXT_PUBLIC_META_PIXEL_ID=$NEXT_PUBLIC_META_PIXEL_ID
 # R2_PUBLIC_URL e R2_ACCOUNT_ID são lidos em next.config.ts (build-time) para
 # computar images.remotePatterns e CSP. Não são NEXT_PUBLIC_* (não vazam pro client);
 # apenas IDs/URLs públicos (sem segredos).

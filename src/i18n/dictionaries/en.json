@@ -2562,6 +2562,7 @@
           ],
           "items": [
             "RD Station, a CRM and marketing automation platform, which receives the contacts and requests sent through the website.",
+        "Meta Platforms (Facebook and Instagram), which measures the results of ROCO's ads. When you submit a form, the website tells Meta that a contact took place, with your e-mail, phone and name converted into an irreversible code (hash), plus your IP address, browser and the browser's ad identifiers.",
             "The ROCO sales team's email inbox, when notification sending is configured.",
             "Cloudflare, which provides network services, firewall, request rate limiting and anti-bot verification (Turnstile).",
             "Public authorities, when required by law or a legal order."
@@ -2799,7 +2800,8 @@
             "ROCO Portal session (necessary): keeps you signed in. Set only for people who sign in, with a validity of up to 8 hours.",
             "roco_cart_v1 (preferences, local storage): stores the list of products in your quote in your browser. It remains until you remove the items or clear the website data in your browser.",
             "Cloudflare and Turnstile (security): help identify automated traffic and protect forms and login. Duration set by the provider.",
-            "RD Station (marketing and measurement): tracking script and pop-ups, with RD's own cookies. Duration set by the provider."
+            "RD Station (marketing and measurement): tracking script and pop-ups, with RD's own cookies. Duration set by the provider.",
+        "Meta Pixel (marketing and measurement): _fbp (browser identifier, up to 90 days) and _fbc (click on a Meta ad, 90 days). They measure visits, products viewed, items added to the quote and form submissions for ROCO's ads."
           ]
         },
         {
@@ -2807,6 +2809,7 @@
           "heading": "Third-party cookies",
           "paragraphs": [
             "RD Station sets its own cookies when its tracking script and pop-ups load, including the WhatsApp button.",
+        "The Meta Pixel loads a Meta script (connect.facebook.net) and sends browsing events to Meta. To opt out of ad personalization, also use the ad settings of your Facebook or Instagram account.",
             "The home page video may come from YouTube in privacy-enhanced mode (youtube-nocookie.com). When you play it, YouTube may set cookies under its own policy.",
             "Cloudflare and Turnstile may also set security cookies. These cookies are controlled by their respective providers."
           ],

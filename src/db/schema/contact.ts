@@ -85,6 +85,13 @@ export const contactSubmissions = pgTable(
     rdStationError: text("rd_station_error"),
     emailStatus: varchar("email_status", { length: 20 }).notNull().default("pending"),
     emailError: text("email_error"),
+    /**
+     * API de Conversões da Meta ("sent" | "failed" | "skipped"). `skipped` =
+     * sem `META_CAPI_ACCESS_TOKEN`/conjunto configurado. Linhas anteriores a
+     * 2026-11-11 ficam "pending" (nunca foram tentadas).
+     */
+    metaCapiStatus: varchar("meta_capi_status", { length: 20 }).notNull().default("pending"),
+    metaCapiError: text("meta_capi_error"),
     ip: varchar("ip", { length: 45 }),
     userAgent: text("user_agent"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
